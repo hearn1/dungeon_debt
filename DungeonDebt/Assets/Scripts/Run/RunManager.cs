@@ -3,8 +3,15 @@ using UnityEngine;
 
 public class RunManager : MonoBehaviour
 {
+    [SerializeField] private PayrollManager _payrollManager;
+
     private System.Random _random;
     private RunState _currentRunState;
+
+    public void Initialize(PayrollManager payrollManager)
+    {
+        _payrollManager = payrollManager;
+    }
 
     public RunState CurrentRunState
     {
@@ -71,6 +78,11 @@ public class RunManager : MonoBehaviour
         _currentRunState.Gold += rewardGold;
         _currentRunState.Morale += moraleChange;
 
+        if (_payrollManager != null)
+        {
+            _payrollManager.ApplyPostCombat(_currentRunState, combatResult);
+        }
+
         int totalUpkeep = CalculateTotalUpkeep(_currentRunState, encounter);
         int upkeepPaid = totalUpkeep;
         int upkeepShortfall = 0;
@@ -113,6 +125,11 @@ public class RunManager : MonoBehaviour
         _currentRunState.LatestInterestCharged = interestCharged;
         _currentRunState.LatestInterestPaid = interestPaid;
         _currentRunState.LatestInterestAddedToDebt = interestAddedToDebt;
+
+        if (_payrollManager != null)
+        {
+            _payrollManager.RevertPerCombatHeroStats(_currentRunState);
+        }
     }
 
     public GameState EvaluateNextState()

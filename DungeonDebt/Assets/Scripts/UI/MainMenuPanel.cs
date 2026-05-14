@@ -149,8 +149,7 @@ public class MainMenuPanel : MonoBehaviour
     private void HandlePayrollSelect(PayrollActionId? actionId)
     {
         _gameManager.SelectPayrollAction(actionId);
-        RunState runState = _gameManager.CurrentRunState;
-        _payrollPanelView.Refresh(runState != null ? runState.SelectedPayrollAction : null);
+        _payrollPanelView.Refresh(_gameManager.CurrentRunState);
     }
 
     private void HandlePayrollContinue()
@@ -275,7 +274,7 @@ public class MainMenuPanel : MonoBehaviour
                 payrollRun.SelectedPayrollAction = null;
             }
             _runHeaderView.Refresh(payrollRun);
-            _payrollPanelView.Refresh(payrollRun != null ? payrollRun.SelectedPayrollAction : null);
+            _payrollPanelView.Refresh(payrollRun);
             _payrollPanelView.Show();
             _startCombatButton.interactable = false;
             _restartButton.interactable = true;

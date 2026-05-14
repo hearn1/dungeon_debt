@@ -38,11 +38,18 @@ public class RewardSummaryView : MonoBehaviour
         }
 
         _titleText.text = "Reward Summary";
+
+        string payrollSection = string.Empty;
+        if (!string.IsNullOrEmpty(runState.LatestPayrollSummary))
+        {
+            payrollSection = runState.LatestPayrollSummary + "\n";
+        }
+
         _bodyText.text =
             "Combat: " + (runState.LatestCombatWon ? "Win" : "Loss") + "\n" +
             "Gold gained: +" + runState.LatestRewardGold + "\n" +
             "Morale change: " + FormatSigned(runState.LatestMoraleChange) + "\n" +
-            "Payroll effect: None\n" +
+            payrollSection +
             "Upkeep due: " + runState.LatestTotalUpkeep + "\n" +
             "Upkeep paid: " + runState.LatestUpkeepPaid + "\n" +
             "Upkeep shortfall: " + runState.LatestUpkeepShortfall + "\n" +

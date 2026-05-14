@@ -108,6 +108,12 @@ public class GameManager : MonoBehaviour
             _runManager.AdvanceRound();
         }
 
+        RunState runState = CurrentRunState;
+        if (runState != null)
+        {
+            runState.SelectedPayrollAction = null;
+        }
+
         ChangeState(nextState);
     }
 
@@ -162,5 +168,7 @@ public class GameManager : MonoBehaviour
                 _payrollManager = gameObject.AddComponent<PayrollManager>();
             }
         }
+
+        _runManager.Initialize(_payrollManager);
     }
 }

@@ -44,7 +44,27 @@ Copy this block when filing a new regression. New regressions go at the top of t
 
 <!-- Newest at the top. -->
 
-_None._
+### R002 — Round-advance loop bypasses Shop / Formation / Payroll
+
+**Reported:** 2026-05-14
+**Found in slice:** M5.2 (detected) — M2.3 (introduced)
+**Severity:** 🟠 Major
+**Status:** Open
+
+**Repro steps:**
+1. Start a Run. Hire any party. Continue → Formation → Payroll.
+2. Pick any payroll action. Continue → Combat resolves → Reward Summary shows.
+3. Click Continue on the Reward Summary.
+
+**Expected:** Round advances to N+1 and routes back through Shop → Formation → Payroll → Combat per `IMPLEMENTATION_PLAN.md` §11 Milestone 5/6 flow ("Scout → Shop → Payroll → Formation → Combat → Reward → Upkeep → next round").
+**Actual:** Round advances and jumps directly to Combat with the prior round's party, formation, and (cleared) payroll selection. Shop/Formation/Payroll panels are never re-entered for rounds 2–10. M5.2 test step A.5 is unreachable as a result; the multi-round economy can't actually be exercised.
+
+**Suspected cause:** `GameManager.ContinueAfterReward` calls `_runManager.EvaluateNextState()`, which returns `GameState.Combat` whenever no end condition is met, then jumps straight there. The round-advance routing was wired in M2.3 (before Shop/Formation/Payroll states existed) and never updated when M3.2/M4.1/M5.1 added those states.
+
+**Notes:**
+- M5.2 changes themselves are correct in isolation: `RevertPerCombatHeroStats` runs and `SelectedPayrollAction` is cleared in `ContinueAfterReward`. The cross-round observability gap is purely the routing bug.
+- Likely fix: `EvaluateNextState` (or `ContinueAfterReward`) should return `GameState.Shop` for the "continue run" branch; `MainMenuPanel.HandleStateChanged` already does the right thing once Shop is re-entered. Decide at plan time whether Scout (rounds 3/6/9) is wired here too or deferred to M7.
+- Should be addressed **before M6** so M6 encounter selection lands on a working multi-round loop.
 
 ---
 
