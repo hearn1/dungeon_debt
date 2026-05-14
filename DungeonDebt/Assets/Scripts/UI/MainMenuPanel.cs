@@ -15,6 +15,8 @@ public class MainMenuPanel : MonoBehaviour
     private const int RewardSummaryHeight = 460;
     private const int EndScreenWidth = 640;
     private const int EndScreenHeight = 460;
+    private const int LogScrollbarWidth = 14;
+    private const int LogContentPadding = 24;
 
     [SerializeField] private GameManager _gameManager;
     [SerializeField] private RunManager _runManager;
@@ -273,11 +275,69 @@ public class MainMenuPanel : MonoBehaviour
         RectTransform logPanel = CreatePanel("CombatLogPanel", root, new Color(0.16f, 0.17f, 0.2f, 1f));
         SetAnchoredRect(logPanel, 0f, 0f, 1f, 1f, HorizontalMargin, 100f, -HorizontalMargin - RewardSummaryWidth - ButtonGap, -CombatLogTopOffset);
 
-        Text logText = CreateText("CombatLogText", logPanel, string.Empty, 24, FontStyle.Normal, TextAnchor.UpperLeft);
-        SetAnchoredRect(logText.rectTransform, 0f, 0f, 1f, 1f, 32f, 24f, -32f, -24f);
+        ScrollRect scrollRect = logPanel.gameObject.AddComponent<ScrollRect>();
+        scrollRect.horizontal = false;
+        scrollRect.vertical = true;
+        scrollRect.movementType = ScrollRect.MovementType.Clamped;
+        scrollRect.scrollSensitivity = 24f;
+
+        RectTransform viewport = CreateRect("Viewport", logPanel);
+        SetAnchoredRect(viewport, 0f, 0f, 1f, 1f, 0f, 0f, -(LogScrollbarWidth + 4f), 0f);
+        Image viewportImage = viewport.gameObject.AddComponent<Image>();
+        viewportImage.color = new Color(1f, 1f, 1f, 0f);
+        viewportImage.raycastTarget = true;
+        viewport.gameObject.AddComponent<RectMask2D>();
+
+        RectTransform content = CreateRect("Content", viewport);
+        content.anchorMin = new Vector2(0f, 1f);
+        content.anchorMax = new Vector2(1f, 1f);
+        content.pivot = new Vector2(0.5f, 1f);
+        content.anchoredPosition = Vector2.zero;
+        content.sizeDelta = new Vector2(0f, 0f);
+        VerticalLayoutGroup contentLayout = content.gameObject.AddComponent<VerticalLayoutGroup>();
+        contentLayout.padding = new RectOffset(LogContentPadding, LogContentPadding, LogContentPadding, LogContentPadding);
+        contentLayout.childAlignment = TextAnchor.UpperLeft;
+        contentLayout.childControlWidth = true;
+        contentLayout.childControlHeight = true;
+        contentLayout.childForceExpandWidth = true;
+        contentLayout.childForceExpandHeight = false;
+        ContentSizeFitter contentFitter = content.gameObject.AddComponent<ContentSizeFitter>();
+        contentFitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
+        contentFitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+        Text logText = CreateText("CombatLogText", content, string.Empty, 24, FontStyle.Normal, TextAnchor.UpperLeft);
+        logText.verticalOverflow = VerticalWrapMode.Overflow;
+
+        RectTransform scrollbarRect = CreatePanel("VerticalScrollbar", logPanel, new Color(0.1f, 0.11f, 0.13f, 1f));
+        scrollbarRect.anchorMin = new Vector2(1f, 0f);
+        scrollbarRect.anchorMax = new Vector2(1f, 1f);
+        scrollbarRect.pivot = new Vector2(1f, 0.5f);
+        scrollbarRect.anchoredPosition = Vector2.zero;
+        scrollbarRect.sizeDelta = new Vector2(LogScrollbarWidth, 0f);
+        Image scrollbarImage = scrollbarRect.GetComponent<Image>();
+        scrollbarImage.raycastTarget = true;
+        Scrollbar verticalScrollbar = scrollbarRect.gameObject.AddComponent<Scrollbar>();
+        verticalScrollbar.direction = Scrollbar.Direction.BottomToTop;
+
+        RectTransform slidingArea = CreateRect("SlidingArea", scrollbarRect);
+        SetAnchoredRect(slidingArea, 0f, 0f, 1f, 1f, 2f, 2f, -2f, -2f);
+        RectTransform handleRect = CreatePanel("Handle", slidingArea, new Color(0.55f, 0.5f, 0.35f, 1f));
+        handleRect.anchorMin = new Vector2(0f, 0f);
+        handleRect.anchorMax = new Vector2(1f, 1f);
+        handleRect.offsetMin = Vector2.zero;
+        handleRect.offsetMax = Vector2.zero;
+        Image handleImage = handleRect.GetComponent<Image>();
+        handleImage.raycastTarget = true;
+        verticalScrollbar.targetGraphic = handleImage;
+        verticalScrollbar.handleRect = handleRect;
+
+        scrollRect.viewport = viewport;
+        scrollRect.content = content;
+        scrollRect.verticalScrollbar = verticalScrollbar;
+        scrollRect.verticalScrollbarVisibility = ScrollRect.ScrollbarVisibility.Permanent;
 
         _combatLogView = logPanel.gameObject.AddComponent<CombatLogView>();
-        _combatLogView.Initialize(logText);
+        _combatLogView.Initialize(logText, scrollRect);
 
         RectTransform rewardSummaryPanel = CreatePanel("RewardSummaryPanel", root, new Color(0.13f, 0.14f, 0.17f, 1f));
         SetAnchoredRect(rewardSummaryPanel, 1f, 0.5f, 1f, 0.5f, -HorizontalMargin - (RewardSummaryWidth * 0.5f), -45f, RewardSummaryWidth, RewardSummaryHeight);

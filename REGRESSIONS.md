@@ -44,23 +44,7 @@ Copy this block when filing a new regression. New regressions go at the top of t
 
 <!-- Newest at the top. -->
 
-### R001 — Combat log truncates in long combats
-
-**Reported:** 2026-05-14
-**Found in slice:** M3.2 (detected) — M1.3 (introduced)
-**Severity:** 🟠 Major
-**Status:** Open
-
-**Repro steps:**
-1. Temporarily set `GameRules.StartingGold = 100`.
-2. Start Run. Hire a support-heavy party (e.g. Priest, Bard, Enchanter, Treasurer, Apprentice) up to 5/5 via the hire-then-reroll cycle.
-3. Continue to Combat.
-
-**Expected:** All combat log lines for the full encounter remain visible (or scroll).
-**Actual:** Log text cuts off; later actions are not visible.
-
-**Suspected cause:** `CombatLogView`'s `Text` component uses `VerticalWrapMode.Truncate` on a fixed-height panel with no scrolling. With a larger party producing more lines per round, content past the panel bottom is dropped.
-**Notes:** Out of scope for M3.2; surfaced only because M3 enabled bigger parties. Fix candidates for a polish slice: wrap the log in a `ScrollRect` and auto-scroll to bottom, or trim oldest lines when over a line cap.
+_None._
 
 ---
 
@@ -76,4 +60,25 @@ Copy this block when filing a new regression. New regressions go at the top of t
 **Original entry:** <preserve the original body for history>
 ```
 
-_None._
+### R001 — Combat log truncates in long combats  ✅ Closed
+
+**Closed:** 2026-05-14
+**Fixed in slice:** R001
+
+**Original entry:**
+
+**Reported:** 2026-05-14
+**Found in slice:** M3.2 (detected) — M1.3 (introduced)
+**Severity:** 🟠 Major
+**Status:** Closed
+
+**Repro steps:**
+1. Temporarily set `GameRules.StartingGold = 100`.
+2. Start Run. Hire a support-heavy party (e.g. Priest, Bard, Enchanter, Treasurer, Apprentice) up to 5/5 via the hire-then-reroll cycle.
+3. Continue to Combat.
+
+**Expected:** All combat log lines for the full encounter remain visible (or scroll).
+**Actual:** Log text cuts off; later actions are not visible.
+
+**Suspected cause:** `CombatLogView`'s `Text` component uses `VerticalWrapMode.Truncate` on a fixed-height panel with no scrolling. With a larger party producing more lines per round, content past the panel bottom is dropped.
+**Notes:** Fixed by wrapping the log in a uGUI `ScrollRect` with auto-scroll-to-bottom and a permanent vertical scrollbar. See `TestPlans/TP_R001.md` (all 26 steps pass).
