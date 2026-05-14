@@ -10,7 +10,7 @@ The plan is intentionally scoped small. Do not expand it. When in doubt, cut.
 
 These are recommendations, not options. Use them unless a milestone explicitly overrides.
 
-- **Unity version:** **Unity 2022.3 LTS** (latest patch). Stable, well-supported by tooling, broad LLM training data.
+- **Unity version:** **Unity 6.4 (`6000.4.x`)**. Use the latest available patch in the 6000.4 line.
 - **Project type:** **2D (URP)** template. We are UI-heavy but want one shared rendering pipeline in case we add minor sprite work or simple particle flashes.
 - **Target platform:** **Windows Standalone (PC)** as primary. The game must also run in the Unity Editor's Play mode without modification. No mobile, no WebGL, no console.
 - **Resolution:** Fixed reference resolution of **1920×1080**, Canvas Scaler set to "Scale With Screen Size" (Match: 0.5). 16:9 only.
