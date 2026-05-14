@@ -4,46 +4,44 @@ This file always describes the **next** session's work. Rewrite it at the end of
 
 ---
 
-## Session: M1.2 - Combat repository and resolver scaffold
+## Session: M1.3 - Combat sandbox UI wiring
 
 **Milestone:** M1 - Combat Sandbox
-**Slice goal:** Add the first hardcoded combat data and a pure synchronous combat resolver that can resolve one fixed encounter into a `CombatResult`. **No UI, no scene wiring, no shop, no payroll, no formation editing, and no run economy systems yet.**
+**Slice goal:** Wire the M1.2 combat resolver into the existing single scene with a minimal uGUI combat sandbox: a Start Combat button, readable streaming combat log, final result line, and Restart button. **No shop, payroll, formation editing, run economy, rewards, upkeep, rivals, save/load, or extra hero/enemy effects yet.**
 
-This slice builds on M1.1's plain C# data model. It should stay inside `Core/` and `Combat/`, plus the manual test plan.
+This slice builds on M1.2's static sandbox data and pure synchronous resolver. The simulation must remain in `CombatManager`; UI scripts only present the result and raise button-click actions.
 
 ### Acceptance criteria
 
-1. `GameRules.cs` exists and contains the M1 numeric constants needed by this slice, including `CombatTurnLimit`.
-2. `DataRepository.cs` exists as a read-only static repository with only the initial sandbox data: 4-5 heroes, 2-3 enemies, and one hardcoded sandbox encounter.
-3. `CombatManager.StartCombat(RunState run, EncounterDefinition encounter)` resolves combat synchronously and deterministically into a `CombatResult`.
-4. `CombatLogger` records ordered attack, death, turn-limit, and final result lines; repeated runs with the same inputs produce identical logs.
-5. `HeroEffects.cs` exists as a static no-op/stub hook surface only; no extra hero effects, UI behavior, scene edits, prefabs, shop, payroll, formation editing, or run economy systems are introduced.
+1. `Main.unity` opens with a minimal combat sandbox UI on the existing Canvas: title/status text, Start Combat button, combat log area, and Restart button hidden or disabled until combat completes.
+2. Clicking Start Combat uses `DataRepository.CreateSandboxRun()`, `DataRepository.SandboxEncounter`, and `CombatManager.StartCombat(...)` to run the fixed sandbox combat.
+3. `CombatLogView` streams the already-resolved `CombatResult.LogLines` to the UI in order with a small readable delay; the combat simulation itself is still synchronous and does not use coroutines.
+4. The final UI state clearly shows the win/loss result and enables Restart; clicking Restart clears the old log and re-runs the same fixed combat with identical log text.
+5. No out-of-scope systems are introduced: no shop, payroll, formation editing, rewards, upkeep, debt, morale, rivals, imported art, save/load, or extra hero/enemy effects.
 
 ### Files Claude Code creates
 
 ```
-DungeonDebt/Assets/Scripts/Core/GameRules.cs
-DungeonDebt/Assets/Scripts/Core/DataRepository.cs
-DungeonDebt/Assets/Scripts/Combat/CombatManager.cs
-DungeonDebt/Assets/Scripts/Combat/CombatLogger.cs
-DungeonDebt/Assets/Scripts/Combat/HeroEffects.cs
-TestPlans/TP_M1.2.md
+DungeonDebt/Assets/Scripts/UI/MainMenuPanel.cs
+DungeonDebt/Assets/Scripts/UI/CombatLogView.cs
+TestPlans/TP_M1.3.md
 ```
 
 ### Files Claude Code may modify
 
 ```
-DungeonDebt/Assets/Scripts/Data/CombatUnit.cs
+DungeonDebt/Assets/Scenes/Main.unity
 ```
 
-Only modify `CombatUnit.cs` if the resolver needs a minimal data-field adjustment to implement the plan cleanly, such as damage reduction support for the existing combat formula. If this becomes more than a small compatibility adjustment, stop and ask before proceeding.
+Modify `Main.unity` only to wire the existing Canvas/EventSystem into the minimal M1.3 combat sandbox UI. Keep the scene single-scene, uGUI-only, mouse-only, and 1920x1080 reference resolution.
 
 ### Files Claude Code does NOT create or modify
 
-- Any UI script or panel, including `UI/CombatLogView.cs` and `UI/MainMenuPanel.cs`.
-- Any scene, prefab, Canvas, or EventSystem file.
-- Any manager outside the current slice, including `GameManager`, `RunManager`, `ShopManager`, `PayrollManager`, `EncounterManager`, or `RivalManager`.
+- Any run/economy manager, including `GameManager`, `RunManager`, `ShopManager`, `PayrollManager`, `EncounterManager`, or `RivalManager`.
 - Any shop, payroll, reward, upkeep, debt, morale, rival update, save/load, or formation-editing behavior.
+- Any data model or resolver files from M1.1/M1.2 unless a compile-breaking issue is discovered. If that happens, stop and ask before expanding scope.
+- Any prefab files unless Unity requires a generated `.meta` for the new scripts.
+- Any imported sprites, audio, animation assets, tweens, particles, or VFX.
 - Any `Resources/`, `StreamingAssets/`, `Tests/`, or `Editor/` folders.
 - Any Unity Test Framework, NUnit, PlayMode, or EditMode test assets.
 - `PROGRESS.md` or `REGRESSIONS.md` during implementation.
@@ -52,23 +50,28 @@ Only modify `CombatUnit.cs` if the resolver needs a minimal data-field adjustmen
 
 - `IMPLEMENTATION_PLAN.md` Section 1 - Technical Assumptions
 - `IMPLEMENTATION_PLAN.md` Section 2 - Project Folder Structure
-- `IMPLEMENTATION_PLAN.md` Section 4 - Data Model
-- `IMPLEMENTATION_PLAN.md` Section 5 - MVP Rule Definitions
 - `IMPLEMENTATION_PLAN.md` Section 6 - Combat System Plan
+- `IMPLEMENTATION_PLAN.md` Section 10 - UI Architecture and screen layout, especially `CombatLogView` and `MainMenuPanel`
 - `IMPLEMENTATION_PLAN.md` Section 11 - Milestone 1
 - `IMPLEMENTATION_PLAN.md` Section 12 - Recommended Script List
-- `GAME_DESIGN.md` Auto-Combat Phase and MVP Hero Roster only as needed for combat data names/stats
+- `GAME_DESIGN.md` Auto-Combat Phase only as needed for log presentation expectations
+
+### Notes from previous slice
+
+- M1.2 created `GameRules`, `DataRepository`, `CombatManager`, `CombatLogger`, and `HeroEffects`.
+- The user reported the M1.2 manual test plan as all passed or skipped; probe-script steps were skipped because the instructions for creating and running the probe were unclear.
+- M1.3 should make the combat resolver testable through the actual scene UI, so avoid probe-script test steps unless the exact script body and placement are included.
 
 ### Test plan output
 
-Claude Code creates `TestPlans/TP_M1.2.md` covering at minimum:
+Claude Code creates `TestPlans/TP_M1.3.md` covering at minimum:
 
-- **Happy path:** Open Unity, let scripts compile, and confirm the Console has zero errors and zero new warnings.
-- **Combat checks:** Resolve the hardcoded sandbox run/encounter through the new resolver and verify the result has ordered log lines, at least one attack line, death lines when enemies die, and a final win/loss line.
-- **Determinism checks:** Run the same combat twice with the same hardcoded data and verify the log lines match exactly.
-- **Edge cases:** Empty player party immediately loses, empty enemy list immediately wins, and very tanky units hit the turn limit and produce the turn-limit loss line.
-- **Rule checks:** No `UnityEngine.Random`, no coroutines or async simulation, no UI/scene/prefab changes, no forbidden folders, and no combat hot-path LINQ.
-- **Regression checks:** M1.1 data model files still compile, `Main.unity` still opens, Canvas/EventSystem remain intact, and the Console remains clean.
+- **Happy path:** Open Unity, let scripts compile, open `Main.unity`, click Start Combat, watch the log stream, and confirm final result appears.
+- **Restart checks:** Click Restart and verify the previous log clears, the same fixed combat runs again, and the log text matches the first run exactly.
+- **UI state checks:** Start Combat is not spam-clickable during log playback, Restart is unavailable until combat completes, and the final win/loss state is visible.
+- **Rule checks:** uGUI only, mouse-only button `onClick`, no new Input System action assets, no `UnityEngine.Random`, no async simulation, no UI script performing combat logic, no forbidden folders.
+- **Regression checks:** M1.1 data model and M1.2 resolver files still compile, `DataRepository.CreateSandboxRun()` still supplies the fixed party, `CombatManager.StartCombat(...)` still resolves without scene dependencies, and Console remains clean.
+- **Observable invariants:** Log lines appear in order, one final result line appears per run, Restart produces identical text, no old log lines remain after restart, and no UI text overlaps at 1920x1080.
 
 Each step in the test plan must follow the checkbox format from `SESSION_PROTOCOL.md` step 6:
 
