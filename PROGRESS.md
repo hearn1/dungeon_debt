@@ -51,6 +51,43 @@ Copy this block when adding a new entry. Paste it at the top of the Session log 
 
 <!-- Newest entries at the top. -->
 
+## 2026-05-14 - M3.2: ShopManager and shop UI (offer generation, hire, fire, reroll)
+
+**Milestone:** M3 - Shop and Party
+**Status:** Complete
+
+**Files added:**
+- `DungeonDebt/Assets/Scripts/Run/ShopManager.cs`
+- `DungeonDebt/Assets/Scripts/UI/ShopPanelView.cs`
+- `DungeonDebt/Assets/Scripts/UI/ShopOfferView.cs`
+- `DungeonDebt/Assets/Scripts/UI/HeroCardView.cs`
+- `TestPlans/TP_M3.2.md`
+
+**Files modified:**
+- `DungeonDebt/Assets/Scripts/Core/GameManager.cs` - wired `ShopManager`; `StartRun()` chains to Shop; entering `Shop` calls `GenerateOffers()`; added `ContinueFromShop()`.
+- `DungeonDebt/Assets/Scripts/UI/MainMenuPanel.cs` - built/wired shop panel into `BuildUi`; hooked Hire/Fire/Reroll/Continue handlers; removed `PrepareSandboxRun` call from combat path; state-driven show/hide of the shop panel.
+
+**Acceptance criteria:**
+- [x] 3 distinct offers from `AllHeroes` via `RunManager.Random` (`System.Random`); no `UnityEngine.Random`.
+- [x] Hire deducts `BaseUpkeep + HireCostBonus`, caps at `MaxPartySize`, disables Hire when unaffordable or full.
+- [x] Fire removes hero and refunds `FireRefund` (1 gold).
+- [x] Reroll costs `RerollCost` (2 gold), disabled when underfunded. Mid-slice design clarification: Reroll refreshes **all 3** slots (the offer pool excludes heroes already in party), not just unpurchased slots — required to reach the 5/5 cap in a single shop visit.
+- [x] Continue from Shop → Combat with player-built party; M1/M2 reward/upkeep/interest/end-screen flow preserved.
+- [x] No payroll/formation/scout/rival UI, no new combat or encounter content.
+
+**Test plan:** `TestPlans/TP_M3.2.md` - all steps pass; one step partial (Step 9: no offer cost > 10 in this run, so the cost-disable case was verified incidentally during hiring; Step 17: re-enable-after-Fire visual check not directly observed).
+
+**Deviations from plan:**
+- `RunManager.cs` was listed in the plan's "Files to modify" but ended up untouched; `MainMenuPanel` already accessed `CurrentRunState` via `GameManager`, and `RunManager.Random` was already public.
+- Reroll semantics evolved from "refresh only unpurchased slots" (literal brief reading) to "refresh all 3 slots, excluding party-member heroes from the pool" (Option A, user-confirmed). Required to make the 5-hero cap reachable in a single shop visit.
+
+**Follow-up flagged:**
+- New regression filed: R001 - combat log truncates in long combats (M1.3 `CombatLogView` issue, surfaced by larger parties). Out of scope for M3.2.
+- `RunManager.PrepareSandboxRun()` and `DataRepository.CreateSandboxRun()` are now unreferenced; defer deletion to a later cleanup slice (per Option A confirmed during planning).
+- Per-round shop refresh deferred to M6 (confirmed scope).
+
+**Next slice:** M4.1 - Formation editing UI (click-to-swap reorder of 5 slots; frontline targeting wired into combat).
+
 ## 2026-05-14 - M3.1: DataRepository expansion to the full 12 heroes
 
 **Milestone:** M3 - Shop and Party

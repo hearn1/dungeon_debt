@@ -4,6 +4,7 @@ using UnityEngine;
 public class GameManager : MonoBehaviour
 {
     [SerializeField] private RunManager _runManager;
+    [SerializeField] private ShopManager _shopManager;
 
     private GameState _currentState = GameState.MainMenu;
 
@@ -32,25 +33,36 @@ public class GameManager : MonoBehaviour
         get { return _runManager; }
     }
 
+    public ShopManager ShopManager
+    {
+        get { return _shopManager; }
+    }
+
     private void Awake()
     {
-        EnsureRunManager();
+        EnsureManagers();
     }
 
     public void Initialize(RunManager runManager)
     {
         _runManager = runManager;
-        EnsureRunManager();
+        EnsureManagers();
     }
 
     public void StartRun()
     {
         ChangeState(GameState.StartRun);
+        ChangeState(GameState.Shop);
+    }
+
+    public void ContinueFromShop()
+    {
+        ChangeState(GameState.Combat);
     }
 
     public void ContinueAfterReward()
     {
-        EnsureRunManager();
+        EnsureManagers();
         if (_runManager == null)
         {
             return;
@@ -67,12 +79,17 @@ public class GameManager : MonoBehaviour
 
     public void ChangeState(GameState nextState)
     {
-        EnsureRunManager();
+        EnsureManagers();
         _currentState = nextState;
 
         if (_currentState == GameState.StartRun && _runManager != null)
         {
             _runManager.InitializeRun();
+        }
+
+        if (_currentState == GameState.Shop && _shopManager != null)
+        {
+            _shopManager.GenerateOffers();
         }
 
         if (OnStateChanged != null)
@@ -81,17 +98,26 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    private void EnsureRunManager()
+    private void EnsureManagers()
     {
-        if (_runManager != null)
-        {
-            return;
-        }
-
-        _runManager = GetComponent<RunManager>();
         if (_runManager == null)
         {
-            _runManager = gameObject.AddComponent<RunManager>();
+            _runManager = GetComponent<RunManager>();
+            if (_runManager == null)
+            {
+                _runManager = gameObject.AddComponent<RunManager>();
+            }
         }
+
+        if (_shopManager == null)
+        {
+            _shopManager = GetComponent<ShopManager>();
+            if (_shopManager == null)
+            {
+                _shopManager = gameObject.AddComponent<ShopManager>();
+            }
+        }
+
+        _shopManager.Initialize(_runManager);
     }
 }
