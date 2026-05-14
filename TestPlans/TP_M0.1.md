@@ -52,8 +52,8 @@ Fill in `Actual:` for each step. A step passes when `Actual` matches `Expected`.
       Expected: No folder named `Tests`, `Editor`, `Resources`, or `StreamingAssets` exists anywhere under `Assets/`. (`InputSystem_Actions.inputactions` and `Settings/` are pre-existing template files and are expected to remain.)
       Actual:
 
-- [ ] Step 10. Search the repository for `.cs` files (`Get-ChildItem -Recurse -Filter *.cs` in PowerShell at repo root).
-      Expected: Zero results. No C# source files exist yet — first code lands in M1.
+- [ ] Step 10. Search project-authored source locations for `.cs` files (`Get-ChildItem DungeonDebt\Assets,TestPlans -Recurse -Filter *.cs -Force` in PowerShell at repo root).
+      Expected: Zero results. No project-authored C# source files exist yet — first code lands in M1. Ignore Unity-generated package/cache files under `DungeonDebt/Library/`.
       Actual:
 
 - [ ] Step 11. Confirm `TestPlans/` is at the **repo root**, not under `DungeonDebt/Assets/`.
