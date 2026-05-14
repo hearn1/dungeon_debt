@@ -7,6 +7,7 @@ using UnityEngine.UI;
 public class CombatLogView : MonoBehaviour
 {
     [SerializeField] private Text _logText;
+    [SerializeField] private ScrollRect _scrollRect;
     [SerializeField] private float _lineDelaySeconds = 0.25f;
 
     private Coroutine _streamCoroutine;
@@ -16,9 +17,10 @@ public class CombatLogView : MonoBehaviour
         get { return _streamCoroutine != null; }
     }
 
-    public void Initialize(Text logText)
+    public void Initialize(Text logText, ScrollRect scrollRect)
     {
         _logText = logText;
+        _scrollRect = scrollRect;
         Clear();
     }
 
@@ -34,6 +36,8 @@ public class CombatLogView : MonoBehaviour
         {
             _logText.text = string.Empty;
         }
+
+        SnapToBottom();
     }
 
     public void StreamLines(IReadOnlyList<string> lines, Action onComplete)
@@ -66,6 +70,7 @@ public class CombatLogView : MonoBehaviour
                 _logText.text += "\n" + lines[i];
             }
 
+            SnapToBottom();
             yield return new WaitForSeconds(_lineDelaySeconds);
         }
 
@@ -74,5 +79,25 @@ public class CombatLogView : MonoBehaviour
         {
             onComplete();
         }
+    }
+
+    private void SnapToBottom()
+    {
+        if (_scrollRect == null)
+        {
+            return;
+        }
+
+        // Force a layout rebuild so the ScrollRect sees the new content height
+        // before we snap; otherwise verticalNormalizedPosition is set against
+        // last frame's size and the new tail line sits below the viewport.
+        RectTransform content = _scrollRect.content;
+        if (content != null)
+        {
+            Canvas.ForceUpdateCanvases();
+            LayoutRebuilder.ForceRebuildLayoutImmediate(content);
+        }
+
+        _scrollRect.verticalNormalizedPosition = 0f;
     }
 }

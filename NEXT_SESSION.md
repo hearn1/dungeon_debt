@@ -61,7 +61,7 @@ DungeonDebt/Assets/Scripts/UI/MainMenuPanel.cs
 
 - M3.2 added Shop with Hire/Fire/Reroll/Continue and shipped Option A reroll semantics (Reroll wipes all 3 slots; pool excludes party-member hero ids).
 - `RunManager.PrepareSandboxRun()` and `DataRepository.CreateSandboxRun()` are now unreferenced. Either delete in M4.1 *only if it would not touch out-of-scope files* — otherwise leave for a dedicated cleanup slice.
-- **Open regression R001** (combat log truncates in long combats) is filed and 🟠 Major but does **not** block M4.1 (the slice does not depend on the combat log being complete). Consider bundling a fix into a polish slice at the end of M4.
+- **R001 (combat log truncation) is closed** as of 2026-05-14 — the combat log is now a ScrollRect with auto-scroll-to-bottom and a permanent vertical scrollbar. No open regressions block M4.1.
 - Shop is only entered once per run in current code; per-round shop refresh is M6 scope and is still deferred.
 - Existing combat path reads the player party from `_gameManager.CurrentRunState`; `CombatManager.StartCombat(run, encounter)` does not need a signature change for M4.1.
 

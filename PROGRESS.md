@@ -51,6 +51,34 @@ Copy this block when adding a new entry. Paste it at the top of the Session log 
 
 <!-- Newest entries at the top. -->
 
+## 2026-05-14 - R001: Combat log scroll fix
+
+**Milestone:** Regression fix (not tied to a milestone slice)
+**Status:** Complete
+
+**Files added:**
+- `TestPlans/TP_R001.md`
+
+**Files modified:**
+- `DungeonDebt/Assets/Scripts/UI/CombatLogView.cs` - accept a ScrollRect reference; rebuild layout and snap to bottom after each appended line and on Clear.
+- `DungeonDebt/Assets/Scripts/UI/MainMenuPanel.cs` - rebuilt the combat-log panel as ScrollRect -> Viewport (RectMask2D) -> Content (VerticalLayoutGroup + ContentSizeFitter) with the log Text in Overflow vertical wrap mode, plus a permanent vertical Scrollbar.
+
+**Acceptance criteria:**
+- [x] All combat log lines remain reachable in long combats.
+- [x] View auto-scrolls to the latest line during streaming.
+- [x] User can scroll up via mouse wheel and via visible scrollbar.
+- [x] No changes outside the two UI files; no combat/run-state/encounter logic touched.
+
+**Test plan:** `TestPlans/TP_R001.md` - all 26 steps pass.
+
+**Deviations from plan:**
+- Added a `VerticalLayoutGroup` on the Content rect so `ContentSizeFitter` could compute height from the Text's preferred size. Not explicitly in the plan but required for the ScrollRect math to be correct.
+
+**Follow-up flagged:**
+- R001 moved to the **Closed** section of `REGRESSIONS.md`.
+
+**Next slice:** M4.1 - Formation editing UI (click-to-swap reorder; frontline targeting wired into combat).
+
 ## 2026-05-14 - M3.2: ShopManager and shop UI (offer generation, hire, fire, reroll)
 
 **Milestone:** M3 - Shop and Party
