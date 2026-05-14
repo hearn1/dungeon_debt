@@ -26,6 +26,7 @@ public class MainMenuPanel : MonoBehaviour
     [SerializeField] private CombatLogView _combatLogView;
     [SerializeField] private RewardSummaryView _rewardSummaryView;
     [SerializeField] private EndScreenView _endScreenView;
+    [SerializeField] private ShopPanelView _shopPanelView;
 
     private static Font _runtimeFont;
 
@@ -39,6 +40,7 @@ public class MainMenuPanel : MonoBehaviour
         _restartButton.onClick.AddListener(RestartCombat);
         _rewardSummaryView.SetOnContinue(HandleContinueClicked);
         _endScreenView.SetOnNewRun(HandleNewRunClicked);
+        _shopPanelView.SetHandlers(HandleHireClicked, HandleFireClicked, HandleRerollClicked, HandleShopContinueClicked);
         ResetUi();
     }
 
@@ -63,13 +65,11 @@ public class MainMenuPanel : MonoBehaviour
     private void StartCombat()
     {
         _gameManager.StartRun();
-        _gameManager.ChangeState(GameState.Combat);
     }
 
     private void RestartCombat()
     {
         _gameManager.StartRun();
-        _gameManager.ChangeState(GameState.Combat);
     }
 
     private void HandleContinueClicked()
@@ -80,7 +80,54 @@ public class MainMenuPanel : MonoBehaviour
     private void HandleNewRunClicked()
     {
         _gameManager.StartRun();
-        _gameManager.ChangeState(GameState.Combat);
+    }
+
+    private void HandleHireClicked(int offerIndex)
+    {
+        ShopManager shopManager = _gameManager.ShopManager;
+        if (shopManager == null)
+        {
+            return;
+        }
+
+        shopManager.Hire(offerIndex);
+        RefreshShop();
+    }
+
+    private void HandleFireClicked(int partyIndex)
+    {
+        ShopManager shopManager = _gameManager.ShopManager;
+        if (shopManager == null)
+        {
+            return;
+        }
+
+        shopManager.Fire(partyIndex);
+        RefreshShop();
+    }
+
+    private void HandleRerollClicked()
+    {
+        ShopManager shopManager = _gameManager.ShopManager;
+        if (shopManager == null)
+        {
+            return;
+        }
+
+        shopManager.Reroll();
+        RefreshShop();
+    }
+
+    private void HandleShopContinueClicked()
+    {
+        _gameManager.ContinueFromShop();
+    }
+
+    private void RefreshShop()
+    {
+        RunState runState = _gameManager.CurrentRunState;
+        _runHeaderView.Refresh(runState);
+        _shopPanelView.Refresh(runState, _gameManager.ShopManager.CurrentOffers);
     }
 
     private void ResetUi()
@@ -93,6 +140,7 @@ public class MainMenuPanel : MonoBehaviour
         _rewardSummaryView.Clear();
         _runHeaderView.Clear();
         _endScreenView.Hide();
+        _shopPanelView.Hide();
     }
 
     private void RunSandboxCombat()
@@ -104,8 +152,9 @@ public class MainMenuPanel : MonoBehaviour
         _combatLogView.Clear();
         _rewardSummaryView.Clear();
         _endScreenView.Hide();
+        _shopPanelView.Hide();
 
-        RunState run = _runManager.PrepareSandboxRun();
+        RunState run = _gameManager.CurrentRunState;
         _runHeaderView.Refresh(run);
         EncounterDefinition encounter = DataRepository.SandboxEncounter;
         CombatResult result = new CombatManager().StartCombat(run, encounter);
@@ -131,12 +180,29 @@ public class MainMenuPanel : MonoBehaviour
             _combatLogView.Clear();
             _rewardSummaryView.Clear();
             _endScreenView.Hide();
+            _shopPanelView.Hide();
             _resultText.text = string.Empty;
+            return;
+        }
+
+        if (gameState == GameState.Shop)
+        {
+            _statusText.text = "Shop. Hire heroes, then Continue.";
+            _resultText.text = string.Empty;
+            _combatLogView.Clear();
+            _rewardSummaryView.Clear();
+            _endScreenView.Hide();
+            _runHeaderView.Refresh(_gameManager.CurrentRunState);
+            _shopPanelView.Refresh(_gameManager.CurrentRunState, _gameManager.ShopManager.CurrentOffers);
+            _shopPanelView.Show();
+            _startCombatButton.interactable = false;
+            _restartButton.interactable = true;
             return;
         }
 
         if (gameState == GameState.Combat)
         {
+            _shopPanelView.Hide();
             RunSandboxCombat();
             return;
         }
@@ -145,6 +211,7 @@ public class MainMenuPanel : MonoBehaviour
         {
             _statusText.text = gameState == GameState.Victory ? "Run won." : "Run lost.";
             _rewardSummaryView.Clear();
+            _shopPanelView.Hide();
             _endScreenView.Show(_gameManager.CurrentRunState, gameState == GameState.Victory);
             _restartButton.interactable = true;
         }
@@ -225,6 +292,12 @@ public class MainMenuPanel : MonoBehaviour
         SetAnchoredRect(endScreenPanel, 0.5f, 0.5f, 0.5f, 0.5f, 0f, 0f, EndScreenWidth, EndScreenHeight);
         _endScreenView = endScreenPanel.gameObject.AddComponent<EndScreenView>();
         _endScreenView.Initialize(GetRuntimeFont());
+
+        RectTransform shopPanel = CreateRect("ShopPanel", root);
+        SetAnchoredRect(shopPanel, 0f, 0f, 1f, 1f, HorizontalMargin, 100f, -HorizontalMargin, -CombatLogTopOffset);
+        _shopPanelView = shopPanel.gameObject.AddComponent<ShopPanelView>();
+        _shopPanelView.Initialize(GetRuntimeFont());
+        _shopPanelView.Hide();
     }
 
     private static RectTransform CreateRect(string objectName, RectTransform parent)
