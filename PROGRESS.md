@@ -51,6 +51,44 @@ Copy this block when adding a new entry. Paste it at the top of the Session log 
 
 <!-- Newest entries at the top. -->
 
+## 2026-05-14 - M6.1: Scout panel and encounter list wiring
+
+**Milestone:** M6 - Full 10-Round Run
+**Status:** Complete
+
+**Files added:**
+- `DungeonDebt/Assets/Scripts/Run/EncounterManager.cs`
+- `DungeonDebt/Assets/Scripts/UI/ScoutPanelView.cs`
+- `TestPlans/TP_M6.1.md`
+
+**Files modified:**
+- `DungeonDebt/Assets/Scripts/Data/RunState.cs` — added `CurrentEncounter` property so Scout/Combat/Reward share the loaded encounter.
+- `DungeonDebt/Assets/Scripts/Core/DataRepository.cs` — added 6 enemy definitions (GoblinThief, TaxCollector, BacklineBat, DebtWraith, TreasureLeech, DungeonAuditor) and the static 10-entry `Encounters` list per §8 table; R3/R6/R9 use Slime placeholders until M7.
+- `DungeonDebt/Assets/Scripts/Core/GameManager.cs` — added `EncounterManager` field/property/wire-up; `StartRun` now chains `StartRun → Scout`; added `ContinueFromScout`; `ChangeState` calls `LoadEncounter` on Scout entry; `ContinueAfterReward` reroutes the run-continue branch to Scout after `AdvanceRound()`.
+- `DungeonDebt/Assets/Scripts/UI/MainMenuPanel.cs` — built `ScoutPanelView` in `BuildUi`; added a `Scout` branch in `HandleStateChanged` and hid the panel in every other branch; `RunSandboxCombat` now uses `run.CurrentEncounter` instead of `DataRepository.SandboxEncounter`.
+- `REGRESSIONS.md` — moved R002 from Open to Closed (administrative cleanup at session start; R002 was actually fixed in the prior slice).
+
+**Acceptance criteria:**
+- [x] AC1 — Scout state wired into StartRun and round-advance.
+- [x] AC2 — Scout panel shows encounter name, type, scout text, reward, Continue.
+- [x] AC3 — EncounterManager.LoadEncounter(round) returns the right EncounterDefinition; enemies flow into combat in slot order.
+- [x] AC4 — All 10 encounters present in DataRepository.Encounters with correct names/types/scout text per §8.
+- [x] AC5 — Full 10-round playthrough with Scout each round and Victory after R10 (TP_M6.1 sweep completed, no observations).
+- [x] AC6 — No hero/enemy behavioral effects in this slice (all use *.None; combat is plain DPS).
+
+**Test plan:** `TestPlans/TP_M6.1.md` — completed; happy path steps 1-8 marked pass, no observations on remaining sweep/data/state/rule/regression/invariant checks.
+
+**Deviations from plan:**
+- None.
+
+**Follow-up flagged:**
+- M6.2: implement encounter effects (Goblin Thief steal, Tax Collector upkeep, Backline Bat targeting, Debt Wraith scaling, Treasure Leech reward drain, Dungeon Auditor boss effects) and wire each encounter/enemy's EffectId.
+- M6.2: any remaining hero effect implementations in `HeroEffects.cs` per §7.
+- M7: replace R3/R6/R9 Slime placeholders with proper rival ghost teams; rival win-bonus reward math.
+- Cleanup (deferred): `RunManager.PrepareSandboxRun()` / `DataRepository.CreateSandboxRun()` still unreferenced once Combat is exclusively driven by `run.CurrentEncounter`; `MainMenuPanel.RunSandboxCombat` keeps a defensive fallback to `SandboxEncounter`.
+
+**Next slice:** M6.2 - Encounter and hero effects wired into combat / reward / upkeep.
+
 ## 2026-05-14 - R002: Round-advance routes through Shop → Formation → Payroll → Combat
 
 **Milestone:** Regression fix (blocks M6 entry)

@@ -31,6 +31,7 @@ public class MainMenuPanel : MonoBehaviour
     [SerializeField] private ShopPanelView _shopPanelView;
     [SerializeField] private FormationPanelView _formationPanelView;
     [SerializeField] private PayrollPanelView _payrollPanelView;
+    [SerializeField] private ScoutPanelView _scoutPanelView;
 
     private static Font _runtimeFont;
 
@@ -48,6 +49,7 @@ public class MainMenuPanel : MonoBehaviour
         _formationPanelView.SetHandlers(HandleFormationSwap, HandleFormationContinue);
         _payrollPanelView.SetActions(DataRepository.AllPayrollActions);
         _payrollPanelView.SetHandlers(HandlePayrollSelect, HandlePayrollContinue);
+        _scoutPanelView.SetOnContinue(HandleScoutContinueClicked);
         ResetUi();
     }
 
@@ -157,6 +159,11 @@ public class MainMenuPanel : MonoBehaviour
         _gameManager.ContinueFromPayroll();
     }
 
+    private void HandleScoutContinueClicked()
+    {
+        _gameManager.ContinueFromScout();
+    }
+
     private void RefreshShop()
     {
         RunState runState = _gameManager.CurrentRunState;
@@ -177,6 +184,7 @@ public class MainMenuPanel : MonoBehaviour
         _shopPanelView.Hide();
         _formationPanelView.Hide();
         _payrollPanelView.Hide();
+        _scoutPanelView.Hide();
     }
 
     private void RunSandboxCombat()
@@ -191,10 +199,13 @@ public class MainMenuPanel : MonoBehaviour
         _shopPanelView.Hide();
         _formationPanelView.Hide();
         _payrollPanelView.Hide();
+        _scoutPanelView.Hide();
 
         RunState run = _gameManager.CurrentRunState;
         _runHeaderView.Refresh(run);
-        EncounterDefinition encounter = DataRepository.SandboxEncounter;
+        EncounterDefinition encounter = run != null && run.CurrentEncounter != null
+            ? run.CurrentEncounter
+            : DataRepository.SandboxEncounter;
         CombatResult result = new CombatManager().StartCombat(run, encounter);
 
         _combatLogView.StreamLines(result.LogLines, delegate
@@ -221,7 +232,26 @@ public class MainMenuPanel : MonoBehaviour
             _shopPanelView.Hide();
             _formationPanelView.Hide();
             _payrollPanelView.Hide();
+            _scoutPanelView.Hide();
             _resultText.text = string.Empty;
+            return;
+        }
+
+        if (gameState == GameState.Scout)
+        {
+            _statusText.text = "Scout. Review the encounter, then Continue.";
+            _resultText.text = string.Empty;
+            _combatLogView.Clear();
+            _rewardSummaryView.Clear();
+            _endScreenView.Hide();
+            _shopPanelView.Hide();
+            _formationPanelView.Hide();
+            _payrollPanelView.Hide();
+            _runHeaderView.Refresh(_gameManager.CurrentRunState);
+            _scoutPanelView.Refresh(_gameManager.CurrentRunState);
+            _scoutPanelView.Show();
+            _startCombatButton.interactable = false;
+            _restartButton.interactable = true;
             return;
         }
 
@@ -234,6 +264,7 @@ public class MainMenuPanel : MonoBehaviour
             _endScreenView.Hide();
             _formationPanelView.Hide();
             _payrollPanelView.Hide();
+            _scoutPanelView.Hide();
             _runHeaderView.Refresh(_gameManager.CurrentRunState);
             _shopPanelView.Refresh(_gameManager.CurrentRunState, _gameManager.ShopManager.CurrentOffers);
             _shopPanelView.Show();
@@ -251,6 +282,7 @@ public class MainMenuPanel : MonoBehaviour
             _endScreenView.Hide();
             _shopPanelView.Hide();
             _payrollPanelView.Hide();
+            _scoutPanelView.Hide();
             _runHeaderView.Refresh(_gameManager.CurrentRunState);
             _formationPanelView.Refresh(_gameManager.CurrentRunState);
             _formationPanelView.Show();
@@ -268,6 +300,7 @@ public class MainMenuPanel : MonoBehaviour
             _endScreenView.Hide();
             _shopPanelView.Hide();
             _formationPanelView.Hide();
+            _scoutPanelView.Hide();
             RunState payrollRun = _gameManager.CurrentRunState;
             if (payrollRun != null)
             {
@@ -286,6 +319,7 @@ public class MainMenuPanel : MonoBehaviour
             _shopPanelView.Hide();
             _formationPanelView.Hide();
             _payrollPanelView.Hide();
+            _scoutPanelView.Hide();
             RunSandboxCombat();
             return;
         }
@@ -297,6 +331,7 @@ public class MainMenuPanel : MonoBehaviour
             _shopPanelView.Hide();
             _formationPanelView.Hide();
             _payrollPanelView.Hide();
+            _scoutPanelView.Hide();
             _endScreenView.Show(_gameManager.CurrentRunState, gameState == GameState.Victory);
             _restartButton.interactable = true;
         }
@@ -453,6 +488,12 @@ public class MainMenuPanel : MonoBehaviour
         _payrollPanelView = payrollPanel.gameObject.AddComponent<PayrollPanelView>();
         _payrollPanelView.Initialize(GetRuntimeFont());
         _payrollPanelView.Hide();
+
+        RectTransform scoutPanel = CreateRect("ScoutPanel", root);
+        SetAnchoredRect(scoutPanel, 0f, 0f, 1f, 1f, HorizontalMargin, 100f, -HorizontalMargin, -CombatLogTopOffset);
+        _scoutPanelView = scoutPanel.gameObject.AddComponent<ScoutPanelView>();
+        _scoutPanelView.Initialize(GetRuntimeFont());
+        _scoutPanelView.Hide();
     }
 
     private static RectTransform CreateRect(string objectName, RectTransform parent)

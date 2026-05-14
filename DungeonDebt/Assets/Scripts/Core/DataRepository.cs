@@ -147,6 +147,54 @@ public static class DataRepository
         EnemyEffectId.None,
         "No effect.");
 
+    private static readonly EnemyDefinition GoblinThief = new EnemyDefinition(
+        "goblin_thief",
+        "Goblin Thief",
+        2,
+        4,
+        EnemyEffectId.None,
+        "Steals gold if alive past combat round 3 (effect deferred to M6.2).");
+
+    private static readonly EnemyDefinition TaxCollector = new EnemyDefinition(
+        "tax_collector",
+        "Tax Collector",
+        1,
+        8,
+        EnemyEffectId.None,
+        "Raises upkeep this round (effect deferred to M6.2).");
+
+    private static readonly EnemyDefinition BacklineBat = new EnemyDefinition(
+        "backline_bat",
+        "Backline Bat",
+        3,
+        4,
+        EnemyEffectId.None,
+        "Attacks lowest-HP backline hero on combat round 2 (effect deferred to M6.2).");
+
+    private static readonly EnemyDefinition DebtWraith = new EnemyDefinition(
+        "debt_wraith",
+        "Debt Wraith",
+        1,
+        10,
+        EnemyEffectId.None,
+        "Attack scales with player debt at combat start (effect deferred to M6.2).");
+
+    private static readonly EnemyDefinition TreasureLeech = new EnemyDefinition(
+        "treasure_leech",
+        "Treasure Leech",
+        1,
+        12,
+        EnemyEffectId.None,
+        "Reduces reward if alive at combat end (effect deferred to M6.2).");
+
+    private static readonly EnemyDefinition DungeonAuditor = new EnemyDefinition(
+        "dungeon_auditor",
+        "Dungeon Auditor",
+        3,
+        20,
+        EnemyEffectId.None,
+        "Raises upkeep and deals periodic damage (effect deferred to M6.2).");
+
     private static readonly List<HeroDefinition> HeroDefinitions = new List<HeroDefinition>
     {
         Warrior,
@@ -167,7 +215,13 @@ public static class DataRepository
     {
         Slime,
         TrainingDummy,
-        CaveBat
+        CaveBat,
+        GoblinThief,
+        TaxCollector,
+        BacklineBat,
+        DebtWraith,
+        TreasureLeech,
+        DungeonAuditor
     };
 
     private static readonly PayrollActionDefinition TakeLoanAction = new PayrollActionDefinition(
@@ -221,6 +275,122 @@ public static class DataRepository
         new ReadOnlyCollection<EnemyDefinition>(EnemyDefinitions);
 
     public static readonly EncounterDefinition SandboxEncounter = SandboxEncounterDefinition;
+
+    private static readonly List<EncounterDefinition> EncounterDefinitions = new List<EncounterDefinition>
+    {
+        new EncounterDefinition(
+            1,
+            EncounterType.Dungeon,
+            "Slimes",
+            "Simple enemies. Win by having enough basic stats.",
+            "Basic stat check",
+            new List<EnemyDefinition> { Slime, Slime, Slime },
+            GameRules.WinReward,
+            EncounterEffectId.None,
+            null),
+
+        new EncounterDefinition(
+            2,
+            EncounterType.Dungeon,
+            "Goblin Thieves",
+            "If a Goblin Thief survives past combat round 3, lose 3 gold.",
+            "Economy pressure",
+            new List<EnemyDefinition> { GoblinThief, GoblinThief },
+            GameRules.WinReward,
+            EncounterEffectId.None,
+            null),
+
+        new EncounterDefinition(
+            3,
+            EncounterType.RivalGhost,
+            "Greedy Guild Ghost",
+            "A reckless rival guild with expensive heroes. Strong now, but drowning in debt.",
+            "Rival benchmark",
+            new List<EnemyDefinition> { Slime, Slime, Slime },
+            GameRules.WinReward,
+            EncounterEffectId.None,
+            "greedy"),
+
+        new EncounterDefinition(
+            4,
+            EncounterType.Dungeon,
+            "Tax Collector",
+            "Your total upkeep is increased by 2 this round.",
+            "Payroll pressure",
+            new List<EnemyDefinition> { TaxCollector },
+            GameRules.WinReward,
+            EncounterEffectId.None,
+            null),
+
+        new EncounterDefinition(
+            5,
+            EncounterType.Dungeon,
+            "Backline Bat",
+            "Attacks your lowest-health backline hero on turn 2.",
+            "Backline pressure",
+            new List<EnemyDefinition> { BacklineBat, Slime },
+            GameRules.WinReward,
+            EncounterEffectId.None,
+            null),
+
+        new EncounterDefinition(
+            6,
+            EncounterType.RivalGhost,
+            "Carry Guild Ghost",
+            "This rival protects a high-damage carry. Kill it quickly or survive the burst.",
+            "Rival benchmark",
+            new List<EnemyDefinition> { Slime, Slime, Slime },
+            GameRules.WinReward,
+            EncounterEffectId.None,
+            "carry"),
+
+        new EncounterDefinition(
+            7,
+            EncounterType.Dungeon,
+            "Debt Wraith",
+            "Gains attack based on your current debt.",
+            "Debt punishment",
+            new List<EnemyDefinition> { DebtWraith },
+            GameRules.WinReward,
+            EncounterEffectId.None,
+            null),
+
+        new EncounterDefinition(
+            8,
+            EncounterType.Dungeon,
+            "Treasure Leech",
+            "If Treasure Leech survives, your reward is reduced by 4 gold.",
+            "Reward pressure",
+            new List<EnemyDefinition> { TreasureLeech, Slime },
+            GameRules.WinReward,
+            EncounterEffectId.None,
+            null),
+
+        new EncounterDefinition(
+            9,
+            EncounterType.RivalGhost,
+            "Frugal Guild Ghost",
+            "A stable rival guild with cheap heroes and strong morale.",
+            "Rival benchmark",
+            new List<EnemyDefinition> { Slime, Slime, Slime },
+            GameRules.WinReward,
+            EncounterEffectId.None,
+            "frugal"),
+
+        new EncounterDefinition(
+            10,
+            EncounterType.FinalBoss,
+            "Dungeon Auditor",
+            "Final boss. Damages your party and adds debt pressure.",
+            "Final boss",
+            new List<EnemyDefinition> { DungeonAuditor },
+            GameRules.WinReward,
+            EncounterEffectId.None,
+            null)
+    };
+
+    public static readonly IReadOnlyList<EncounterDefinition> Encounters =
+        new ReadOnlyCollection<EncounterDefinition>(EncounterDefinitions);
 
     public static readonly IReadOnlyList<PayrollActionDefinition> AllPayrollActions =
         new ReadOnlyCollection<PayrollActionDefinition>(PayrollActionDefinitions);
