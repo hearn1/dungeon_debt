@@ -144,6 +144,76 @@ public class RunManager : MonoBehaviour
         return GameState.Combat;
     }
 
+    public void SwapPartySlots(int slotA, int slotB)
+    {
+        if (_currentRunState == null)
+        {
+            return;
+        }
+
+        if (slotA == slotB)
+        {
+            return;
+        }
+
+        if (slotA < 0 || slotA >= GameRules.MaxPartySize)
+        {
+            return;
+        }
+
+        if (slotB < 0 || slotB >= GameRules.MaxPartySize)
+        {
+            return;
+        }
+
+        HeroInstance heroA = null;
+        HeroInstance heroB = null;
+        for (int i = 0; i < _currentRunState.Party.Count; i++)
+        {
+            HeroInstance hero = _currentRunState.Party[i];
+            if (hero.FormationSlot == slotA)
+            {
+                heroA = hero;
+            }
+            else if (hero.FormationSlot == slotB)
+            {
+                heroB = hero;
+            }
+        }
+
+        if (heroA == null && heroB == null)
+        {
+            return;
+        }
+
+        if (heroA != null)
+        {
+            heroA.FormationSlot = slotB;
+        }
+
+        if (heroB != null)
+        {
+            heroB.FormationSlot = slotA;
+        }
+
+        _currentRunState.Party.Sort(CompareHeroesBySlot);
+    }
+
+    private static int CompareHeroesBySlot(HeroInstance first, HeroInstance second)
+    {
+        if (first.FormationSlot < second.FormationSlot)
+        {
+            return -1;
+        }
+
+        if (first.FormationSlot > second.FormationSlot)
+        {
+            return 1;
+        }
+
+        return 0;
+    }
+
     public void AdvanceRound()
     {
         if (_currentRunState == null)

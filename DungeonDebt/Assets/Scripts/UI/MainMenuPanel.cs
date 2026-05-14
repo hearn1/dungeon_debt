@@ -29,6 +29,7 @@ public class MainMenuPanel : MonoBehaviour
     [SerializeField] private RewardSummaryView _rewardSummaryView;
     [SerializeField] private EndScreenView _endScreenView;
     [SerializeField] private ShopPanelView _shopPanelView;
+    [SerializeField] private FormationPanelView _formationPanelView;
 
     private static Font _runtimeFont;
 
@@ -43,6 +44,7 @@ public class MainMenuPanel : MonoBehaviour
         _rewardSummaryView.SetOnContinue(HandleContinueClicked);
         _endScreenView.SetOnNewRun(HandleNewRunClicked);
         _shopPanelView.SetHandlers(HandleHireClicked, HandleFireClicked, HandleRerollClicked, HandleShopContinueClicked);
+        _formationPanelView.SetHandlers(HandleFormationSwap, HandleFormationContinue);
         ResetUi();
     }
 
@@ -125,6 +127,22 @@ public class MainMenuPanel : MonoBehaviour
         _gameManager.ContinueFromShop();
     }
 
+    private void HandleFormationSwap(int slotA, int slotB)
+    {
+        if (_runManager == null)
+        {
+            return;
+        }
+
+        _runManager.SwapPartySlots(slotA, slotB);
+        _formationPanelView.Refresh(_gameManager.CurrentRunState);
+    }
+
+    private void HandleFormationContinue()
+    {
+        _gameManager.ContinueFromFormation();
+    }
+
     private void RefreshShop()
     {
         RunState runState = _gameManager.CurrentRunState;
@@ -143,6 +161,7 @@ public class MainMenuPanel : MonoBehaviour
         _runHeaderView.Clear();
         _endScreenView.Hide();
         _shopPanelView.Hide();
+        _formationPanelView.Hide();
     }
 
     private void RunSandboxCombat()
@@ -155,6 +174,7 @@ public class MainMenuPanel : MonoBehaviour
         _rewardSummaryView.Clear();
         _endScreenView.Hide();
         _shopPanelView.Hide();
+        _formationPanelView.Hide();
 
         RunState run = _gameManager.CurrentRunState;
         _runHeaderView.Refresh(run);
@@ -183,6 +203,7 @@ public class MainMenuPanel : MonoBehaviour
             _rewardSummaryView.Clear();
             _endScreenView.Hide();
             _shopPanelView.Hide();
+            _formationPanelView.Hide();
             _resultText.text = string.Empty;
             return;
         }
@@ -194,6 +215,7 @@ public class MainMenuPanel : MonoBehaviour
             _combatLogView.Clear();
             _rewardSummaryView.Clear();
             _endScreenView.Hide();
+            _formationPanelView.Hide();
             _runHeaderView.Refresh(_gameManager.CurrentRunState);
             _shopPanelView.Refresh(_gameManager.CurrentRunState, _gameManager.ShopManager.CurrentOffers);
             _shopPanelView.Show();
@@ -202,9 +224,26 @@ public class MainMenuPanel : MonoBehaviour
             return;
         }
 
+        if (gameState == GameState.Formation)
+        {
+            _statusText.text = "Formation. Click two slots to swap, then Continue.";
+            _resultText.text = string.Empty;
+            _combatLogView.Clear();
+            _rewardSummaryView.Clear();
+            _endScreenView.Hide();
+            _shopPanelView.Hide();
+            _runHeaderView.Refresh(_gameManager.CurrentRunState);
+            _formationPanelView.Refresh(_gameManager.CurrentRunState);
+            _formationPanelView.Show();
+            _startCombatButton.interactable = false;
+            _restartButton.interactable = true;
+            return;
+        }
+
         if (gameState == GameState.Combat)
         {
             _shopPanelView.Hide();
+            _formationPanelView.Hide();
             RunSandboxCombat();
             return;
         }
@@ -214,6 +253,7 @@ public class MainMenuPanel : MonoBehaviour
             _statusText.text = gameState == GameState.Victory ? "Run won." : "Run lost.";
             _rewardSummaryView.Clear();
             _shopPanelView.Hide();
+            _formationPanelView.Hide();
             _endScreenView.Show(_gameManager.CurrentRunState, gameState == GameState.Victory);
             _restartButton.interactable = true;
         }
@@ -358,6 +398,12 @@ public class MainMenuPanel : MonoBehaviour
         _shopPanelView = shopPanel.gameObject.AddComponent<ShopPanelView>();
         _shopPanelView.Initialize(GetRuntimeFont());
         _shopPanelView.Hide();
+
+        RectTransform formationPanel = CreateRect("FormationPanel", root);
+        SetAnchoredRect(formationPanel, 0f, 0f, 1f, 1f, HorizontalMargin, 100f, -HorizontalMargin, -CombatLogTopOffset);
+        _formationPanelView = formationPanel.gameObject.AddComponent<FormationPanelView>();
+        _formationPanelView.Initialize(GetRuntimeFont());
+        _formationPanelView.Hide();
     }
 
     private static RectTransform CreateRect(string objectName, RectTransform parent)

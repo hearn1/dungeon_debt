@@ -51,6 +51,40 @@ Copy this block when adding a new entry. Paste it at the top of the Session log 
 
 <!-- Newest entries at the top. -->
 
+## 2026-05-14 - M4.1: Formation editing UI (click-to-swap reorder, frontline targeting)
+
+**Milestone:** M4 - Formation
+**Status:** Complete
+
+**Files added:**
+- `DungeonDebt/Assets/Scripts/UI/FormationPanelView.cs`
+- `DungeonDebt/Assets/Scripts/UI/FormationSlotView.cs`
+- `TestPlans/TP_M4.1.md`
+
+**Files modified:**
+- `DungeonDebt/Assets/Scripts/Core/GameManager.cs` - `ContinueFromShop` now transitions to Formation; added `ContinueFromFormation` -> Combat.
+- `DungeonDebt/Assets/Scripts/Run/RunManager.cs` - added `SwapPartySlots(int, int)` that swaps each hero's `FormationSlot` and re-sorts `Party` by slot.
+- `DungeonDebt/Assets/Scripts/UI/MainMenuPanel.cs` - built/wired FormationPanelView in `BuildUi`; added Formation branch to `HandleStateChanged`; hidden it on all other states.
+
+**Acceptance criteria:**
+- [x] Shop -> Formation routing via `ContinueFromShop`; Formation -> Combat via `ContinueFromFormation`.
+- [x] FormationPanelView renders 5 slots in trapezoid (2 frontline over 3 backline); section labels driven by `GameRules.FrontlineSlots`/`BacklineSlots`.
+- [x] Click-to-swap: highlight on first occupied click; second click swaps (including occupied<->empty); same-slot click cancels; empty-first click is a no-op.
+- [x] Continue from Formation routes to Combat with the chosen ordering; CombatManager targeting already frontline-first leftmost (no change needed).
+- [x] No payroll/scout/rival/save/new effect logic; M1-M3 flow intact.
+
+**Test plan:** `TestPlans/TP_M4.1.md` - all 35 steps pass.
+
+**Deviations from plan:**
+- None. `CombatManager.cs` was listed in the brief as "verify and adjust if needed" - verified, no adjustment required.
+
+**Follow-up flagged:**
+- `RunManager.PrepareSandboxRun()` and `DataRepository.CreateSandboxRun()` still unreferenced (carried over from M3.2). Defer to a dedicated cleanup slice.
+- M6 per-round shop refresh still deferred.
+- Possible M4.2 polish slice (drag-and-drop, richer slot art) if desired before M5.
+
+**Next slice:** M5.1 - Payroll action data + payroll panel shell.
+
 ## 2026-05-14 - R001: Combat log scroll fix
 
 **Milestone:** Regression fix (not tied to a milestone slice)

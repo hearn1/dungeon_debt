@@ -57,6 +57,11 @@ public class GameManager : MonoBehaviour
 
     public void ContinueFromShop()
     {
+        ChangeState(GameState.Formation);
+    }
+
+    public void ContinueFromFormation()
+    {
         ChangeState(GameState.Combat);
     }
 

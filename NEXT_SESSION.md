@@ -4,85 +4,81 @@ This file always describes the **next** session's work. Rewrite it at the end of
 
 ---
 
-## Session: M4.1 — Formation editing UI (click-to-swap reorder, frontline targeting)
+## Session: M5.1 — Payroll action data + payroll panel shell
 
-**Milestone:** M4 — Formation
-**Slice goal:** Add a Formation panel between Shop and Combat that lets the player reorder the 5 party slots via click-to-swap (select slot A, click slot B → swap). Default order = order-of-hire from the Shop. Combat targets frontline slots (0–1) before backline slots (2–4); leftmost-slot tiebreak preserved. **No payroll-choice UI, no scout panel, no rival, no new encounters, no new hero/enemy effects.**
+**Milestone:** M5 — Payroll Actions
+**Slice goal:** Add a Payroll state between Formation and Combat. Build the 4 payroll action definitions in `DataRepository` per `IMPLEMENTATION_PLAN.md` §8, and a `PayrollPanelView` that displays the 4 cards, lets the player select one, and applies the selection's **pre-combat** numeric effects on Continue. Post-combat consequences (e.g. Victory Bonus's debt-on-loss) are deferred to M5.2.
 
 ### Acceptance criteria
 
-1. Continue from Shop transitions to `GameState.Formation` (not directly to Combat). A new `ContinueFromShop` → Formation and `ContinueFromFormation` → Combat routing exists on `GameManager`.
-2. `FormationPanelView` shows the 5 slots in their current order, each occupied slot rendering a `HeroCardView` (or equivalent compact card). Slot indices 0–1 are visibly labeled **Frontline**; slots 2–4 are visibly labeled **Backline**, driven by `GameRules.FrontlineSlots` / `GameRules.BacklineSlots`.
-3. Click-to-swap works: click an occupied slot A (it highlights), then click another slot B → the two slots' contents swap (including empties — clicking an empty B moves A to B and leaves A empty). Clicking the same slot twice cancels the selection. After every swap, `HeroInstance.FormationSlot` matches the visible slot index for every party member.
-4. Continue from Formation routes to Combat with the chosen ordering. Combat targeting uses slot order: living frontline heroes are targeted before any backline hero is touched; leftmost-slot tiebreak still applies. Verified by observing combat log lines for a deliberately ordered party.
-5. No payroll, scout, rival, save/load, or new effect logic. Existing Shop/M2/M1 flow continues to work end-to-end.
+1. `GameManager.ContinueFromFormation()` transitions to `GameState.Payroll` (not directly to Combat). A new `ContinueFromPayroll()` transitions to `GameState.Combat`.
+2. `DataRepository.AllPayrollActions` exposes the 4 payroll actions from `IMPLEMENTATION_PLAN.md` §8 (Loan, Cut Wages, Victory Bonus, Skip Payroll) with id/name/description. All tunable values pull from existing `GameRules` constants (`LoanGoldGain`, `LoanDebtCost`, `VictoryBonusGoldCost`, `VictoryBonusAttackBuff`, `CutWagesUpkeepReduction`, `CutWagesAttackPenalty`).
+3. `PayrollPanelView` shows the 4 cards on the same screen region used by the Shop/Formation panels. Clicking a card selects it (highlight); the panel writes `RunState.SelectedPayrollAction` and enables a Continue button. Re-clicking the selected card cancels selection.
+4. On Continue, `PayrollManager.Apply(runState, actionId)` applies pre-combat numeric effects:
+   - **Loan:** `Gold += LoanGoldGain`, `Debt += LoanDebtCost`.
+   - **Cut Wages:** For each party hero, `UpkeepThisRound = max(0, UpkeepThisRound - CutWagesUpkeepReduction)` and `Attack = max(0, Attack - CutWagesAttackPenalty)`.
+   - **Victory Bonus:** `Gold -= VictoryBonusGoldCost` (clamped at 0); for each party hero, `Attack += VictoryBonusAttackBuff`. The loss-debt consequence is **deferred to M5.2**.
+   - **Skip Payroll:** No-op.
+5. No new combat or hero-effect logic, no scout/rival, no save/load. Existing Shop → Formation → Payroll → Combat → Reward flow works end-to-end. M1–M4 behavior preserved.
 
 ### Files Claude Code may create
 
 ```
-DungeonDebt/Assets/Scripts/UI/FormationPanelView.cs
-DungeonDebt/Assets/Scripts/UI/FormationSlotView.cs
-TestPlans/TP_M4.1.md
+DungeonDebt/Assets/Scripts/Run/PayrollManager.cs
+DungeonDebt/Assets/Scripts/UI/PayrollPanelView.cs
+DungeonDebt/Assets/Scripts/UI/PayrollCardView.cs
+TestPlans/TP_M5.1.md
 ```
 
 ### Files Claude Code may modify
 
 ```
 DungeonDebt/Assets/Scripts/Core/GameManager.cs
-DungeonDebt/Assets/Scripts/Run/RunManager.cs
-DungeonDebt/Assets/Scripts/Combat/CombatManager.cs
+DungeonDebt/Assets/Scripts/Core/DataRepository.cs
 DungeonDebt/Assets/Scripts/UI/MainMenuPanel.cs
 ```
 
-- `GameManager.cs` — change `ContinueFromShop()` to transition to `Formation`; add `ContinueFromFormation()` → `Combat`.
-- `RunManager.cs` — add a `SwapPartySlots(int a, int b)` helper that swaps party-list positions and updates each hero's `FormationSlot` to match its new index.
-- `CombatManager.cs` — verify (and adjust if needed) that target selection prefers living heroes with the lowest `FormationSlot` index that satisfies the frontline rule from `IMPLEMENTATION_PLAN.md` §6.
-- `MainMenuPanel.cs` — build a `FormationPanelView` in `BuildUi`; in `HandleStateChanged`, show formation on `GameState.Formation` and hide it on other states; wire its Continue button to `_gameManager.ContinueFromFormation()`.
+- `GameManager.cs` — change `ContinueFromFormation()` to transition to `Payroll`; add `ContinueFromPayroll()` → `Combat`; ensure `PayrollManager` is held as a serialized field and instantiated via `EnsureManagers()`.
+- `DataRepository.cs` — add the 4 `PayrollActionDefinition` entries plus `AllPayrollActions` immutable list.
+- `MainMenuPanel.cs` — build `PayrollPanelView` in `BuildUi`; wire its select/continue handlers; route Payroll state in `HandleStateChanged`; hide it on all other states.
 
 ### Files Claude Code does NOT create or modify
 
-- Payroll, scout, rival, save/load, encounter content, hero/enemy effect logic.
-- `DataRepository.cs` (no data changes).
-- `GameRules.cs` (frontline/backline constants already exist).
-- `ShopManager.cs`, `ShopPanelView.cs`, `ShopOfferView.cs`, `HeroCardView.cs` (Shop is finished).
-- Any imported sprites, fonts, audio, animation assets, prefab polish.
+- Scout, rival, save/load logic.
+- `GameRules.cs` (all constants needed already exist).
+- `CombatManager.cs`, `HeroEffects.cs`, encounter content, hero/enemy definitions.
+- `ShopManager.cs`, `ShopPanelView.cs`, `ShopOfferView.cs`, `HeroCardView.cs`, `FormationPanelView.cs`, `FormationSlotView.cs`.
+- `RunManager.cs` (unless adding a small accessor — flag at plan time if needed).
+- Any imported sprites, fonts, audio, animation assets.
 - `Resources/`, `StreamingAssets/`, `Tests/`, `Editor/`.
 - `PROGRESS.md` or `REGRESSIONS.md` during implementation.
 
 ### Relevant plan sections to re-read during Orient
 
-- `IMPLEMENTATION_PLAN.md` Section 3 — Formation state behavior.
-- `IMPLEMENTATION_PLAN.md` Section 5 — `FrontlineSlots` / `BacklineSlots` constants.
-- `IMPLEMENTATION_PLAN.md` Section 6 — combat targeting rules (frontline-first, leftmost-slot tiebreak).
-- `IMPLEMENTATION_PLAN.md` Section 10 — `FormationPanelView`, `FormationSlotView` panel responsibilities.
-- `IMPLEMENTATION_PLAN.md` Section 11 — Milestone 4 acceptance criteria.
+- `IMPLEMENTATION_PLAN.md` Section 5 — payroll-related constants.
+- `IMPLEMENTATION_PLAN.md` Section 8 — payroll actions, pre-combat vs post-combat effects.
+- `IMPLEMENTATION_PLAN.md` Section 10 — `PayrollPanelView`, `PayrollCardView` responsibilities.
+- `IMPLEMENTATION_PLAN.md` Section 11 — Milestone 5 acceptance criteria.
+- `GAME_DESIGN.md` — payroll-choice section, to confirm intent of each action.
 
 ### Notes from previous slice
 
-- M3.2 added Shop with Hire/Fire/Reroll/Continue and shipped Option A reroll semantics (Reroll wipes all 3 slots; pool excludes party-member hero ids).
-- `RunManager.PrepareSandboxRun()` and `DataRepository.CreateSandboxRun()` are now unreferenced. Either delete in M4.1 *only if it would not touch out-of-scope files* — otherwise leave for a dedicated cleanup slice.
-- **R001 (combat log truncation) is closed** as of 2026-05-14 — the combat log is now a ScrollRect with auto-scroll-to-bottom and a permanent vertical scrollbar. No open regressions block M4.1.
-- Shop is only entered once per run in current code; per-round shop refresh is M6 scope and is still deferred.
-- Existing combat path reads the player party from `_gameManager.CurrentRunState`; `CombatManager.StartCombat(run, encounter)` does not need a signature change for M4.1.
+- M4.1 added Shop → Formation → Combat routing with click-to-swap reorder. `RunManager.SwapPartySlots` resorts `Party` by `FormationSlot` after swap. Combat targeting (`FindTarget`) is already frontline-first leftmost from earlier work — no change in M4.1.
+- `GameManager.ContinueFromFormation()` currently transitions Formation → Combat. **This slice changes it to Formation → Payroll**, and adds `ContinueFromPayroll()` → Combat.
+- `RunState.SelectedPayrollAction` (a `PayrollActionId?` property) already exists from M1.1 and is currently always null. M5.1 starts using it.
+- Per-round shop refresh still deferred to M6. Payroll appears once per run on the same flow as Shop/Formation in this slice.
+- No open regressions block M5.1 (REGRESSIONS.md Open section is empty as of 2026-05-14).
 
 ### Test plan output
 
-Claude Code creates `TestPlans/TP_M4.1.md` covering:
+Claude Code creates `TestPlans/TP_M5.1.md` covering:
 
-- **Happy path:** Start Run → Shop → hire 3–5 heroes → Continue → Formation panel shows them in hire order with Frontline/Backline labels → click-swap two slots → Continue → Combat resolves with the chosen order; combat log shows frontline heroes targeted first.
-- **Click-to-swap edge cases:** swap two occupied slots, swap occupied↔empty, cancel selection by re-clicking the same slot, swap into the same slot is a no-op.
-- **Frontline targeting check:** deliberately move a high-HP tank to slot 0 and a glass-cannon damage hero to slot 2; verify in the log that the tank is hit before the damage hero. Repeat with a different ordering to confirm targeting follows the formation, not the hire order.
-- **Rule checks:** no `UnityEngine.Random`; panels driven by `UIManager`/state, not self-toggled; `GameRules.FrontlineSlots` / `BacklineSlots` used (no magic 2/3 in logic); no out-of-scope additions.
-- **Regression checks:** M3.2 shop hire/fire/reroll still works; M2.x reward/upkeep math still correct; M2.3 victory/defeat end screens still reachable.
-- **Observable invariants:** `HeroInstance.FormationSlot` always equals the slot index it sits in after any swap; `RunState.Party.Count` unchanged by reordering; no slot index outside `[0, MaxPartySize)` ever appears.
-
-Each test step uses the checkbox format from `SESSION_PROTOCOL.md` step 6:
-
-```
-- [ ] Step N. <Action — what the user clicks or does>
-      Expected: <Specific observable result, including UI or Console state>
-      Actual:
-```
+- **Happy path:** Start Run → Shop → hire 3 heroes → Continue → Formation → Continue → Payroll panel shows 4 cards → select Loan → Continue → Combat runs; reward summary reflects extra gold and added debt from Loan.
+- **Per-action pre-combat effect checks:** one scenario each for Loan, Cut Wages, Victory Bonus, Skip Payroll. For each, capture pre-Continue and post-Continue values of `Gold`, `Debt`, each hero's `Attack` and `UpkeepThisRound`, and verify they match the expected formula from `GameRules`.
+- **Selection edge cases:** click card A, click card B (A deselects, B selects); click A then A again (deselects); attempt Continue with no card selected (Continue should be disabled until a card is chosen).
+- **Rule checks:** no `UnityEngine.Random`; panels driven by `MainMenuPanel`/state; payroll numbers come from `GameRules` (no magic 5/6/3/1 in `PayrollManager`); `SelectedPayrollAction` is written exactly once per Payroll visit; no out-of-scope additions.
+- **Regression checks:** M4.1 click-to-swap still works; M3.2 hire/fire/reroll still works; M2.x reward/upkeep math still correct; M2.3 victory/defeat end screens still reachable.
+- **Observable invariants:** `RunState.SelectedPayrollAction` is non-null before Combat starts in M5.1; per-hero `Attack` and `UpkeepThisRound` are always ≥ 0 after any payroll application; `Gold` is never negative.
 
 Every temporary setup step must include exact file/method/value changes to make the scenario testable, then instruct the tester to revert those temporary changes before continuing.
 
