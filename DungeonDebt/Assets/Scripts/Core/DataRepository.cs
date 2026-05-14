@@ -13,15 +13,25 @@ public static class DataRepository
         "No effect.",
         HeroEffectId.None);
 
-    private static readonly HeroDefinition Squire = new HeroDefinition(
-        "squire",
-        "Squire",
+    private static readonly HeroDefinition Knight = new HeroDefinition(
+        "knight",
+        "Knight",
         HeroRole.Tank,
         1,
+        10,
         4,
+        "Redirects the first backline hit each combat to himself.",
+        HeroEffectId.KnightRedirect);
+
+    private static readonly HeroDefinition Golem = new HeroDefinition(
+        "golem",
+        "Golem",
+        HeroRole.Tank,
         1,
-        "No effect.",
-        HeroEffectId.None);
+        14,
+        6,
+        "Reduces incoming damage by 1.",
+        HeroEffectId.GolemArmor);
 
     private static readonly HeroDefinition Wizard = new HeroDefinition(
         "wizard",
@@ -32,6 +42,16 @@ public static class DataRepository
         5,
         "Gains +1 attack when full upkeep is paid.",
         HeroEffectId.WizardScaling);
+
+    private static readonly HeroDefinition Ninja = new HeroDefinition(
+        "ninja",
+        "Ninja",
+        HeroRole.Damage,
+        4,
+        3,
+        4,
+        "Targets the lowest-HP enemy; +1 gold on each kill.",
+        HeroEffectId.NinjaLowestTarget);
 
     private static readonly HeroDefinition Ranger = new HeroDefinition(
         "ranger",
@@ -52,6 +72,56 @@ public static class DataRepository
         4,
         "Heals frontmost ally for 2 each combat round.",
         HeroEffectId.PriestHeal);
+
+    private static readonly HeroDefinition Bard = new HeroDefinition(
+        "bard",
+        "Bard",
+        HeroRole.Support,
+        1,
+        4,
+        3,
+        "+2 gold after each combat win.",
+        HeroEffectId.BardGoldOnWin);
+
+    private static readonly HeroDefinition Enchanter = new HeroDefinition(
+        "enchanter",
+        "Enchanter",
+        HeroRole.Support,
+        1,
+        4,
+        3,
+        "Adjacent Damage allies gain +1 attack this combat.",
+        HeroEffectId.EnchanterAdjacent);
+
+    private static readonly HeroDefinition Squire = new HeroDefinition(
+        "squire",
+        "Squire",
+        HeroRole.Tank,
+        1,
+        4,
+        1,
+        "No effect.",
+        HeroEffectId.None);
+
+    private static readonly HeroDefinition Treasurer = new HeroDefinition(
+        "treasurer",
+        "Treasurer",
+        HeroRole.Economy,
+        0,
+        4,
+        2,
+        "Reduces the highest-upkeep ally's upkeep by 2.",
+        HeroEffectId.TreasurerUpkeepReduce);
+
+    private static readonly HeroDefinition Apprentice = new HeroDefinition(
+        "apprentice",
+        "Apprentice",
+        HeroRole.Economy,
+        1,
+        3,
+        1,
+        "Reduces a Wizard ally's upkeep by 1.",
+        HeroEffectId.ApprenticeWizardSupport);
 
     private static readonly EnemyDefinition Slime = new EnemyDefinition(
         "slime",
@@ -80,10 +150,17 @@ public static class DataRepository
     private static readonly List<HeroDefinition> HeroDefinitions = new List<HeroDefinition>
     {
         Warrior,
-        Squire,
+        Knight,
+        Golem,
         Wizard,
+        Ninja,
         Ranger,
-        Priest
+        Priest,
+        Bard,
+        Enchanter,
+        Squire,
+        Treasurer,
+        Apprentice
     };
 
     private static readonly List<EnemyDefinition> EnemyDefinitions = new List<EnemyDefinition>
