@@ -4,26 +4,32 @@ This file always describes the **next** session's work. Rewrite it at the end of
 
 ---
 
-## Session: M2.2 - Post-combat resource math and reward summary shell
+## Session: M2.3 - Round advance, run loss checks, and end-screen shell
 
 **Milestone:** M2 - Run State and Resources
-**Slice goal:** Add the first post-combat economy step for the sandbox run: after the existing combat resolves, apply win/loss reward, upkeep shortfall, debt interest, and morale loss to `RunState`, then show the math in a visible `RewardSummaryView`. **No full 10-round loop, victory/defeat screens, shop, payroll choices, formation editing, scout panel, rivals, save/load, or new combat rules yet.**
+**Slice goal:** Add the next run-state step after the M2.2 reward/upkeep summary: let the player continue from the summary, check morale/debt/final-round outcomes, advance the round for another repeated sandbox fight when the run continues, and show a minimal `EndScreenView` for victory/defeat. **No shop, payroll choices, formation editing, scout panel, rivals, save/load, new encounters, imported assets, or new combat rules yet.**
 
-This slice builds directly on M2.1. The run header already displays round/gold/debt/morale after `RunManager.InitializeRun()`. M2.2 should make one completed sandbox combat update those resources in a testable way and refresh the header.
+This slice builds directly on M2.2. The sandbox now initializes a current `RunState`, runs deterministic combat, applies post-combat resource math, refreshes the header, and shows the result in `RewardSummaryView`. M2.3 should make that summary lead somewhere: either another sandbox round using the same repeated encounter, or a minimal end screen when M2 loss/victory conditions are met.
 
 ### Acceptance criteria
 
-1. After sandbox combat finishes, `RunManager` applies post-combat resource math to the current `RunState`: reward gold, party upkeep, shortfall converted to debt, interest, and morale loss on defeat.
-2. `RewardSummaryView` displays the result of that math clearly enough to verify gold gained, upkeep paid/shortfall, interest paid or added to debt, morale change, and final gold/debt/morale.
-3. `RunHeaderView` refreshes after post-combat math and matches the final values shown in `RewardSummaryView`.
-4. Numeric rules come from `GameRules` and existing `HeroInstance.UpkeepThisRound`; no new magic numbers are introduced in logic files.
-5. Existing M1.3/M2.1 start and restart sandbox flow remains usable, deterministic, and scene-independent at the combat resolver level.
+1. After a completed reward summary, a visible Continue/Next Round action advances through `RunManager` and `GameManager.ChangeState(...)` rather than directly mutating state from UI code.
+2. Continuing checks M2 run outcomes: `Morale <= 0` triggers Defeat, `Debt >= GameRules.DebtLimit` triggers Defeat, and winning after round 10 triggers Victory.
+3. If no end condition is met, the run advances to the next round, `RunHeaderView` refreshes to the new round/resources, and the same sandbox combat flow remains usable for the next repeated encounter.
+4. `EndScreenView` displays a minimal victory/defeat result with reason and final round/gold/debt/morale, plus a mouse-only uGUI button to return to a fresh start/restart state.
+5. Existing M2.2 reward summary behavior remains intact: summary appears only after combat streaming completes, final header values match summary values, and combat resolver code stays scene-independent.
 
 ### Files Claude Code creates
 
 ```
-DungeonDebt/Assets/Scripts/UI/RewardSummaryView.cs
-TestPlans/TP_M2.2.md
+DungeonDebt/Assets/Scripts/UI/EndScreenView.cs
+TestPlans/TP_M2.3.md
+```
+
+Unity may also create:
+
+```
+DungeonDebt/Assets/Scripts/UI/EndScreenView.cs.meta
 ```
 
 ### Files Claude Code may modify
@@ -33,22 +39,22 @@ DungeonDebt/Assets/Scripts/Run/RunManager.cs
 DungeonDebt/Assets/Scripts/Core/GameManager.cs
 DungeonDebt/Assets/Scripts/UI/MainMenuPanel.cs
 DungeonDebt/Assets/Scripts/UI/RunHeaderView.cs
-DungeonDebt/Assets/Scripts/UI/CombatLogView.cs
+DungeonDebt/Assets/Scripts/UI/RewardSummaryView.cs
 DungeonDebt/Assets/Scripts/Data/RunState.cs
 ```
 
-- Modify `RunManager.cs` to calculate and apply one post-combat economy result for the current run.
-- Modify `GameManager.cs` only if a small state transition hook is needed for `Reward`.
-- Modify `MainMenuPanel.cs` only to call the new post-combat step after log streaming completes and render the summary.
-- Modify `RunHeaderView.cs` only if it needs a tiny refresh/formatting adjustment for post-combat values.
-- Modify `CombatLogView.cs` only if callback timing needs a compatibility adjustment.
-- Modify `RunState.cs` only if storing the latest summary values is cleaner than passing them directly to the view.
+- Modify `RunManager.cs` to evaluate end conditions and advance the run round after the post-combat summary.
+- Modify `GameManager.cs` only for small state-transition helpers or state ownership needed by continue/end-screen flow.
+- Modify `MainMenuPanel.cs` to add a Continue/Next Round action, show/hide the minimal end screen, and keep the current runtime-built uGUI approach.
+- Modify `RunHeaderView.cs` only if a tiny refresh/formatting adjustment is needed for advanced rounds.
+- Modify `RewardSummaryView.cs` only if it needs a continue callback/button surface or small text adjustment.
+- Modify `RunState.cs` only if storing the latest end reason/outcome is cleaner than passing it directly to the view.
 
 ### Files Claude Code does NOT create or modify
 
-- `EndScreenView.cs` or any victory/defeat UI.
 - Any shop, payroll-choice, formation-editing, scout, rival, save/load, or persistence behavior.
-- Any hero/enemy/effect data beyond what already exists for M1.
+- Any new encounter list beyond repeating the existing sandbox encounter for M2 run-state testing.
+- Any hero/enemy/effect data beyond what already exists for M1/M2 sandbox work.
 - Any new combat targeting, damage, status, crit, dodge, type, animation, audio, tween, particle, or VFX behavior.
 - Any imported sprites, fonts, audio, animation assets, or prefab polish.
 - Any `Resources/`, `StreamingAssets/`, `Tests/`, or `Editor/` folders.
@@ -59,31 +65,34 @@ DungeonDebt/Assets/Scripts/Data/RunState.cs
 
 - `IMPLEMENTATION_PLAN.md` Section 1 - Technical Assumptions
 - `IMPLEMENTATION_PLAN.md` Section 2 - Project Folder Structure
-- `IMPLEMENTATION_PLAN.md` Section 3 - Core Game State Machine, especially `Combat`, `Reward`, and `Upkeep`
+- `IMPLEMENTATION_PLAN.md` Section 3 - Core Game State Machine, especially `Reward`, `Upkeep`, `Victory`, and `Defeat`
 - `IMPLEMENTATION_PLAN.md` Section 4 - `RunState` and `CombatResult`
-- `IMPLEMENTATION_PLAN.md` Section 5 - MVP Rule Definitions, especially rewards, morale damage, interest formula, and upkeep rule
-- `IMPLEMENTATION_PLAN.md` Section 10 - `RunHeaderView` and `RewardSummaryView`
+- `IMPLEMENTATION_PLAN.md` Section 5 - MVP Rule Definitions, especially run win/loss checks and debt limit
+- `IMPLEMENTATION_PLAN.md` Section 10 - `RunHeaderView`, `RewardSummaryView`, and `EndScreenView`
 - `IMPLEMENTATION_PLAN.md` Section 11 - Milestone 2
 - `IMPLEMENTATION_PLAN.md` Section 12 - Recommended Script List for `GameManager`, `RunManager`, `RunHeaderView`, and panel scripts
-- `GAME_DESIGN.md` Player Resources, Reward Phase, and Upkeep Phase only as needed for resource labels and expectations
+- `GAME_DESIGN.md` Player Resources, Win and Loss Conditions, Reward Phase, and Upkeep Phase only as needed for labels and expectations
 
 ### Notes from previous slice
 
-- M2.1 added `GameState`, `GameManager`, `RunManager.InitializeRun()`, and `RunHeaderView`.
+- M2.2 added `RewardSummaryView`, post-combat economy math, and summary storage fields on `RunState`.
+- The sandbox combat now uses the current `RunState` prepared by `RunManager.PrepareSandboxRun()`, so the header, combat, and reward summary all refer to the same run.
+- `GameRules.InterestDebtDivisor` was added with explicit confirmation to avoid hardcoding the interest divisor in logic.
 - The existing sandbox UI still uses legacy uGUI `Text` because TMP Essentials/font assets are not available in the fresh project. Continue using uGUI and do not add imported font assets or `Resources/`.
-- M2.1 left the sandbox combat path intact. The start button initializes a fresh run and then runs the sandbox combat; Restart Sandbox also initializes a fresh run.
-- Manual test observation on M2.1 step 22 found tight spacing between `Dungeon Debt` and `Ready`; this was fixed by moving the status, buttons, and combat log down together in `MainMenuPanel.cs`.
+- `TestPlans/TP_M2.2.md` passed for core user-visible behavior; temporary setup math/edge scenarios were skipped because the plan did not say exactly how to force loss/debt/high-upkeep cases. Make any M2.3 temporary setup steps explicit.
 
 ### Test plan output
 
-Claude Code creates `TestPlans/TP_M2.2.md` covering at minimum:
+Claude Code creates `TestPlans/TP_M2.3.md` covering at minimum:
 
-- **Happy path:** Open Unity, press Play, click Start Run, wait for combat, confirm reward/upkeep/interest summary appears and header matches final resources.
-- **Fresh-run checks:** Restart Sandbox and confirm the run starts from M2.1 values before applying a fresh post-combat summary.
-- **Math checks:** Verify win reward uses `GameRules.WinReward`, loss reward uses `GameRules.LossReward`, upkeep uses `HeroInstance.UpkeepThisRound`, shortfall adds debt, and interest uses `ceil(debt / 3.0)`.
-- **Rule checks:** single scene, uGUI only, mouse-only button `onClick`, no new Input System action assets, no `UnityEngine.Random`, no shop/payroll/formation/scout/rival/end-screen behavior, no forbidden folders.
-- **Regression checks:** M1.3 combat log still streams; M2.1 header still initializes at round 1/gold 10/debt 0/morale 30 before post-combat math; `CombatManager.StartCombat(...)` remains scene-independent.
-- **Observable invariants:** Summary values and header values match, resources never update before combat completes, restarting does not duplicate summary/header UI objects, and the combat log remains readable.
+- **Happy path:** Open Unity, press Play, click Start Run, wait for combat/summary, click Continue/Next Round, confirm round advances and another sandbox combat can run.
+- **End-screen checks:** Verify minimal Victory and Defeat screens can be reached through explicitly described temporary setup steps, and display final round/gold/debt/morale plus a reason.
+- **Loss-condition checks:** Verify morale defeat, debt-limit defeat, and round-10 victory logic with exact setup instructions.
+- **Rule checks:** single scene, uGUI only, mouse-only button `onClick`, no new Input System action assets, no `UnityEngine.Random`, no shop/payroll/formation/scout/rival behavior, no forbidden folders.
+- **Regression checks:** M1.3 combat log still streams; M2.1 header still initializes correctly; M2.2 reward summary still appears only after combat finishes and matches the header.
+- **Observable invariants:** continuing applies exactly once, round number advances by 1 only when no end condition is met, end screens do not mutate resources after display, restarting creates a fresh run, and no duplicate runtime UI objects appear.
+
+Every temporary setup step must include exact file/method/value changes to make the scenario testable, then instruct the tester to revert those temporary changes before continuing.
 
 Each step in the test plan must follow the checkbox format from `SESSION_PROTOCOL.md` step 6:
 

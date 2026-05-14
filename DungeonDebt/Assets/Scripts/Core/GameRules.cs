@@ -20,6 +20,7 @@ public static class GameRules
 
     public const int DungeonLossMorale = 6;
     public const int RivalLossMorale = 8;
+    public const int InterestDebtDivisor = 3;
 
     public const int CombatTurnLimit = 10;
 

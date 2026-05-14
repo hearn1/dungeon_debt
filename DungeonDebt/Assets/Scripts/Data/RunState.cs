@@ -18,4 +18,14 @@ public class RunState
     public List<EncounterDefinition> Encounters { get; }
     public PayrollActionId? SelectedPayrollAction { get; set; }
     public int RerollCount { get; set; }
+    public bool HasLatestRewardSummary { get; set; }
+    public bool LatestCombatWon { get; set; }
+    public int LatestRewardGold { get; set; }
+    public int LatestMoraleChange { get; set; }
+    public int LatestTotalUpkeep { get; set; }
+    public int LatestUpkeepPaid { get; set; }
+    public int LatestUpkeepShortfall { get; set; }
+    public int LatestInterestCharged { get; set; }
+    public int LatestInterestPaid { get; set; }
+    public int LatestInterestAddedToDebt { get; set; }
 }

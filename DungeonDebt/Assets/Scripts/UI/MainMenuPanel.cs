@@ -11,6 +11,8 @@ public class MainMenuPanel : MonoBehaviour
     private const int StatusTopOffset = 205;
     private const int ButtonRowTopOffset = 300;
     private const int CombatLogTopOffset = 380;
+    private const int RewardSummaryWidth = 520;
+    private const int RewardSummaryHeight = 430;
 
     [SerializeField] private GameManager _gameManager;
     [SerializeField] private RunManager _runManager;
@@ -20,6 +22,7 @@ public class MainMenuPanel : MonoBehaviour
     [SerializeField] private Text _statusText;
     [SerializeField] private Text _resultText;
     [SerializeField] private CombatLogView _combatLogView;
+    [SerializeField] private RewardSummaryView _rewardSummaryView;
 
     private static Font _runtimeFont;
 
@@ -71,6 +74,7 @@ public class MainMenuPanel : MonoBehaviour
         _startCombatButton.interactable = true;
         _restartButton.interactable = false;
         _combatLogView.Clear();
+        _rewardSummaryView.Clear();
         _runHeaderView.Clear();
     }
 
@@ -80,14 +84,21 @@ public class MainMenuPanel : MonoBehaviour
         _restartButton.interactable = false;
         _statusText.text = "Run started. Combat sandbox running...";
         _resultText.text = string.Empty;
+        _rewardSummaryView.Clear();
 
-        RunState run = DataRepository.CreateSandboxRun();
+        RunState run = _runManager.PrepareSandboxRun();
+        _runHeaderView.Refresh(run);
         EncounterDefinition encounter = DataRepository.SandboxEncounter;
         CombatResult result = new CombatManager().StartCombat(run, encounter);
 
         _combatLogView.StreamLines(result.LogLines, delegate
         {
-            _statusText.text = "Combat complete";
+            _gameManager.ChangeState(GameState.Reward);
+            _runManager.ApplyPostCombatResult(result, encounter);
+            _gameManager.ChangeState(GameState.Upkeep);
+            _runHeaderView.Refresh(_gameManager.CurrentRunState);
+            _rewardSummaryView.Refresh(_gameManager.CurrentRunState);
+            _statusText.text = "Combat complete. Summary ready.";
             _resultText.text = result.PlayerWon ? "Result: Player wins!" : "Result: Player loses.";
             _restartButton.interactable = true;
         });
@@ -155,13 +166,19 @@ public class MainMenuPanel : MonoBehaviour
         SetAnchoredRect(_restartButton.GetComponent<RectTransform>(), 1f, 0.5f, 1f, 0.5f, -ButtonWidth * 0.5f, 0f, ButtonWidth, ButtonHeight);
 
         RectTransform logPanel = CreatePanel("CombatLogPanel", root, new Color(0.16f, 0.17f, 0.2f, 1f));
-        SetAnchoredRect(logPanel, 0f, 0f, 1f, 1f, HorizontalMargin, 100f, -HorizontalMargin, -CombatLogTopOffset);
+        SetAnchoredRect(logPanel, 0f, 0f, 1f, 1f, HorizontalMargin, 100f, -HorizontalMargin - RewardSummaryWidth - ButtonGap, -CombatLogTopOffset);
 
         Text logText = CreateText("CombatLogText", logPanel, string.Empty, 24, FontStyle.Normal, TextAnchor.UpperLeft);
         SetAnchoredRect(logText.rectTransform, 0f, 0f, 1f, 1f, 32f, 24f, -32f, -24f);
 
         _combatLogView = logPanel.gameObject.AddComponent<CombatLogView>();
         _combatLogView.Initialize(logText);
+
+        RectTransform rewardSummaryPanel = CreatePanel("RewardSummaryPanel", root, new Color(0.13f, 0.14f, 0.17f, 1f));
+        SetAnchoredRect(rewardSummaryPanel, 1f, 0.5f, 1f, 0.5f, -HorizontalMargin - (RewardSummaryWidth * 0.5f), -45f, RewardSummaryWidth, RewardSummaryHeight);
+
+        _rewardSummaryView = rewardSummaryPanel.gameObject.AddComponent<RewardSummaryView>();
+        _rewardSummaryView.Initialize(GetRuntimeFont());
 
         _resultText = CreateText("ResultText", root, string.Empty, 32, FontStyle.Bold, TextAnchor.MiddleCenter);
         SetAnchoredRect(_resultText.rectTransform, 0.5f, 0f, 0.5f, 0f, 0f, 45f, 800f, 52f);
