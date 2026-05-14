@@ -30,6 +30,7 @@ public class MainMenuPanel : MonoBehaviour
     [SerializeField] private EndScreenView _endScreenView;
     [SerializeField] private ShopPanelView _shopPanelView;
     [SerializeField] private FormationPanelView _formationPanelView;
+    [SerializeField] private PayrollPanelView _payrollPanelView;
 
     private static Font _runtimeFont;
 
@@ -45,6 +46,8 @@ public class MainMenuPanel : MonoBehaviour
         _endScreenView.SetOnNewRun(HandleNewRunClicked);
         _shopPanelView.SetHandlers(HandleHireClicked, HandleFireClicked, HandleRerollClicked, HandleShopContinueClicked);
         _formationPanelView.SetHandlers(HandleFormationSwap, HandleFormationContinue);
+        _payrollPanelView.SetActions(DataRepository.AllPayrollActions);
+        _payrollPanelView.SetHandlers(HandlePayrollSelect, HandlePayrollContinue);
         ResetUi();
     }
 
@@ -143,6 +146,18 @@ public class MainMenuPanel : MonoBehaviour
         _gameManager.ContinueFromFormation();
     }
 
+    private void HandlePayrollSelect(PayrollActionId? actionId)
+    {
+        _gameManager.SelectPayrollAction(actionId);
+        RunState runState = _gameManager.CurrentRunState;
+        _payrollPanelView.Refresh(runState != null ? runState.SelectedPayrollAction : null);
+    }
+
+    private void HandlePayrollContinue()
+    {
+        _gameManager.ContinueFromPayroll();
+    }
+
     private void RefreshShop()
     {
         RunState runState = _gameManager.CurrentRunState;
@@ -162,6 +177,7 @@ public class MainMenuPanel : MonoBehaviour
         _endScreenView.Hide();
         _shopPanelView.Hide();
         _formationPanelView.Hide();
+        _payrollPanelView.Hide();
     }
 
     private void RunSandboxCombat()
@@ -175,6 +191,7 @@ public class MainMenuPanel : MonoBehaviour
         _endScreenView.Hide();
         _shopPanelView.Hide();
         _formationPanelView.Hide();
+        _payrollPanelView.Hide();
 
         RunState run = _gameManager.CurrentRunState;
         _runHeaderView.Refresh(run);
@@ -204,6 +221,7 @@ public class MainMenuPanel : MonoBehaviour
             _endScreenView.Hide();
             _shopPanelView.Hide();
             _formationPanelView.Hide();
+            _payrollPanelView.Hide();
             _resultText.text = string.Empty;
             return;
         }
@@ -216,6 +234,7 @@ public class MainMenuPanel : MonoBehaviour
             _rewardSummaryView.Clear();
             _endScreenView.Hide();
             _formationPanelView.Hide();
+            _payrollPanelView.Hide();
             _runHeaderView.Refresh(_gameManager.CurrentRunState);
             _shopPanelView.Refresh(_gameManager.CurrentRunState, _gameManager.ShopManager.CurrentOffers);
             _shopPanelView.Show();
@@ -232,9 +251,32 @@ public class MainMenuPanel : MonoBehaviour
             _rewardSummaryView.Clear();
             _endScreenView.Hide();
             _shopPanelView.Hide();
+            _payrollPanelView.Hide();
             _runHeaderView.Refresh(_gameManager.CurrentRunState);
             _formationPanelView.Refresh(_gameManager.CurrentRunState);
             _formationPanelView.Show();
+            _startCombatButton.interactable = false;
+            _restartButton.interactable = true;
+            return;
+        }
+
+        if (gameState == GameState.Payroll)
+        {
+            _statusText.text = "Payroll. Choose one action, then Continue.";
+            _resultText.text = string.Empty;
+            _combatLogView.Clear();
+            _rewardSummaryView.Clear();
+            _endScreenView.Hide();
+            _shopPanelView.Hide();
+            _formationPanelView.Hide();
+            RunState payrollRun = _gameManager.CurrentRunState;
+            if (payrollRun != null)
+            {
+                payrollRun.SelectedPayrollAction = null;
+            }
+            _runHeaderView.Refresh(payrollRun);
+            _payrollPanelView.Refresh(payrollRun != null ? payrollRun.SelectedPayrollAction : null);
+            _payrollPanelView.Show();
             _startCombatButton.interactable = false;
             _restartButton.interactable = true;
             return;
@@ -244,6 +286,7 @@ public class MainMenuPanel : MonoBehaviour
         {
             _shopPanelView.Hide();
             _formationPanelView.Hide();
+            _payrollPanelView.Hide();
             RunSandboxCombat();
             return;
         }
@@ -254,6 +297,7 @@ public class MainMenuPanel : MonoBehaviour
             _rewardSummaryView.Clear();
             _shopPanelView.Hide();
             _formationPanelView.Hide();
+            _payrollPanelView.Hide();
             _endScreenView.Show(_gameManager.CurrentRunState, gameState == GameState.Victory);
             _restartButton.interactable = true;
         }
@@ -404,6 +448,12 @@ public class MainMenuPanel : MonoBehaviour
         _formationPanelView = formationPanel.gameObject.AddComponent<FormationPanelView>();
         _formationPanelView.Initialize(GetRuntimeFont());
         _formationPanelView.Hide();
+
+        RectTransform payrollPanel = CreateRect("PayrollPanel", root);
+        SetAnchoredRect(payrollPanel, 0f, 0f, 1f, 1f, HorizontalMargin, 100f, -HorizontalMargin, -CombatLogTopOffset);
+        _payrollPanelView = payrollPanel.gameObject.AddComponent<PayrollPanelView>();
+        _payrollPanelView.Initialize(GetRuntimeFont());
+        _payrollPanelView.Hide();
     }
 
     private static RectTransform CreateRect(string objectName, RectTransform parent)

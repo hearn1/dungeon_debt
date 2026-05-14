@@ -170,6 +170,34 @@ public static class DataRepository
         CaveBat
     };
 
+    private static readonly PayrollActionDefinition TakeLoanAction = new PayrollActionDefinition(
+        PayrollActionId.TakeLoan,
+        "Take Loan",
+        "Gain " + GameRules.LoanGoldGain + " gold immediately. Adds " + GameRules.LoanDebtCost + " debt.");
+
+    private static readonly PayrollActionDefinition CutWagesAction = new PayrollActionDefinition(
+        PayrollActionId.CutWages,
+        "Cut Wages",
+        "Each hero's upkeep this round drops by " + GameRules.CutWagesUpkeepReduction + " (min 0). Each hero's attack drops by " + GameRules.CutWagesAttackPenalty + " (min 0).");
+
+    private static readonly PayrollActionDefinition PromiseVictoryBonusAction = new PayrollActionDefinition(
+        PayrollActionId.PromiseVictoryBonus,
+        "Promise Victory Bonus",
+        "Pay " + GameRules.VictoryBonusGoldCost + " gold now. Each hero gains +" + GameRules.VictoryBonusAttackBuff + " attack this fight.");
+
+    private static readonly PayrollActionDefinition SkipPayrollAction = new PayrollActionDefinition(
+        PayrollActionId.StandardPay,
+        "Skip Payroll",
+        "No effect this round.");
+
+    private static readonly List<PayrollActionDefinition> PayrollActionDefinitions = new List<PayrollActionDefinition>
+    {
+        TakeLoanAction,
+        CutWagesAction,
+        PromiseVictoryBonusAction,
+        SkipPayrollAction
+    };
+
     private static readonly EncounterDefinition SandboxEncounterDefinition = new EncounterDefinition(
         1,
         EncounterType.Dungeon,
@@ -193,6 +221,9 @@ public static class DataRepository
         new ReadOnlyCollection<EnemyDefinition>(EnemyDefinitions);
 
     public static readonly EncounterDefinition SandboxEncounter = SandboxEncounterDefinition;
+
+    public static readonly IReadOnlyList<PayrollActionDefinition> AllPayrollActions =
+        new ReadOnlyCollection<PayrollActionDefinition>(PayrollActionDefinitions);
 
     public static RunState CreateSandboxRun()
     {

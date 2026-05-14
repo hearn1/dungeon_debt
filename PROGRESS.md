@@ -51,6 +51,44 @@ Copy this block when adding a new entry. Paste it at the top of the Session log 
 
 <!-- Newest entries at the top. -->
 
+## 2026-05-14 - M5.1: Payroll action data + payroll panel shell
+
+**Milestone:** M5 - Payroll Actions
+**Status:** Complete
+
+**Files added:**
+- `DungeonDebt/Assets/Scripts/Run/PayrollManager.cs`
+- `DungeonDebt/Assets/Scripts/UI/PayrollPanelView.cs`
+- `DungeonDebt/Assets/Scripts/UI/PayrollCardView.cs`
+- `TestPlans/TP_M5.1.md`
+
+**Files modified:**
+- `DungeonDebt/Assets/Scripts/Core/GameManager.cs` - added `PayrollManager` field/property and `EnsureManagers` wiring; `ContinueFromFormation` now routes to `Payroll`; added `SelectPayrollAction(PayrollActionId?)` and `ContinueFromPayroll()` (applies the selected action, then `ChangeState(Combat)`).
+- `DungeonDebt/Assets/Scripts/Core/DataRepository.cs` - added 4 `PayrollActionDefinition` static fields and `AllPayrollActions` read-only list; descriptions interpolate from `GameRules` constants only.
+- `DungeonDebt/Assets/Scripts/UI/MainMenuPanel.cs` - built `PayrollPanelView` in the same screen region as Shop/Formation; wired `SetActions` / select / continue handlers; added a `Payroll` branch in `HandleStateChanged` that clears `SelectedPayrollAction` on entry; hidden the panel on every other state and in `RunSandboxCombat` / `ResetUi`.
+- `SESSION_PROTOCOL.md` - added Step 6 guidance on temporary diagnostic scaffolds (Debug.Log when Inspector Debug mode can't observe plain-C# state) and the requirement to revert them before slice completion.
+
+**Acceptance criteria:**
+- [x] `ContinueFromFormation` -> `Payroll`; `ContinueFromPayroll` -> `Combat`.
+- [x] `DataRepository.AllPayrollActions` exposes the 4 actions with id/name/description and `GameRules`-driven tunables.
+- [x] Card click selects / re-click cancels; Continue enable mirrors selection; `RunState.SelectedPayrollAction` updates per click.
+- [x] `PayrollManager.Apply` implements Loan / Cut Wages / Victory Bonus / Skip Payroll pre-combat effects with per-hero clamping.
+- [x] M1-M4 flow preserved end to end.
+
+**Test plan:** `TestPlans/TP_M5.1.md` - all 38 steps reported pass. Step 7 (Inspector Debug snapshot) was unverifiable because plain C# fields like `RunState` are not Unity-serializable; switched to a temporary `Debug.Log` pair inside `PayrollManager.Apply` (removed before slice completion). Step 14 (Victory Bonus gold-clamp at `Gold < VictoryBonusGoldCost`) was exercised at the boundary (`Gold == cost`) but not strictly below it; the clamp code path is correct but not directly verified for sub-cost amounts.
+
+**Deviations from plan:**
+- None.
+
+**Follow-up flagged:**
+- M5.2: implement Victory Bonus loss-debt (`+VictoryBonusDebtOnLoss` on combat loss) and revert per-combat `Attack` / `UpkeepThisRound` deltas after combat so payroll effects don't accumulate across rounds. Surface payroll line items in `RewardSummaryView` (M5 acceptance criterion).
+- UX gap noted during M5.1 testing: Victory Bonus is selectable even when `Gold < VictoryBonusGoldCost`; consider disabling the card (or showing a cost-not-met label) once the cost is a runtime check, not just a clamp. Owner decision.
+- Test plan gap: Step 14 did not actually exercise `Gold < cost`. Add an explicit "Gold == cost − 1" scenario to M5.2's test plan.
+- `Inspector Debug mode + plain-C# state` lesson written into `SESSION_PROTOCOL.md` step 6 so future slices either tag fields `[SerializeField]` / `[Serializable]` up front or plan a Debug.Log scaffold from the start.
+- `RunManager.PrepareSandboxRun()` and `DataRepository.CreateSandboxRun()` remain unreferenced (carried over from M3.2 / M4.1).
+
+**Next slice:** M5.2 - Victory Bonus loss-debt, post-combat attack/upkeep revert, and payroll line items in RewardSummaryView.
+
 ## 2026-05-14 - M4.1: Formation editing UI (click-to-swap reorder, frontline targeting)
 
 **Milestone:** M4 - Formation
