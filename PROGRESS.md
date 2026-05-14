@@ -51,6 +51,42 @@ Copy this block when adding a new entry. Paste it at the top of the Session log 
 
 <!-- Newest entries at the top. -->
 
+## 2026-05-13 - M2.3: Round advance, run loss checks, and end-screen shell
+
+**Milestone:** M2 - Run State and Resources
+**Status:** Complete
+
+**Files added:**
+- `DungeonDebt/Assets/Scripts/UI/EndScreenView.cs`
+- `TestPlans/TP_M2.3.md`
+
+**Files modified:**
+- `DungeonDebt/Assets/Scripts/Core/GameRules.cs` - added `FinalRound` constant.
+- `DungeonDebt/Assets/Scripts/Core/GameManager.cs` - added `ContinueAfterReward` helper that routes outcome through `RunManager` into `ChangeState`.
+- `DungeonDebt/Assets/Scripts/Run/RunManager.cs` - added `EvaluateNextState` and `AdvanceRound`.
+- `DungeonDebt/Assets/Scripts/Data/RunState.cs` - added `LatestEndReason`.
+- `DungeonDebt/Assets/Scripts/UI/RewardSummaryView.cs` - added Continue button + `SetOnContinue` hook.
+- `DungeonDebt/Assets/Scripts/UI/MainMenuPanel.cs` - state-driven sandbox combat re-entry, Continue/New Run wiring, end-screen panel.
+
+**Acceptance criteria:**
+- [x] Continue/Next Round routes through `RunManager` and `GameManager.ChangeState`.
+- [x] M2 outcomes evaluated: morale, debt limit, round-10 win.
+- [x] Round advances and combat flow re-runs when no end condition is met.
+- [x] `EndScreenView` shows victory/defeat with reason, final stats, and uGUI New Run button.
+- [x] M2.2 reward summary behavior intact; combat resolver remains scene-independent.
+
+**Test plan:** `TestPlans/TP_M2.3.md` - all scenarios passed (happy path, victory, defeat by morale, defeat by debt, rule checks, regression checks, observable invariants). User confirmed the temporary `GameRules` edit instructions were clear.
+
+**Deviations from plan:**
+- Used the existing `GameState` enum for outcome evaluation instead of introducing a new `RunOutcome` enum/file. Avoids adding a file not listed in the brief and keeps state vocabulary unified.
+
+**Follow-up flagged:**
+- Reward summary panel height bumped from 430 to 460 to fit Continue button; revisit if layout drifts.
+- End-screen overlay centered at 640x460; revisit positioning/sizing in a polish pass if it clashes with header/buttons.
+- `HandleStateChanged` only reacts to `StartRun`/`Combat`/`Victory`/`Defeat`. Future slices that need Reward/Upkeep panel reactions will extend it.
+
+**Next slice:** M3.1 - DataRepository expansion to the full 12 heroes.
+
 ## 2026-05-14 - M2.2: Post-combat resource math and reward summary shell
 
 **Milestone:** M2 - Run State and Resources

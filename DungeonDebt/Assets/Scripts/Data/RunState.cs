@@ -28,4 +28,5 @@ public class RunState
     public int LatestInterestCharged { get; set; }
     public int LatestInterestPaid { get; set; }
     public int LatestInterestAddedToDebt { get; set; }
+    public string LatestEndReason { get; set; }
 }

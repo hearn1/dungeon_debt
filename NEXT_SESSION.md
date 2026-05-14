@@ -4,58 +4,45 @@ This file always describes the **next** session's work. Rewrite it at the end of
 
 ---
 
-## Session: M2.3 - Round advance, run loss checks, and end-screen shell
+## Session: M3.1 - DataRepository expansion to the full 12 heroes
 
-**Milestone:** M2 - Run State and Resources
-**Slice goal:** Add the next run-state step after the M2.2 reward/upkeep summary: let the player continue from the summary, check morale/debt/final-round outcomes, advance the round for another repeated sandbox fight when the run continues, and show a minimal `EndScreenView` for victory/defeat. **No shop, payroll choices, formation editing, scout panel, rivals, save/load, new encounters, imported assets, or new combat rules yet.**
+**Milestone:** M3 - Shop and Party
+**Slice goal:** Expand `DataRepository` from the 5 sandbox heroes used by M1/M2 to the full set of 12 heroes specified in `IMPLEMENTATION_PLAN.md` §7, including each hero's role, attack, HP, upkeep, effect description, and `HeroEffectId`. **No shop UI, no hire/fire, no reroll, no party slot UI, no payroll, no formation editing, no rivals, no save/load, no new combat rules yet.**
 
-This slice builds directly on M2.2. The sandbox now initializes a current `RunState`, runs deterministic combat, applies post-combat resource math, refreshes the header, and shows the result in `RewardSummaryView`. M2.3 should make that summary lead somewhere: either another sandbox round using the same repeated encounter, or a minimal end screen when M2 loss/victory conditions are met.
+This slice is data-only. It sets up the roster the shop slice (M3.2) will draw from. The M1/M2 sandbox flow (4-hero party fighting the sandbox encounter) must keep working unchanged.
 
 ### Acceptance criteria
 
-1. After a completed reward summary, a visible Continue/Next Round action advances through `RunManager` and `GameManager.ChangeState(...)` rather than directly mutating state from UI code.
-2. Continuing checks M2 run outcomes: `Morale <= 0` triggers Defeat, `Debt >= GameRules.DebtLimit` triggers Defeat, and winning after round 10 triggers Victory.
-3. If no end condition is met, the run advances to the next round, `RunHeaderView` refreshes to the new round/resources, and the same sandbox combat flow remains usable for the next repeated encounter.
-4. `EndScreenView` displays a minimal victory/defeat result with reason and final round/gold/debt/morale, plus a mouse-only uGUI button to return to a fresh start/restart state.
-5. Existing M2.2 reward summary behavior remains intact: summary appears only after combat streaming completes, final header values match summary values, and combat resolver code stays scene-independent.
+1. `DataRepository.AllHeroes` returns all 12 heroes defined in `IMPLEMENTATION_PLAN.md` §7, in plan order, exposed as an immutable read-only list.
+2. Each new `HeroDefinition` uses the exact stats, role, upkeep, description, and `HeroEffectId` from the plan; no values are guessed or fudged.
+3. Any new `HeroEffectId` enum values required by the plan exist in `GameEnums.cs`, but their implementations in `HeroEffects.cs` remain no-ops for this slice (M3.1 is data-only).
+4. M1.3 / M2.x sandbox flow still works: `DataRepository.CreateSandboxRun()` continues to build the existing 4-hero sandbox party, combat runs unchanged, and previous test plans still pass.
+5. No shop, hire/fire/reroll, party editing UI, payroll, formation, scout, rival, save/load, new encounter, run economy, or combat rule changes are introduced.
 
 ### Files Claude Code creates
 
 ```
-DungeonDebt/Assets/Scripts/UI/EndScreenView.cs
-TestPlans/TP_M2.3.md
-```
-
-Unity may also create:
-
-```
-DungeonDebt/Assets/Scripts/UI/EndScreenView.cs.meta
+TestPlans/TP_M3.1.md
 ```
 
 ### Files Claude Code may modify
 
 ```
-DungeonDebt/Assets/Scripts/Run/RunManager.cs
-DungeonDebt/Assets/Scripts/Core/GameManager.cs
-DungeonDebt/Assets/Scripts/UI/MainMenuPanel.cs
-DungeonDebt/Assets/Scripts/UI/RunHeaderView.cs
-DungeonDebt/Assets/Scripts/UI/RewardSummaryView.cs
-DungeonDebt/Assets/Scripts/Data/RunState.cs
+DungeonDebt/Assets/Scripts/Core/DataRepository.cs
+DungeonDebt/Assets/Scripts/Data/GameEnums.cs
+DungeonDebt/Assets/Scripts/Combat/HeroEffects.cs
 ```
 
-- Modify `RunManager.cs` to evaluate end conditions and advance the run round after the post-combat summary.
-- Modify `GameManager.cs` only for small state-transition helpers or state ownership needed by continue/end-screen flow.
-- Modify `MainMenuPanel.cs` to add a Continue/Next Round action, show/hide the minimal end screen, and keep the current runtime-built uGUI approach.
-- Modify `RunHeaderView.cs` only if a tiny refresh/formatting adjustment is needed for advanced rounds.
-- Modify `RewardSummaryView.cs` only if it needs a continue callback/button surface or small text adjustment.
-- Modify `RunState.cs` only if storing the latest end reason/outcome is cleaner than passing it directly to the view.
+- Modify `DataRepository.cs` to define the 7 additional heroes and add them to `AllHeroes` while keeping `CreateSandboxRun()` untouched.
+- Modify `GameEnums.cs` only to add any missing `HeroEffectId` values required by the plan's 12 heroes.
+- Modify `HeroEffects.cs` only if a new no-op case must be wired into the static dispatch surface so the project compiles; do not implement non-MVP effect logic.
 
 ### Files Claude Code does NOT create or modify
 
 - Any shop, payroll-choice, formation-editing, scout, rival, save/load, or persistence behavior.
-- Any new encounter list beyond repeating the existing sandbox encounter for M2 run-state testing.
-- Any hero/enemy/effect data beyond what already exists for M1/M2 sandbox work.
-- Any new combat targeting, damage, status, crit, dodge, type, animation, audio, tween, particle, or VFX behavior.
+- Any combat rule, targeting, damage formula, randomness source, or status/buff/crit/dodge logic.
+- Any UI script (`MainMenuPanel`, `RunHeaderView`, `RewardSummaryView`, `EndScreenView`, `CombatLogView`).
+- Any run-state economy file (`RunManager`, `GameRules`, `RunState`).
 - Any imported sprites, fonts, audio, animation assets, or prefab polish.
 - Any `Resources/`, `StreamingAssets/`, `Tests/`, or `Editor/` folders.
 - Any Unity Test Framework, NUnit, PlayMode, or EditMode test assets.
@@ -63,34 +50,28 @@ DungeonDebt/Assets/Scripts/Data/RunState.cs
 
 ### Relevant plan sections to re-read during Orient
 
-- `IMPLEMENTATION_PLAN.md` Section 1 - Technical Assumptions
-- `IMPLEMENTATION_PLAN.md` Section 2 - Project Folder Structure
-- `IMPLEMENTATION_PLAN.md` Section 3 - Core Game State Machine, especially `Reward`, `Upkeep`, `Victory`, and `Defeat`
-- `IMPLEMENTATION_PLAN.md` Section 4 - `RunState` and `CombatResult`
-- `IMPLEMENTATION_PLAN.md` Section 5 - MVP Rule Definitions, especially run win/loss checks and debt limit
-- `IMPLEMENTATION_PLAN.md` Section 10 - `RunHeaderView`, `RewardSummaryView`, and `EndScreenView`
-- `IMPLEMENTATION_PLAN.md` Section 11 - Milestone 2
-- `IMPLEMENTATION_PLAN.md` Section 12 - Recommended Script List for `GameManager`, `RunManager`, `RunHeaderView`, and panel scripts
-- `GAME_DESIGN.md` Player Resources, Win and Loss Conditions, Reward Phase, and Upkeep Phase only as needed for labels and expectations
+- `IMPLEMENTATION_PLAN.md` Section 7 - Hero roster (the full 12 heroes), exact stats and effect IDs.
+- `IMPLEMENTATION_PLAN.md` Section 4 - `HeroDefinition` shape.
+- `IMPLEMENTATION_PLAN.md` Section 11 - Milestone 3.
+- `IMPLEMENTATION_PLAN.md` Section 12 - Recommended script list for `DataRepository` and `HeroEffects`.
+- `GAME_DESIGN.md` Heroes section only as needed for role/effect intent.
 
 ### Notes from previous slice
 
-- M2.2 added `RewardSummaryView`, post-combat economy math, and summary storage fields on `RunState`.
-- The sandbox combat now uses the current `RunState` prepared by `RunManager.PrepareSandboxRun()`, so the header, combat, and reward summary all refer to the same run.
-- `GameRules.InterestDebtDivisor` was added with explicit confirmation to avoid hardcoding the interest divisor in logic.
-- The existing sandbox UI still uses legacy uGUI `Text` because TMP Essentials/font assets are not available in the fresh project. Continue using uGUI and do not add imported font assets or `Resources/`.
-- `TestPlans/TP_M2.2.md` passed for core user-visible behavior; temporary setup math/edge scenarios were skipped because the plan did not say exactly how to force loss/debt/high-upkeep cases. Make any M2.3 temporary setup steps explicit.
+- M2.3 added the end-screen flow, run outcome evaluation, and round advance. `GameRules.FinalRound = 10` was added with explicit confirmation.
+- The sandbox party in `DataRepository.CreateSandboxRun()` must remain unchanged so M1/M2 test plans continue to pass.
+- The existing 5 heroes (Warrior, Squire, Wizard, Ranger, Priest) are already defined and should not be duplicated or renamed.
+- The sandbox UI still uses legacy uGUI `Text` (no TMP). Nothing in this slice should touch UI, so this remains a non-issue.
 
 ### Test plan output
 
-Claude Code creates `TestPlans/TP_M2.3.md` covering at minimum:
+Claude Code creates `TestPlans/TP_M3.1.md` covering at minimum:
 
-- **Happy path:** Open Unity, press Play, click Start Run, wait for combat/summary, click Continue/Next Round, confirm round advances and another sandbox combat can run.
-- **End-screen checks:** Verify minimal Victory and Defeat screens can be reached through explicitly described temporary setup steps, and display final round/gold/debt/morale plus a reason.
-- **Loss-condition checks:** Verify morale defeat, debt-limit defeat, and round-10 victory logic with exact setup instructions.
-- **Rule checks:** single scene, uGUI only, mouse-only button `onClick`, no new Input System action assets, no `UnityEngine.Random`, no shop/payroll/formation/scout/rival behavior, no forbidden folders.
-- **Regression checks:** M1.3 combat log still streams; M2.1 header still initializes correctly; M2.2 reward summary still appears only after combat finishes and matches the header.
-- **Observable invariants:** continuing applies exactly once, round number advances by 1 only when no end condition is met, end screens do not mutate resources after display, restarting creates a fresh run, and no duplicate runtime UI objects appear.
+- **Happy path:** Inspect `DataRepository.AllHeroes` count and order via a brief temporary probe (with exact code to add and revert) or by source inspection if no scene UI exists yet; verify all 12 heroes match the plan.
+- **Field-by-field checks:** For each of the 12 heroes, confirm role, attack, HP, upkeep, description, and `HeroEffectId` match `IMPLEMENTATION_PLAN.md` §7.
+- **Rule checks:** No new combat rules, no UI changes, no forbidden folders, no Input System action assets, hero definitions remain immutable (`get`-only properties via constructor).
+- **Regression checks:** M1.3 sandbox combat still resolves identically; M2.1 header init unchanged; M2.2 reward summary still correct; M2.3 continue/end-screen flow still reaches Victory/Defeat as in TP_M2.3.
+- **Observable invariants:** `AllHeroes` count is exactly 12; no duplicate hero IDs; existing 5 heroes appear in the same order they did before; `CreateSandboxRun` still produces a 4-hero party.
 
 Every temporary setup step must include exact file/method/value changes to make the scenario testable, then instruct the tester to revert those temporary changes before continuing.
 

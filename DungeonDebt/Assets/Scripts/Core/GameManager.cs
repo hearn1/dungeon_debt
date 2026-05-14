@@ -48,6 +48,23 @@ public class GameManager : MonoBehaviour
         ChangeState(GameState.StartRun);
     }
 
+    public void ContinueAfterReward()
+    {
+        EnsureRunManager();
+        if (_runManager == null)
+        {
+            return;
+        }
+
+        GameState nextState = _runManager.EvaluateNextState();
+        if (nextState == GameState.Combat)
+        {
+            _runManager.AdvanceRound();
+        }
+
+        ChangeState(nextState);
+    }
+
     public void ChangeState(GameState nextState)
     {
         EnsureRunManager();

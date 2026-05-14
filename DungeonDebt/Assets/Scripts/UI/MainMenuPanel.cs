@@ -12,7 +12,9 @@ public class MainMenuPanel : MonoBehaviour
     private const int ButtonRowTopOffset = 300;
     private const int CombatLogTopOffset = 380;
     private const int RewardSummaryWidth = 520;
-    private const int RewardSummaryHeight = 430;
+    private const int RewardSummaryHeight = 460;
+    private const int EndScreenWidth = 640;
+    private const int EndScreenHeight = 460;
 
     [SerializeField] private GameManager _gameManager;
     [SerializeField] private RunManager _runManager;
@@ -23,6 +25,7 @@ public class MainMenuPanel : MonoBehaviour
     [SerializeField] private Text _resultText;
     [SerializeField] private CombatLogView _combatLogView;
     [SerializeField] private RewardSummaryView _rewardSummaryView;
+    [SerializeField] private EndScreenView _endScreenView;
 
     private static Font _runtimeFont;
 
@@ -34,6 +37,8 @@ public class MainMenuPanel : MonoBehaviour
         _gameManager.OnStateChanged += HandleStateChanged;
         _startCombatButton.onClick.AddListener(StartCombat);
         _restartButton.onClick.AddListener(RestartCombat);
+        _rewardSummaryView.SetOnContinue(HandleContinueClicked);
+        _endScreenView.SetOnNewRun(HandleNewRunClicked);
         ResetUi();
     }
 
@@ -58,13 +63,24 @@ public class MainMenuPanel : MonoBehaviour
     private void StartCombat()
     {
         _gameManager.StartRun();
-        RunSandboxCombat();
+        _gameManager.ChangeState(GameState.Combat);
     }
 
     private void RestartCombat()
     {
         _gameManager.StartRun();
-        RunSandboxCombat();
+        _gameManager.ChangeState(GameState.Combat);
+    }
+
+    private void HandleContinueClicked()
+    {
+        _gameManager.ContinueAfterReward();
+    }
+
+    private void HandleNewRunClicked()
+    {
+        _gameManager.StartRun();
+        _gameManager.ChangeState(GameState.Combat);
     }
 
     private void ResetUi()
@@ -76,15 +92,18 @@ public class MainMenuPanel : MonoBehaviour
         _combatLogView.Clear();
         _rewardSummaryView.Clear();
         _runHeaderView.Clear();
+        _endScreenView.Hide();
     }
 
     private void RunSandboxCombat()
     {
         _startCombatButton.interactable = false;
         _restartButton.interactable = false;
-        _statusText.text = "Run started. Combat sandbox running...";
+        _statusText.text = "Combat running...";
         _resultText.text = string.Empty;
+        _combatLogView.Clear();
         _rewardSummaryView.Clear();
+        _endScreenView.Hide();
 
         RunState run = _runManager.PrepareSandboxRun();
         _runHeaderView.Refresh(run);
@@ -98,7 +117,7 @@ public class MainMenuPanel : MonoBehaviour
             _gameManager.ChangeState(GameState.Upkeep);
             _runHeaderView.Refresh(_gameManager.CurrentRunState);
             _rewardSummaryView.Refresh(_gameManager.CurrentRunState);
-            _statusText.text = "Combat complete. Summary ready.";
+            _statusText.text = "Combat complete. Press Continue.";
             _resultText.text = result.PlayerWon ? "Result: Player wins!" : "Result: Player loses.";
             _restartButton.interactable = true;
         });
@@ -109,6 +128,25 @@ public class MainMenuPanel : MonoBehaviour
         if (gameState == GameState.StartRun)
         {
             _runHeaderView.Refresh(_gameManager.CurrentRunState);
+            _combatLogView.Clear();
+            _rewardSummaryView.Clear();
+            _endScreenView.Hide();
+            _resultText.text = string.Empty;
+            return;
+        }
+
+        if (gameState == GameState.Combat)
+        {
+            RunSandboxCombat();
+            return;
+        }
+
+        if (gameState == GameState.Victory || gameState == GameState.Defeat)
+        {
+            _statusText.text = gameState == GameState.Victory ? "Run won." : "Run lost.";
+            _rewardSummaryView.Clear();
+            _endScreenView.Show(_gameManager.CurrentRunState, gameState == GameState.Victory);
+            _restartButton.interactable = true;
         }
     }
 
@@ -182,6 +220,11 @@ public class MainMenuPanel : MonoBehaviour
 
         _resultText = CreateText("ResultText", root, string.Empty, 32, FontStyle.Bold, TextAnchor.MiddleCenter);
         SetAnchoredRect(_resultText.rectTransform, 0.5f, 0f, 0.5f, 0f, 0f, 45f, 800f, 52f);
+
+        RectTransform endScreenPanel = CreateRect("EndScreenPanel", root);
+        SetAnchoredRect(endScreenPanel, 0.5f, 0.5f, 0.5f, 0.5f, 0f, 0f, EndScreenWidth, EndScreenHeight);
+        _endScreenView = endScreenPanel.gameObject.AddComponent<EndScreenView>();
+        _endScreenView.Initialize(GetRuntimeFont());
     }
 
     private static RectTransform CreateRect(string objectName, RectTransform parent)

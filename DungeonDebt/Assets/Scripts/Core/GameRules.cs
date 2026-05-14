@@ -23,6 +23,7 @@ public static class GameRules
     public const int InterestDebtDivisor = 3;
 
     public const int CombatTurnLimit = 10;
+    public const int FinalRound = 10;
 
     public const int LoanGoldGain = 5;
     public const int LoanDebtCost = 6;
