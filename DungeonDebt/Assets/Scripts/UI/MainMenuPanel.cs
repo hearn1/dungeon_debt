@@ -4,11 +4,17 @@ using UnityEngine.UI;
 public class MainMenuPanel : MonoBehaviour
 {
     private const int HorizontalMargin = 140;
-    private const int TopMargin = 80;
+    private const int TopMargin = 130;
     private const int ButtonWidth = 260;
     private const int ButtonHeight = 64;
     private const int ButtonGap = 28;
+    private const int StatusTopOffset = 205;
+    private const int ButtonRowTopOffset = 300;
+    private const int CombatLogTopOffset = 380;
 
+    [SerializeField] private GameManager _gameManager;
+    [SerializeField] private RunManager _runManager;
+    [SerializeField] private RunHeaderView _runHeaderView;
     [SerializeField] private Button _startCombatButton;
     [SerializeField] private Button _restartButton;
     [SerializeField] private Text _statusText;
@@ -20,7 +26,9 @@ public class MainMenuPanel : MonoBehaviour
 
     private void Awake()
     {
+        EnsureCoreSystems();
         BuildUi();
+        _gameManager.OnStateChanged += HandleStateChanged;
         _startCombatButton.onClick.AddListener(StartCombat);
         _restartButton.onClick.AddListener(RestartCombat);
         ResetUi();
@@ -28,6 +36,11 @@ public class MainMenuPanel : MonoBehaviour
 
     private void OnDestroy()
     {
+        if (_gameManager != null)
+        {
+            _gameManager.OnStateChanged -= HandleStateChanged;
+        }
+
         if (_startCombatButton != null)
         {
             _startCombatButton.onClick.RemoveListener(StartCombat);
@@ -41,11 +54,13 @@ public class MainMenuPanel : MonoBehaviour
 
     private void StartCombat()
     {
+        _gameManager.StartRun();
         RunSandboxCombat();
     }
 
     private void RestartCombat()
     {
+        _gameManager.StartRun();
         RunSandboxCombat();
     }
 
@@ -56,13 +71,14 @@ public class MainMenuPanel : MonoBehaviour
         _startCombatButton.interactable = true;
         _restartButton.interactable = false;
         _combatLogView.Clear();
+        _runHeaderView.Clear();
     }
 
     private void RunSandboxCombat()
     {
         _startCombatButton.interactable = false;
         _restartButton.interactable = false;
-        _statusText.text = "Combat running...";
+        _statusText.text = "Run started. Combat sandbox running...";
         _resultText.text = string.Empty;
 
         RunState run = DataRepository.CreateSandboxRun();
@@ -75,6 +91,31 @@ public class MainMenuPanel : MonoBehaviour
             _resultText.text = result.PlayerWon ? "Result: Player wins!" : "Result: Player loses.";
             _restartButton.interactable = true;
         });
+    }
+
+    private void HandleStateChanged(GameState gameState)
+    {
+        if (gameState == GameState.StartRun)
+        {
+            _runHeaderView.Refresh(_gameManager.CurrentRunState);
+        }
+    }
+
+    private void EnsureCoreSystems()
+    {
+        _runManager = GetComponent<RunManager>();
+        if (_runManager == null)
+        {
+            _runManager = gameObject.AddComponent<RunManager>();
+        }
+
+        _gameManager = GetComponent<GameManager>();
+        if (_gameManager == null)
+        {
+            _gameManager = gameObject.AddComponent<GameManager>();
+        }
+
+        _gameManager.Initialize(_runManager);
     }
 
     private void BuildUi()
@@ -94,23 +135,27 @@ public class MainMenuPanel : MonoBehaviour
         background.color = new Color(0.09f, 0.1f, 0.12f, 1f);
         background.raycastTarget = false;
 
+        RectTransform headerRect = CreateRect("RunHeader", root);
+        _runHeaderView = headerRect.gameObject.AddComponent<RunHeaderView>();
+        _runHeaderView.Initialize(GetRuntimeFont());
+
         Text titleText = CreateText("Title", root, "Dungeon Debt", 56, FontStyle.Bold, TextAnchor.MiddleCenter);
         SetAnchoredRect(titleText.rectTransform, 0.5f, 1f, 0.5f, 1f, 0f, -TopMargin, 720f, 76f);
 
         _statusText = CreateText("StatusText", root, "Ready", 26, FontStyle.Normal, TextAnchor.MiddleCenter);
-        SetAnchoredRect(_statusText.rectTransform, 0.5f, 1f, 0.5f, 1f, 0f, -160f, 700f, 44f);
+        SetAnchoredRect(_statusText.rectTransform, 0.5f, 1f, 0.5f, 1f, 0f, -StatusTopOffset, 700f, 44f);
 
         RectTransform buttonRow = CreateRect("ButtonRow", root);
-        SetAnchoredRect(buttonRow, 0.5f, 1f, 0.5f, 1f, 0f, -245f, (ButtonWidth * 2) + ButtonGap, ButtonHeight);
+        SetAnchoredRect(buttonRow, 0.5f, 1f, 0.5f, 1f, 0f, -ButtonRowTopOffset, (ButtonWidth * 2) + ButtonGap, ButtonHeight);
 
-        _startCombatButton = CreateButton("StartCombatButton", buttonRow, "Start Combat");
+        _startCombatButton = CreateButton("StartCombatButton", buttonRow, "Start Run");
         SetAnchoredRect(_startCombatButton.GetComponent<RectTransform>(), 0f, 0.5f, 0f, 0.5f, ButtonWidth * 0.5f, 0f, ButtonWidth, ButtonHeight);
 
-        _restartButton = CreateButton("RestartButton", buttonRow, "Restart");
+        _restartButton = CreateButton("RestartButton", buttonRow, "Restart Sandbox");
         SetAnchoredRect(_restartButton.GetComponent<RectTransform>(), 1f, 0.5f, 1f, 0.5f, -ButtonWidth * 0.5f, 0f, ButtonWidth, ButtonHeight);
 
         RectTransform logPanel = CreatePanel("CombatLogPanel", root, new Color(0.16f, 0.17f, 0.2f, 1f));
-        SetAnchoredRect(logPanel, 0f, 0f, 1f, 1f, HorizontalMargin, 100f, -HorizontalMargin, -320f);
+        SetAnchoredRect(logPanel, 0f, 0f, 1f, 1f, HorizontalMargin, 100f, -HorizontalMargin, -CombatLogTopOffset);
 
         Text logText = CreateText("CombatLogText", logPanel, string.Empty, 24, FontStyle.Normal, TextAnchor.UpperLeft);
         SetAnchoredRect(logText.rectTransform, 0f, 0f, 1f, 1f, 32f, 24f, -32f, -24f);
