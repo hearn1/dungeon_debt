@@ -51,6 +51,72 @@ Copy this block when adding a new entry. Paste it at the top of the Session log 
 
 <!-- Newest entries at the top. -->
 
+## 2026-05-14 - M1.3: Combat sandbox UI wiring
+
+**Milestone:** M1 - Combat Sandbox
+**Status:** Complete
+
+**Files added:**
+- `DungeonDebt/Assets/Scripts/UI/MainMenuPanel.cs`
+- `DungeonDebt/Assets/Scripts/UI/CombatLogView.cs`
+- `TestPlans/TP_M1.3.md`
+
+**Files modified:**
+- `DungeonDebt/Assets/Scenes/Main.unity` - attached the sandbox UI controller to the existing Canvas.
+- `PROGRESS.md` - added the missing M1.2 entry at the user's request before logging this slice.
+
+**Acceptance criteria:**
+- [x] `Main.unity` opens with a minimal combat sandbox UI on the existing Canvas.
+- [x] Start Combat runs `DataRepository.CreateSandboxRun()`, `DataRepository.SandboxEncounter`, and `CombatManager.StartCombat(...)`.
+- [x] `CombatLogView` streams already-resolved `CombatResult.LogLines` with a readable delay; combat simulation remains synchronous.
+- [x] Final UI state shows win/loss and enables Restart; Restart clears the old log and reproduces identical combat text.
+- [x] No out-of-scope systems were introduced.
+
+**Test plan:** `TestPlans/TP_M1.3.md` - user reported the UI, restart, state, edge, rule, and observable checks passed after the text-rendering fix; source-inspection regression steps 20-21 were skipped as unclear, and step 24 was marked "appears to pass" because identical Slime names make unit identity hard to distinguish.
+
+**Deviations from plan:**
+- Generated UI labels use legacy uGUI `Text` instead of TextMeshPro because the fresh project did not have usable TMP font assets/imported TMP Essentials, causing invisible text and TMP font warnings. This keeps the slice uGUI-only and testable without adding imported assets or forbidden folders.
+
+**Follow-up flagged:**
+- Revisit TextMeshPro setup in a later UI polish/setup slice if TMP Essentials or a committed font asset is intentionally added.
+- Future test plans should make source-inspection regression checks more concrete for non-code reviewers.
+
+**Next slice:** M2.1 - Run state bootstrap and header shell
+
+## 2026-05-14 - M1.2: Combat repository and resolver scaffold
+
+**Milestone:** M1 - Combat Sandbox
+**Status:** Complete
+
+**Files added:**
+- `DungeonDebt/Assets/Scripts/Core/GameRules.cs`
+- `DungeonDebt/Assets/Scripts/Core/DataRepository.cs`
+- `DungeonDebt/Assets/Scripts/Combat/CombatManager.cs`
+- `DungeonDebt/Assets/Scripts/Combat/CombatLogger.cs`
+- `DungeonDebt/Assets/Scripts/Combat/HeroEffects.cs`
+- `TestPlans/TP_M1.2.md`
+
+**Files modified:**
+- `NEXT_SESSION.md` - rewrote the next-session brief for M1.3 combat sandbox UI wiring.
+
+**Acceptance criteria:**
+- [x] `GameRules.cs` contains M1 numeric constants, including `CombatTurnLimit`.
+- [x] `DataRepository.cs` exposes sandbox-only static data: 4-5 heroes, 2-3 enemies, one sandbox encounter, and `CreateSandboxRun()`.
+- [x] `CombatManager.StartCombat(...)` synchronously resolves deterministic combat into a `CombatResult`.
+- [x] `CombatLogger.cs` records ordered attack, death, turn-limit, and final-result log lines.
+- [x] `HeroEffects.cs` exists as a static no-op hook surface without non-M1 effect implementation.
+- [x] No UI, shop, payroll, formation editing, economy flow, forbidden folders, or automated test assets were introduced.
+
+**Test plan:** `TestPlans/TP_M1.2.md` - source, compile, scene, and rule checks passed; temporary probe-script combat checks were skipped or unclear because the test plan did not include exact probe creation/run instructions.
+
+**Deviations from plan:**
+- Probe-script validation steps were not completed by the tester due to unclear instructions. M1.3 is expected to make the same resolver testable through scene UI.
+
+**Follow-up flagged:**
+- Future test plans should include exact scratch/probe script bodies and placement if probe scripts are required.
+
+**Next slice:** M1.3 - Combat sandbox UI wiring
+
 ## 2026-05-14 - M1.1: Combat data model
 
 **Milestone:** M1 - Combat Sandbox
