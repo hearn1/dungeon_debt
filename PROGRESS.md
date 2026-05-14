@@ -51,6 +51,38 @@ Copy this block when adding a new entry. Paste it at the top of the Session log 
 
 <!-- Newest entries at the top. -->
 
+## 2026-05-14 - M2.1: Run state bootstrap and header shell
+
+**Milestone:** M2 - Run State and Resources
+**Status:** Complete
+
+**Files added:**
+- `DungeonDebt/Assets/Scripts/Core/GameState.cs`
+- `DungeonDebt/Assets/Scripts/Core/GameManager.cs`
+- `DungeonDebt/Assets/Scripts/Run/RunManager.cs`
+- `DungeonDebt/Assets/Scripts/UI/RunHeaderView.cs`
+- `TestPlans/TP_M2.1.md`
+
+**Files modified:**
+- `DungeonDebt/Assets/Scripts/UI/MainMenuPanel.cs` - routed Start/Restart through run bootstrap, displayed the run header, and adjusted vertical spacing after manual testing.
+
+**Acceptance criteria:**
+- [x] `Main.unity` still opens as one scene with the existing Canvas/EventSystem and a start button.
+- [x] Clicking the start button initializes a fresh `RunState` through `RunManager.InitializeRun()` with `Round = 1`, `Gold = GameRules.StartingGold`, `Debt = GameRules.StartingDebt`, and `Morale = GameRules.StartingMorale`.
+- [x] `GameManager` owns the current `GameState`, exposes `ChangeState(GameState)`, and state changes go through that method.
+- [x] `RunHeaderView` displays the current round, gold, debt, and morale from the initialized `RunState`.
+- [x] The M1.3 sandbox combat path remains usable, with no reward/upkeep/interest/loss-condition math added.
+
+**Test plan:** `TestPlans/TP_M2.1.md` - user ran the plan; one spacing observation on step 22 was fixed in `MainMenuPanel.cs`, then confirmed looking good.
+
+**Deviations from plan:**
+- None.
+
+**Follow-up flagged:**
+- None.
+
+**Next slice:** M2.2 - Post-combat resource math and reward summary shell
+
 ## 2026-05-14 - M1.3: Combat sandbox UI wiring
 
 **Milestone:** M1 - Combat Sandbox
