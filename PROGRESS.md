@@ -51,6 +51,39 @@ Copy this block when adding a new entry. Paste it at the top of the Session log 
 
 <!-- Newest entries at the top. -->
 
+## 2026-05-14 - M2.2: Post-combat resource math and reward summary shell
+
+**Milestone:** M2 - Run State and Resources
+**Status:** Complete
+
+**Files added:**
+- `DungeonDebt/Assets/Scripts/UI/RewardSummaryView.cs`
+- `DungeonDebt/Assets/Scripts/UI/RewardSummaryView.cs.meta`
+- `TestPlans/TP_M2.2.md`
+
+**Files modified:**
+- `DungeonDebt/Assets/Scripts/Core/GameRules.cs` - added the interest divisor constant.
+- `DungeonDebt/Assets/Scripts/Data/RunState.cs` - stored latest reward/upkeep summary values.
+- `DungeonDebt/Assets/Scripts/Run/RunManager.cs` - prepared the sandbox party on the current run and applied reward, upkeep, shortfall, interest, and morale math.
+- `DungeonDebt/Assets/Scripts/UI/MainMenuPanel.cs` - displayed the reward summary after combat streaming and refreshed the header with final resources.
+
+**Acceptance criteria:**
+- [x] After sandbox combat finishes, `RunManager` applies post-combat resource math to the current `RunState`: reward gold, party upkeep, shortfall converted to debt, interest, and morale loss on defeat.
+- [x] `RewardSummaryView` displays the result of that math clearly enough to verify gold gained, upkeep paid/shortfall, interest paid or added to debt, morale change, and final gold/debt/morale.
+- [x] `RunHeaderView` refreshes after post-combat math and matches the final values shown in `RewardSummaryView`.
+- [x] Numeric rules come from `GameRules` and existing `HeroInstance.UpkeepThisRound`; no new magic numbers are introduced in logic files.
+- [x] Existing M1.3/M2.1 start and restart sandbox flow remains usable, deterministic, and scene-independent at the combat resolver level.
+
+**Test plan:** `TestPlans/TP_M2.2.md` - core happy path, fresh-run, rule, regression, and observable checks passed; temporary setup math/edge scenarios were skipped because the plan did not give clear setup instructions.
+
+**Deviations from plan:**
+- `GameRules.cs` was added to scope with explicit user confirmation so the interest divisor would not be hardcoded in run logic.
+
+**Follow-up flagged:**
+- Future test plans should include exact temporary setup instructions when asking the tester to force losses, debt, or high-upkeep scenarios.
+
+**Next slice:** M2.3 - Round advance, run loss checks, and end-screen shell
+
 ## 2026-05-14 - M2.1: Run state bootstrap and header shell
 
 **Milestone:** M2 - Run State and Resources
