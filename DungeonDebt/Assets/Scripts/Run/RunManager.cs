@@ -115,6 +115,46 @@ public class RunManager : MonoBehaviour
         _currentRunState.LatestInterestAddedToDebt = interestAddedToDebt;
     }
 
+    public GameState EvaluateNextState()
+    {
+        if (_currentRunState == null)
+        {
+            return GameState.MainMenu;
+        }
+
+        if (_currentRunState.Morale <= 0)
+        {
+            _currentRunState.LatestEndReason = "Morale exhausted.";
+            return GameState.Defeat;
+        }
+
+        if (_currentRunState.Debt >= GameRules.DebtLimit)
+        {
+            _currentRunState.LatestEndReason = "Debt limit reached.";
+            return GameState.Defeat;
+        }
+
+        if (_currentRunState.LatestCombatWon && _currentRunState.Round >= GameRules.FinalRound)
+        {
+            _currentRunState.LatestEndReason = "Final round cleared.";
+            return GameState.Victory;
+        }
+
+        _currentRunState.LatestEndReason = null;
+        return GameState.Combat;
+    }
+
+    public void AdvanceRound()
+    {
+        if (_currentRunState == null)
+        {
+            return;
+        }
+
+        _currentRunState.Round += 1;
+        _currentRunState.HasLatestRewardSummary = false;
+    }
+
     private static int CalculateTotalUpkeep(RunState runState, EncounterDefinition encounter)
     {
         int totalUpkeep = 0;

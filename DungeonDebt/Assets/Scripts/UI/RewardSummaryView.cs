@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -7,14 +8,25 @@ public class RewardSummaryView : MonoBehaviour
     private const int BodyFontSize = 22;
     private const int Padding = 24;
     private const int TitleHeight = 44;
+    private const int ContinueButtonHeight = 56;
+    private const int ContinueButtonWidth = 220;
 
     [SerializeField] private Text _titleText;
     [SerializeField] private Text _bodyText;
+    [SerializeField] private Button _continueButton;
+    [SerializeField] private Text _continueButtonLabel;
+
+    private Action _onContinue;
 
     public void Initialize(Font font)
     {
         BuildUi(font);
         Clear();
+    }
+
+    public void SetOnContinue(Action onContinue)
+    {
+        _onContinue = onContinue;
     }
 
     public void Refresh(RunState runState)
@@ -38,6 +50,13 @@ public class RewardSummaryView : MonoBehaviour
             "Interest paid: " + runState.LatestInterestPaid + "\n" +
             "Interest to debt: " + runState.LatestInterestAddedToDebt + "\n" +
             "Final: Gold " + runState.Gold + " / Debt " + runState.Debt + " / Morale " + runState.Morale;
+
+        if (_continueButton != null)
+        {
+            _continueButton.gameObject.SetActive(true);
+            _continueButton.interactable = true;
+            _continueButtonLabel.text = "Continue";
+        }
     }
 
     public void Clear()
@@ -50,6 +69,11 @@ public class RewardSummaryView : MonoBehaviour
         if (_bodyText != null)
         {
             _bodyText.text = "Complete combat to see reward, upkeep, interest, and final resources.";
+        }
+
+        if (_continueButton != null)
+        {
+            _continueButton.gameObject.SetActive(false);
         }
     }
 
@@ -74,7 +98,37 @@ public class RewardSummaryView : MonoBehaviour
         _bodyText = CreateText("Body", root, font, BodyFontSize, FontStyle.Normal, TextAnchor.UpperLeft);
 
         SetAnchoredRect(_titleText.rectTransform, 0f, 1f, 1f, 1f, Padding, -Padding - TitleHeight, -Padding, -Padding);
-        SetAnchoredRect(_bodyText.rectTransform, 0f, 0f, 1f, 1f, Padding, Padding, -Padding, -Padding - TitleHeight);
+        SetAnchoredRect(_bodyText.rectTransform, 0f, 0f, 1f, 1f, Padding, Padding + ContinueButtonHeight + Padding, -Padding, -Padding - TitleHeight);
+
+        _continueButton = CreateButton("ContinueButton", root, font, "Continue", out _continueButtonLabel);
+        SetAnchoredRect(
+            _continueButton.GetComponent<RectTransform>(),
+            0.5f, 0f, 0.5f, 0f,
+            0f, Padding + (ContinueButtonHeight * 0.5f),
+            ContinueButtonWidth, ContinueButtonHeight);
+        _continueButton.onClick.AddListener(HandleContinueClicked);
+        _continueButton.gameObject.SetActive(false);
+    }
+
+    private void OnDestroy()
+    {
+        if (_continueButton != null)
+        {
+            _continueButton.onClick.RemoveListener(HandleContinueClicked);
+        }
+    }
+
+    private void HandleContinueClicked()
+    {
+        if (_continueButton != null)
+        {
+            _continueButton.interactable = false;
+        }
+
+        if (_onContinue != null)
+        {
+            _onContinue.Invoke();
+        }
     }
 
     private static Text CreateText(string objectName, RectTransform parent, Font font, int fontSize, FontStyle fontStyle, TextAnchor alignment)
@@ -93,6 +147,31 @@ public class RewardSummaryView : MonoBehaviour
         textComponent.verticalOverflow = VerticalWrapMode.Truncate;
         textComponent.raycastTarget = false;
         return textComponent;
+    }
+
+    private static Button CreateButton(string objectName, RectTransform parent, Font font, string label, out Text labelText)
+    {
+        GameObject child = new GameObject(objectName, typeof(RectTransform));
+        RectTransform rectTransform = child.GetComponent<RectTransform>();
+        rectTransform.SetParent(parent, false);
+
+        Image image = child.AddComponent<Image>();
+        image.color = new Color(0.78f, 0.69f, 0.41f, 1f);
+        image.raycastTarget = true;
+
+        Button button = child.AddComponent<Button>();
+        button.targetGraphic = image;
+
+        labelText = CreateText("Label", rectTransform, font, 22, FontStyle.Bold, TextAnchor.MiddleCenter);
+        labelText.text = label;
+        labelText.color = new Color(0.08f, 0.08f, 0.09f, 1f);
+        RectTransform labelRect = labelText.rectTransform;
+        labelRect.anchorMin = Vector2.zero;
+        labelRect.anchorMax = Vector2.one;
+        labelRect.offsetMin = new Vector2(8f, 6f);
+        labelRect.offsetMax = new Vector2(-8f, -6f);
+
+        return button;
     }
 
     private static string FormatSigned(int value)
