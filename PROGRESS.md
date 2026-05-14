@@ -51,6 +51,45 @@ Copy this block when adding a new entry. Paste it at the top of the Session log 
 
 <!-- Newest entries at the top. -->
 
+## 2026-05-14 - M5.2: Victory Bonus loss-debt, post-combat hero-stat revert, payroll line items in RewardSummaryView
+
+**Milestone:** M5 - Payroll Actions
+**Status:** Partial
+
+**Files added:**
+- `TestPlans/TP_M5.2.md`
+
+**Files modified:**
+- `DungeonDebt/Assets/Scripts/Data/RunState.cs` - added `LatestPayrollSummary` and `LatestVictoryBonusLossDebt` for the reward summary.
+- `DungeonDebt/Assets/Scripts/Run/PayrollManager.cs` - added `ApplyPostCombat` (Victory Bonus loss-debt + per-action summary text) and `RevertPerCombatHeroStats` (reset Attack/UpkeepThisRound to definition base).
+- `DungeonDebt/Assets/Scripts/Run/RunManager.cs` - added serialized `PayrollManager` field + `Initialize(PayrollManager)`; `ApplyPostCombatResult` now calls `ApplyPostCombat` before upkeep and `RevertPerCombatHeroStats` at end.
+- `DungeonDebt/Assets/Scripts/Core/GameManager.cs` - wired payroll manager into run manager in `EnsureManagers`; `ContinueAfterReward` clears `SelectedPayrollAction` after reward summary dismissed.
+- `DungeonDebt/Assets/Scripts/UI/RewardSummaryView.cs` - replaced hardcoded "Payroll effect: None" with conditional `LatestPayrollSummary` block.
+- `DungeonDebt/Assets/Scripts/UI/PayrollPanelView.cs` - `Refresh(RunState)` signature; disables Victory Bonus card when `Gold < VictoryBonusGoldCost`.
+- `DungeonDebt/Assets/Scripts/UI/PayrollCardView.cs` - added 1-line `SetInteractable(bool)` hook (Q2(a) scope add).
+- `DungeonDebt/Assets/Scripts/UI/MainMenuPanel.cs` - updated `PayrollPanelView.Refresh` callsites to pass `RunState`.
+
+**Acceptance criteria:**
+- [x] AC1 - Victory Bonus loss-debt applied before interest math (Scenario C).
+- [x] AC2 - Per-hero `Attack`/`UpkeepThisRound` reverted after every combat (Scenarios B.3, C.4, F.2 — observed via downstream UI; DIAG probes were not added during testing but downstream effects confirm).
+- [x] AC3 - Reward summary shows payroll line items per non-StandardPay action (Scenarios A.3, B.2, C.3, D.3, E.1).
+- [x] AC4 - `SelectedPayrollAction` survives through reward summary, clears in `ContinueAfterReward` (Rule check R.4).
+- [ ] AC5 - "Existing Shop → Formation → Payroll → Combat → Reward → next-round flow continues to work end-to-end" — **single-round flow works**; multi-round flow is broken by R002 (round-advance bypasses Shop/Formation/Payroll). Pre-existing bug from M2.3 surfaced by M5.2 testing.
+
+**Test plan:** `TestPlans/TP_M5.2.md` - Scenarios A.1-A.4, B, C, D, E, F all pass. A.5 blocked by R002 (Payroll panel never re-appears for Round 2). All Rule checks, Regression checks, and Observable invariants pass. DIAG.1/DIAG.2 `Debug.Log` probes were not added to `PayrollManager` during testing, so the cross-round revert was confirmed via downstream UI effects rather than direct log readout.
+
+**Deviations from plan:**
+- Touched `PayrollCardView.cs` (1-line `SetInteractable(bool)` hook) to support Q2(a) Victory Bonus card disable. Brief listed this file as not-to-modify; the change is the minimal hook required and was confirmed as part of the Q2(a) scope decision at plan time.
+
+**Follow-up flagged:**
+- **R002 filed:** round-advance loop bypasses Shop/Formation/Payroll. Blocks AC5 multi-round verification and must be addressed before M6.
+- `RunManager.PrepareSandboxRun()` / `DataRepository.CreateSandboxRun()` still unreferenced; defer to a cleanup slice.
+- `MainMenuPanel.RunSandboxCombat` still drives post-combat math from the UI panel; should migrate into the run flow once M6 encounter selection lands.
+- Per-round shop refresh still deferred to M6.
+- Future test plans should give the tester an explicit "did you add the diagnostic scaffold?" gating step before scenarios that depend on it, or fall back to UI-observable signals only.
+
+**Next slice:** R002 - Route round-advance through Shop → Formation → Payroll → Combat instead of directly to Combat.
+
 ## 2026-05-14 - M5.1: Payroll action data + payroll panel shell
 
 **Milestone:** M5 - Payroll Actions

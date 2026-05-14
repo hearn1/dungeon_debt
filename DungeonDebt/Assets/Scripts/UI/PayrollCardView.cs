@@ -10,6 +10,7 @@ public class PayrollCardView : MonoBehaviour
     private const int HighlightThickness = 4;
 
     private static readonly Color DefaultColor = new Color(0.18f, 0.2f, 0.25f, 1f);
+    private static readonly Color DisabledColor = new Color(0.12f, 0.13f, 0.15f, 1f);
     private static readonly Color HighlightColor = new Color(0.95f, 0.78f, 0.25f, 1f);
     private static readonly Color HighlightHiddenColor = new Color(0f, 0f, 0f, 0f);
 
@@ -46,6 +47,18 @@ public class PayrollCardView : MonoBehaviour
     public void SetSelected(bool selected)
     {
         _highlight.color = selected ? HighlightColor : HighlightHiddenColor;
+    }
+
+    public void SetInteractable(bool interactable)
+    {
+        if (_button != null)
+        {
+            _button.interactable = interactable;
+        }
+        if (_background != null)
+        {
+            _background.color = interactable ? DefaultColor : DisabledColor;
+        }
     }
 
     private void OnDestroy()

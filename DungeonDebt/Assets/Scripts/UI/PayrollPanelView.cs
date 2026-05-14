@@ -54,14 +54,17 @@ public class PayrollPanelView : MonoBehaviour
         gameObject.SetActive(false);
     }
 
-    public void Refresh(PayrollActionId? selectedAction)
+    public void Refresh(RunState runState)
     {
+        PayrollActionId? selectedAction = runState != null ? runState.SelectedPayrollAction : null;
         _selectedAction = selectedAction;
 
         if (_actions == null)
         {
             return;
         }
+
+        int currentGold = runState != null ? runState.Gold : 0;
 
         for (int i = 0; i < _cards.Length; i++)
         {
@@ -70,10 +73,20 @@ public class PayrollPanelView : MonoBehaviour
                 PayrollActionDefinition definition = _actions[i];
                 bool isSelected = selectedAction.HasValue && selectedAction.Value == definition.Id;
                 _cards[i].SetAction(definition, isSelected);
+                _cards[i].SetInteractable(IsActionAffordable(definition.Id, currentGold));
             }
         }
 
         _continueButton.interactable = selectedAction.HasValue;
+    }
+
+    private static bool IsActionAffordable(PayrollActionId actionId, int gold)
+    {
+        if (actionId == PayrollActionId.PromiseVictoryBonus)
+        {
+            return gold >= GameRules.VictoryBonusGoldCost;
+        }
+        return true;
     }
 
     private void OnDestroy()
