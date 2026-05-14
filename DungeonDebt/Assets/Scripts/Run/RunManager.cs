@@ -158,7 +158,7 @@ public class RunManager : MonoBehaviour
         }
 
         _currentRunState.LatestEndReason = null;
-        return GameState.Combat;
+        return GameState.Shop;
     }
 
     public void SwapPartySlots(int slotA, int slotB)

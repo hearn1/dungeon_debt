@@ -4,91 +4,98 @@ This file always describes the **next** session's work. Rewrite it at the end of
 
 ---
 
-## Session: R002 — Round-advance routes through Shop → Formation → Payroll → Combat
+## Session: M6.1 — Scout panel and encounter list wiring
 
-**Milestone:** Regression fix (blocks M6 entry)
-**Slice goal:** Fix the round-advance loop so that after the player clicks Continue on the Reward Summary, a not-yet-ended run routes back through `Shop → Formation → Payroll → Combat` instead of jumping straight to `Combat`. This unblocks M5.2 acceptance criterion 5 (multi-round flow), enables real multi-round economy testing for the first time, and lets M6 land on a working loop.
+**Milestone:** M6 - Full 10-Round Run (first slice)
+**Slice goal:** Add Scout state, Scout panel UI, EncounterManager, and populate DataRepository with all 10 encounters. Wire the state machine so each round progresses StartRun → Scout → Shop. Display encounter name, type, scout text, and reward. No hero/enemy effect implementation yet; plain encounters with zero behavioral effects so the round flow is testable end-to-end.
 
 ### Background
 
-`GameManager.ContinueAfterReward` currently calls `RunManager.EvaluateNextState()`, which returns `GameState.Combat` whenever no end condition is met, then `ChangeState(Combat)` jumps directly there. The round-advance routing was wired in M2.3 (before Shop/Formation/Payroll states existed) and never updated when M3.2/M4.1/M5.1 added those states. Symptom: rounds 2–10 reuse the round-1 party, formation, and an empty payroll selection without ever showing the in-between panels.
-
-See `REGRESSIONS.md` R002 for the full repro and notes.
+M5.2 AC5 (multi-round economy) and R002 (round-advance routing) are now fixed. The core loop Shop → Formation → Payroll → Combat → Reward → Upkeep → (next round's Shop) is solid. M6.1 adds the missing Scout state before Shop and populates the 10-encounter list so the game progresses through a full run with visible variety. Hero/enemy effects (which make encounters mechanically distinct) are deferred to M6.2 so M6.1 can focus on state routing and UI.
 
 ### Acceptance criteria
 
-1. **Continue from Reward Summary on a continuing run goes to Shop, not Combat.** When `EvaluateNextState` would otherwise return `GameState.Combat` (i.e. no morale/debt/round-10 end condition), `ContinueAfterReward` instead transitions to `GameState.Shop` after `AdvanceRound`. Victory/Defeat transitions are unchanged.
-2. **All in-between states fire in order.** A successful round 1 → round 2 path enters, in order: `Shop`, `Formation`, `Payroll`, `Combat`, `Reward`, `Upkeep`, then on Continue advances to round 2's `Shop`. Each panel is visible and interactable on each visit.
-3. **`SelectedPayrollAction` is null at every Payroll-state entry.** The existing safety nets in `MainMenuPanel.HandleStateChanged` Payroll branch and `GameManager.ContinueAfterReward` continue to enforce this; verify nothing leaks across rounds.
-4. **Per-hero `Attack`/`UpkeepThisRound` are at base when Round 2's Payroll panel renders.** Direct cross-round verification of M5.2 AC2, which was previously only observable via the in-combat revert log.
-5. **No new shop refresh, no new encounters, no scout, no rival.** The shop offers may be either the round-1 leftovers or freshly regenerated — pick one at plan time and document. Per-round shop refresh per `IMPLEMENTATION_PLAN.md` §6 / M6 is **out of scope** unless trivial.
-6. **End conditions still fire.** Morale ≤ 0 → Defeat; Debt ≥ DebtLimit → Defeat; Round 10 win → Victory. Existing M2.3 end-screen flow is preserved.
+1. **Scout state wiring.** After `StartRun` or after each `RivalUpdate`, the next state is `Scout` (not `Shop`). Continue from Scout transitions to Shop.
+2. **Scout panel displays encounter info.** For each round 1–10, Scout panel shows: encounter name, type ("Dungeon" / "RivalGhost" / "FinalBoss"), scout text (from §8 of IMPLEMENTATION_PLAN.md), reward gold. No rival leaderboard or advanced UI; just the core scout text and continue button.
+3. **EncounterManager loads encounters.** `EncounterManager.LoadEncounter(round)` returns the correct `EncounterDefinition` for that round. Enemies are populated and assigned to formation slots (frontline first, then backline).
+4. **10 encounters in DataRepository.** All 10 rounds are defined in `DataRepository.Encounters` as a static list: Slimes (R1), Goblin Thieves (R2), placeholder ghost (R3), Tax Collector (R4), Backline Bat (R5), placeholder ghost (R6), Debt Wraith (R7), Treasure Leech (R8), placeholder ghost (R9), Dungeon Auditor (R10). Placeholders for R3/R6/9 use `SandboxEncounter` (Slimes) until M7.
+5. **Round 1–10 progression visible.** Start a new run and progress through all 10 rounds: verify Scout appears each round with correct encounter name; continue through Shop/Formation/Payroll/Combat for each round; Reward Summary shows per-round reward; confirm Victory screen after Round 10 win.
+6. **No hero/enemy behavioral effects.** Encounters have no special rules (Goblin Thief steal, Tax Collector upkeep, Debt Wraith scaling, Treasure Leech drain, Backline Bat targeting, Dungeon Auditor periodic damage) yet. Combat resolves as plain DPS race. Effects deferred to M6.2.
 
 ### Files Claude Code may create
 
 ```
-TestPlans/TP_R002.md
+DungeonDebt/Assets/Scripts/Run/EncounterManager.cs
+DungeonDebt/Assets/Scripts/UI/ScoutPanelView.cs
+TestPlans/TP_M6.1.md
 ```
 
 ### Files Claude Code may modify
 
 ```
-DungeonDebt/Assets/Scripts/Run/RunManager.cs
 DungeonDebt/Assets/Scripts/Core/GameManager.cs
-DungeonDebt/Assets/Scripts/UI/MainMenuPanel.cs
-```
+  — Add StartRun → Scout wiring; add Scout state handling
 
-- `RunManager.cs` — change `EvaluateNextState` so the "continue run" branch returns `GameState.Shop` instead of `GameState.Combat`. Keep `AdvanceRound` semantics; consider whether it should run before or after the `Shop` transition.
-- `GameManager.cs` — adjust `ContinueAfterReward` to call `AdvanceRound` and route to the new state. Confirm the `SelectedPayrollAction = null` clear still happens once per round.
-- `MainMenuPanel.cs` — verify `HandleStateChanged` Shop / Formation / Payroll branches behave correctly on **re-entry** (panels were originally written for a single first-round visit). In particular, confirm `_shopPanelView.Show()` / `_formationPanelView.Show()` work after combat without stale state, and that `_combatLogView.Clear()` happens at the right point.
+DungeonDebt/Assets/Scripts/Core/DataRepository.cs
+  — Populate Encounters list with all 10 encounter definitions
+
+DungeonDebt/Assets/Scripts/Core/GameState.cs
+  — Ensure GameState.Scout exists (likely already defined); no other changes
+
+DungeonDebt/Assets/Scripts/UI/MainMenuPanel.cs
+  — Build and show ScoutPanelView; add Scout branch to HandleStateChanged
+
+DungeonDebt/Assets/Scripts/Run/RunManager.cs
+  — Wire EncounterManager into the run flow; call LoadEncounter(round) at Scout entry or Store the loaded encounter on RunState for Combat/effect-application phases
+```
 
 ### Files Claude Code does NOT create or modify
 
-- `PayrollManager.cs`, `PayrollPanelView.cs`, `PayrollCardView.cs` — payroll logic is final from M5.1/M5.2.
-- `CombatManager.cs`, `HeroEffects.cs` — combat unchanged.
-- `DataRepository.cs`, `GameRules.cs` — no new data or constants needed.
-- `ShopManager.cs`, `ShopPanelView.cs`, `ShopOfferView.cs`, `HeroCardView.cs` — shop logic unchanged unless re-entry exposes a real bug.
-- `FormationPanelView.cs`, `FormationSlotView.cs`, `RewardSummaryView.cs`, `RunHeaderView.cs`, `EndScreenView.cs`, `CombatLogView.cs` — UI views unchanged unless re-entry exposes a real bug.
-- Scout / rival / save-load / per-round shop refresh / new encounters / new hero defs.
-- `Resources/`, `StreamingAssets/`, `Tests/`, `Editor/`.
-- `PROGRESS.md` or `REGRESSIONS.md` during implementation.
+- CombatManager.cs — combat logic unchanged
+- HeroEffects.cs — remains stubs until M6.2
+- PayrollManager.cs, PayrollPanelView.cs, etc. — payroll unchanged
+- ShopManager.cs, ShopPanelView.cs, FormationPanelView.cs — unchanged
+- RivalManager.cs, RivalLeaderboardView.cs — rivals deferred to M7
+- Resources/, StreamingAssets/, Tests/, Editor/
+- PROGRESS.md or REGRESSIONS.md during implementation
 
 ### Open questions to resolve at plan time
 
-1. **Where `AdvanceRound` is called.** Today it runs inside `ContinueAfterReward` only when `EvaluateNextState` returns `Combat`. After the fix, should it run before transitioning to `Shop` (so the Shop header shows the new round number) or be deferred to the actual Combat entry? Recommendation: keep it where it is, just change the target state — round number bumps as soon as the player commits to "continuing the run."
-2. **Shop offer state on round-N entry.** Three options:
-   - (a) Re-use `_shopManager.CurrentOffers` from round 1 (no per-round refresh).
-   - (b) Call `_shopManager.GenerateOffers()` again on each `Shop` state entry. `GameManager.ChangeState` already does this on every `Shop` entry today — so unless we change anything, the offers will refresh automatically each round, which is functionally equivalent to (b).
-   - Recommendation: **accept (b) as the natural consequence of existing `ChangeState(Shop)` behavior**, document it in the test plan, and explicitly defer "should reroll cost reset, should party persist" to M6.
-3. **Diagnostic scaffold.** R002 is mostly UI-state observable, so the test plan probably doesn't need a `Debug.Log` probe. If one is needed, plan it up front with explicit revert steps (per `SESSION_PROTOCOL.md` §Step 6).
+1. **EncounterManager location and integration.** Should `EncounterManager` be a new component on GameManager (like ShopManager, PayrollManager), or should it be called on-demand by RunManager? Recommendation: **new component on GameManager**, initialized in `EnsureManagers`. RunManager calls `_gameManager.EncounterManager.LoadEncounter(round)` when Scout state is entered.
+
+2. **Encounter storage on RunState.** The loaded `EncounterDefinition` needs to be available during Combat and Reward phases (for reward math, enemy effects, etc.). Store it in `RunState.CurrentEncounter` so it persists across Scout → Shop → Formation → Payroll → Combat. Or pass it separately through the call chain? Recommendation: **store on RunState** so managers don't need deeper call chains.
+
+3. **Scout panel compact form.** The full leaderboard is deferred to M7. Scout panel in M6.1 should be minimal: just name, type, scout text, reward, and Continue button. No rival stats row. Yes/No?
+
+4. **Enemy formation setup.** Do enemies auto-populate into the 5-slot formation based on `EncounterDefinition.Enemies` in order (slots 0, 1, 2, …), or does EncounterManager do the slot assignment? Recommendation: **EncounterManager.LoadEncounter** returns an encounter with a pre-populated `List<CombatUnit>` or the list of enemies pre-sorted by intended slot. CombatManager.StartCombat then uses them as-is.
+
+5. **Placeholder ghost encounters (R3, R6, 9).** Until M7, should R3/R6/9 reuse Slimes (SandboxEncounter), or should they be distinct placeholder teams (e.g., "3 Goblins" or "Treasure Leech clone")? Recommendation: **reuse SandboxEncounter (Slimes)** for speed; M7 will replace them with proper ghost teams.
 
 ### Relevant plan sections to re-read during Orient
 
-- `IMPLEMENTATION_PLAN.md` §11 — Milestones 5/6 acceptance criteria, particularly "10-round run with all encounters and hero effects."
-- `IMPLEMENTATION_PLAN.md` §6 — Shop per-round semantics (to confirm what we're explicitly *not* doing yet).
-- `REGRESSIONS.md` R002 — the regression entry itself.
-- `PROGRESS.md` last 2-3 entries (M5.2, M5.1, M4.1) for the recent state-routing context.
+- `IMPLEMENTATION_PLAN.md` §8 — Encounter table, scout text (exact text from GAME_DESIGN.md lines 1010, 1029, …), enemy formations, encounter effects (effects themselves are **not** implemented in M6.1, just the encounter data is defined).
+- `IMPLEMENTATION_PLAN.md` §3 (State Machine) — Scout state entry/transition.
+- `IMPLEMENTATION_PLAN.md` §11 (Milestone 6) — full M6 scope and AC (M6.1 is a subset).
+- `GAME_DESIGN.md` §10 (Encounters) — brief flavor text for each round (optional reading if tester wants lore context).
+- `REGRESSIONS.md` — R002 is now Closed; no open blockers for M6.1.
 
-### Notes from previous slice (M5.2)
+### Notes from previous slice (R002)
 
-- M5.2 implementation is correct and shipped Partial: AC1, AC3, AC4 all pass. AC2 is satisfied at the revert site (observed via downstream UI in B.3, C.4, F.2). AC5 was the only criterion not met, blocked by R002.
-- Q2(a) Victory Bonus card disable when underfunded is in and verified (Scenario D pass).
-- DIAG.1/DIAG.2 `Debug.Log` scaffolds in TP_M5.2 were planned but not added by the tester; downstream UI signals confirmed the same behavior. Future test plans should either gate the dependent steps on a "scaffold added?" check or rely on UI-observable signals.
-- After R002 ships, re-run TP_M5.2 step A.5 (and the second half of F.2) to close out M5.2 AC5.
+- R002 fixed: round-advance now routes Shop → Formation → Payroll → Combat → Reward → Upkeep → Shop (next round) instead of jumping to Combat.
+- M5.2 AC5 multi-round economy is now verifiable and passes.
+- Cleanup items still pending: `RunManager.PrepareSandboxRun()` / `DataRepository.CreateSandboxRun()` are unreferenced; defer to a dedicated cleanup slice after M6/M7.
 
 ### Test plan output
 
-Claude Code creates `TestPlans/TP_R002.md` covering:
+Claude Code creates `TestPlans/TP_M6.1.md` covering:
 
-- **Happy path:** Run round 1 with any payroll action → Continue from Reward → confirm Shop visible with Round 2 in header → Continue → Formation visible → Continue → Payroll visible → Continue → Combat → Reward.
-- **Round 1 → Round 10 sweep:** play out a full 10-round run (forced wins via `GameRules` if needed for speed) and confirm all in-between panels appear each round; final round-10 win still triggers Victory end screen.
-- **Cross-round payroll/stat checks:** Round 1 Cut Wages → at Round 2 Payroll panel, hero cards (or a one-line debug probe) show base `Attack`/`UpkeepThisRound`; `SelectedPayrollAction` is null on Round 2 Payroll entry.
-- **End conditions still fire:** force defeat by morale (temporary `GameRules.DungeonLossMorale = 30`), force defeat by debt (temporary `GameRules.DebtLimit = 1`), force victory at Round 10 (temporary `GameRules.FinalRound = 1`). Each with explicit revert checkboxes.
-- **Rule checks:** no `UnityEngine.Random`, no magic numbers in routing logic, panels still don't show/hide themselves, single `RunState` instance persists across rounds.
-- **Regression checks:** rerun TP_M5.2 A.5 and second half of F.2 (now reachable); rerun TP_M5.1 selection edge cases on round 2; rerun TP_M4.1 swap on round 2; rerun TP_M3.2 hire/fire/reroll on round 2.
-- **Observable invariants:** every state transition is one of MainMenu → StartRun → Shop → Formation → Payroll → Combat → Reward → Upkeep → (Shop|Victory|Defeat); `RunState.Round` increments by exactly 1 per Continue-from-Reward; combat log is cleared between rounds.
-
-Every temporary setup step (forced loss, forced victory, low morale) must include exact file/method/value changes and an explicit revert checkbox.
+- **Happy path:** Start Run → Scout visible with Round 1 encounter name/type/text → Continue → Shop → ... → Combat → Reward → Continue → Scout visible with Round 2 name/type/text. Repeat for 3 rounds to confirm the cycle.
+- **Full 10-round sweep:** Play all 10 rounds, confirming Scout appears each round with correct name and type. Verify encounter variety (at least 5 distinct names visible). Final round shows Dungeon Auditor (R10); win triggers Victory screen.
+- **Encounter data checks:** Inspect DataRepository.Encounters list in Inspector or source; verify all 10 entries are populated. Spot-check a few encounters (R1 Slimes reward=8, R4 Tax Collector, R10 Auditor HP=20).
+- **State machine checks:** Verify state transitions StartRun → Scout → Shop each round. No direct Shop entry after StartRun (Scout must intercede). After 10 rounds, Upkeep → Victory (not Shop).
+- **Rule checks:** No UnityEngine.Random, no magic numbers in encounter selection, EncounterManager is called only at Scout entry, enemies populate into formation slots, no hero/enemy effect code yet.
+- **Regression checks:** Rerun TP_R002 Scenario A (Reward → Round 2 Shop) to confirm round-advance still works with Scout inserted.
+- **Observable invariants:** `RunState.Round` increments each round; `RunState.CurrentEncounter` is set at Scout entry and used through Combat/Reward; Scout text matches `IMPLEMENTATION_PLAN.md` §8 table.
 
 ### Start prompt for the next session
 

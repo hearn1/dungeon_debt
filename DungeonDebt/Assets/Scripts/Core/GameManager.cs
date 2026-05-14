@@ -103,7 +103,7 @@ public class GameManager : MonoBehaviour
         }
 
         GameState nextState = _runManager.EvaluateNextState();
-        if (nextState == GameState.Combat)
+        if (nextState == GameState.Shop)
         {
             _runManager.AdvanceRound();
         }
