@@ -5,6 +5,7 @@ public class GameManager : MonoBehaviour
 {
     [SerializeField] private RunManager _runManager;
     [SerializeField] private ShopManager _shopManager;
+    [SerializeField] private PayrollManager _payrollManager;
 
     private GameState _currentState = GameState.MainMenu;
 
@@ -38,6 +39,11 @@ public class GameManager : MonoBehaviour
         get { return _shopManager; }
     }
 
+    public PayrollManager PayrollManager
+    {
+        get { return _payrollManager; }
+    }
+
     private void Awake()
     {
         EnsureManagers();
@@ -62,6 +68,29 @@ public class GameManager : MonoBehaviour
 
     public void ContinueFromFormation()
     {
+        ChangeState(GameState.Payroll);
+    }
+
+    public void SelectPayrollAction(PayrollActionId? actionId)
+    {
+        RunState runState = CurrentRunState;
+        if (runState == null)
+        {
+            return;
+        }
+
+        runState.SelectedPayrollAction = actionId;
+    }
+
+    public void ContinueFromPayroll()
+    {
+        EnsureManagers();
+        RunState runState = CurrentRunState;
+        if (runState != null && runState.SelectedPayrollAction.HasValue && _payrollManager != null)
+        {
+            _payrollManager.Apply(runState, runState.SelectedPayrollAction.Value);
+        }
+
         ChangeState(GameState.Combat);
     }
 
@@ -124,5 +153,14 @@ public class GameManager : MonoBehaviour
         }
 
         _shopManager.Initialize(_runManager);
+
+        if (_payrollManager == null)
+        {
+            _payrollManager = GetComponent<PayrollManager>();
+            if (_payrollManager == null)
+            {
+                _payrollManager = gameObject.AddComponent<PayrollManager>();
+            }
+        }
     }
 }

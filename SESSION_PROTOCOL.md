@@ -120,6 +120,14 @@ Create `TestPlans/TP_<slice-id>.md` with manual Unity Editor test steps. Every s
       Actual:   <Left blank for the user to fill in>
 ```
 
+When a step asks the tester to observe internal run state that the Unity Inspector cannot show (plain C# classes like `RunState`, `HeroInstance` fields, `System.Random`, anything not `[SerializeField]` or `[System.Serializable]`), do not rely on Inspector Debug mode — it only surfaces Unity-serializable fields. Instead, add a short "Temporary diagnostic scaffold" subsection at the top of the affected scenario that:
+
+1. Specifies the exact file, method, and lines to add (typically a `UnityEngine.Debug.Log` PRE/POST pair around the operation being tested).
+2. Tells the tester what to look for in the Unity Console.
+3. **Ends with an explicit revert step before the next scenario or before the slice is marked complete.** The revert step is a checkbox like any other.
+
+Diagnostic scaffolds (Debug.Log, throwaway probe components, temporary `GameRules` edits) are test-only and must not be committed. The session is not done until all such scaffolds are reverted.
+
 The test plan must contain these sections (omit a section only if it genuinely does not apply, and say why):
 
 - **Happy path** — the slice working as intended, end-to-end
