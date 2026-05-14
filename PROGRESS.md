@@ -51,6 +51,38 @@ Copy this block when adding a new entry. Paste it at the top of the Session log 
 
 <!-- Newest entries at the top. -->
 
+## 2026-05-14 - R002: Round-advance routes through Shop → Formation → Payroll → Combat
+
+**Milestone:** Regression fix (blocks M6 entry)
+**Status:** Complete
+
+**Files added:**
+- `TestPlans/TP_R002.md`
+
+**Files modified:**
+- `DungeonDebt/Assets/Scripts/Run/RunManager.cs` - `EvaluateNextState()` returns `GameState.Shop` instead of `GameState.Combat` for the "run continues" case.
+- `DungeonDebt/Assets/Scripts/Core/GameManager.cs` - `ContinueAfterReward()` calls `AdvanceRound()` when transitioning to `Shop` instead of `Combat`.
+
+**Acceptance criteria:**
+- [x] AC1 - Continue from Reward Summary goes to Shop, not Combat.
+- [x] AC2 - All in-between states fire in order: Shop → Formation → Payroll → Combat → Reward → Upkeep → next round's Shop.
+- [x] AC3 - `SelectedPayrollAction` is null at every Payroll-state entry.
+- [x] AC4 - Per-hero `Attack`/`UpkeepThisRound` at base when Round 2's Payroll panel renders.
+- [x] AC5 - No new shop refresh, encounters, scout, or rival.
+- [x] AC6 - End conditions (morale, debt, round 10) still fire.
+
+**Test plan:** `TestPlans/TP_R002.md` - All scenarios A–G pass. Scenarios A/B verify single-round→multi-round transition; C verifies 10-round sweep end-to-end; D verifies end conditions (morale, debt, victory); E verifies code rules; F verifies prior-slice regression checks; G verifies invariants. All temporary GameRules edits reverted.
+
+**Deviations from plan:**
+- None.
+
+**Follow-up flagged:**
+- M5.2 AC5 (multi-round economy) is now testable and passes. M5.2 can be marked fully complete if TP_M5.2 A.5 and F.2 second-half scenarios are re-run (now reachable).
+- Per-round shop refresh and Scout/RivalUpdate remain deferred to M6/M7 as planned.
+- `RunManager.PrepareSandboxRun()` / `DataRepository.CreateSandboxRun()` still unreferenced; defer to cleanup slice.
+
+**Next slice:** M6.1 - Add Scout panel and full 10-round encounter list (all encounters + hero effects wired).
+
 ## 2026-05-14 - M5.2: Victory Bonus loss-debt, post-combat hero-stat revert, payroll line items in RewardSummaryView
 
 **Milestone:** M5 - Payroll Actions
