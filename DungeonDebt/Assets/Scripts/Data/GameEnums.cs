@@ -28,7 +28,8 @@ public enum EnemyEffectId
     BackBatBackline,
     DebtWraithScales,
     TreasureLeechRewardDrain,
-    DungeonAuditorBoss
+    DungeonAuditorBoss,
+    FrugalGhostHeal
 }
 
 public enum EncounterType

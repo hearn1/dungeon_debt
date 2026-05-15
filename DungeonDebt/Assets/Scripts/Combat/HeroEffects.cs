@@ -265,30 +265,24 @@ public static class HeroEffects
                 continue;
             }
 
-            CombatUnit healTarget = FindLeftmostLivingInSlotRange(playerUnits, 0, GameRules.FrontlineSlots - 1);
-            if (healTarget == null)
-            {
-                healTarget = priest;
-            }
+            HealLeftmostFrontlineAlly(priest, playerUnits, logger);
+        }
 
-            int healed = 2;
-            int newHealth = healTarget.CurrentHealth + healed;
-            if (newHealth > healTarget.MaxHealth)
-            {
-                healed = healTarget.MaxHealth - healTarget.CurrentHealth;
-                newHealth = healTarget.MaxHealth;
-            }
-
-            if (healed <= 0)
+        // Frugal Healer reuses the Priest-style frontline heal for its ghost team.
+        for (int i = 0; i < enemyUnits.Count; i++)
+        {
+            CombatUnit healer = enemyUnits[i];
+            if (!healer.IsAlive || healer.SourceEnemy == null)
             {
                 continue;
             }
 
-            healTarget.CurrentHealth = newHealth;
-            if (logger != null)
+            if (healer.SourceEnemy.EffectId != EnemyEffectId.FrugalGhostHeal)
             {
-                logger.LogMessage(priest.DisplayName + " heals " + healTarget.DisplayName + " for " + healed + ".");
+                continue;
             }
+
+            HealLeftmostFrontlineAlly(healer, enemyUnits, logger);
         }
 
         // Goblin Thief: flag if any are alive at end of the steal round.
@@ -493,6 +487,39 @@ public static class HeroEffects
         }
 
         return best;
+    }
+
+    private static void HealLeftmostFrontlineAlly(CombatUnit healer, List<CombatUnit> allies, CombatLogger logger)
+    {
+        if (healer == null || !healer.IsAlive || allies == null)
+        {
+            return;
+        }
+
+        CombatUnit healTarget = FindLeftmostLivingInSlotRange(allies, 0, GameRules.FrontlineSlots - 1);
+        if (healTarget == null)
+        {
+            healTarget = healer;
+        }
+
+        int healed = GameRules.FrontlineHealAmount;
+        int newHealth = healTarget.CurrentHealth + healed;
+        if (newHealth > healTarget.MaxHealth)
+        {
+            healed = healTarget.MaxHealth - healTarget.CurrentHealth;
+            newHealth = healTarget.MaxHealth;
+        }
+
+        if (healed <= 0)
+        {
+            return;
+        }
+
+        healTarget.CurrentHealth = newHealth;
+        if (logger != null)
+        {
+            logger.LogMessage(healer.DisplayName + " heals " + healTarget.DisplayName + " for " + healed + ".");
+        }
     }
 
     private static CombatUnit FindLeftmostLivingInSlotRange(List<CombatUnit> units, int minSlot, int maxSlot)
