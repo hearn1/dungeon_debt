@@ -17,6 +17,10 @@ public class MainMenuPanel : MonoBehaviour
     private const int EndScreenHeight = 460;
     private const int LogScrollbarWidth = 14;
     private const int LogContentPadding = 24;
+    private const int RivalLeaderboardWidth = 520;
+    private const int RivalLeaderboardHeight = 240;
+    private const int RivalContinueButtonWidth = 260;
+    private const int RivalContinueButtonHeight = 60;
 
     [SerializeField] private GameManager _gameManager;
     [SerializeField] private RunManager _runManager;
@@ -32,6 +36,8 @@ public class MainMenuPanel : MonoBehaviour
     [SerializeField] private FormationPanelView _formationPanelView;
     [SerializeField] private PayrollPanelView _payrollPanelView;
     [SerializeField] private ScoutPanelView _scoutPanelView;
+    [SerializeField] private RivalLeaderboardView _rivalLeaderboardView;
+    [SerializeField] private Button _rivalContinueButton;
 
     private static Font _runtimeFont;
 
@@ -50,6 +56,7 @@ public class MainMenuPanel : MonoBehaviour
         _payrollPanelView.SetActions(DataRepository.AllPayrollActions);
         _payrollPanelView.SetHandlers(HandlePayrollSelect, HandlePayrollContinue);
         _scoutPanelView.SetOnContinue(HandleScoutContinueClicked);
+        _rivalContinueButton.onClick.AddListener(HandleRivalContinueClicked);
         ResetUi();
     }
 
@@ -68,6 +75,11 @@ public class MainMenuPanel : MonoBehaviour
         if (_restartButton != null)
         {
             _restartButton.onClick.RemoveListener(RestartCombat);
+        }
+
+        if (_rivalContinueButton != null)
+        {
+            _rivalContinueButton.onClick.RemoveListener(HandleRivalContinueClicked);
         }
     }
 
@@ -164,6 +176,11 @@ public class MainMenuPanel : MonoBehaviour
         _gameManager.ContinueFromScout();
     }
 
+    private void HandleRivalContinueClicked()
+    {
+        _gameManager.ContinueFromRivalUpdate();
+    }
+
     private void RefreshShop()
     {
         RunState runState = _gameManager.CurrentRunState;
@@ -185,6 +202,8 @@ public class MainMenuPanel : MonoBehaviour
         _formationPanelView.Hide();
         _payrollPanelView.Hide();
         _scoutPanelView.Hide();
+        _rivalLeaderboardView.Hide();
+        _rivalContinueButton.gameObject.SetActive(false);
     }
 
     private void RunSandboxCombat()
@@ -200,6 +219,8 @@ public class MainMenuPanel : MonoBehaviour
         _formationPanelView.Hide();
         _payrollPanelView.Hide();
         _scoutPanelView.Hide();
+        _rivalLeaderboardView.Hide();
+        _rivalContinueButton.gameObject.SetActive(false);
 
         RunState run = _gameManager.CurrentRunState;
         _runHeaderView.Refresh(run);
@@ -233,6 +254,8 @@ public class MainMenuPanel : MonoBehaviour
             _formationPanelView.Hide();
             _payrollPanelView.Hide();
             _scoutPanelView.Hide();
+            _rivalLeaderboardView.Hide();
+            _rivalContinueButton.gameObject.SetActive(false);
             _resultText.text = string.Empty;
             return;
         }
@@ -250,6 +273,9 @@ public class MainMenuPanel : MonoBehaviour
             _runHeaderView.Refresh(_gameManager.CurrentRunState);
             _scoutPanelView.Refresh(_gameManager.CurrentRunState);
             _scoutPanelView.Show();
+            _rivalLeaderboardView.Refresh(_gameManager.CurrentRunState, true);
+            _rivalLeaderboardView.Show();
+            _rivalContinueButton.gameObject.SetActive(false);
             _startCombatButton.interactable = false;
             _restartButton.interactable = true;
             return;
@@ -265,6 +291,8 @@ public class MainMenuPanel : MonoBehaviour
             _formationPanelView.Hide();
             _payrollPanelView.Hide();
             _scoutPanelView.Hide();
+            _rivalLeaderboardView.Hide();
+            _rivalContinueButton.gameObject.SetActive(false);
             _runHeaderView.Refresh(_gameManager.CurrentRunState);
             _shopPanelView.Refresh(_gameManager.CurrentRunState, _gameManager.ShopManager.CurrentOffers);
             _shopPanelView.Show();
@@ -283,6 +311,8 @@ public class MainMenuPanel : MonoBehaviour
             _shopPanelView.Hide();
             _payrollPanelView.Hide();
             _scoutPanelView.Hide();
+            _rivalLeaderboardView.Hide();
+            _rivalContinueButton.gameObject.SetActive(false);
             _runHeaderView.Refresh(_gameManager.CurrentRunState);
             _formationPanelView.Refresh(_gameManager.CurrentRunState);
             _formationPanelView.Show();
@@ -301,6 +331,8 @@ public class MainMenuPanel : MonoBehaviour
             _shopPanelView.Hide();
             _formationPanelView.Hide();
             _scoutPanelView.Hide();
+            _rivalLeaderboardView.Hide();
+            _rivalContinueButton.gameObject.SetActive(false);
             RunState payrollRun = _gameManager.CurrentRunState;
             if (payrollRun != null)
             {
@@ -320,7 +352,30 @@ public class MainMenuPanel : MonoBehaviour
             _formationPanelView.Hide();
             _payrollPanelView.Hide();
             _scoutPanelView.Hide();
+            _rivalLeaderboardView.Hide();
+            _rivalContinueButton.gameObject.SetActive(false);
             RunSandboxCombat();
+            return;
+        }
+
+        if (gameState == GameState.RivalUpdate)
+        {
+            _statusText.text = "Rivals updated. Review the leaderboard, then Continue.";
+            _resultText.text = string.Empty;
+            _combatLogView.Clear();
+            _rewardSummaryView.Clear();
+            _endScreenView.Hide();
+            _shopPanelView.Hide();
+            _formationPanelView.Hide();
+            _payrollPanelView.Hide();
+            _scoutPanelView.Hide();
+            _runHeaderView.Refresh(_gameManager.CurrentRunState);
+            _rivalLeaderboardView.Refresh(_gameManager.CurrentRunState, false);
+            _rivalLeaderboardView.Show();
+            _rivalContinueButton.gameObject.SetActive(true);
+            _rivalContinueButton.interactable = true;
+            _startCombatButton.interactable = false;
+            _restartButton.interactable = true;
             return;
         }
 
@@ -332,6 +387,8 @@ public class MainMenuPanel : MonoBehaviour
             _formationPanelView.Hide();
             _payrollPanelView.Hide();
             _scoutPanelView.Hide();
+            _rivalLeaderboardView.Hide();
+            _rivalContinueButton.gameObject.SetActive(false);
             _endScreenView.Show(_gameManager.CurrentRunState, gameState == GameState.Victory);
             _restartButton.interactable = true;
         }
@@ -494,6 +551,28 @@ public class MainMenuPanel : MonoBehaviour
         _scoutPanelView = scoutPanel.gameObject.AddComponent<ScoutPanelView>();
         _scoutPanelView.Initialize(GetRuntimeFont());
         _scoutPanelView.Hide();
+
+        RectTransform rivalLeaderboardPanel = CreatePanel("RivalLeaderboardPanel", root, new Color(0.12f, 0.13f, 0.16f, 1f));
+        SetAnchoredRect(
+            rivalLeaderboardPanel,
+            1f, 0f, 1f, 0f,
+            -HorizontalMargin - (RivalLeaderboardWidth * 0.5f),
+            230f,
+            RivalLeaderboardWidth,
+            RivalLeaderboardHeight);
+        _rivalLeaderboardView = rivalLeaderboardPanel.gameObject.AddComponent<RivalLeaderboardView>();
+        _rivalLeaderboardView.Initialize(GetRuntimeFont());
+        _rivalLeaderboardView.Hide();
+
+        _rivalContinueButton = CreateButton("RivalContinueButton", root, "Continue to Scout");
+        SetAnchoredRect(
+            _rivalContinueButton.GetComponent<RectTransform>(),
+            1f, 0f, 1f, 0f,
+            -HorizontalMargin - (RivalContinueButtonWidth * 0.5f),
+            72f,
+            RivalContinueButtonWidth,
+            RivalContinueButtonHeight);
+        _rivalContinueButton.gameObject.SetActive(false);
     }
 
     private static RectTransform CreateRect(string objectName, RectTransform parent)

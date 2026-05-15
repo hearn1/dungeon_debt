@@ -21,6 +21,17 @@ public static class GameRules
     public const int DungeonLossMorale = 6;
     public const int RivalLossMorale = 8;
     public const int InterestDebtDivisor = 3;
+    public const int RivalIncomePerRound = 8;
+    public const int GreedyRivalStartingPayroll = 10;
+    public const int FrugalRivalStartingPayroll = 6;
+    public const int CarryRivalStartingPayroll = 8;
+    public const int GreedyRivalPayrollGrowth = 2;
+    public const int FrugalRivalPayrollGrowth = 1;
+    public const int CarryRivalOddRoundPayrollGrowth = 1;
+    public const int CarryRivalEvenRoundPayrollGrowth = 2;
+    public const int GreedyRivalDebtCreep = 1;
+    public const int RivalMoraleDebtThreshold = 15;
+    public const int RivalMoraleDebtPenalty = 2;
 
     public const int CombatTurnLimit = 10;
     public const int FinalRound = 10;

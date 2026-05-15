@@ -51,6 +51,44 @@ Copy this block when adding a new entry. Paste it at the top of the Session log 
 
 <!-- Newest entries at the top. -->
 
+## 2026-05-15 - M7.1: Rival state and leaderboard loop
+
+**Milestone:** M7 - Rival Ghosts
+**Status:** Complete
+
+**Files added:**
+- `DungeonDebt/Assets/Scripts/Run/RivalManager.cs`
+- `DungeonDebt/Assets/Scripts/Run/RivalManager.cs.meta`
+- `DungeonDebt/Assets/Scripts/UI/RivalLeaderboardView.cs`
+- `DungeonDebt/Assets/Scripts/UI/RivalLeaderboardView.cs.meta`
+- `TestPlans/TP_M7.1.md`
+
+**Files modified:**
+- `DungeonDebt/Assets/Scripts/Core/DataRepository.cs` - added local rival profile construction for Greedy Guild, Frugal Guild, and Carry Guild.
+- `DungeonDebt/Assets/Scripts/Core/GameRules.cs` - added rival tuning constants for deterministic scripted updates.
+- `DungeonDebt/Assets/Scripts/Core/GameManager.cs` - wired `RivalManager`, `RivalUpdate`, and Continue-from-RivalUpdate flow.
+- `DungeonDebt/Assets/Scripts/Run/RunManager.cs` - initialized rivals at run start and routed non-terminal rounds to `RivalUpdate`.
+- `DungeonDebt/Assets/Scripts/UI/MainMenuPanel.cs` - built and toggled the compact/full rival leaderboard during Scout and RivalUpdate.
+
+**Acceptance criteria:**
+- [x] Starting a run initializes exactly 3 rivals with the M7.1 profile values.
+- [x] Continuing a non-terminal round enters `GameState.RivalUpdate`, advances rivals, then continues to next Scout.
+- [x] Greedy, Frugal, and Carry rival payroll/debt/morale math advances deterministically per the slice brief.
+- [x] `RivalLeaderboardView` shows player plus 3 rivals sorted by morale.
+- [x] Scout shows a compact leaderboard; RivalUpdate shows the full leaderboard; other panels are not obscured.
+- [x] R3/R6/R9 Slime placeholder ghost fights and MVP scope limits were preserved.
+
+**Test plan:** `TestPlans/TP_M7.1.md` - user reported all 25 steps pass. One separate regression was observed during testing and filed as R003.
+
+**Deviations from plan:**
+- `GameRules.cs` was added to scope with user confirmation so rival math did not hardcode tuning numbers.
+
+**Follow-up flagged:**
+- **R003 filed:** hiring after formation movement can stack two heroes into the same formation slot.
+- M7 later slice: replace R3/R6/R9 Slime placeholders with scripted ghost teams and add rival ghost reward/morale modifiers.
+
+**Next slice:** R003 - Fix hire placement so new heroes use an empty formation slot.
+
 ## 2026-05-15 - M6.2: Encounter and hero effects wired into combat / reward / upkeep
 
 **Milestone:** M6 - Full 10-Round Run

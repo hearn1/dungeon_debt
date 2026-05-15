@@ -44,7 +44,24 @@ Copy this block when filing a new regression. New regressions go at the top of t
 
 <!-- Newest at the top. -->
 
-_None._
+### R003 - Hiring after formation movement can stack heroes in one slot
+
+**Reported:** 2026-05-15
+**Found in slice:** M7.1 (detected) - M4.1/M3.2 (introduced, suspected)
+**Severity:** 🟠 Major
+**Status:** Open
+
+**Repro steps:**
+1. Start a run and buy 2 heroes on day 1.
+2. In Formation, place the heroes in `F0` and `B3`.
+3. Continue through combat/reward/rival update to day 2.
+4. Buy 2 more heroes on day 2, then inspect Formation.
+
+**Expected:** Each hired hero is placed in an empty formation slot, with no duplicate `FormationSlot` values among party members.
+**Actual:** Two heroes can occupy `B3` at the same time. The tester noted exact order/placement may be slightly off, but the stacking was on `B3`.
+
+**Suspected cause:** `ShopManager.Hire` creates new `HeroInstance(offer.Hero, run.Party.Count)`. After formation movement, `run.Party.Count` can point to an already occupied slot instead of the first empty slot. `FormationPanelView.Refresh` then lets the later occupant overwrite the earlier one in the displayed slot array.
+**Notes:** Schedule as the next session before more M7 ghost-combat work, because duplicated formation slots can affect targeting, combat order, and test reliability.
 
 ---
 
