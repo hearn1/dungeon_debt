@@ -51,6 +51,34 @@ Copy this block when adding a new entry. Paste it at the top of the Session log 
 
 <!-- Newest entries at the top. -->
 
+## 2026-05-15 - R003: Fix hire placement after formation movement
+
+**Milestone:** Regression fix before continuing M7
+**Status:** Complete
+
+**Files added:**
+- `TestPlans/TP_R003.md`
+
+**Files modified:**
+- `DungeonDebt/Assets/Scripts/Run/ShopManager.cs` - changed hiring to assign the first empty formation slot instead of `run.Party.Count`.
+
+**Acceptance criteria:**
+- [x] Hiring assigns the first empty formation slot from 0-4.
+- [x] R003 repro no longer stacks heroes in `B3`.
+- [x] Fire behavior remains valid and later hires remain non-stacked.
+- [x] Formation UI shows each party member exactly once.
+- [x] Existing M7.1 flow and leaderboard behavior are preserved.
+
+**Test plan:** `TestPlans/TP_R003.md` - user reported all test cases pass.
+
+**Deviations from plan:**
+- None.
+
+**Follow-up flagged:**
+- None.
+
+**Next slice:** M7.2 - Scripted rival ghost teams and ghost fight modifiers.
+
 ## 2026-05-15 - M7.1: Rival state and leaderboard loop
 
 **Milestone:** M7 - Rival Ghosts
