@@ -4,106 +4,96 @@ This file always describes the **next** session's work. Rewrite it at the end of
 
 ---
 
-## Session: M6.2 — Encounter and hero effects wired into combat / reward / upkeep
+## Session: M7.1 - Rival state and leaderboard loop
 
-**Milestone:** M6 - Full 10-Round Run (second slice)
-**Slice goal:** Implement the encounter behavioral effects deferred from M6.1 (Goblin Thief gold steal, Tax Collector upkeep, Backline Bat targeting, Debt Wraith scaling, Treasure Leech reward drain, Dungeon Auditor boss effects) and the remaining hero effects in `HeroEffects.cs`. Wire each encounter's `EncounterEffectId` and each new enemy's `EnemyEffectId` to its handler so combat / reward / upkeep behave per `IMPLEMENTATION_PLAN.md` §6, §7, §8.
+**Milestone:** M7 - Rival Ghosts (first slice)
+**Slice goal:** Add the local scripted rival state, per-round rival update loop, and visible player-plus-rivals leaderboard without replacing the Round 3/6/9 placeholder ghost fights yet.
 
 ### Background
 
-M6.1 added Scout state, ScoutPanelView, EncounterManager, and the full 10-encounter list — but combat resolves as a plain DPS race because every encounter and new enemy uses `*.None`. M6.2 turns each encounter into a distinct mechanical situation per §8 and finishes hero-effect coverage per §7. By the end of this slice, a full 10-round run should feel mechanically varied: Goblin Thieves should be able to actually steal gold, Tax Collector should raise upkeep, Backline Bat should redirect to a backline hero on round 2, Debt Wraith's attack should scale with debt, Treasure Leech should reduce reward on survive, and Dungeon Auditor should pressure both party HP and upkeep.
+M6.2 completed the encounter and hero effect layer for the 10-round run. M7 now adds the offline scripted rival pressure described in `IMPLEMENTATION_PLAN.md` §9. This first M7 slice should make rivals exist, advance deterministically after each player round, and show in the UI during Scout / RivalUpdate. It should not yet implement the scripted ghost combat teams or rival ghost reward/morale modifiers; those are a later M7 slice.
 
-### Acceptance criteria
+### Acceptance Criteria
 
-1. **Goblin Thief steal.** If any Goblin Thief is alive at end of combat round `GameRules.GoblinThiefStealRound` (= 3), `CombatResult.SurvivorFlags["goblinStoleGold"] = true`. In Reward, reward gold reduced by `GameRules.GoblinThiefStealGold` (= 3), clamped to ≥ 0.
-2. **Tax Collector upkeep.** On Round 4, total upkeep is increased by `GameRules.TaxCollectorUpkeep` (= 2) during the Upkeep math in `RunManager.ApplyPostCombatResult`. Reflected in the reward summary upkeep line.
-3. **Backline Bat targeting override.** On combat round 2, Backline Bat targets the lowest-HP backline player hero (ties: leftmost slot). If no backline hero is alive, falls back to normal targeting.
-4. **Debt Wraith scaling.** At combat start, the Debt Wraith `CombatUnit.Attack` is set to `1 + floor(run.Debt / GameRules.DebtWraithDebtDivisor)` (divisor = 3). Underlying `EnemyDefinition` stays immutable.
-5. **Treasure Leech reward drain.** If a Treasure Leech is alive at combat end, `SurvivorFlags["treasureLeechSurvived"] = true`. In Reward, reward gold reduced by `GameRules.TreasureLeechStealGold` (= 4), clamped to ≥ 0.
-6. **Dungeon Auditor boss.** On combat start, `+GameRules.AuditorUpkeep` (= 3) added to this round's upkeep. Every `GameRules.AuditorDamageEvery` (= 3) combat rounds, deal `GameRules.AuditorDamage` (= 1) damage to each living player hero (leftmost-slot order in the log).
-7. **Hero effects coverage.** Every `HeroEffectId` in `GameEnums.cs` produces an observable in-game change. Verify each via TP_M6.2.
-8. **Full-run regression.** Scout → Shop → Formation → Payroll → Combat → Reward → Upkeep → Scout still works end-to-end for all 10 rounds with these effects layered in. Victory after Round 10 win still fires.
+1. **Rival initialization.** Starting a run initializes exactly 3 rivals in `RunState.Rivals`: Greedy Guild, Frugal Guild, and Carry Guild with the stats from `IMPLEMENTATION_PLAN.md` §9.
+2. **Rival update state.** After the player's Reward/Upkeep math, continuing a non-terminal round enters `GameState.RivalUpdate`, calls `RivalManager.AdvanceRivals(run)`, then lets the user continue to the next Scout.
+3. **Scripted rival math.** Rival payroll/debt/morale update deterministically per §9: Greedy +2 payroll plus even-round debt creep, Frugal +1 payroll and debt reduction when applicable, Carry alternating +1/+2 payroll by round.
+4. **Leaderboard display.** A `RivalLeaderboardView` shows 4 rows: player plus 3 rivals, sorted by morale descending, with columns Guild / Morale / Debt / Payroll / Status.
+5. **Scout integration.** The leaderboard is visible during Scout in a compact or unobtrusive form and updates after each RivalUpdate. It must not obscure Scout, Shop, Formation, Payroll, Combat, Reward, Victory, or Defeat controls.
+6. **Scope preserved.** Rounds 3/6/9 may still use the existing Slime placeholder encounters; no online ghosts, real multiplayer, rival shop simulation, accounts, save/load, or new architecture.
 
-### Files Claude Code may create
+### Files Claude Code May Create
 
 ```
-TestPlans/TP_M6.2.md
+DungeonDebt/Assets/Scripts/Run/RivalManager.cs
+DungeonDebt/Assets/Scripts/UI/RivalLeaderboardView.cs
+TestPlans/TP_M7.1.md
 ```
 
-(No new .cs files anticipated — all logic lives in existing files.)
-
-### Files Claude Code may modify
+### Files Claude Code May Modify
 
 ```
-DungeonDebt/Assets/Scripts/Combat/HeroEffects.cs
-  — implement all 12 hero effect bodies + the enemy/encounter effect hooks
-    (OnCombatStart for Debt Wraith scaling and Auditor upkeep,
-     OnEndOfCombatRound for Goblin Thief flag, Auditor periodic damage, Backline Bat trigger on round 2,
-     OnCombatEnd for Treasure Leech flag, Bard gold-on-win, etc.)
+DungeonDebt/Assets/Scripts/Core/DataRepository.cs
+  - Add read-only rival profile data if needed, using the existing `RivalGuildState` shape and §9 values.
 
-DungeonDebt/Assets/Scripts/Combat/CombatManager.cs
-  — if needed, add a per-attacker targeting override hook so Backline Bat can re-route on round 2.
-    Keep the override surface narrow (single delegate or extra HeroEffects call from FindTarget).
+DungeonDebt/Assets/Scripts/Core/GameManager.cs
+  - Wire `RivalManager`, route continuing rounds through `RivalUpdate`, and add Continue-from-RivalUpdate handling.
 
 DungeonDebt/Assets/Scripts/Run/RunManager.cs
-  — apply encounter reward modifiers (Goblin Thief, Treasure Leech) before the upkeep step;
-    apply encounter upkeep modifiers (Tax Collector, Auditor) when calculating total upkeep.
+  - Initialize rivals at run start and route `EvaluateNextState()` to `RivalUpdate` for non-terminal rounds.
 
-DungeonDebt/Assets/Scripts/Core/GameRules.cs
-  — add constants: TaxCollectorUpkeep (2), AuditorUpkeep (3), AuditorDamageEvery (3),
-    AuditorDamage (1), DebtWraithDebtDivisor (3), GoblinThiefStealRound (3),
-    GoblinThiefStealGold (3), TreasureLeechStealGold (4).
+DungeonDebt/Assets/Scripts/UI/MainMenuPanel.cs
+  - Build and wire `RivalLeaderboardView`; show it during Scout and RivalUpdate only, unless existing UI patterns suggest a cleaner narrow integration.
 
-DungeonDebt/Assets/Scripts/Core/DataRepository.cs
-  — assign real EnemyEffectId / EncounterEffectId values to the 6 enemies and matching encounters
-    (GoblinThief → GoblinStealGold; BacklineBat → BackBatBackline; DebtWraith → DebtWraithScales;
-     TreasureLeech → TreasureLeechRewardDrain; DungeonAuditor → DungeonAuditorBoss;
-     encounter R4 → TaxCollectorUpkeep; encounter R10 → FinalBossDamage).
+DungeonDebt/Assets/Scripts/Data/RivalGuildState.cs
+  - Only modify if existing fields are insufficient for §9 scripted updates; do not add persistence or dynamic team data.
 ```
 
-### Files Claude Code does NOT create or modify
+### Files Claude Code Does NOT Create or Modify
 
-- `ScoutPanelView.cs`, `EncounterManager.cs` — Scout UI / loading unchanged.
-- `ShopManager.cs`, `PayrollManager.cs`, `FormationPanelView.cs`, `MainMenuPanel.cs` — not in this slice (unless an effect requires UI surfacing — surface it at plan time).
-- `RivalManager.cs`, `RivalLeaderboardView.cs` — deferred to M7.
-- `Resources/`, `StreamingAssets/`, `Tests/`, `Editor/` — forbidden.
+- `CombatManager.cs`, `HeroEffects.cs` - M6.2 combat/effect behavior should remain unchanged.
+- `ShopManager.cs`, `PayrollManager.cs`, `FormationPanelView.cs` - not part of the rival state/leaderboard slice.
+- `EncounterManager.cs`, `ScoutPanelView.cs` - avoid changes unless a tiny display refresh hook is necessary and called out in the plan.
+- `Resources/`, `StreamingAssets/`, `Tests/`, `Editor/` - forbidden.
 - `PROGRESS.md` / `REGRESSIONS.md` mid-session.
 
-### Open questions to resolve at plan time
+### Open Questions To Resolve At Plan Time
 
-1. **EncounterEffectId coverage vs SurvivorFlags pattern.** §8 sample code applies Goblin Thief / Treasure Leech reductions via `result.SurvivorFlags.GetValueOrDefault("...")` string keys. Current enum only has `TaxCollectorUpkeep`, `FinalBossDamage`. Decide: keep the flag-string pattern for reward drains (recommendation), or add `GoblinThiefSteal` / `TreasureLeechDrain` enum values? Recommend: **keep `SurvivorFlags` pattern** — matches §8 and keeps Reward math centralized in `RunManager.ApplyPostCombatResult`.
-2. **Targeting override surface.** Backline Bat needs to redirect on round 2 only. Options: (a) `HeroEffects.OverrideTarget(attacker, defenders, combatRound)` returns a target or null; `CombatManager.FindTarget` calls it first. (b) Pre-attack hook mutates the defenders list. Recommend: **(a)** — cleanest, deterministic, keeps `CombatManager` simple.
-3. **Debt Wraith timing.** Apply at `OnCombatStart` before any combat round resolves. Mutate `CombatUnit.Attack` only — never `EnemyDefinition`. Confirm.
-4. **Auditor periodic damage ordering.** Apply at `OnEndOfCombatRound` when `combatRound % AuditorDamageEvery == 0`. Damage each living player hero in leftmost-slot order, logging each via `CombatLogger`. Confirm.
-5. **Hero effects scope.** Some effects (Bard `+2 gold on win`, Ninja `+1 gold per kill`, Treasurer / Apprentice upkeep reductions) need to feed `RunManager` or `RunState` directly. Confirm at plan time which hooks to use (`OnCombatEnd` vs `OnUpkeepCalculated`) and whether new fields on `CombatResult` are needed (e.g. `BonusGold`, `BonusUpkeepReduction`).
+1. **Leaderboard placement.** `IMPLEMENTATION_PLAN.md` says Scout should show a compact leaderboard and RivalUpdate should show the full leaderboard. Decide whether M7.1 uses one reusable view with a compact flag or one simple full view shown in both states for MVP.
+2. **Round update timing.** Recommended: after Reward Summary Continue, `RunManager.EvaluateNextState()` returns `RivalUpdate` for non-terminal rounds; `RivalUpdate` advances rivals for the just-finished round, then Continue increments the player round and enters Scout.
+3. **Rival profile storage.** Recommended: keep static profile construction in `DataRepository` or `RivalManager.InitializeRivals()` with hardcoded values from §9; do not add JSON, ScriptableObjects, or dynamic rival team data.
+4. **Carry payroll growth.** Confirm implementation uses +1 on odd finished rounds, +2 on even finished rounds as specified in §9.
 
-### Relevant plan sections to re-read during Orient
+### Relevant Plan Sections To Re-read During Orient
 
-- `IMPLEMENTATION_PLAN.md` §6 — Combat System Plan: hook points (`OnCombatStart`, `OnAttack`, `OnKill`, `OnEndOfCombatRound`, `OnCombatEnd`, `OnUpkeepCalculated`) and timing rules.
-- `IMPLEMENTATION_PLAN.md` §7 — Hero Effects Implementation Plan: 12 effects + risky/complex flagged ones.
-- `IMPLEMENTATION_PLAN.md` §8 — Encounter Implementation Plan: where each encounter effect fires (combat start / during / end / reward / upkeep).
-- `GAME_DESIGN.md` rounds 1–10 — flavor + numeric intent for each encounter effect.
-- `CLAUDE.md` §Common pitfalls — "Don't make hero effects subclasses or virtual methods. Use the static `HeroEffects` class keyed by `HeroEffectId` enum." Same pattern for enemy/encounter effects.
+- `IMPLEMENTATION_PLAN.md` §3 - `RivalUpdate` state timing and UI behavior.
+- `IMPLEMENTATION_PLAN.md` §4 - `RivalGuildState` and `RunState.Rivals`.
+- `IMPLEMENTATION_PLAN.md` §9 - rival profile values, scripted update rules, leaderboard sorting.
+- `IMPLEMENTATION_PLAN.md` §10 - `RivalLeaderboardView` display requirements.
+- `IMPLEMENTATION_PLAN.md` §11 Milestone 7 - required behavior and out-of-scope notes.
+- `GAME_DESIGN.md` Rival Update Phase and Rival Guild Ghost System - design intent for local scripted rivals.
+- `CLAUDE.md` scope control - no real multiplayer, online ghosts, accounts, save/load, or larger architecture.
 
-### Notes from previous slice (M6.1)
+### Notes From Previous Slice (M6.2)
 
-- All 10 encounters and 6 new enemies are in `DataRepository` but use `*.None` effect IDs. M6.2 swaps those IDs to the real values and adds the matching handlers.
-- `RunState.CurrentEncounter` is the canonical encounter pointer through the whole round. `RunManager.ApplyPostCombatResult` already receives `encounter` as a parameter — reward and upkeep modifiers should be applied there.
-- `MainMenuPanel.RunSandboxCombat` reads `run.CurrentEncounter` (with `SandboxEncounter` fallback). The fallback can be removed in a cleanup slice once we're confident no path produces a null `CurrentEncounter`.
-- `RunManager.PrepareSandboxRun()` / `DataRepository.CreateSandboxRun()` remain unreferenced; defer to a dedicated cleanup slice after M6/M7.
+- Encounter and hero effects are now wired through `HeroEffects`, `CombatManager`, `RunManager`, and `DataRepository`.
+- `TP_M6.2.md` was corrected for Treasure Leech: because combat wins require all enemies dead, a surviving Leech means combat loss and drains the 4-gold loss reward to 0.
+- `GameRules.StartingGold` is restored to 10.
+- `dotnet build DungeonDebt.sln` passed with 0 warnings and 0 errors after the M6.2 correction.
+- Rounds 3/6/9 are still `EncounterType.RivalGhost` but currently use Slime placeholder enemy teams. Keep that as-is in M7.1 unless the user explicitly changes scope.
 
-### Test plan output
+### Test Plan Output
 
-Claude Code creates `TestPlans/TP_M6.2.md` covering:
+Claude Code creates `TestPlans/TP_M7.1.md` covering:
 
-- **Happy path:** A scripted 10-round playthrough where each encounter's effect is observable (Goblin Thief steals 3 gold when surviving past round 3; Tax Collector raises upkeep by 2; Backline Bat targets a backline hero on round 2; Debt Wraith attack scales with debt; Treasure Leech reduces reward by 4 on survive; Auditor +3 upkeep and -1 HP to all heroes every 3 rounds).
-- **Per-effect isolation:** One scenario per encounter effect with a temporary diagnostic scaffold (force the relevant precondition — e.g., set debt high before R7 to confirm Debt Wraith scaling).
-- **Per-hero-effect checks:** One scenario per `HeroEffectId` confirming the effect is observable.
-- **Rule checks:** No `UnityEngine.Random`; constants live in `GameRules`; encounter/enemy effects keyed via enums, not subclasses.
-- **Regression checks:** TP_M6.1 happy path + 10-round sweep still pass; TP_R002 round-advance still routes through Scout; TP_M5.2 payroll line items still surface; TP_M4.1 formation swap still works.
-- **Observable invariants:** `CombatResult.SurvivorFlags` is populated correctly for both flag-bearing encounters; encounter upkeep modifier never produces negative upkeep; Auditor periodic damage never crits past 0 HP without producing a death log line.
+- **Happy path:** Start Run -> Scout shows leaderboard -> complete Round 1 -> Reward Continue enters RivalUpdate -> rivals advance -> Continue enters Round 2 Scout with updated leaderboard.
+- **Per-rival math:** Verify Greedy, Frugal, and Carry payroll/debt/morale changes over at least 3 rounds, including Carry alternating +1/+2.
+- **Leaderboard sorting:** Player and rivals display as 4 rows sorted by morale descending; ties are deterministic and visually stable.
+- **State routing:** Terminal outcomes still go to Victory/Defeat instead of RivalUpdate.
+- **Rule checks:** No `UnityEngine.Random`; no new data files, ScriptableObjects, Resources, Tests, Editor folder, online/real multiplayer code, or event bus/DI/service locator.
+- **Regression checks:** M6.2 effects still trigger; Scout -> Shop -> Formation -> Payroll -> Combat -> Reward remains intact; Reward Summary still displays payroll/economy math.
 
-### Start prompt for the next session
+### Start Prompt For The Next Session
 
 Open Claude Code in the repo root and paste:
 

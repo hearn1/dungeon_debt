@@ -152,8 +152,8 @@ public static class DataRepository
         "Goblin Thief",
         2,
         4,
-        EnemyEffectId.None,
-        "Steals gold if alive past combat round 3 (effect deferred to M6.2).");
+        EnemyEffectId.GoblinStealGold,
+        "Steals gold if alive past combat round 3.");
 
     private static readonly EnemyDefinition TaxCollector = new EnemyDefinition(
         "tax_collector",
@@ -161,39 +161,39 @@ public static class DataRepository
         1,
         8,
         EnemyEffectId.None,
-        "Raises upkeep this round (effect deferred to M6.2).");
+        "Encounter raises upkeep this round.");
 
     private static readonly EnemyDefinition BacklineBat = new EnemyDefinition(
         "backline_bat",
         "Backline Bat",
         3,
         4,
-        EnemyEffectId.None,
-        "Attacks lowest-HP backline hero on combat round 2 (effect deferred to M6.2).");
+        EnemyEffectId.BackBatBackline,
+        "Attacks lowest-HP backline hero on combat round 2.");
 
     private static readonly EnemyDefinition DebtWraith = new EnemyDefinition(
         "debt_wraith",
         "Debt Wraith",
         1,
         10,
-        EnemyEffectId.None,
-        "Attack scales with player debt at combat start (effect deferred to M6.2).");
+        EnemyEffectId.DebtWraithScales,
+        "Attack scales with player debt at combat start.");
 
     private static readonly EnemyDefinition TreasureLeech = new EnemyDefinition(
         "treasure_leech",
         "Treasure Leech",
         1,
         12,
-        EnemyEffectId.None,
-        "Reduces reward if alive at combat end (effect deferred to M6.2).");
+        EnemyEffectId.TreasureLeechRewardDrain,
+        "Reduces reward if alive at combat end.");
 
     private static readonly EnemyDefinition DungeonAuditor = new EnemyDefinition(
         "dungeon_auditor",
         "Dungeon Auditor",
         3,
         20,
-        EnemyEffectId.None,
-        "Raises upkeep and deals periodic damage (effect deferred to M6.2).");
+        EnemyEffectId.DungeonAuditorBoss,
+        "Raises upkeep and deals periodic damage.");
 
     private static readonly List<HeroDefinition> HeroDefinitions = new List<HeroDefinition>
     {
@@ -319,7 +319,7 @@ public static class DataRepository
             "Payroll pressure",
             new List<EnemyDefinition> { TaxCollector },
             GameRules.WinReward,
-            EncounterEffectId.None,
+            EncounterEffectId.TaxCollectorUpkeep,
             null),
 
         new EncounterDefinition(
@@ -385,7 +385,7 @@ public static class DataRepository
             "Final boss",
             new List<EnemyDefinition> { DungeonAuditor },
             GameRules.WinReward,
-            EncounterEffectId.None,
+            EncounterEffectId.FinalBossDamage,
             null)
     };
 

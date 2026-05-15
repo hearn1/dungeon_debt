@@ -51,6 +51,45 @@ Copy this block when adding a new entry. Paste it at the top of the Session log 
 
 <!-- Newest entries at the top. -->
 
+## 2026-05-15 - M6.2: Encounter and hero effects wired into combat / reward / upkeep
+
+**Milestone:** M6 - Full 10-Round Run
+**Status:** Complete
+
+**Files added:**
+- `TestPlans/TP_M6.2.md`
+
+**Files modified:**
+- `DungeonDebt/Assets/Scripts/Combat/HeroEffects.cs` - implemented hero effects plus encounter/enemy effect hooks for combat start, targeting, kill rewards, end-of-round effects, combat end, and pre-upkeep.
+- `DungeonDebt/Assets/Scripts/Combat/CombatManager.cs` - added the narrow targeting override surface, Knight redirect integration, run-aware kill hook, survivor flag capture, and combat-end hook call.
+- `DungeonDebt/Assets/Scripts/Core/DataRepository.cs` - assigned real enemy and encounter effect IDs for M6.2 encounters.
+- `DungeonDebt/Assets/Scripts/Core/GameRules.cs` - added M6.2 encounter constants and restored `StartingGold` to the locked value of 10 after testing.
+- `DungeonDebt/Assets/Scripts/Data/RunState.cs` - added `FullUpkeepPaidLastRound` for Wizard scaling.
+- `DungeonDebt/Assets/Scripts/Run/RunManager.cs` - applied survivor-flag reward drains, encounter upkeep modifiers, hero pre-upkeep effects, and full-upkeep tracking.
+
+**Acceptance criteria:**
+- [x] Goblin Thieves set `goblinStoleGold` at end of combat round 3 and reduce reward by 3, clamped to 0.
+- [x] Tax Collector adds +2 to total upkeep in the reward/upkeep math.
+- [x] Backline Bat targets the lowest-HP backline hero on combat round 2, falling back to normal targeting if no backline target exists.
+- [x] Debt Wraith scales `CombatUnit.Attack` from current debt without mutating the immutable `EnemyDefinition`.
+- [x] Treasure Leech sets `treasureLeechSurvived` if alive at combat end and drains 4 reward gold, clamped to 0.
+- [x] Dungeon Auditor adds +3 upkeep and deals 1 damage to each living player hero every 3 combat rounds.
+- [x] Every `HeroEffectId` has an observable in-game behavior or intentional no-op flavor case covered by `TP_M6.2.md`.
+- [x] Full 10-round flow still runs Scout -> Shop -> Formation -> Payroll -> Combat -> Reward -> Upkeep -> Scout, with Victory after Round 10 win.
+
+**Test plan:** `TestPlans/TP_M6.2.md` - user reported all behavior working except the original Treasure Leech Step 8 expectation; the plan was corrected because MVP win rules require all enemies dead, so a surviving Leech implies a loss and drains `LossReward` from 4 to 0. `dotnet build DungeonDebt.sln` passed with 0 warnings and 0 errors after the correction.
+
+**Deviations from plan:**
+- Corrected `TP_M6.2.md` Treasure Leech expectations from an impossible "win while Leech survives" case to the implemented and documented combat win rule: kill Leech to win for +8, or let it survive and lose with +0 reward after drain.
+- Restored `GameRules.StartingGold` from a temporary test value of 100 back to the locked design value of 10.
+
+**Follow-up flagged:**
+- M7.1: add local scripted rival state, per-round rival updates, and the visible rival leaderboard.
+- M7 later slice: replace R3/R6/R9 Slime placeholders with scripted ghost teams and add rival ghost reward/morale modifiers.
+- Cleanup (deferred): `RunManager.PrepareSandboxRun()` / `DataRepository.CreateSandboxRun()` remain legacy sandbox helpers; remove only in a dedicated cleanup slice after M6/M7 stability.
+
+**Next slice:** M7.1 - Rival state and leaderboard loop.
+
 ## 2026-05-14 - M6.1: Scout panel and encounter list wiring
 
 **Milestone:** M6 - Full 10-Round Run

@@ -32,4 +32,13 @@ public static class GameRules
     public const int VictoryBonusAttackBuff = 1;
     public const int CutWagesUpkeepReduction = 3;
     public const int CutWagesAttackPenalty = 1;
+
+    public const int TaxCollectorUpkeep = 2;
+    public const int AuditorUpkeep = 3;
+    public const int AuditorDamageEvery = 3;
+    public const int AuditorDamage = 1;
+    public const int DebtWraithDebtDivisor = 3;
+    public const int GoblinThiefStealRound = 3;
+    public const int GoblinThiefStealGold = 3;
+    public const int TreasureLeechStealGold = 4;
 }
