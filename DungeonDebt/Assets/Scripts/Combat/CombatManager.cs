@@ -3,7 +3,7 @@ using System.Collections.Generic;
 public class CombatManager
 {
     private RunState _run;
-    private bool _knightRedirectAvailable;
+    private int _knightRedirectsRemaining;
 
     public CombatResult StartCombat(RunState run, EncounterDefinition encounter)
     {
@@ -13,9 +13,9 @@ public class CombatManager
         List<CombatUnit> enemyUnits = BuildEnemyUnits(encounter);
 
         _run = run;
-        _knightRedirectAvailable = false;
+        _knightRedirectsRemaining = 0;
 
-        HeroEffects.OnCombatStart(run, encounter, playerUnits, enemyUnits, logger, out _knightRedirectAvailable);
+        HeroEffects.OnCombatStart(run, encounter, playerUnits, enemyUnits, logger, out _knightRedirectsRemaining);
 
         if (!HasLivingUnits(playerUnits))
         {
@@ -91,11 +91,12 @@ public class CombatManager
         for (int i = 0; i < run.Party.Count; i++)
         {
             HeroInstance hero = run.Party[i];
+            int maxHealth = HeroEffects.GetTierAdjustedMaxHealth(hero);
             CombatUnit unit = new CombatUnit(
                 hero.Definition.DisplayName,
                 hero.Attack,
-                hero.Definition.BaseHealth,
-                hero.Definition.BaseHealth,
+                maxHealth,
+                maxHealth,
                 true,
                 hero.FormationSlot,
                 hero,
@@ -155,7 +156,7 @@ public class CombatManager
             // Knight redirect only applies when an enemy is hitting a player backline hero.
             if (!attacker.IsPlayerSide)
             {
-                defender = HeroEffects.TryRedirectToKnight(defender, defenders, ref _knightRedirectAvailable, logger);
+                defender = HeroEffects.TryRedirectToKnight(defender, defenders, ref _knightRedirectsRemaining, logger);
                 if (defender == null)
                 {
                     return;
@@ -256,7 +257,7 @@ public class CombatManager
             // here so any UI rendered between combats sees a coherent value.
             if (unit.SourceHero != null && unit.SourceHero.Definition != null)
             {
-                unit.SourceHero.CurrentHealth = unit.SourceHero.Definition.BaseHealth;
+                unit.SourceHero.CurrentHealth = HeroEffects.GetTierAdjustedMaxHealth(unit.SourceHero);
             }
         }
 

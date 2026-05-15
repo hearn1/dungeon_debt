@@ -39,7 +39,21 @@ public class HeroCardView : MonoBehaviour
 
         // Definition-only path (shop offers, scout) has no instance, so the tier slot
         // stays in its reserved-but-empty M8.1 look.
-        ApplyContent(hero, hero.BaseAttack, hero.BaseUpkeep, null);
+        ApplyContent(hero, hero.BaseAttack, hero.BaseHealth, hero.BaseUpkeep, null);
+    }
+
+    public void Refresh(HeroDefinition hero, HeroTier tier)
+    {
+        if (hero == null)
+        {
+            Clear();
+            return;
+        }
+
+        int attack = HeroEffects.GetTierAdjustedAttack(hero, tier);
+        int health = HeroEffects.GetTierAdjustedMaxHealth(hero, tier);
+        int upkeep = HeroEffects.GetTierAdjustedUpkeep(hero, tier);
+        ApplyContent(hero, attack, health, upkeep, tier);
     }
 
     // Formation uses live instance values so the player sees the same ATK and
@@ -52,10 +66,11 @@ public class HeroCardView : MonoBehaviour
             return;
         }
 
-        ApplyContent(instance.Definition, instance.Attack, instance.UpkeepThisRound, instance.Tier);
+        int health = HeroEffects.GetTierAdjustedMaxHealth(instance);
+        ApplyContent(instance.Definition, instance.Attack, health, instance.UpkeepThisRound, instance.Tier);
     }
 
-    private void ApplyContent(HeroDefinition hero, int attack, int upkeep, HeroTier? tier)
+    private void ApplyContent(HeroDefinition hero, int attack, int health, int upkeep, HeroTier? tier)
     {
         Color roleColor = GameRules.GetRoleColor(hero.Role);
         _roleBand.color = roleColor;
@@ -68,7 +83,7 @@ public class HeroCardView : MonoBehaviour
         ApplyTierFill(tier);
 
         _nameText.text = hero.DisplayName;
-        _statsText.text = "ATK " + attack + "    HP " + hero.BaseHealth;
+        _statsText.text = "ATK " + attack + "    HP " + health;
         _upkeepText.text = "Upkeep " + upkeep + "g";
         _effectText.text = hero.EffectDescription;
     }

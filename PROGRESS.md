@@ -51,6 +51,71 @@ Copy this block when adding a new entry. Paste it at the top of the Session log 
 
 <!-- Newest entries at the top. -->
 
+## 2026-05-15 - M9.3: Upgrade delta preview
+
+**Milestone:** M9 - Bronze->Silver tiering
+**Status:** Complete
+
+**Files added:**
+- `TestPlans/TP_M9.3.md`
+
+**Files modified:**
+- `DungeonDebt/Assets/Scripts/UI/ShopOfferView.cs` - upgrade offers now show concise Bronze -> Silver stat/effect deltas.
+
+**Acceptance criteria:**
+- [x] Upgrade offers preview Bronze -> Silver changes before purchase.
+- [x] Only changed values/effects are shown.
+- [x] Silver direct-hire offers keep normal Silver offer display.
+- [x] No tuning, combat, economy, or tier-rule changes.
+
+**Test plan:** `TestPlans/TP_M9.3.md` - user reported changes look good.
+
+**Deviations from plan:**
+- `ShopPanelView.cs` did not need changes; existing `isUpgrade` context was sufficient.
+
+**Follow-up flagged:**
+- None.
+
+**Next slice:** M10.1 - Combat view rebuild kickoff.
+
+## 2026-05-15 - M9.2: Silver shop offers, Silver direct-hire cost, and per-hero Silver bonuses
+
+**Milestone:** M9 - Bronze->Silver tiering
+**Status:** Complete
+
+**Files added:**
+- `TestPlans/TP_M9.2.md`
+
+**Files modified:**
+- `DungeonDebt/Assets/Scripts/Data/ShopOffer.cs` - added offer-tier data.
+- `DungeonDebt/Assets/Scripts/Run/ShopManager.cs` - added Silver offers, Silver direct-hire cost, Silver instance seeding, and duplicate path preservation.
+- `DungeonDebt/Assets/Scripts/Core/GameRules.cs` - added M9.2 placeholder Silver constants.
+- `DungeonDebt/Assets/Scripts/Combat/HeroEffects.cs` - added tier-aware stat/upkeep/effect bonuses.
+- `DungeonDebt/Assets/Scripts/Combat/CombatManager.cs` - used Silver HP and multi-redirect Knight counter.
+- `DungeonDebt/Assets/Scripts/Run/RunManager.cs` - reseeded tier-aware stats at round boundaries.
+- `DungeonDebt/Assets/Scripts/Run/PayrollManager.cs` - preserved Silver baselines after temporary payroll stat changes.
+- `DungeonDebt/Assets/Scripts/UI/HeroCardView.cs` - added definition + tier card refresh.
+- `DungeonDebt/Assets/Scripts/UI/ShopOfferView.cs` - displayed Silver offer badge/labels.
+- `DungeonDebt/Assets/Scripts/UI/ShopPanelView.cs` - kept Bronze duplicate upgrade logic separate from Silver offer display.
+
+**Acceptance criteria:**
+- [x] Silver offers surface directly using `GameRules.SilverOfferChance`.
+- [x] Silver direct-hire costs Bronze cost + `SilverHireCostBonus` and creates a Silver instance.
+- [x] Per-hero Silver bonus shapes are active.
+- [x] Shop offer cards visibly indicate Silver-tier offers.
+- [x] No Gold tier or out-of-scope systems added.
+
+**Test plan:** `TestPlans/TP_M9.2.md` - user reported completed test pass.
+
+**Deviations from plan:**
+- Added `PayrollManager.cs` so temporary payroll stat resets preserve Silver baselines.
+- Fixed Silver Treasurer targeting to choose two distinct allies.
+
+**Follow-up flagged:**
+- None.
+
+**Next slice:** M9.3 - Upgrade delta preview.
+
 ## 2026-05-15 - M9.1: Bronze->Silver tiering foundation
 
 **Milestone:** M9 - Bronze->Silver tiering

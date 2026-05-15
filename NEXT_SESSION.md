@@ -4,77 +4,67 @@ This file always describes the **next** session's work. Rewrite it at the end of
 
 ---
 
-## Session: M9.2 - Silver shop offers, Silver direct-hire cost, and per-hero Silver bonuses
+## Session: M10.1 - Combat view rebuild kickoff
 
-**Milestone:** M9 - Bronze->Silver tiering
-**Slice goal:** Land the second half of M9 per `IMPLEMENTATION_PLAN.md` §15: Silver offers can surface directly in the shop pool with a placeholder per-round probability, Silver direct-hire costs `BaseUpkeep + HireCostBonus + SilverHireCostBonus`, and the per-hero Silver bonus shape from the §15 table is wired into `HeroEffects` and stat reads. M9.1 already landed the data model, duplicate-hire merge, and tier-badge UI; M9.2 turns the stubbed bonuses on.
+**Milestone:** M10 - Combat view rebuild
+**Slice goal:** Start the M10 combat presentation rebuild by adding a visible combat unit-card panel for player/enemy units, fed by already-resolved combat data, while keeping the existing synchronous combat resolver and text log behavior unchanged.
 
 ### Background
 
-M9.1 (2026-05-15) shipped: `HeroTier` enum (Bronze, Silver), `HeroInstance.Tier` (default Bronze), `ShopManager.Hire` merge-to-Silver on duplicate of a Bronze-owned hero, `HeroCardView` populating the reserved tier slot with Bronze / Silver fill on instance-bound cards (Party, Formation), and a `ShopOfferView` button-label hint (`Upgrade (Xg)` / `Merges to Silver`). M9.1 also fixed an in-slice regression: `HeroInstance.CurrentHealth` is now restored to full in `CombatManager.FinishResult`, so Shop's Party list shows coherent HP between combats.
+M8 made hero/enemy/shop/formation cards readable. M9 completed Bronze->Silver tiering, Silver shop offers, per-hero Silver bonuses, and upgrade delta previews. M10 consumes that work in combat presentation: combat should no longer be text-only forever, but this first slice should be a careful UI foundation rather than a rewrite of combat math.
 
-Per `IMPLEMENTATION_PLAN.md` §15 M9.1 explicitly stubbed all Silver bonuses ("Silver bonuses stubbed so existing combat math is unchanged"). M9.2 is where Silver finally changes numbers.
+Per `IMPLEMENTATION_PLAN.md` §15 Milestone 10:
 
-CLAUDE.md §Scope control Phase 2 carve-out: Bronze->Silver only, **no Gold tier**; tiering does **not** introduce equipment, traits, factions, or synergies. M11 (later) finalizes the tier-probability curve and the exact per-hero Silver bonus numbers; M9.2 wires the bonus *shape* using placeholder constants in `GameRules`.
+- Unit-card combat panel shows each combatant as a card with HP information, role color, and tier badge where applicable.
+- Turn highlighting and step-by-step HP bar replay are in scope for M10, but can be sliced after the static panel foundation if needed.
+- Combat log remains available as a secondary pane.
+- Combat resolver remains synchronous and deterministic.
 
 ### Acceptance Criteria (draft - finalize during Orient/Plan)
 
-1. `ShopManager.FillAllOffers` can surface Silver offers directly (in addition to Bronze). The chance is gated by a placeholder probability constant in `GameRules` (e.g. `SilverOfferChance` or a per-round table; final curve is M11). Tier is set on the `ShopOffer` itself, not derived from party state.
-2. Direct-hire of a Silver offer (not a duplicate merge) charges `BaseUpkeep + HireCostBonus + GameRules.SilverHireCostBonus` and creates a `HeroInstance` with `Tier = Silver` in the first empty formation slot. Party-cap, gold-cap, and "Silver-owned excluded from pool" rules still apply.
-3. Per-hero Silver bonuses from `IMPLEMENTATION_PLAN.md` §15 are active: Stat heroes (Warrior, Ranger, Squire) get +Atk and/or +HP via tier-aware reads; Upkeep heroes (Golem, Wizard, Ninja) get reduced `UpkeepThisRound`; Effect heroes (Knight, Priest, Bard, Enchanter, Treasurer, Apprentice) get the §15 bonus shape (e.g. Knight redirects 2 backline hits, Priest heals 3/round, etc.). All numeric tunables live in `GameRules`.
-4. Shop offer card visually indicates Silver-tier *offers* (not just Bronze-owned-duplicate offers) - minimum acceptable surface is the offer card showing the Silver fill in the M8.1 reserved tier slot (mirror of how Party/Formation work, but driven by `ShopOffer.Tier`).
-5. No Gold tier. No equipment, traits, factions, or synergies. No new combat statuses/types. No `UnityEngine.Random`, tweens, audio/VFX, forbidden folders.
+1. Combat view shows player and enemy combatants as visible cards/panels during the Combat state, separate from the existing text log.
+2. Each player combat card shows hero name, tier badge for Bronze/Silver, ATK, and HP/max HP. Each enemy combat card shows enemy name, ATK, and HP/max HP.
+3. The new view is populated from combat-start/combat-result data without changing combat resolution rules, target rules, rewards, upkeep, or hero effects.
+4. Existing `CombatLogView` remains visible and continues to stream the full resolved log.
+5. No tweens, particles, audio, new combat states, new statuses, or behavior changes.
 
 ### Files Claude Code May Create / Modify
 
 ```
-DungeonDebt/Assets/Scripts/Data/ShopOffer.cs                 - add a `Tier` field on the offer.
-DungeonDebt/Assets/Scripts/Run/ShopManager.cs                - Silver offer surfacing via `_runManager.Random`, Silver direct-hire creates Silver instance, `SilverHireCostBonus` applied to direct-hire cost.
-DungeonDebt/Assets/Scripts/Core/GameRules.cs                 - `SilverHireCostBonus`, `SilverOfferChance` (or equivalent placeholder), per-hero Silver bonus numeric tunables.
-DungeonDebt/Assets/Scripts/Combat/HeroEffects.cs             - tier-aware effect hooks (Knight redirect count, Priest heal amount, Bard win gold, Enchanter aura scope, Treasurer upkeep reduction, Apprentice Wizard upkeep).
-DungeonDebt/Assets/Scripts/Run/RunManager.cs                 - tier-aware stat seeding (Stat heroes' Attack/HP at round start) and tier-aware upkeep computation (Golem, Wizard, Ninja).
-DungeonDebt/Assets/Scripts/UI/HeroCardView.cs                - if needed: `Refresh(HeroDefinition, HeroTier)` overload or equivalent so shop offer cards can render the offer's tier in the badge slot.
-DungeonDebt/Assets/Scripts/UI/ShopOfferView.cs               - call the tier-aware HeroCardView refresh; the existing `isUpgrade` flag is for *Bronze-owned duplicates only*, so a separate tier-aware path is required.
-DungeonDebt/Assets/Scripts/UI/ShopPanelView.cs               - feed offer tier through.
-TestPlans/TP_M9.2.md
+DungeonDebt/Assets/Scripts/UI/CombatUnitCardView.cs          - new reusable uGUI card for one combat unit snapshot.
+DungeonDebt/Assets/Scripts/UI/CombatPanelView.cs             - if needed: host player/enemy combat card rows beside/above the existing log.
+DungeonDebt/Assets/Scripts/UI/CombatLogView.cs               - only if needed to fit beside the new panel; keep log behavior intact.
+DungeonDebt/Assets/Scripts/UI/MainMenuPanel.cs               - only if current scene bootstrap still owns combat UI layout creation.
+DungeonDebt/Assets/Scripts/UI/UIManager.cs                   - only if combat panel visibility is currently routed there.
+DungeonDebt/Assets/Scripts/Combat/CombatManager.cs           - only if a read-only combat snapshot is needed; do not change resolver behavior.
+DungeonDebt/Assets/Scripts/Data/CombatResult.cs              - only if needed to carry final/start snapshots for UI display.
+TestPlans/TP_M10.1.md
 ```
 
 ### Files Claude Code Does NOT Create or Modify
 
 - `Resources/`, `StreamingAssets/`, `Tests/`, `Editor/` - forbidden folders.
-- Anything Gold-tier, equipment, trait, faction, or synergy related.
-- `CombatManager.cs`, `CombatLogger.cs` - unless a Silver bonus strictly requires a new hook surface (raise as a planning question if so; M9.1 already touched `CombatManager` for the unrelated CurrentHealth-restore regression).
-- `EnemyDefinition.cs`, `EncounterDefinition.cs`, `DataRepository.cs` - tiering is hero-only.
-- `HeroDefinition.cs` - stays immutable; tier lives on `HeroInstance` / `ShopOffer`.
+- `GameRules.cs` tuning, hero/enemy data, shop, payroll, reward, upkeep, or rival logic.
+- Any combat math, targeting, hero effects, reward logic, or run flow behavior unless explicitly confirmed during Plan.
+- Gold tier, traits/factions/synergies, equipment, audio/VFX, tweens, particles.
 - `PROGRESS.md` / `REGRESSIONS.md` mid-session unless user asks.
 
 ### Relevant Context To Re-read During Orient
 
-- `IMPLEMENTATION_PLAN.md` §15 Milestone 9 - especially the per-hero Silver bonus table (Warrior...Apprentice) and the "M9.1 vs M9.2" expected sub-slicing block.
-- `IMPLEMENTATION_PLAN.md` §15 Milestone 11 - confirms the Silver tier-probability curve and exact bonus numbers are M11's job, so M9.2 should use placeholder constants and resist over-tuning.
-- `CLAUDE.md` §Scope control Phase 2 carve-out and §Architectural rules (HeroEffects is static + keyed by `HeroEffectId`; combat is deterministic).
-- `PROGRESS.md` latest entries (M9.1, M8.2, M8.1).
-- `ShopManager.cs` - the M9.1 merge branch + the `Silver-owned` exclusion. M9.2 introduces a third state: Bronze offer vs Silver offer vs duplicate-merge offer.
-- `HeroEffects.cs` - existing per-effect hook points; tier-awareness probably reads `HeroInstance.Tier` inside each branch.
-- `RunManager.cs` - where per-round `Attack` / `UpkeepThisRound` are seeded.
+- `IMPLEMENTATION_PLAN.md` §15 Milestone 10.
+- `CLAUDE.md` §Scope control and §Architectural rules.
+- Latest `PROGRESS.md` entries for M9.3, M9.2, M9.1.
+- `CombatManager.cs`, `CombatResult.cs`, `CombatLogView.cs`, and the UI script that currently constructs/shows combat UI.
+- `HeroCardView.cs` and `EnemyCardView.cs` for visual conventions worth reusing without creating nested cards.
 
 ### Test Plan Output
 
-`TestPlans/TP_M9.2.md` covering:
+Create `TestPlans/TP_M10.1.md` covering:
 
-- **Happy path:** A Silver offer surfaces in the shop. Direct-hire pays the Silver cost and creates a Silver instance. The hired Silver hero applies its bonus in the next combat / upkeep (Stat: visibly higher ATK/HP; Upkeep: visibly lower upkeep; Effect: observably stronger hook - e.g. Knight redirects two hits, Priest heals 3 etc.).
-- **Edge cases:** Silver offer when party is full (excluded by party-full just like Bronze direct-hire); player can't afford Silver cost (button disabled, status shows `Need Xg`); Silver-owned hero never re-appears as either a Silver offer or a Bronze offer; duplicate-merge path still works (Bronze-owned + Bronze offer + click `Upgrade` -> Silver) after M9.2 changes; Enchanter aura behavior change is observable on combat log.
-- **Observable invariants:** every offer card visibly shows its tier (Bronze / Silver / reserved-empty for null); Silver heroes always cost more to direct-hire than Bronze; per-hero bonus is purely additive vs the Bronze baseline (no hidden penalties); switching a hero from Bronze to Silver between rounds (via duplicate-merge) changes the relevant stat/effect in the *very next* combat.
-
-Include **Regression checks** for: (a) the M9.1 duplicate-merge path still merges Bronze->Silver with no slot growth, (b) `CombatManager.FinishResult` HP-restore still works (Shop Party panel shows full HP after a loss), (c) full 10-round run still completes Scout -> Shop -> Formation -> Payroll -> Combat -> Reward -> Upkeep without an end-condition regression. Name the specific seam each check protects.
-
-### Open Questions To Raise During Orient/Plan
-
-1. **Probability shape for `SilverOfferChance`.** §15 says "Tier probability per round is a placeholder constant in `GameRules`; the curve is finalized in M11." Is a single flat probability (e.g. 20% per offer) acceptable for M9.2, or do you want a round-aware ramp (e.g. 0% in R1-R3, 20% in R4-R7, 40% in R8-R10)? Recommendation: flat constant for M9.2, leave the curve for M11.
-2. **Silver bonus number placeholders.** §15 only locks the *shape*. For Stat heroes the bonus is `+Atk, +HP` - is `+1 / +2` acceptable as the placeholder for all three? For Upkeep heroes (Golem, Wizard, Ninja) is `-1 upkeep` acceptable? Final numbers are M11.
-3. **Should the shop offer card mid-stride show the offer's tier in the reserved slot?** AC4 above proposes yes (mirror of Party/Formation), but it requires touching `HeroCardView` to accept a tier alongside a definition. Acceptable, or keep offer cards' tier slot reserved-empty and surface tier only via button-label/status text?
-4. **Treasurer Silver bonus shape.** §15 offers two alternatives: `-2 upkeep on top two allies` or `-3 on top one`. Pick one for M9.2 (M11 can revisit).
-5. **`ShopManager.IsUpgradeOffer` cleanup.** M9.1 left this helper unreferenced. Delete it in M9.2 cleanup, or repurpose it for the tier-aware offer logic?
+- **Happy path:** Start a run, enter combat, see player/enemy combat cards plus the existing log; log still streams to completion.
+- **Edge cases:** Empty party combat, empty enemy encounter if easy to trigger with a temporary scaffold, dead/damaged units after combat result, Silver hero tier badge in combat.
+- **Observable invariants:** combat log remains complete; cards do not overlap; no gameplay numbers change; player cards show tier while enemy cards do not.
+- **Regression checks:** Include only seams touched in the final plan, especially any `CombatResult` or `CombatManager` data-shape changes if they happen.
 
 ### Start Prompt For The Next Session
 

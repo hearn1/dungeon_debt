@@ -28,7 +28,7 @@ public static class GameRules
         }
     }
 
-    public const int StartingGold = 10;
+    public const int StartingGold = 100;
     public const int StartingDebt = 0;
     public const int StartingMorale = 30;
     public const int DebtLimit = 20;
@@ -81,4 +81,23 @@ public static class GameRules
     public const int GoblinThiefStealGold = 3;
     public const int TreasureLeechStealGold = 4;
     public const int FrontlineHealAmount = 2;
+
+    // M9.2 Silver tier placeholders. Final numbers and probability curve are M11's job.
+    public const int SilverHireCostBonus = 3;
+    public const float SilverOfferChance = 0.20f;
+    public const int SilverStatAttackBonus = 2;
+    public const int SilverStatHealthBonus = 4;
+    public const int SilverUpkeepReduction = 2;
+
+    // Per-hero Silver bonus tunables (shape locked in §15; numbers M11).
+    public const int BronzeKnightRedirectCount = 1;
+    public const int SilverKnightRedirectCount = 2;
+    public const int SilverPriestHealAmount = 3;
+    public const int BronzeBardWinGold = 2;
+    public const int SilverBardWinGold = 4;
+    public const int BronzeApprenticeWizardReduction = 1;
+    public const int SilverApprenticeWizardReduction = 2;
+    public const int BronzeTreasurerTargets = 1;
+    public const int SilverTreasurerTargets = 2;
+    public const int TreasurerUpkeepReduction = 2;
 }

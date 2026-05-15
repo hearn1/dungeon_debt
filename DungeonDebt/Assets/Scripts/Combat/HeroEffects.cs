@@ -2,17 +2,119 @@ using System.Collections.Generic;
 
 public static class HeroEffects
 {
+    // Seed per-round mutable stats from a hero's definition + tier. Called when a hero
+    // is hired/merged and at the start of each new round (after combat) so Silver
+    // bonuses reapply each round before payroll actions run.
+    //
+    // In the current roster, Warrior/Squire use EffectId.None and Ranger uses
+    // RangerBackline. M11 can replace these explicit checks with bonus metadata.
+    public static void ApplyTierStatSeed(HeroInstance hero)
+    {
+        if (hero == null || hero.Definition == null)
+        {
+            return;
+        }
+
+        hero.Attack = GetTierAdjustedAttack(hero.Definition, hero.Tier);
+        hero.UpkeepThisRound = GetTierAdjustedUpkeep(hero.Definition, hero.Tier);
+    }
+
+    // Tier-aware max HP for a HeroInstance, used by CombatManager when building
+    // CombatUnits. Stat-bonus Silver heroes (EffectId.None) get +SilverStatHealthBonus.
+    public static int GetTierAdjustedMaxHealth(HeroInstance hero)
+    {
+        if (hero == null || hero.Definition == null)
+        {
+            return 0;
+        }
+
+        return GetTierAdjustedMaxHealth(hero.Definition, hero.Tier);
+    }
+
+    public static int GetTierAdjustedAttack(HeroDefinition hero, HeroTier tier)
+    {
+        if (hero == null)
+        {
+            return 0;
+        }
+
+        int attack = hero.BaseAttack;
+        if (tier == HeroTier.Silver && HasSilverAttackBonus(hero))
+        {
+            attack += GameRules.SilverStatAttackBonus;
+        }
+        return attack;
+    }
+
+    public static int GetTierAdjustedMaxHealth(HeroDefinition hero, HeroTier tier)
+    {
+        if (hero == null)
+        {
+            return 0;
+        }
+
+        int max = hero.BaseHealth;
+        if (tier == HeroTier.Silver && HasSilverHealthBonus(hero))
+        {
+            max += GameRules.SilverStatHealthBonus;
+        }
+        return max;
+    }
+
+    public static int GetTierAdjustedUpkeep(HeroDefinition hero, HeroTier tier)
+    {
+        if (hero == null)
+        {
+            return 0;
+        }
+
+        int upkeep = hero.BaseUpkeep;
+        if (tier == HeroTier.Silver
+            && (hero.EffectId == HeroEffectId.GolemArmor
+                || hero.EffectId == HeroEffectId.WizardScaling
+                || hero.EffectId == HeroEffectId.NinjaLowestTarget))
+        {
+            upkeep -= GameRules.SilverUpkeepReduction;
+            if (upkeep < 0)
+            {
+                upkeep = 0;
+            }
+        }
+        return upkeep;
+    }
+
+    private static bool HasSilverAttackBonus(HeroDefinition hero)
+    {
+        if (hero == null)
+        {
+            return false;
+        }
+
+        return hero.EffectId == HeroEffectId.None
+            || hero.EffectId == HeroEffectId.RangerBackline;
+    }
+
+    private static bool HasSilverHealthBonus(HeroDefinition hero)
+    {
+        if (hero == null)
+        {
+            return false;
+        }
+
+        return hero.EffectId == HeroEffectId.None;
+    }
+
     public static void OnCombatStart(
         RunState run,
         EncounterDefinition encounter,
         List<CombatUnit> playerUnits,
         List<CombatUnit> enemyUnits,
         CombatLogger logger,
-        out bool knightRedirectAvailable)
+        out int knightRedirectsRemaining)
     {
-        knightRedirectAvailable = false;
+        knightRedirectsRemaining = 0;
 
-        // Knight: arm the redirect flag if any Knight is alive in the formation.
+        // Knight: arm the redirect counter. Silver Knights redirect twice.
         for (int i = 0; i < playerUnits.Count; i++)
         {
             CombatUnit unit = playerUnits[i];
@@ -23,7 +125,9 @@ public static class HeroEffects
 
             if (unit.SourceHero.Definition.EffectId == HeroEffectId.KnightRedirect)
             {
-                knightRedirectAvailable = true;
+                knightRedirectsRemaining = unit.SourceHero.Tier == HeroTier.Silver
+                    ? GameRules.SilverKnightRedirectCount
+                    : GameRules.BronzeKnightRedirectCount;
                 break;
             }
         }
@@ -50,7 +154,8 @@ public static class HeroEffects
             }
         }
 
-        // Enchanter: +1 attack to each adjacent Damage-role ally.
+        // Enchanter: +1 attack to adjacent Damage allies. Silver Enchanters buff all
+        // Damage-role player units regardless of slot adjacency.
         for (int i = 0; i < playerUnits.Count; i++)
         {
             CombatUnit unit = playerUnits[i];
@@ -63,6 +168,8 @@ public static class HeroEffects
             {
                 continue;
             }
+
+            bool silver = unit.SourceHero.Tier == HeroTier.Silver;
 
             for (int j = 0; j < playerUnits.Count; j++)
             {
@@ -77,20 +184,22 @@ public static class HeroEffects
                     continue;
                 }
 
-                int slotDelta = ally.Slot - unit.Slot;
-                if (slotDelta < 0)
-                {
-                    slotDelta = -slotDelta;
-                }
-
-                if (slotDelta != 1)
-                {
-                    continue;
-                }
-
                 if (ally.SourceHero.Definition.Role != HeroRole.Damage)
                 {
                     continue;
+                }
+
+                if (!silver)
+                {
+                    int slotDelta = ally.Slot - unit.Slot;
+                    if (slotDelta < 0)
+                    {
+                        slotDelta = -slotDelta;
+                    }
+                    if (slotDelta != 1)
+                    {
+                        continue;
+                    }
                 }
 
                 ally.Attack += 1;
@@ -168,10 +277,10 @@ public static class HeroEffects
     public static CombatUnit TryRedirectToKnight(
         CombatUnit defender,
         List<CombatUnit> playerUnits,
-        ref bool knightRedirectAvailable,
+        ref int knightRedirectsRemaining,
         CombatLogger logger)
     {
-        if (!knightRedirectAvailable || defender == null || playerUnits == null)
+        if (knightRedirectsRemaining <= 0 || defender == null || playerUnits == null)
         {
             return defender;
         }
@@ -192,7 +301,7 @@ public static class HeroEffects
             return defender;
         }
 
-        knightRedirectAvailable = false;
+        knightRedirectsRemaining -= 1;
         if (logger != null)
         {
             logger.LogMessage(knight.DisplayName + " redirects the hit from " + defender.DisplayName + ".");
@@ -251,7 +360,7 @@ public static class HeroEffects
         CombatResult result,
         CombatLogger logger)
     {
-        // Priest heal.
+        // Priest heal. Silver Priests heal more per round.
         for (int i = 0; i < playerUnits.Count; i++)
         {
             CombatUnit priest = playerUnits[i];
@@ -265,7 +374,10 @@ public static class HeroEffects
                 continue;
             }
 
-            HealLeftmostFrontlineAlly(priest, playerUnits, logger);
+            int amount = priest.SourceHero.Tier == HeroTier.Silver
+                ? GameRules.SilverPriestHealAmount
+                : GameRules.FrontlineHealAmount;
+            HealLeftmostFrontlineAlly(priest, playerUnits, amount, logger);
         }
 
         // Frugal Healer reuses the Priest-style frontline heal for its ghost team.
@@ -282,7 +394,7 @@ public static class HeroEffects
                 continue;
             }
 
-            HealLeftmostFrontlineAlly(healer, enemyUnits, logger);
+            HealLeftmostFrontlineAlly(healer, enemyUnits, GameRules.FrontlineHealAmount, logger);
         }
 
         // Goblin Thief: flag if any are alive at end of the steal round.
@@ -347,7 +459,7 @@ public static class HeroEffects
         List<CombatUnit> enemyUnits,
         CombatLogger logger)
     {
-        // Bard: +2 gold per Bard in party on a win.
+        // Bard: gold per Bard in party on a win. Silver Bards earn more.
         if (result != null && result.PlayerWon && run != null)
         {
             for (int i = 0; i < run.Party.Count; i++)
@@ -360,10 +472,13 @@ public static class HeroEffects
 
                 if (hero.Definition.EffectId == HeroEffectId.BardGoldOnWin)
                 {
-                    run.Gold += 2;
+                    int gain = hero.Tier == HeroTier.Silver
+                        ? GameRules.SilverBardWinGold
+                        : GameRules.BronzeBardWinGold;
+                    run.Gold += gain;
                     if (logger != null)
                     {
-                        logger.LogMessage(hero.Definition.DisplayName + " sings for +2 gold.");
+                        logger.LogMessage(hero.Definition.DisplayName + " sings for +" + gain + " gold.");
                     }
                 }
             }
@@ -396,7 +511,8 @@ public static class HeroEffects
             return;
         }
 
-        // Apprentice first: each Apprentice reduces a Wizard ally's upkeep by 1 (min 0).
+        // Apprentice first: each Apprentice reduces a Wizard ally's upkeep. Silver
+        // Apprentices reduce by 2 instead of 1 (min 0).
         for (int i = 0; i < run.Party.Count; i++)
         {
             HeroInstance apprentice = run.Party[i];
@@ -416,7 +532,10 @@ public static class HeroEffects
                 continue;
             }
 
-            int reduced = wizard.UpkeepThisRound - 1;
+            int reduction = apprentice.Tier == HeroTier.Silver
+                ? GameRules.SilverApprenticeWizardReduction
+                : GameRules.BronzeApprenticeWizardReduction;
+            int reduced = wizard.UpkeepThisRound - reduction;
             if (reduced < 0)
             {
                 reduced = 0;
@@ -424,7 +543,8 @@ public static class HeroEffects
             wizard.UpkeepThisRound = reduced;
         }
 
-        // Treasurer: each Treasurer reduces the highest-upkeep ally (excluding self) by 2 (min 0).
+        // Treasurer: reduce the highest-upkeep ally(ies) by GameRules.TreasurerUpkeepReduction
+        // (min 0). Silver Treasurers reduce the top two distinct allies instead of one.
         for (int i = 0; i < run.Party.Count; i++)
         {
             HeroInstance treasurer = run.Party[i];
@@ -438,33 +558,77 @@ public static class HeroEffects
                 continue;
             }
 
-            HeroInstance target = null;
-            for (int j = 0; j < run.Party.Count; j++)
+            int targetCount = treasurer.Tier == HeroTier.Silver
+                ? GameRules.SilverTreasurerTargets
+                : GameRules.BronzeTreasurerTargets;
+            List<HeroInstance> targeted = new List<HeroInstance>();
+
+            for (int t = 0; t < targetCount; t++)
             {
-                HeroInstance candidate = run.Party[j];
-                if (candidate == null || candidate == treasurer)
+                HeroInstance target = FindHighestUpkeepExcluding(run.Party, treasurer, targeted);
+                if (target == null)
                 {
-                    continue;
+                    break;
                 }
 
-                if (target == null || candidate.UpkeepThisRound > target.UpkeepThisRound)
+                targeted.Add(target);
+                int reduced = target.UpkeepThisRound - GameRules.TreasurerUpkeepReduction;
+                if (reduced < 0)
                 {
-                    target = candidate;
+                    reduced = 0;
                 }
+                target.UpkeepThisRound = reduced;
             }
+        }
+    }
 
-            if (target == null)
+    private static HeroInstance FindHighestUpkeepExcluding(
+        List<HeroInstance> party,
+        HeroInstance exclude,
+        List<HeroInstance> alreadyTargeted)
+    {
+        HeroInstance best = null;
+        for (int j = 0; j < party.Count; j++)
+        {
+            HeroInstance candidate = party[j];
+            if (candidate == null || candidate == exclude)
             {
                 continue;
             }
 
-            int reduced = target.UpkeepThisRound - 2;
-            if (reduced < 0)
+            if (ContainsHero(alreadyTargeted, candidate))
             {
-                reduced = 0;
+                continue;
             }
-            target.UpkeepThisRound = reduced;
+
+            if (candidate.UpkeepThisRound <= 0)
+            {
+                continue;
+            }
+
+            if (best == null || candidate.UpkeepThisRound > best.UpkeepThisRound)
+            {
+                best = candidate;
+            }
         }
+        return best;
+    }
+
+    private static bool ContainsHero(List<HeroInstance> heroes, HeroInstance hero)
+    {
+        if (heroes == null || hero == null)
+        {
+            return false;
+        }
+
+        for (int i = 0; i < heroes.Count; i++)
+        {
+            if (heroes[i] == hero)
+            {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static CombatUnit FindLowestHpInSlotRange(List<CombatUnit> units, int minSlot, int maxSlot)
@@ -489,7 +653,7 @@ public static class HeroEffects
         return best;
     }
 
-    private static void HealLeftmostFrontlineAlly(CombatUnit healer, List<CombatUnit> allies, CombatLogger logger)
+    private static void HealLeftmostFrontlineAlly(CombatUnit healer, List<CombatUnit> allies, int healAmount, CombatLogger logger)
     {
         if (healer == null || !healer.IsAlive || allies == null)
         {
@@ -502,7 +666,7 @@ public static class HeroEffects
             healTarget = healer;
         }
 
-        int healed = GameRules.FrontlineHealAmount;
+        int healed = healAmount;
         int newHealth = healTarget.CurrentHealth + healed;
         if (newHealth > healTarget.MaxHealth)
         {

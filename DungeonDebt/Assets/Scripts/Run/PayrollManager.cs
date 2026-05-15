@@ -125,8 +125,8 @@ public class PayrollManager : MonoBehaviour
                 continue;
             }
 
-            hero.Attack = hero.Definition.BaseAttack;
-            hero.UpkeepThisRound = hero.Definition.BaseUpkeep;
+            HeroEffects.ApplyTierStatSeed(hero);
+            hero.CurrentHealth = HeroEffects.GetTierAdjustedMaxHealth(hero);
         }
     }
 }
