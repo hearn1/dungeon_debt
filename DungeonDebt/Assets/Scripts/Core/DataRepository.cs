@@ -395,6 +395,39 @@ public static class DataRepository
     public static readonly IReadOnlyList<PayrollActionDefinition> AllPayrollActions =
         new ReadOnlyCollection<PayrollActionDefinition>(PayrollActionDefinitions);
 
+    public static List<RivalGuildState> CreateRivalGuilds()
+    {
+        return new List<RivalGuildState>
+        {
+            new RivalGuildState(
+                "greedy",
+                "Greedy Guild",
+                GameRules.StartingMorale,
+                GameRules.StartingDebt,
+                GameRules.GreedyRivalStartingPayroll,
+                "Dangerous",
+                GameRules.GreedyRivalPayrollGrowth),
+
+            new RivalGuildState(
+                "frugal",
+                "Frugal Guild",
+                GameRules.StartingMorale,
+                GameRules.StartingDebt,
+                GameRules.FrugalRivalStartingPayroll,
+                "Safe",
+                GameRules.FrugalRivalPayrollGrowth),
+
+            new RivalGuildState(
+                "carry",
+                "Carry Guild",
+                GameRules.StartingMorale,
+                GameRules.StartingDebt,
+                GameRules.CarryRivalStartingPayroll,
+                "Scaling",
+                GameRules.CarryRivalOddRoundPayrollGrowth)
+        };
+    }
+
     public static RunState CreateSandboxRun()
     {
         RunState run = new RunState();

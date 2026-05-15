@@ -7,6 +7,7 @@ public class GameManager : MonoBehaviour
     [SerializeField] private ShopManager _shopManager;
     [SerializeField] private PayrollManager _payrollManager;
     [SerializeField] private EncounterManager _encounterManager;
+    [SerializeField] private RivalManager _rivalManager;
 
     private GameState _currentState = GameState.MainMenu;
 
@@ -48,6 +49,11 @@ public class GameManager : MonoBehaviour
     public EncounterManager EncounterManager
     {
         get { return _encounterManager; }
+    }
+
+    public RivalManager RivalManager
+    {
+        get { return _rivalManager; }
     }
 
     private void Awake()
@@ -114,12 +120,6 @@ public class GameManager : MonoBehaviour
         }
 
         GameState nextState = _runManager.EvaluateNextState();
-        if (nextState == GameState.Shop)
-        {
-            _runManager.AdvanceRound();
-            nextState = GameState.Scout;
-        }
-
         RunState runState = CurrentRunState;
         if (runState != null)
         {
@@ -127,6 +127,18 @@ public class GameManager : MonoBehaviour
         }
 
         ChangeState(nextState);
+    }
+
+    public void ContinueFromRivalUpdate()
+    {
+        EnsureManagers();
+        if (_runManager == null)
+        {
+            return;
+        }
+
+        _runManager.AdvanceRound();
+        ChangeState(GameState.Scout);
     }
 
     public void ChangeState(GameState nextState)
@@ -149,6 +161,11 @@ public class GameManager : MonoBehaviour
         if (_currentState == GameState.Shop && _shopManager != null)
         {
             _shopManager.GenerateOffers();
+        }
+
+        if (_currentState == GameState.RivalUpdate && _rivalManager != null)
+        {
+            _rivalManager.AdvanceRivals(CurrentRunState);
         }
 
         if (OnStateChanged != null)
@@ -188,8 +205,6 @@ public class GameManager : MonoBehaviour
             }
         }
 
-        _runManager.Initialize(_payrollManager);
-
         if (_encounterManager == null)
         {
             _encounterManager = GetComponent<EncounterManager>();
@@ -200,5 +215,16 @@ public class GameManager : MonoBehaviour
         }
 
         _encounterManager.Initialize(_runManager);
+
+        if (_rivalManager == null)
+        {
+            _rivalManager = GetComponent<RivalManager>();
+            if (_rivalManager == null)
+            {
+                _rivalManager = gameObject.AddComponent<RivalManager>();
+            }
+        }
+
+        _runManager.Initialize(_payrollManager, _rivalManager);
     }
 }

@@ -4,6 +4,7 @@ using UnityEngine;
 public class RunManager : MonoBehaviour
 {
     [SerializeField] private PayrollManager _payrollManager;
+    [SerializeField] private RivalManager _rivalManager;
 
     private System.Random _random;
     private RunState _currentRunState;
@@ -11,6 +12,12 @@ public class RunManager : MonoBehaviour
     public void Initialize(PayrollManager payrollManager)
     {
         _payrollManager = payrollManager;
+    }
+
+    public void Initialize(PayrollManager payrollManager, RivalManager rivalManager)
+    {
+        _payrollManager = payrollManager;
+        _rivalManager = rivalManager;
     }
 
     public RunState CurrentRunState
@@ -45,6 +52,19 @@ public class RunManager : MonoBehaviour
         runState.FullUpkeepPaidLastRound = false;
 
         _currentRunState = runState;
+        if (_rivalManager != null)
+        {
+            _rivalManager.InitializeRivals(_currentRunState);
+        }
+        else
+        {
+            System.Collections.Generic.List<RivalGuildState> rivals = DataRepository.CreateRivalGuilds();
+            for (int i = 0; i < rivals.Count; i++)
+            {
+                _currentRunState.Rivals.Add(rivals[i]);
+            }
+        }
+
         return _currentRunState;
     }
 
@@ -173,14 +193,20 @@ public class RunManager : MonoBehaviour
             return GameState.Defeat;
         }
 
-        if (_currentRunState.LatestCombatWon && _currentRunState.Round >= GameRules.FinalRound)
+        if (_currentRunState.Round >= GameRules.FinalRound)
         {
-            _currentRunState.LatestEndReason = "Final round cleared.";
-            return GameState.Victory;
+            if (_currentRunState.LatestCombatWon)
+            {
+                _currentRunState.LatestEndReason = "Final round cleared.";
+                return GameState.Victory;
+            }
+
+            _currentRunState.LatestEndReason = "Final round failed.";
+            return GameState.Defeat;
         }
 
         _currentRunState.LatestEndReason = null;
-        return GameState.Shop;
+        return GameState.RivalUpdate;
     }
 
     public void SwapPartySlots(int slotA, int slotB)
