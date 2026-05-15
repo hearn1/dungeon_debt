@@ -6,6 +6,7 @@ public class GameManager : MonoBehaviour
     [SerializeField] private RunManager _runManager;
     [SerializeField] private ShopManager _shopManager;
     [SerializeField] private PayrollManager _payrollManager;
+    [SerializeField] private EncounterManager _encounterManager;
 
     private GameState _currentState = GameState.MainMenu;
 
@@ -44,6 +45,11 @@ public class GameManager : MonoBehaviour
         get { return _payrollManager; }
     }
 
+    public EncounterManager EncounterManager
+    {
+        get { return _encounterManager; }
+    }
+
     private void Awake()
     {
         EnsureManagers();
@@ -58,6 +64,11 @@ public class GameManager : MonoBehaviour
     public void StartRun()
     {
         ChangeState(GameState.StartRun);
+        ChangeState(GameState.Scout);
+    }
+
+    public void ContinueFromScout()
+    {
         ChangeState(GameState.Shop);
     }
 
@@ -106,6 +117,7 @@ public class GameManager : MonoBehaviour
         if (nextState == GameState.Shop)
         {
             _runManager.AdvanceRound();
+            nextState = GameState.Scout;
         }
 
         RunState runState = CurrentRunState;
@@ -125,6 +137,13 @@ public class GameManager : MonoBehaviour
         if (_currentState == GameState.StartRun && _runManager != null)
         {
             _runManager.InitializeRun();
+        }
+
+        if (_currentState == GameState.Scout && _encounterManager != null)
+        {
+            RunState runState = CurrentRunState;
+            int round = runState != null ? runState.Round : 1;
+            _encounterManager.LoadEncounter(round);
         }
 
         if (_currentState == GameState.Shop && _shopManager != null)
@@ -170,5 +189,16 @@ public class GameManager : MonoBehaviour
         }
 
         _runManager.Initialize(_payrollManager);
+
+        if (_encounterManager == null)
+        {
+            _encounterManager = GetComponent<EncounterManager>();
+            if (_encounterManager == null)
+            {
+                _encounterManager = gameObject.AddComponent<EncounterManager>();
+            }
+        }
+
+        _encounterManager.Initialize(_runManager);
     }
 }

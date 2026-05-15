@@ -31,4 +31,5 @@ public class RunState
     public string LatestPayrollSummary { get; set; }
     public int LatestVictoryBonusLossDebt { get; set; }
     public string LatestEndReason { get; set; }
+    public EncounterDefinition CurrentEncounter { get; set; }
 }

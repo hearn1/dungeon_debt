@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(awk 'NR>=1005 && NR<=1180' C:/Users/Matt/Desktop/Code/dungeon_debt/GAME_DESIGN.md)"
+    ]
+  }
+}
