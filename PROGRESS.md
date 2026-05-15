@@ -51,6 +51,38 @@ Copy this block when adding a new entry. Paste it at the top of the Session log 
 
 <!-- Newest entries at the top. -->
 
+## 2026-05-15 - M7.2: Scripted rival ghost teams and ghost fight modifiers
+
+**Milestone:** M7 - Rival Ghosts
+**Status:** Complete
+
+**Files added:**
+- `TestPlans/TP_M7.2.md`
+
+**Files modified:**
+- `DungeonDebt/Assets/Scripts/Core/DataRepository.cs` - replaced R3/R6/R9 Slime placeholders with scripted rival ghost teams.
+- `DungeonDebt/Assets/Scripts/Run/RunManager.cs` - applied rival ghost reward and morale modifiers.
+- `DungeonDebt/Assets/Scripts/Combat/HeroEffects.cs` - reused Priest-style healing for Frugal Healer.
+- `DungeonDebt/Assets/Scripts/Data/GameEnums.cs` - added Frugal ghost heal effect id.
+- `DungeonDebt/Assets/Scripts/Core/GameRules.cs` - added shared frontline heal amount constant.
+
+**Acceptance criteria:**
+- [x] Round 3 Greedy ghost fight uses a scripted non-Slime team.
+- [x] Round 6 Carry ghost fight uses a protected high-damage carry team.
+- [x] Round 9 Frugal ghost fight uses a distinct efficient team with healer behavior.
+- [x] Ghost wins award +10 gold; ghost losses apply -8 morale.
+- [x] Existing M7 flow and leaderboard behavior are preserved.
+
+**Test plan:** `TestPlans/TP_M7.2.md` - user reported all tests appear to be passing.
+
+**Deviations from plan:**
+- Frugal Healer behavior was included with user confirmation by sharing Priest-style heal logic.
+
+**Follow-up flagged:**
+- None.
+
+**Next slice:** M7.3 - M7 full-run verification and milestone closeout.
+
 ## 2026-05-15 - R003: Fix hire placement after formation movement
 
 **Milestone:** Regression fix before continuing M7

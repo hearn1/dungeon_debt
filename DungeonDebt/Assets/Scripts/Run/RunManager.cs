@@ -93,8 +93,15 @@ public class RunManager : MonoBehaviour
             return;
         }
 
+        bool isRivalGhost = encounter != null && encounter.Type == EncounterType.RivalGhost;
         int rewardGold = combatResult.PlayerWon ? GameRules.WinReward : GameRules.LossReward;
-        int moraleChange = combatResult.PlayerWon ? 0 : -GameRules.DungeonLossMorale;
+        if (combatResult.PlayerWon && isRivalGhost)
+        {
+            rewardGold += GameRules.RivalWinBonus;
+        }
+
+        int lossMorale = isRivalGhost ? GameRules.RivalLossMorale : GameRules.DungeonLossMorale;
+        int moraleChange = combatResult.PlayerWon ? 0 : -lossMorale;
 
         if (combatResult.SurvivorFlags != null)
         {

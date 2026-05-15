@@ -195,6 +195,62 @@ public static class DataRepository
         EnemyEffectId.DungeonAuditorBoss,
         "Raises upkeep and deals periodic damage.");
 
+    private static readonly EnemyDefinition GreedyTank = new EnemyDefinition(
+        "greedy_tank",
+        "Greedy Tank",
+        3,
+        8,
+        EnemyEffectId.None,
+        "No effect.");
+
+    private static readonly EnemyDefinition GreedyCarry = new EnemyDefinition(
+        "greedy_carry",
+        "Greedy Carry",
+        4,
+        4,
+        EnemyEffectId.None,
+        "No effect.");
+
+    private static readonly EnemyDefinition CarryProtector = new EnemyDefinition(
+        "carry_protector",
+        "Carry Protector",
+        1,
+        10,
+        EnemyEffectId.None,
+        "No effect.");
+
+    private static readonly EnemyDefinition CarryCarry = new EnemyDefinition(
+        "carry_carry",
+        "Carry Champion",
+        6,
+        6,
+        EnemyEffectId.None,
+        "No effect.");
+
+    private static readonly EnemyDefinition FrugalGuard = new EnemyDefinition(
+        "frugal_guard",
+        "Frugal Guard",
+        2,
+        6,
+        EnemyEffectId.None,
+        "No effect.");
+
+    private static readonly EnemyDefinition FrugalArcher = new EnemyDefinition(
+        "frugal_archer",
+        "Frugal Archer",
+        3,
+        4,
+        EnemyEffectId.None,
+        "No effect.");
+
+    private static readonly EnemyDefinition FrugalHealer = new EnemyDefinition(
+        "frugal_healer",
+        "Frugal Healer",
+        1,
+        5,
+        EnemyEffectId.FrugalGhostHeal,
+        "Heals leftmost living ally each combat round.");
+
     private static readonly List<HeroDefinition> HeroDefinitions = new List<HeroDefinition>
     {
         Warrior,
@@ -221,7 +277,14 @@ public static class DataRepository
         BacklineBat,
         DebtWraith,
         TreasureLeech,
-        DungeonAuditor
+        DungeonAuditor,
+        GreedyTank,
+        GreedyCarry,
+        CarryProtector,
+        CarryCarry,
+        FrugalGuard,
+        FrugalArcher,
+        FrugalHealer
     };
 
     private static readonly PayrollActionDefinition TakeLoanAction = new PayrollActionDefinition(
@@ -306,7 +369,7 @@ public static class DataRepository
             "Greedy Guild Ghost",
             "A reckless rival guild with expensive heroes. Strong now, but drowning in debt.",
             "Rival benchmark",
-            new List<EnemyDefinition> { Slime, Slime, Slime },
+            new List<EnemyDefinition> { GreedyTank, GreedyTank, GreedyCarry },
             GameRules.WinReward,
             EncounterEffectId.None,
             "greedy"),
@@ -339,7 +402,7 @@ public static class DataRepository
             "Carry Guild Ghost",
             "This rival protects a high-damage carry. Kill it quickly or survive the burst.",
             "Rival benchmark",
-            new List<EnemyDefinition> { Slime, Slime, Slime },
+            new List<EnemyDefinition> { CarryProtector, CarryProtector, CarryCarry },
             GameRules.WinReward,
             EncounterEffectId.None,
             "carry"),
@@ -372,7 +435,7 @@ public static class DataRepository
             "Frugal Guild Ghost",
             "A stable rival guild with cheap heroes and strong morale.",
             "Rival benchmark",
-            new List<EnemyDefinition> { Slime, Slime, Slime },
+            new List<EnemyDefinition> { FrugalGuard, FrugalGuard, FrugalArcher, FrugalHealer },
             GameRules.WinReward,
             EncounterEffectId.None,
             "frugal"),

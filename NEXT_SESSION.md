@@ -4,78 +4,77 @@ This file always describes the **next** session's work. Rewrite it at the end of
 
 ---
 
-## Session: M7.2 - Scripted rival ghost teams and ghost fight modifiers
+## Session: M7.3 - M7 full-run verification and milestone closeout
 
 **Milestone:** M7 - Rival Ghosts
-**Slice goal:** Replace the Round 3/6/9 Slime placeholder encounters with scripted rival ghost teams and apply the MVP ghost win/loss reward and morale modifiers.
+**Slice goal:** Run one final M7 verification pass across rival leaderboard, scripted ghost fights, reward/morale rules, and the full 10-round loop; fix only any regressions found inside M7 scope.
 
 ### Background
 
-M7.1 completed the local scripted rival state, RivalUpdate loop, and Scout/RivalUpdate leaderboard. R003 then fixed hire placement after formation movement, and `TestPlans/TP_R003.md` passed.
+M7.1 completed local scripted rival state, RivalUpdate flow, and Scout/RivalUpdate leaderboard display. R003 fixed hire placement after formation movement. M7.2 replaced the Round 3/6/9 Slime placeholder ghost fights with scripted Greedy, Carry, and Frugal ghost teams, added ghost reward/loss modifiers, and reused Priest-style healing for the Frugal Healer.
 
-The remaining M7 prototype work is to make the scheduled rival ghost fights real enough to test: rounds 3, 6, and 9 should no longer be Slime placeholders, and ghost fights should apply the design's special reward/morale rules:
+`TestPlans/TP_M7.2.md` was run by the user and all tests appeared to be passing.
 
-- Ghost win: base 8 gold + 2 bonus gold.
-- Ghost loss: -8 morale.
-- Rivals remain local, deterministic, and scripted. Do not build full rival shop simulation, dynamic drafting, online ghosts, replay, accounts, or leaderboards beyond the existing local leaderboard.
+M7 should now be close to complete. This slice is a closeout pass, not a feature expansion. Do not add new rival systems, online ghosts, replay, accounts, dynamic drafting, visual ghost effects, new UI screens, or extra content.
 
 ### Acceptance Criteria
 
-1. **Round 3 ghost encounter.** Round 3 is a Greedy Guild ghost fight with a scripted enemy team that is visibly different from Slimes in Scout and combat.
-2. **Round 6 ghost encounter.** Round 6 is a Carry Guild ghost fight with a scripted enemy team that emphasizes a protected/high-damage carry.
-3. **Round 9 ghost encounter.** Round 9 is a Frugal Guild ghost fight with a scripted enemy team that is stable/efficient and distinct from the other ghost fights.
-4. **Ghost reward/loss rules.** Winning a rival ghost fight awards `GameRules.WinReward + GameRules.RivalWinBonus`; losing a rival ghost fight applies `GameRules.RivalLossMorale` instead of the dungeon loss morale value.
-5. **Existing M7 flow preserved.** Scout -> Shop -> Payroll -> Formation -> Combat -> Reward -> RivalUpdate -> Scout remains intact, and the M7.1 leaderboard behavior is unchanged.
+1. **Full M7 loop verified.** A run can proceed through Scout -> Shop -> Formation -> Payroll -> Combat -> Reward -> RivalUpdate -> Scout, including rounds 3, 6, and 9 ghost fights.
+2. **Leaderboard behavior preserved.** Scout shows the compact leaderboard, RivalUpdate shows the full leaderboard, and rival stats advance once per non-terminal round using the M7.1 scripted rules.
+3. **Ghost fights verified.** Round 3 Greedy, Round 6 Carry, and Round 9 Frugal ghost fights use their scripted teams and no longer use Slime placeholders.
+4. **Reward/morale rules verified.** Ghost wins award +10 gold, ghost losses apply -8 morale, and normal dungeon fights still use normal reward/loss math.
+5. **Milestone closeout ready.** Any regressions found are either fixed within M7 scope or filed in `REGRESSIONS.md`; no out-of-scope features are added.
 
 ### Files Claude Code May Create
 
 ```
-TestPlans/TP_M7.2.md
+TestPlans/TP_M7.3.md
 ```
 
 ### Files Claude Code May Modify
 
+Only if verification finds a regression:
+
 ```
 DungeonDebt/Assets/Scripts/Core/DataRepository.cs
-  - Replace Round 3/6/9 Slime placeholders with scripted RivalGhost encounters.
-  - Add any needed static enemy definitions for Greedy, Carry, and Frugal ghost teams.
-  - Set encounter type, scout text, danger category, and rival guild id for each ghost encounter.
-
 DungeonDebt/Assets/Scripts/Run/RunManager.cs
-  - Apply rival ghost reward and morale modifiers during post-combat result math.
-  - Use existing GameRules constants where possible.
-
+DungeonDebt/Assets/Scripts/Combat/HeroEffects.cs
+DungeonDebt/Assets/Scripts/Data/GameEnums.cs
 DungeonDebt/Assets/Scripts/Core/GameRules.cs
-  - Only modify if source inspection shows an M7.2 numeric rule is missing. Prefer existing `RivalWinBonus` and `RivalLossMorale`.
+DungeonDebt/Assets/Scripts/Run/RivalManager.cs
+DungeonDebt/Assets/Scripts/UI/RivalLeaderboardView.cs
+DungeonDebt/Assets/Scripts/UI/MainMenuPanel.cs
+TestPlans/TP_M7.3.md
 ```
+
+If no regression is found, create only the test plan and report the closeout verification results.
 
 ### Files Claude Code Does NOT Create or Modify
 
-- `RivalManager.cs` and `RivalLeaderboardView.cs` - M7.1 scripted rival progression and display should remain unchanged unless verification proves a tiny compatibility update is required.
-- `ShopManager.cs`, `FormationPanelView.cs`, `PayrollManager.cs` - R003/M4/M5 behavior should not be touched for this slice.
-- `CombatManager.cs` and `HeroEffects.cs` - avoid changes unless source inspection proves ghost teams require no-new-feature compatibility wiring.
 - `Resources/`, `StreamingAssets/`, `Tests/`, `Editor/` - forbidden.
-- `PROGRESS.md` / `REGRESSIONS.md` mid-session.
+- New online, replay, account, server, matchmaking, save/load, or dynamic rival shop systems.
+- New heroes, equipment, traits, factions, synergies, maps, tutorial, audio, VFX, or meta progression.
+- `PROGRESS.md` / `REGRESSIONS.md` mid-session unless the user explicitly asks for end-of-session doc updates.
 
 ### Relevant Context To Re-read During Orient
 
-- `REGRESSIONS.md` Open section - confirm no open blocker before starting M7.2.
-- `PROGRESS.md` latest entries - R003 and M7.1.
+- `REGRESSIONS.md` Open section - confirm no open blocker before starting M7.3.
+- `PROGRESS.md` latest entries - M7.2, R003, and M7.1.
 - `IMPLEMENTATION_PLAN.md` §9 - Rival Ghost System Plan.
-- `IMPLEMENTATION_PLAN.md` §11 Milestone 7 - expected M7 output and scope limits.
+- `IMPLEMENTATION_PLAN.md` §11 Milestone 7 - expected output, required behavior, and manual test steps.
 - `GAME_DESIGN.md` Rival Guild Ghost System and MVP Encounter List sections.
-- `DataRepository.cs` current encounter list and placeholder Round 3/6/9 entries.
-- `RunManager.cs` current reward and morale math.
+- `TestPlans/TP_M7.1.md`, `TestPlans/TP_R003.md`, and `TestPlans/TP_M7.2.md`.
+- M7 implementation files touched by M7.1/M7.2.
 
 ### Test Plan Output
 
-Claude Code creates `TestPlans/TP_M7.2.md` covering:
+Claude Code creates `TestPlans/TP_M7.3.md` covering:
 
-- **Happy path:** Reach rounds 3, 6, and 9; verify each Scout and combat uses the correct scripted ghost encounter.
-- **Edge cases:** Win and intentionally lose at least one ghost fight; verify reward and morale modifiers.
-- **Rule checks:** No online ghosts, replay, accounts, full rival shop simulation, `UnityEngine.Random`, new forbidden folders, or out-of-scope systems.
-- **Regression checks:** R003 formation slot uniqueness remains fixed; M7.1 leaderboard still appears in Scout/RivalUpdate; normal dungeon fights still use dungeon reward/loss math.
-- **Observable invariants:** RivalGhost encounters have non-null rival guild ids; ghost rewards and morale changes match `GameRules`; run flow still advances through RivalUpdate once per non-terminal round.
+- **Happy path:** Complete a full run far enough to verify all three ghost fights and the RivalUpdate loop.
+- **Edge cases:** Verify at least one ghost win, one ghost loss, one normal dungeon win, one normal dungeon loss, and terminal round behavior.
+- **Rule checks:** No forbidden folders or out-of-scope rival systems; no `UnityEngine.Random`; scripted/local/deterministic rivals only.
+- **Regression checks:** R003 hire placement remains fixed; M7.1 leaderboard behavior remains intact; M7.2 ghost teams and modifiers remain intact; M6 encounter effects still work.
+- **Observable invariants:** Rival leaderboard always has 4 rows, ghost encounters have valid rival ids, rewards/morale match `GameRules`, and run flow advances exactly once per RivalUpdate.
 
 ### Start Prompt For The Next Session
 

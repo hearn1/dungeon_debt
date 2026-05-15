@@ -52,4 +52,5 @@ public static class GameRules
     public const int GoblinThiefStealRound = 3;
     public const int GoblinThiefStealGold = 3;
     public const int TreasureLeechStealGold = 4;
+    public const int FrontlineHealAmount = 2;
 }
