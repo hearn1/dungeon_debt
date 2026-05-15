@@ -1,5 +1,32 @@
+using UnityEngine;
+
 public static class GameRules
 {
+    // Color is a struct and cannot be const in C#. Use static readonly.
+    public static readonly Color TankRoleColor = new Color(0.31f, 0.45f, 0.62f, 1f);
+    public static readonly Color DamageRoleColor = new Color(0.72f, 0.20f, 0.24f, 1f);
+    public static readonly Color SupportRoleColor = new Color(0.30f, 0.60f, 0.36f, 1f);
+    public static readonly Color EconomyRoleColor = new Color(0.78f, 0.62f, 0.20f, 1f);
+    public static readonly Color BronzeBadgeColor = new Color(0.72f, 0.45f, 0.20f, 1f);
+    public static readonly Color ReservedTierSlotOutlineColor = new Color(0.45f, 0.45f, 0.5f, 0.6f);
+
+    public static Color GetRoleColor(HeroRole role)
+    {
+        switch (role)
+        {
+            case HeroRole.Tank:
+                return TankRoleColor;
+            case HeroRole.Damage:
+                return DamageRoleColor;
+            case HeroRole.Support:
+                return SupportRoleColor;
+            case HeroRole.Economy:
+                return EconomyRoleColor;
+            default:
+                return new Color(0.5f, 0.5f, 0.5f, 1f);
+        }
+    }
+
     public const int StartingGold = 10;
     public const int StartingDebt = 0;
     public const int StartingMorale = 30;

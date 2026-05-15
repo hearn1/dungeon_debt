@@ -128,13 +128,15 @@ When a step asks the tester to observe internal run state that the Unity Inspect
 
 Diagnostic scaffolds (Debug.Log, throwaway probe components, temporary `GameRules` edits) are test-only and must not be committed. The session is not done until all such scaffolds are reverted.
 
-The test plan must contain these sections (omit a section only if it genuinely does not apply, and say why):
+The test plan must contain these sections (omit Happy path / Edge cases / Observable invariants only if a section genuinely does not apply, and say why):
 
 - **Happy path** — the slice working as intended, end-to-end
 - **Edge cases** — empty inputs, max values, leftmost-slot tiebreaks, turn-limit conditions, and similar
-- **Rule checks** — explicit verification of constraints from `CLAUDE.md` and the design doc that this slice is supposed to honor (e.g. "no `UnityEngine.Random`", "panels do not show or hide themselves")
-- **Regression checks** — re-run the critical steps from prior slices that this work might have broken. Pull these from earlier `TestPlans/TP_*.md` files.
 - **Observable invariants** — 3–6 things that should always be true at runtime in this slice (e.g. "no hero card displays negative HP", "combat log lines are in monotonically increasing order")
+
+Do **not** add a "Rule checks" section that re-verifies `CLAUDE.md` constraints (no `UnityEngine.Random`, `[SerializeField] private`, no forbidden folders, etc.). Those belong to step 5 self-verification, not to a manual test plan a human runs in the Editor.
+
+Add a **Regression checks** section *only* when the slice's diff plausibly changes prior behavior (e.g. it touches `CombatManager`, `RunManager`, shared data flow, or a UI layout previous slices depended on). When you do include it, name the specific prior behavior at risk and the exact file/seam in the diff that puts it at risk — do not include broad "play a full run end-to-end" sweeps as a precaution. The default for a UI-only or additive slice is to omit the section entirely.
 
 ### Step 7 — Session summary
 
