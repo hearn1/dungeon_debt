@@ -75,7 +75,10 @@ public class ShopPanelView : MonoBehaviour
         for (int i = 0; i < _offerViews.Count; i++)
         {
             ShopOffer offer = i < offerCount ? offers[i] : null;
-            bool isUpgrade = offer != null && offer.Hero != null && IsBronzeOwnedDuplicate(runState, offer.Hero);
+            bool isUpgrade = offer != null
+                && offer.Hero != null
+                && offer.Tier == HeroTier.Bronze
+                && IsBronzeOwnedDuplicate(runState, offer.Hero);
             _offerViews[i].Refresh(offer, runState.Gold, partyFull, isUpgrade);
         }
 

@@ -74,6 +74,8 @@ public class ShopManager : MonoBehaviour
 
             run.Gold -= offer.HireCost;
             existing.Tier = HeroTier.Silver;
+            HeroEffects.ApplyTierStatSeed(existing);
+            existing.CurrentHealth = HeroEffects.GetTierAdjustedMaxHealth(existing);
             offer.Purchased = true;
             return true;
         }
@@ -90,32 +92,13 @@ public class ShopManager : MonoBehaviour
         }
 
         run.Gold -= offer.HireCost;
-        run.Party.Add(new HeroInstance(offer.Hero, formationSlot));
+        HeroInstance hired = new HeroInstance(offer.Hero, formationSlot);
+        hired.Tier = offer.Tier;
+        HeroEffects.ApplyTierStatSeed(hired);
+        hired.CurrentHealth = HeroEffects.GetTierAdjustedMaxHealth(hired);
+        run.Party.Add(hired);
         offer.Purchased = true;
         return true;
-    }
-
-    public bool IsUpgradeOffer(int offerIndex)
-    {
-        if (offerIndex < 0 || offerIndex >= _currentOffers.Count)
-        {
-            return false;
-        }
-
-        ShopOffer offer = _currentOffers[offerIndex];
-        if (offer == null || offer.Hero == null)
-        {
-            return false;
-        }
-
-        RunState run = GetRunState();
-        if (run == null)
-        {
-            return false;
-        }
-
-        HeroInstance existing = FindExistingPartyMember(run, offer.Hero);
-        return existing != null && existing.Tier == HeroTier.Bronze;
     }
 
     private static HeroInstance FindExistingPartyMember(RunState run, HeroDefinition hero)
@@ -172,33 +155,54 @@ public class ShopManager : MonoBehaviour
         }
 
         RunState run = GetRunState();
-        HashSet<string> exclude = new HashSet<string>();
+        HashSet<string> silverOwned = new HashSet<string>();
+        HashSet<string> anyOwned = new HashSet<string>();
         if (run != null)
         {
-            // Exclude only Silver-owned heroes from the offer pool. Bronze-owned heroes
-            // can re-appear so a duplicate hire can upgrade them to Silver (M9.1).
             for (int i = 0; i < run.Party.Count; i++)
             {
                 HeroInstance member = run.Party[i];
-                if (member != null && member.Definition != null && member.Tier == HeroTier.Silver)
+                if (member == null || member.Definition == null)
                 {
-                    exclude.Add(member.Definition.Id);
+                    continue;
+                }
+
+                anyOwned.Add(member.Definition.Id);
+                if (member.Tier == HeroTier.Silver)
+                {
+                    silverOwned.Add(member.Definition.Id);
                 }
             }
         }
 
         IReadOnlyList<HeroDefinition> allHeroes = DataRepository.AllHeroes;
-        List<HeroDefinition> pool = new List<HeroDefinition>();
+
+        // Bronze pool: heroes whose Silver upgrade is not already owned. Bronze-owned
+        // heroes stay in the pool so a duplicate hire can upgrade them to Silver.
+        List<HeroDefinition> bronzePool = new List<HeroDefinition>();
+        // Silver pool: only heroes the player does not own at all. A Silver offer for
+        // a Bronze-owned hero would be paying extra for the same merge outcome, so
+        // exclude them and let the Bronze duplicate path handle the upgrade.
+        List<HeroDefinition> silverPool = new List<HeroDefinition>();
         for (int i = 0; i < allHeroes.Count; i++)
         {
-            if (!exclude.Contains(allHeroes[i].Id))
+            HeroDefinition hero = allHeroes[i];
+            if (!silverOwned.Contains(hero.Id))
             {
-                pool.Add(allHeroes[i]);
+                bronzePool.Add(hero);
+            }
+            if (!anyOwned.Contains(hero.Id))
+            {
+                silverPool.Add(hero);
             }
         }
 
         for (int i = 0; i < GameRules.ShopOfferCount; i++)
         {
+            bool wantSilver = rng.NextDouble() < GameRules.SilverOfferChance;
+            List<HeroDefinition> pool = wantSilver && silverPool.Count > 0 ? silverPool : bronzePool;
+            HeroTier tier = (pool == silverPool) ? HeroTier.Silver : HeroTier.Bronze;
+
             if (pool.Count == 0)
             {
                 _currentOffers.Add(null);
@@ -206,9 +210,37 @@ public class ShopManager : MonoBehaviour
             }
 
             int pick = rng.Next(0, pool.Count);
-            HeroDefinition hero = pool[pick];
+            HeroDefinition picked = pool[pick];
             pool.RemoveAt(pick);
-            _currentOffers.Add(new ShopOffer(hero, hero.BaseUpkeep + GameRules.HireCostBonus));
+            // Keep the other pool consistent so the same hero can't double-appear.
+            if (tier == HeroTier.Silver)
+            {
+                RemoveById(bronzePool, picked.Id);
+            }
+            else
+            {
+                RemoveById(silverPool, picked.Id);
+            }
+
+            int hireCost = picked.BaseUpkeep + GameRules.HireCostBonus;
+            if (tier == HeroTier.Silver)
+            {
+                hireCost += GameRules.SilverHireCostBonus;
+            }
+
+            _currentOffers.Add(new ShopOffer(picked, hireCost, tier));
+        }
+    }
+
+    private static void RemoveById(List<HeroDefinition> pool, string heroId)
+    {
+        for (int i = 0; i < pool.Count; i++)
+        {
+            if (pool[i].Id == heroId)
+            {
+                pool.RemoveAt(i);
+                return;
+            }
         }
     }
 

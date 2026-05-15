@@ -38,8 +38,19 @@ public class ShopOfferView : MonoBehaviour
             return;
         }
 
-        _heroCardView.Refresh(offer.Hero);
-        _hireLabel.text = (isUpgrade ? "Upgrade (" : "Hire (") + offer.HireCost + "g)";
+        _heroCardView.Refresh(offer.Hero, offer.Tier);
+        if (isUpgrade)
+        {
+            _hireLabel.text = "Upgrade (" + offer.HireCost + "g)";
+        }
+        else if (offer.Tier == HeroTier.Silver)
+        {
+            _hireLabel.text = "Hire Silver (" + offer.HireCost + "g)";
+        }
+        else
+        {
+            _hireLabel.text = "Hire (" + offer.HireCost + "g)";
+        }
 
         if (offer.Purchased)
         {
@@ -58,8 +69,99 @@ public class ShopOfferView : MonoBehaviour
         }
         else
         {
-            _statusLabel.text = isUpgrade ? "Merges to Silver" : string.Empty;
+            if (isUpgrade)
+            {
+                _statusLabel.text = BuildUpgradePreview(offer.Hero);
+            }
+            else if (offer.Tier == HeroTier.Silver)
+            {
+                _statusLabel.text = "Silver offer";
+            }
+            else
+            {
+                _statusLabel.text = string.Empty;
+            }
             _hireButton.interactable = true;
+        }
+    }
+
+    private static string BuildUpgradePreview(HeroDefinition hero)
+    {
+        if (hero == null)
+        {
+            return "Merges to Silver";
+        }
+
+        int bronzeAttack = HeroEffects.GetTierAdjustedAttack(hero, HeroTier.Bronze);
+        int silverAttack = HeroEffects.GetTierAdjustedAttack(hero, HeroTier.Silver);
+        int bronzeHealth = HeroEffects.GetTierAdjustedMaxHealth(hero, HeroTier.Bronze);
+        int silverHealth = HeroEffects.GetTierAdjustedMaxHealth(hero, HeroTier.Silver);
+        int bronzeUpkeep = HeroEffects.GetTierAdjustedUpkeep(hero, HeroTier.Bronze);
+        int silverUpkeep = HeroEffects.GetTierAdjustedUpkeep(hero, HeroTier.Silver);
+
+        string firstLine = string.Empty;
+        if (silverAttack != bronzeAttack)
+        {
+            firstLine = "ATK " + bronzeAttack + "->" + silverAttack;
+        }
+
+        if (silverHealth != bronzeHealth)
+        {
+            firstLine = AppendDelta(firstLine, "HP " + bronzeHealth + "->" + silverHealth);
+        }
+
+        if (silverUpkeep != bronzeUpkeep)
+        {
+            firstLine = AppendDelta(firstLine, "Upkeep " + bronzeUpkeep + "->" + silverUpkeep);
+        }
+
+        string effectLine = BuildEffectUpgradePreview(hero);
+        if (firstLine.Length > 0 && effectLine.Length > 0)
+        {
+            return firstLine + "\n" + effectLine;
+        }
+
+        if (firstLine.Length > 0)
+        {
+            return firstLine;
+        }
+
+        if (effectLine.Length > 0)
+        {
+            return effectLine;
+        }
+
+        return "Merges to Silver";
+    }
+
+    private static string AppendDelta(string current, string next)
+    {
+        if (current.Length == 0)
+        {
+            return next;
+        }
+
+        return current + "  " + next;
+    }
+
+    private static string BuildEffectUpgradePreview(HeroDefinition hero)
+    {
+        switch (hero.EffectId)
+        {
+            case HeroEffectId.KnightRedirect:
+                return "Redirect " + GameRules.BronzeKnightRedirectCount + "->" + GameRules.SilverKnightRedirectCount;
+            case HeroEffectId.PriestHeal:
+                return "Heal " + GameRules.FrontlineHealAmount + "->" + GameRules.SilverPriestHealAmount;
+            case HeroEffectId.BardGoldOnWin:
+                return "Win gold " + GameRules.BronzeBardWinGold + "->" + GameRules.SilverBardWinGold;
+            case HeroEffectId.EnchanterAdjacent:
+                return "Adjacent Damage -> All Damage";
+            case HeroEffectId.TreasurerUpkeepReduce:
+                return "Top " + GameRules.BronzeTreasurerTargets + " -> Top " + GameRules.SilverTreasurerTargets;
+            case HeroEffectId.ApprenticeWizardSupport:
+                return "Wizard upkeep -" + GameRules.BronzeApprenticeWizardReduction + "->-" + GameRules.SilverApprenticeWizardReduction;
+            default:
+                return string.Empty;
         }
     }
 
@@ -99,7 +201,7 @@ public class ShopOfferView : MonoBehaviour
         hireRect.offsetMin = new Vector2(Padding, Padding);
         hireRect.offsetMax = new Vector2(-Padding, Padding + ButtonHeight);
 
-        _statusLabel = CreateText("Status", root, font, 16, FontStyle.Italic, TextAnchor.MiddleCenter);
+        _statusLabel = CreateText("Status", root, font, 14, FontStyle.Italic, TextAnchor.MiddleCenter);
         RectTransform statusRect = _statusLabel.rectTransform;
         statusRect.anchorMin = new Vector2(0.5f, 0f);
         statusRect.anchorMax = new Vector2(1f, 0f);
