@@ -75,7 +75,8 @@ public class ShopPanelView : MonoBehaviour
         for (int i = 0; i < _offerViews.Count; i++)
         {
             ShopOffer offer = i < offerCount ? offers[i] : null;
-            _offerViews[i].Refresh(offer, runState.Gold, partyFull);
+            bool isUpgrade = offer != null && offer.Hero != null && IsBronzeOwnedDuplicate(runState, offer.Hero);
+            _offerViews[i].Refresh(offer, runState.Gold, partyFull, isUpgrade);
         }
 
         RefreshPartyList(runState);
@@ -84,6 +85,27 @@ public class ShopPanelView : MonoBehaviour
         _rerollLabel.text = "Reroll (" + GameRules.RerollCost + "g)";
         _continueButton.interactable = true;
         _continueLabel.text = "Continue to Combat";
+    }
+
+    private static bool IsBronzeOwnedDuplicate(RunState runState, HeroDefinition hero)
+    {
+        if (runState == null || hero == null)
+        {
+            return false;
+        }
+
+        for (int i = 0; i < runState.Party.Count; i++)
+        {
+            HeroInstance member = runState.Party[i];
+            if (member != null && member.Definition != null
+                && member.Definition.Id == hero.Id
+                && member.Tier == HeroTier.Bronze)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private void RefreshPartyList(RunState runState)

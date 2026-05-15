@@ -27,7 +27,7 @@ public class ShopOfferView : MonoBehaviour
         _onHireClicked = onHire;
     }
 
-    public void Refresh(ShopOffer offer, int playerGold, bool partyFull)
+    public void Refresh(ShopOffer offer, int playerGold, bool partyFull, bool isUpgrade)
     {
         if (offer == null || offer.Hero == null)
         {
@@ -39,14 +39,14 @@ public class ShopOfferView : MonoBehaviour
         }
 
         _heroCardView.Refresh(offer.Hero);
-        _hireLabel.text = "Hire (" + offer.HireCost + "g)";
+        _hireLabel.text = (isUpgrade ? "Upgrade (" : "Hire (") + offer.HireCost + "g)";
 
         if (offer.Purchased)
         {
-            _statusLabel.text = "Hired";
+            _statusLabel.text = isUpgrade ? "Upgraded" : "Hired";
             _hireButton.interactable = false;
         }
-        else if (partyFull)
+        else if (!isUpgrade && partyFull)
         {
             _statusLabel.text = "Party full";
             _hireButton.interactable = false;
@@ -58,7 +58,7 @@ public class ShopOfferView : MonoBehaviour
         }
         else
         {
-            _statusLabel.text = string.Empty;
+            _statusLabel.text = isUpgrade ? "Merges to Silver" : string.Empty;
             _hireButton.interactable = true;
         }
     }

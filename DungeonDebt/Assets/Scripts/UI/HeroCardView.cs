@@ -37,7 +37,9 @@ public class HeroCardView : MonoBehaviour
             return;
         }
 
-        ApplyContent(hero, hero.BaseAttack, hero.BaseUpkeep);
+        // Definition-only path (shop offers, scout) has no instance, so the tier slot
+        // stays in its reserved-but-empty M8.1 look.
+        ApplyContent(hero, hero.BaseAttack, hero.BaseUpkeep, null);
     }
 
     // Formation uses live instance values so the player sees the same ATK and
@@ -50,10 +52,10 @@ public class HeroCardView : MonoBehaviour
             return;
         }
 
-        ApplyContent(instance.Definition, instance.Attack, instance.UpkeepThisRound);
+        ApplyContent(instance.Definition, instance.Attack, instance.UpkeepThisRound, instance.Tier);
     }
 
-    private void ApplyContent(HeroDefinition hero, int attack, int upkeep)
+    private void ApplyContent(HeroDefinition hero, int attack, int upkeep, HeroTier? tier)
     {
         Color roleColor = GameRules.GetRoleColor(hero.Role);
         _roleBand.color = roleColor;
@@ -63,11 +65,32 @@ public class HeroCardView : MonoBehaviour
         _roleBadgeText.text = hero.Role.ToString();
         _roleBadgeText.enabled = true;
         _tierSlotOutline.enabled = true;
+        ApplyTierFill(tier);
 
         _nameText.text = hero.DisplayName;
         _statsText.text = "ATK " + attack + "    HP " + hero.BaseHealth;
         _upkeepText.text = "Upkeep " + upkeep + "g";
         _effectText.text = hero.EffectDescription;
+    }
+
+    private void ApplyTierFill(HeroTier? tier)
+    {
+        if (_tierSlotOutline == null)
+        {
+            return;
+        }
+
+        if (!tier.HasValue)
+        {
+            Color reserved = GameRules.ReservedTierSlotOutlineColor;
+            _tierSlotOutline.color = new Color(reserved.r, reserved.g, reserved.b, 0.12f);
+            return;
+        }
+
+        Color badge = tier.Value == HeroTier.Silver
+            ? GameRules.SilverBadgeColor
+            : GameRules.BronzeBadgeColor;
+        _tierSlotOutline.color = badge;
     }
 
     public void Clear()

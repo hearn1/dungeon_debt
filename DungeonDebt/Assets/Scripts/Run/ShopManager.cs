@@ -57,12 +57,28 @@ public class ShopManager : MonoBehaviour
             return false;
         }
 
-        if (run.Party.Count >= GameRules.MaxPartySize)
+        if (run.Gold < offer.HireCost)
         {
             return false;
         }
 
-        if (run.Gold < offer.HireCost)
+        HeroInstance existing = FindExistingPartyMember(run, offer.Hero);
+        if (existing != null)
+        {
+            // Defensive: Silver-owned heroes are excluded from the offer pool, so this branch
+            // should be unreachable. Guard anyway per the M9.1 plan.
+            if (existing.Tier == HeroTier.Silver)
+            {
+                return false;
+            }
+
+            run.Gold -= offer.HireCost;
+            existing.Tier = HeroTier.Silver;
+            offer.Purchased = true;
+            return true;
+        }
+
+        if (run.Party.Count >= GameRules.MaxPartySize)
         {
             return false;
         }
@@ -77,6 +93,48 @@ public class ShopManager : MonoBehaviour
         run.Party.Add(new HeroInstance(offer.Hero, formationSlot));
         offer.Purchased = true;
         return true;
+    }
+
+    public bool IsUpgradeOffer(int offerIndex)
+    {
+        if (offerIndex < 0 || offerIndex >= _currentOffers.Count)
+        {
+            return false;
+        }
+
+        ShopOffer offer = _currentOffers[offerIndex];
+        if (offer == null || offer.Hero == null)
+        {
+            return false;
+        }
+
+        RunState run = GetRunState();
+        if (run == null)
+        {
+            return false;
+        }
+
+        HeroInstance existing = FindExistingPartyMember(run, offer.Hero);
+        return existing != null && existing.Tier == HeroTier.Bronze;
+    }
+
+    private static HeroInstance FindExistingPartyMember(RunState run, HeroDefinition hero)
+    {
+        if (run == null || hero == null)
+        {
+            return null;
+        }
+
+        for (int i = 0; i < run.Party.Count; i++)
+        {
+            HeroInstance member = run.Party[i];
+            if (member != null && member.Definition != null && member.Definition.Id == hero.Id)
+            {
+                return member;
+            }
+        }
+
+        return null;
     }
 
     public bool Fire(int partyIndex)
@@ -117,9 +175,15 @@ public class ShopManager : MonoBehaviour
         HashSet<string> exclude = new HashSet<string>();
         if (run != null)
         {
+            // Exclude only Silver-owned heroes from the offer pool. Bronze-owned heroes
+            // can re-appear so a duplicate hire can upgrade them to Silver (M9.1).
             for (int i = 0; i < run.Party.Count; i++)
             {
-                exclude.Add(run.Party[i].Definition.Id);
+                HeroInstance member = run.Party[i];
+                if (member != null && member.Definition != null && member.Tier == HeroTier.Silver)
+                {
+                    exclude.Add(member.Definition.Id);
+                }
             }
         }
 

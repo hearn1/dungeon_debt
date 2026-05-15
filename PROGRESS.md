@@ -51,6 +51,45 @@ Copy this block when adding a new entry. Paste it at the top of the Session log 
 
 <!-- Newest entries at the top. -->
 
+## 2026-05-15 - M9.1: Bronze->Silver tiering foundation
+
+**Milestone:** M9 - Bronze->Silver tiering
+**Status:** Complete
+
+**Files added:**
+- `TestPlans/TP_M9.1.md`
+
+**Files modified:**
+- `DungeonDebt/Assets/Scripts/Data/GameEnums.cs` - added `HeroTier { Bronze, Silver }`.
+- `DungeonDebt/Assets/Scripts/Data/HeroInstance.cs` - added mutable `Tier` (default Bronze).
+- `DungeonDebt/Assets/Scripts/Core/GameRules.cs` - added `SilverBadgeColor`.
+- `DungeonDebt/Assets/Scripts/Run/ShopManager.cs` - `Hire` upgrades a Bronze-owned duplicate to Silver in-place (no slot consumed, no new instance); offer-pool now excludes only Silver-owned heroes; defensive Silver-dup guard; added passive `IsUpgradeOffer` helper for symmetry with M9.2.
+- `DungeonDebt/Assets/Scripts/UI/HeroCardView.cs` - tier slot paints Bronze/Silver fill for instance-bound cards; definition-only paths keep M8.1 reserved-empty look.
+- `DungeonDebt/Assets/Scripts/UI/ShopOfferView.cs` - `Refresh` takes `isUpgrade`; relabels button to `Upgrade (Xg)` with `Merges to Silver` status; party-full disable skipped on upgrade.
+- `DungeonDebt/Assets/Scripts/UI/ShopPanelView.cs` - computes per-offer Bronze-owned-duplicate flag and forwards it to `ShopOfferView`.
+- `DungeonDebt/Assets/Scripts/Combat/CombatManager.cs` - in-slice cosmetic-bug fix: moved the `HeroInstance.CurrentHealth = BaseHealth` reset from `BuildPlayerUnits` (next combat) to `FinishResult` (end of current combat) so between-combat UI (e.g., Shop Party list) sees coherent full-HP values. Matches `CLAUDE.md` §Common pitfalls "no permadeath" rule.
+
+**Acceptance criteria** (per `IMPLEMENTATION_PLAN.md §15` M9.1/M9.2 split, user-confirmed Option A; NEXT_SESSION.md AC4 active-Silver-bonus wording was treated as over-scoped and deferred to M9.2):
+- [x] AC1 - `HeroTier` enum + default-Bronze `HeroInstance.Tier`.
+- [x] AC2 - Duplicate-hire of Bronze-owned hero merges to Silver in same slot.
+- [x] AC3 - `HeroCardView` paints Bronze/Silver fill; definition-only paths reserved-empty.
+- [x] AC4 - Silver bonus stubbed; combat/upkeep math unchanged.
+- [x] AC5 - No Gold tier, equipment, traits, factions, synergies, `SilverHireCostBonus`, `UnityEngine.Random`, tweens, forbidden folders.
+
+**Test plan:** `TestPlans/TP_M9.1.md` - all 14 steps + 6 invariants pass per user. One regression observed during testing (stale post-combat HP in Shop Party panel) was fixed in-slice via `CombatManager.FinishResult` reset.
+
+**Deviations from plan:**
+- `ShopOfferView.cs` and `ShopPanelView.cs` were added to scope mid-plan in response to Q3 (button-label-only upgrade hint). Confirmed surgical - only button text, status text, and party-full disable path touched.
+- `CombatManager.cs` was added to scope late in the session to fix the stale-HP regression via Option B (move the HP reset into `FinishResult`). User explicitly chose this over the smaller `ShopPanelView` cosmetic fix because it aligns the data model with the "no permadeath" rule.
+- Treated `NEXT_SESSION.md` AC4 (active Silver bonus) and "Silver offers in pool" mention as over-scoped per `IMPLEMENTATION_PLAN.md §15` M9.1/M9.2 split, with user confirmation.
+
+**Follow-up flagged:**
+- M9.2: Silver shop offers in the pool (placeholder probability constants in `GameRules`), `SilverHireCostBonus` for Silver direct-hire cost, per-hero Silver bonuses wired into `HeroEffects` and stat reads.
+- `ShopManager.IsUpgradeOffer` is currently unreferenced (kept for symmetry with M9.2; consider deleting in a cleanup slice if it remains unused after M9.2).
+- Polish: `Merges to Silver` is currently a status-line string only; the offer card's hero card still renders the M8.1 reserved-empty tier slot. A future polish slice could preview the Silver fill on an upgrade-eligible offer card.
+
+**Next slice:** M9.2 - Silver shop offers, `SilverHireCostBonus`, and per-hero Silver bonuses.
+
 ## 2026-05-15 - M8.2: Formation card adoption
 
 **Milestone:** M8 - Card readability pass
