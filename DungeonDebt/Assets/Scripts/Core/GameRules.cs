@@ -8,6 +8,7 @@ public static class GameRules
     public static readonly Color SupportRoleColor = new Color(0.30f, 0.60f, 0.36f, 1f);
     public static readonly Color EconomyRoleColor = new Color(0.78f, 0.62f, 0.20f, 1f);
     public static readonly Color BronzeBadgeColor = new Color(0.72f, 0.45f, 0.20f, 1f);
+    public static readonly Color SilverBadgeColor = new Color(0.82f, 0.84f, 0.88f, 1f);
     public static readonly Color ReservedTierSlotOutlineColor = new Color(0.45f, 0.45f, 0.5f, 0.6f);
 
     public static Color GetRoleColor(HeroRole role)

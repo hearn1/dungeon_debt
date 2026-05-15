@@ -91,11 +91,10 @@ public class CombatManager
         for (int i = 0; i < run.Party.Count; i++)
         {
             HeroInstance hero = run.Party[i];
-            hero.CurrentHealth = hero.Definition.BaseHealth;
             CombatUnit unit = new CombatUnit(
                 hero.Definition.DisplayName,
                 hero.Attack,
-                hero.CurrentHealth,
+                hero.Definition.BaseHealth,
                 hero.Definition.BaseHealth,
                 true,
                 hero.FormationSlot,
@@ -252,9 +251,12 @@ public class CombatManager
                 result.DeadHeroes.Add(unit.SourceHero);
             }
 
-            if (unit.SourceHero != null)
+            // MVP rule (CLAUDE.md §Common pitfalls): dead-in-combat heroes are
+            // restored for the next round. Reset HeroInstance.CurrentHealth to full
+            // here so any UI rendered between combats sees a coherent value.
+            if (unit.SourceHero != null && unit.SourceHero.Definition != null)
             {
-                unit.SourceHero.CurrentHealth = unit.CurrentHealth;
+                unit.SourceHero.CurrentHealth = unit.SourceHero.Definition.BaseHealth;
             }
         }
 

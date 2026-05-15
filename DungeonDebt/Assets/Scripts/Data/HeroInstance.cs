@@ -10,6 +10,7 @@ public class HeroInstance
         UpkeepThisRound = definition.BaseUpkeep;
         FormationSlot = formationSlot;
         InstanceId = Guid.NewGuid();
+        Tier = HeroTier.Bronze;
     }
 
     public HeroDefinition Definition { get; set; }
@@ -18,4 +19,5 @@ public class HeroInstance
     public int UpkeepThisRound { get; set; }
     public int FormationSlot { get; set; }
     public Guid InstanceId { get; set; }
+    public HeroTier Tier { get; set; }
 }

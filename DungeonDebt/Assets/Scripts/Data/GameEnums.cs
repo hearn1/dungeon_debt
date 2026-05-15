@@ -6,6 +6,12 @@ public enum HeroRole
     Economy
 }
 
+public enum HeroTier
+{
+    Bronze,
+    Silver
+}
+
 public enum HeroEffectId
 {
     None,
