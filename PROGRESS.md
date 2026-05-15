@@ -51,6 +51,34 @@ Copy this block when adding a new entry. Paste it at the top of the Session log 
 
 <!-- Newest entries at the top. -->
 
+## 2026-05-15 - M7.3: M7 full-run verification and milestone closeout
+
+**Milestone:** M7 - Rival Ghosts
+**Status:** Complete
+
+**Files added:**
+- `TestPlans/TP_M7.3.md`
+
+**Files modified:**
+- None.
+
+**Acceptance criteria:**
+- [x] Full M7 loop verified.
+- [x] Leaderboard behavior preserved.
+- [x] Ghost fights verified.
+- [x] Reward/morale rules verified.
+- [x] Milestone closeout ready.
+
+**Test plan:** `TestPlans/TP_M7.3.md` - user reported all cases passing.
+
+**Deviations from plan:**
+- The initial closeout test plan was shortened at the user's request because M7.1, R003, and M7.2 were already tested and no runtime code changed in M7.3.
+
+**Follow-up flagged:**
+- None.
+
+**Next slice:** Not decided. Leave `NEXT_SESSION.md` unchanged until the next implementation direction is chosen.
+
 ## 2026-05-15 - M7.2: Scripted rival ghost teams and ghost fight modifiers
 
 **Milestone:** M7 - Rival Ghosts
