@@ -3,6 +3,8 @@ using UnityEngine;
 
 public class ShopManager : MonoBehaviour
 {
+    private const int NoEmptyFormationSlot = -1;
+
     [SerializeField] private RunManager _runManager;
 
     private readonly List<ShopOffer> _currentOffers = new List<ShopOffer>();
@@ -65,8 +67,14 @@ public class ShopManager : MonoBehaviour
             return false;
         }
 
+        int formationSlot = FindFirstEmptyFormationSlot(run);
+        if (formationSlot == NoEmptyFormationSlot)
+        {
+            return false;
+        }
+
         run.Gold -= offer.HireCost;
-        run.Party.Add(new HeroInstance(offer.Hero, run.Party.Count));
+        run.Party.Add(new HeroInstance(offer.Hero, formationSlot));
         offer.Purchased = true;
         return true;
     }
@@ -148,5 +156,33 @@ public class ShopManager : MonoBehaviour
         }
 
         return _runManager.CurrentRunState;
+    }
+
+    private static int FindFirstEmptyFormationSlot(RunState run)
+    {
+        if (run == null)
+        {
+            return NoEmptyFormationSlot;
+        }
+
+        for (int slot = 0; slot < GameRules.MaxPartySize; slot++)
+        {
+            bool occupied = false;
+            for (int i = 0; i < run.Party.Count; i++)
+            {
+                if (run.Party[i].FormationSlot == slot)
+                {
+                    occupied = true;
+                    break;
+                }
+            }
+
+            if (!occupied)
+            {
+                return slot;
+            }
+        }
+
+        return NoEmptyFormationSlot;
     }
 }

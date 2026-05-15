@@ -4,69 +4,78 @@ This file always describes the **next** session's work. Rewrite it at the end of
 
 ---
 
-## Session: R003 - Fix hire placement after formation movement
+## Session: M7.2 - Scripted rival ghost teams and ghost fight modifiers
 
-**Milestone:** Regression fix before continuing M7
-**Slice goal:** Ensure newly hired heroes are placed into an empty formation slot instead of using `run.Party.Count`, so formation slots never stack after the player has moved existing heroes.
+**Milestone:** M7 - Rival Ghosts
+**Slice goal:** Replace the Round 3/6/9 Slime placeholder encounters with scripted rival ghost teams and apply the MVP ghost win/loss reward and morale modifiers.
 
 ### Background
 
-M7.1 completed the local scripted rival state, RivalUpdate loop, and Scout/RivalUpdate leaderboard. The M7.1 manual test plan passed, but testing found R003: after buying 2 heroes on day 1, moving them to `F0` and `B3`, then buying 2 more heroes on day 2, two heroes can occupy `B3`.
+M7.1 completed the local scripted rival state, RivalUpdate loop, and Scout/RivalUpdate leaderboard. R003 then fixed hire placement after formation movement, and `TestPlans/TP_R003.md` passed.
 
-The likely cause is `ShopManager.Hire` assigning `new HeroInstance(offer.Hero, run.Party.Count)`. Once formation editing creates gaps or moves heroes to later slots, `run.Party.Count` is no longer guaranteed to be an empty formation slot.
+The remaining M7 prototype work is to make the scheduled rival ghost fights real enough to test: rounds 3, 6, and 9 should no longer be Slime placeholders, and ghost fights should apply the design's special reward/morale rules:
 
-Fix this regression before proceeding to M7.2 ghost teams, because duplicated formation slots can affect targeting, combat order, and manual test reliability.
+- Ghost win: base 8 gold + 2 bonus gold.
+- Ghost loss: -8 morale.
+- Rivals remain local, deterministic, and scripted. Do not build full rival shop simulation, dynamic drafting, online ghosts, replay, accounts, or leaderboards beyond the existing local leaderboard.
 
 ### Acceptance Criteria
 
-1. **Empty-slot hire placement.** Hiring a hero assigns the first empty formation slot from `0` to `GameRules.MaxPartySize - 1`; it never assigns a slot already occupied by another party member.
-2. **Regression repro fixed.** The R003 repro path (buy 2 heroes, move to `F0`/`B3`, advance to day 2, buy 2 more) results in four heroes occupying four distinct slots.
-3. **Fire behavior remains valid.** Firing a hero still leaves the party in a valid, non-stacked formation state and does not break subsequent hiring.
-4. **Formation UI stays truthful.** `FormationPanelView` shows every party member exactly once when party size is 1-5; no hidden/overwritten hero cards due to duplicate slots.
-5. **Existing flow preserved.** Shop -> Formation -> Payroll -> Combat -> Reward -> RivalUpdate -> Scout remains intact, and M7.1 leaderboard behavior is unchanged.
+1. **Round 3 ghost encounter.** Round 3 is a Greedy Guild ghost fight with a scripted enemy team that is visibly different from Slimes in Scout and combat.
+2. **Round 6 ghost encounter.** Round 6 is a Carry Guild ghost fight with a scripted enemy team that emphasizes a protected/high-damage carry.
+3. **Round 9 ghost encounter.** Round 9 is a Frugal Guild ghost fight with a scripted enemy team that is stable/efficient and distinct from the other ghost fights.
+4. **Ghost reward/loss rules.** Winning a rival ghost fight awards `GameRules.WinReward + GameRules.RivalWinBonus`; losing a rival ghost fight applies `GameRules.RivalLossMorale` instead of the dungeon loss morale value.
+5. **Existing M7 flow preserved.** Scout -> Shop -> Payroll -> Formation -> Combat -> Reward -> RivalUpdate -> Scout remains intact, and the M7.1 leaderboard behavior is unchanged.
 
 ### Files Claude Code May Create
 
 ```
-TestPlans/TP_R003.md
+TestPlans/TP_M7.2.md
 ```
 
 ### Files Claude Code May Modify
 
 ```
-DungeonDebt/Assets/Scripts/Run/ShopManager.cs
-  - Change hire placement from `run.Party.Count` to a first-empty-slot lookup.
-  - Keep hire cost, party cap, purchased flag, and gold checks unchanged.
+DungeonDebt/Assets/Scripts/Core/DataRepository.cs
+  - Replace Round 3/6/9 Slime placeholders with scripted RivalGhost encounters.
+  - Add any needed static enemy definitions for Greedy, Carry, and Frugal ghost teams.
+  - Set encounter type, scout text, danger category, and rival guild id for each ghost encounter.
 
 DungeonDebt/Assets/Scripts/Run/RunManager.cs
-  - Only modify if a small shared helper for slot occupancy is clearly cleaner than keeping the logic inside `ShopManager`.
+  - Apply rival ghost reward and morale modifiers during post-combat result math.
+  - Use existing GameRules constants where possible.
+
+DungeonDebt/Assets/Scripts/Core/GameRules.cs
+  - Only modify if source inspection shows an M7.2 numeric rule is missing. Prefer existing `RivalWinBonus` and `RivalLossMorale`.
 ```
 
 ### Files Claude Code Does NOT Create or Modify
 
-- `CombatManager.cs`, `HeroEffects.cs`, `DataRepository.cs` - not needed for this regression.
-- `FormationPanelView.cs` - avoid changes unless source inspection proves it is also responsible for hiding stacked heroes.
-- `RivalManager.cs`, `RivalLeaderboardView.cs`, `GameManager.cs`, `MainMenuPanel.cs` - M7.1 should remain unchanged unless verification reveals the regression fix needs a tiny refresh hook.
+- `RivalManager.cs` and `RivalLeaderboardView.cs` - M7.1 scripted rival progression and display should remain unchanged unless verification proves a tiny compatibility update is required.
+- `ShopManager.cs`, `FormationPanelView.cs`, `PayrollManager.cs` - R003/M4/M5 behavior should not be touched for this slice.
+- `CombatManager.cs` and `HeroEffects.cs` - avoid changes unless source inspection proves ghost teams require no-new-feature compatibility wiring.
 - `Resources/`, `StreamingAssets/`, `Tests/`, `Editor/` - forbidden.
 - `PROGRESS.md` / `REGRESSIONS.md` mid-session.
 
 ### Relevant Context To Re-read During Orient
 
-- `REGRESSIONS.md` Open section - R003.
-- `IMPLEMENTATION_PLAN.md` §4 - `HeroInstance.FormationSlot` and `RunState.Party`.
-- `IMPLEMENTATION_PLAN.md` §10 - formation panel display expectations.
-- `IMPLEMENTATION_PLAN.md` §11 Milestone 3/4/7 - shop, formation, and current M7 flow.
-- `CLAUDE.md` architectural and scope rules, especially no new architecture and no automated Unity test folders.
+- `REGRESSIONS.md` Open section - confirm no open blocker before starting M7.2.
+- `PROGRESS.md` latest entries - R003 and M7.1.
+- `IMPLEMENTATION_PLAN.md` §9 - Rival Ghost System Plan.
+- `IMPLEMENTATION_PLAN.md` §11 Milestone 7 - expected M7 output and scope limits.
+- `GAME_DESIGN.md` Rival Guild Ghost System and MVP Encounter List sections.
+- `DataRepository.cs` current encounter list and placeholder Round 3/6/9 entries.
+- `RunManager.cs` current reward and morale math.
 
 ### Test Plan Output
 
-Claude Code creates `TestPlans/TP_R003.md` covering:
+Claude Code creates `TestPlans/TP_M7.2.md` covering:
 
-- **Happy path:** Reproduce R003 and verify each hire lands in a unique slot.
-- **Edge cases:** Hire into gaps at early, middle, and late slots; party at 5/5 rejects further hires; fire then hire again.
-- **Rule checks:** No `UnityEngine.Random`; no new folders; no out-of-scope systems.
-- **Regression checks:** M7.1 leaderboard still appears in Scout/RivalUpdate; Shop -> Formation -> Payroll -> Combat -> Reward -> RivalUpdate -> Scout still works.
-- **Observable invariants:** Party members always have unique slots in range `0-4`; Formation shows every party member exactly once.
+- **Happy path:** Reach rounds 3, 6, and 9; verify each Scout and combat uses the correct scripted ghost encounter.
+- **Edge cases:** Win and intentionally lose at least one ghost fight; verify reward and morale modifiers.
+- **Rule checks:** No online ghosts, replay, accounts, full rival shop simulation, `UnityEngine.Random`, new forbidden folders, or out-of-scope systems.
+- **Regression checks:** R003 formation slot uniqueness remains fixed; M7.1 leaderboard still appears in Scout/RivalUpdate; normal dungeon fights still use dungeon reward/loss math.
+- **Observable invariants:** RivalGhost encounters have non-null rival guild ids; ghost rewards and morale changes match `GameRules`; run flow still advances through RivalUpdate once per non-terminal round.
 
 ### Start Prompt For The Next Session
 
