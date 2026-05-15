@@ -21,13 +21,9 @@ It is intentionally small. Target: a playable prototype in 2–4 weeks.
 
 ## Project status
 
-**No code exists yet.** The first task will be Milestone 1 (Combat Sandbox) per `IMPLEMENTATION_PLAN.md` §11. Until that milestone is started, this repo contains only:
+M1–M7 are complete. The project now has a playable end-to-end prototype with run flow, shop, formation, payroll, scout, 10 encounters, hero/enemy effects, rival ghosts, and leaderboard.
 
-- `GAME_DESIGN.md`
-- `IMPLEMENTATION_PLAN.md`
-- `CLAUDE.md` (this file)
-
-When implementation starts, create the Unity project structure described in §2 of the implementation plan.
+Current phase: **Phase 2** — post-M7 readability, tiering, combat presentation, and balance (`IMPLEMENTATION_PLAN.md` §15). Follow `NEXT_SESSION.md` for the active slice.
 
 ---
 
@@ -44,7 +40,7 @@ These are not up for debate. If you think one is wrong, raise it as a question �
 - **Hardcoded C# static data** in `DataRepository` for MVP. **No ScriptableObjects**, no JSON, no Resources/ in the first prototype
 - **No save/load**, no persistence, no accounts
 - **One `System.Random` instance** owned by `RunManager`. Never use `UnityEngine.Random`
-- **Placeholder art only**: white sprites, TMP text, solid color blocks. No imported sprites unless trivial
+- **Placeholder art only** for MVP (M1–M7): white sprites, TMP text, solid color blocks. Phase 2 (see §Scope control) allows trivial shapes, role-icon glyphs, and a small placeholder sprite set under `Assets/Art/`
 
 ---
 
@@ -139,6 +135,13 @@ For the full per-session flow, including the two confirmation checkpoints (after
 
 From `IMPLEMENTATION_PLAN.md` §14. These are hard limits.
 
+**Phase 2 carve-outs (post-M7, see `IMPLEMENTATION_PLAN.md` §15):** Two rules below are amended for Phase 2.
+
+- Trivial shapes, role-icon glyphs, and a small placeholder sprite set under `Assets/Art/` are allowed for UI work. No tweens, no animation frames, no rigged characters.
+- Bronze→Silver hero tiering is in scope (M9 only). No Gold tier. Tiering does **not** introduce equipment, traits, factions, or synergies.
+
+All other rules below remain in force for Phase 2.
+
 - **Do not add extra heroes** beyond the 12 in §7 of the plan
 - **Do not add equipment, items, or inventory**
 - **Do not add traits, factions, or synergies** beyond the listed role labels
@@ -191,6 +194,10 @@ When the user asks for "the next milestone" or names one by number, here's what'
 | 5 | Payroll Actions   | 4 payroll cards with pre/post-combat effects |
 | 6 | Full 10-Round Run | All encounters + all hero effects + scout panel + end screens |
 | 7 | Rival Ghosts      | 3 rivals, leaderboard, ghost fights on rounds 3/6/9 |
+| 8 | Card readability pass | Hero/enemy card layouts with role color, stats, blurb, reserved tier slot |
+| 9 | Bronze→Silver tiering | Duplicate-hire merges to Silver; Silver offers in shop; per-hero Silver bonus |
+| 10 | Combat view rebuild | Unit-card combat panel with HP bars and turn highlighting |
+| 11 | Economy & balance pass | Tune resource curves and Silver tier probability |
 
 Each milestone must pass its acceptance criteria before the next begins.
 
