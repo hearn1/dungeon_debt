@@ -51,6 +51,45 @@ Copy this block when adding a new entry. Paste it at the top of the Session log 
 
 <!-- Newest entries at the top. -->
 
+## 2026-05-15 - M8.1: Card readability foundation
+
+**Milestone:** M8 - Card readability pass
+**Status:** Complete
+
+**Files added:**
+- `DungeonDebt/Assets/Scripts/UI/EnemyCardView.cs`
+- `TestPlans/TP_M8.1.md`
+
+**Files modified:**
+- `DungeonDebt/Assets/Scripts/Core/GameRules.cs` - role color palette (Tank/Damage/Support/Economy), `BronzeBadgeColor`, `ReservedTierSlotOutlineColor`, `GetRoleColor(HeroRole)` helper.
+- `DungeonDebt/Assets/Scripts/UI/HeroCardView.cs` - extended in place: left role color band, role badge chip, prominent gold-tinted Upkeep line, wrapped effect blurb, top-right empty reserved tier-slot rendered as a faint-fill rect with four explicit border-edge `Image` strips.
+- `DungeonDebt/Assets/Scripts/UI/ShopOfferView.cs` - bumped `CardHeight` 124 -> 200 to fit the extended hero card.
+- `DungeonDebt/Assets/Scripts/UI/ScoutPanelView.cs` - added "Danger: <category>" line and a centered horizontal row of `EnemyCardView` per encounter enemy; moved Continue button down.
+- `DungeonDebt/Assets/Scripts/UI/EnemyCardView.cs` - in-slice fix: bumped Name area to fit two wrapped lines so multi-word enemy names ("Carry Protector") no longer overlap the stat block.
+- `SESSION_PROTOCOL.md` - step 6: removed mandatory "Rule checks" section from test plans (folded into step 5 self-verification) and made "Regression checks" opt-in.
+
+**Acceptance criteria:**
+- [x] AC1 - HeroCardView shows role color band+badge, name, ATK/HP, prominent Upkeep, wrapped blurb, empty reserved tier slot.
+- [x] AC2 - EnemyCardView shows name, ATK/HP, blurb. Encounter-role hint rendered at the encounter level as "Danger: <category>" in Scout (per Q5 answer A - `EnemyDefinition` has no per-enemy role field).
+- [~] AC3 - Role color palette + Bronze color exposed in `GameRules` and consumed by `HeroCardView`. `EnemyCardView` does not consume role colors (enemies have no `HeroRole`); `BronzeBadgeColor` is exposed but unused this slice (Q2 answer A -> neutral grey outline). User accepted this reading.
+- [x] AC4 - Shop and Scout adopt the new card views; Formation deferred to M8.2.
+- [x] AC5 - No tier logic, HP bars, combat changes, tweens, audio/VFX, or forbidden folders.
+
+**Test plan:** `TestPlans/TP_M8.1.md` - happy path 7/7 pass, edge cases 7/7 pass, observable invariants 6/6 pass. Rule checks 6/6 pass but flagged by user as out of scope for test plans going forward (now codified in `SESSION_PROTOCOL.md`). Regression checks (Steps 21-25) intentionally not run per same feedback.
+
+**Deviations from plan:**
+- `ShopPanelView.cs` and `MainMenuPanel.cs` were listed as "may modify" - not needed.
+- No `Assets/Art/` sprites added - solid color blocks read cleanly without them.
+- Reserved tier slot border initially used Unity's `Outline` component on a transparent `Image` (invisible because `Outline` clones the underlying graphic); switched mid-test to four explicit border-edge `Image` strips with a faint fill.
+- `EnemyCardView` Name area required a follow-up bump after Step 14 surfaced two-line name overlap on rival ghost rounds.
+- `SESSION_PROTOCOL.md` updated mid-session per user feedback to drop mandatory "Rule checks" and default-out "Regression checks" in test plans.
+
+**Follow-up flagged:**
+- AC3 strict reading: if `EnemyCardView` should also visibly consume a `GameRules` color, that is a one-line tweak.
+- `BronzeBadgeColor` is currently dead code, intended for M9 to consume.
+
+**Next slice:** M8.2 - Formation panel adopts `HeroCardView`.
+
 ## 2026-05-15 - M7.3: M7 full-run verification and milestone closeout
 
 **Milestone:** M7 - Rival Ghosts

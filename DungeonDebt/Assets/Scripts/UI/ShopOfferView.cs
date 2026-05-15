@@ -6,7 +6,7 @@ public class ShopOfferView : MonoBehaviour
 {
     private const int Padding = 8;
     private const int ButtonHeight = 48;
-    private const int CardHeight = 124;
+    private const int CardHeight = 200;
 
     [SerializeField] private HeroCardView _heroCardView;
     [SerializeField] private Button _hireButton;

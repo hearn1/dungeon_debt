@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -12,16 +13,26 @@ public class ScoutPanelView : MonoBehaviour
     private const int ScoutTextTopOffset = 110;
     private const int RewardHeight = 32;
     private const int RewardTopOffset = 240;
+    private const int DangerHeight = 28;
+    private const int DangerTopOffset = 280;
+    private const int EnemiesRowHeight = 180;
+    private const int EnemiesRowTopOffset = 316;
     private const int ContinueButtonWidth = 260;
     private const int ContinueButtonHeight = 60;
-    private const int ContinueButtonTopOffset = 296;
+    private const int ContinueButtonTopOffset = 520;
     private const int ContentWidth = 700;
+    private const int EnemyCardWidth = 130;
+    private const int EnemyCardGap = 8;
 
     [SerializeField] private Text _titleText;
     [SerializeField] private Text _typeText;
     [SerializeField] private Text _scoutText;
     [SerializeField] private Text _rewardText;
+    [SerializeField] private Text _dangerText;
+    [SerializeField] private RectTransform _enemiesRow;
     [SerializeField] private Button _continueButton;
+
+    private readonly List<EnemyCardView> _enemyCards = new List<EnemyCardView>();
 
     private Font _font;
     private Action _onContinue;
@@ -59,6 +70,8 @@ public class ScoutPanelView : MonoBehaviour
             _typeText.text = string.Empty;
             _scoutText.text = "No encounter loaded.";
             _rewardText.text = string.Empty;
+            _dangerText.text = string.Empty;
+            RefreshEnemyCards(null);
             return;
         }
 
@@ -66,6 +79,56 @@ public class ScoutPanelView : MonoBehaviour
         _typeText.text = FormatType(encounter.Type);
         _scoutText.text = encounter.ScoutText;
         _rewardText.text = "Reward: " + encounter.BaseGoldReward + " gold";
+        _dangerText.text = string.IsNullOrEmpty(encounter.DangerCategory)
+            ? string.Empty
+            : "Danger: " + encounter.DangerCategory;
+        RefreshEnemyCards(encounter.Enemies);
+    }
+
+    private void RefreshEnemyCards(IReadOnlyList<EnemyDefinition> enemies)
+    {
+        int needed = enemies != null ? enemies.Count : 0;
+
+        while (_enemyCards.Count < needed)
+        {
+            _enemyCards.Add(BuildEnemyCard(_enemyCards.Count));
+        }
+
+        int totalWidth = needed > 0 ? (needed * EnemyCardWidth) + ((needed - 1) * EnemyCardGap) : 0;
+        int startX = -(totalWidth / 2);
+
+        for (int i = 0; i < _enemyCards.Count; i++)
+        {
+            EnemyCardView card = _enemyCards[i];
+            if (i < needed)
+            {
+                card.gameObject.SetActive(true);
+                card.Refresh(enemies[i]);
+                RectTransform cardRect = card.GetComponent<RectTransform>();
+                cardRect.anchoredPosition = new Vector2(startX + (i * (EnemyCardWidth + EnemyCardGap)), 0f);
+            }
+            else
+            {
+                card.gameObject.SetActive(false);
+                card.Clear();
+            }
+        }
+    }
+
+    private EnemyCardView BuildEnemyCard(int index)
+    {
+        GameObject cardObject = new GameObject("EnemyCard_" + index, typeof(RectTransform));
+        RectTransform rect = cardObject.GetComponent<RectTransform>();
+        rect.SetParent(_enemiesRow, false);
+        rect.anchorMin = new Vector2(0.5f, 0f);
+        rect.anchorMax = new Vector2(0.5f, 1f);
+        rect.pivot = new Vector2(0f, 0.5f);
+        rect.sizeDelta = new Vector2(EnemyCardWidth, 0f);
+        rect.anchoredPosition = Vector2.zero;
+
+        EnemyCardView view = cardObject.AddComponent<EnemyCardView>();
+        view.Initialize(_font);
+        return view;
     }
 
     private static string FormatType(EncounterType type)
@@ -129,6 +192,15 @@ public class ScoutPanelView : MonoBehaviour
 
         _rewardText = CreateText("Reward", root, _font, 22, FontStyle.Bold, TextAnchor.MiddleCenter);
         AnchorTopCentered(_rewardText.rectTransform, ContentWidth, RewardHeight, RewardTopOffset);
+
+        _dangerText = CreateText("Danger", root, _font, 18, FontStyle.Italic, TextAnchor.MiddleCenter);
+        AnchorTopCentered(_dangerText.rectTransform, ContentWidth, DangerHeight, DangerTopOffset);
+        _dangerText.color = new Color(0.85f, 0.65f, 0.55f, 1f);
+
+        GameObject enemiesObject = new GameObject("EnemiesRow", typeof(RectTransform));
+        _enemiesRow = enemiesObject.GetComponent<RectTransform>();
+        _enemiesRow.SetParent(root, false);
+        AnchorTopCentered(_enemiesRow, ContentWidth, EnemiesRowHeight, EnemiesRowTopOffset);
 
         _continueButton = CreateContinueButton(root, _font, "Continue to Shop");
         AnchorTopCentered(_continueButton.GetComponent<RectTransform>(), ContinueButtonWidth, ContinueButtonHeight, ContinueButtonTopOffset);
