@@ -32,4 +32,5 @@ public class RunState
     public int LatestVictoryBonusLossDebt { get; set; }
     public string LatestEndReason { get; set; }
     public EncounterDefinition CurrentEncounter { get; set; }
+    public bool FullUpkeepPaidLastRound { get; set; }
 }

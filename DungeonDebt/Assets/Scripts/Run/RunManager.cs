@@ -42,6 +42,7 @@ public class RunManager : MonoBehaviour
         runState.Morale = GameRules.StartingMorale;
         runState.RerollCount = 0;
         runState.SelectedPayrollAction = null;
+        runState.FullUpkeepPaidLastRound = false;
 
         _currentRunState = runState;
         return _currentRunState;
@@ -74,6 +75,26 @@ public class RunManager : MonoBehaviour
 
         int rewardGold = combatResult.PlayerWon ? GameRules.WinReward : GameRules.LossReward;
         int moraleChange = combatResult.PlayerWon ? 0 : -GameRules.DungeonLossMorale;
+
+        if (combatResult.SurvivorFlags != null)
+        {
+            bool goblinStole;
+            if (combatResult.SurvivorFlags.TryGetValue("goblinStoleGold", out goblinStole) && goblinStole)
+            {
+                rewardGold -= GameRules.GoblinThiefStealGold;
+            }
+
+            bool treasureLeechSurvived;
+            if (combatResult.SurvivorFlags.TryGetValue("treasureLeechSurvived", out treasureLeechSurvived) && treasureLeechSurvived)
+            {
+                rewardGold -= GameRules.TreasureLeechStealGold;
+            }
+        }
+
+        if (rewardGold < 0)
+        {
+            rewardGold = 0;
+        }
 
         _currentRunState.Gold += rewardGold;
         _currentRunState.Morale += moraleChange;
@@ -125,6 +146,7 @@ public class RunManager : MonoBehaviour
         _currentRunState.LatestInterestCharged = interestCharged;
         _currentRunState.LatestInterestPaid = interestPaid;
         _currentRunState.LatestInterestAddedToDebt = interestAddedToDebt;
+        _currentRunState.FullUpkeepPaidLastRound = (upkeepShortfall == 0);
 
         if (_payrollManager != null)
         {
@@ -244,11 +266,25 @@ public class RunManager : MonoBehaviour
 
     private static int CalculateTotalUpkeep(RunState runState, EncounterDefinition encounter)
     {
+        HeroEffects.ApplyPreUpkeep(runState);
+
         int totalUpkeep = 0;
 
         for (int i = 0; i < runState.Party.Count; i++)
         {
             totalUpkeep += runState.Party[i].UpkeepThisRound;
+        }
+
+        if (encounter != null)
+        {
+            if (encounter.EncounterEffectId == EncounterEffectId.TaxCollectorUpkeep)
+            {
+                totalUpkeep += GameRules.TaxCollectorUpkeep;
+            }
+            else if (encounter.EncounterEffectId == EncounterEffectId.FinalBossDamage)
+            {
+                totalUpkeep += GameRules.AuditorUpkeep;
+            }
         }
 
         if (totalUpkeep < 0)
