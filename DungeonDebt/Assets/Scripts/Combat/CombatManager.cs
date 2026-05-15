@@ -16,6 +16,8 @@ public class CombatManager
         _knightRedirectsRemaining = 0;
 
         HeroEffects.OnCombatStart(run, encounter, playerUnits, enemyUnits, logger, out _knightRedirectsRemaining);
+        CopyUnitSnapshots(playerUnits, result.PlayerStartUnits);
+        CopyUnitSnapshots(enemyUnits, result.EnemyStartUnits);
 
         if (!HasLivingUnits(playerUnits))
         {
@@ -271,7 +273,27 @@ public class CombatManager
         }
 
         HeroEffects.OnCombatEnd(result, _run, playerUnits, enemyUnits, logger);
+        CopyUnitSnapshots(playerUnits, result.PlayerFinalUnits);
+        CopyUnitSnapshots(enemyUnits, result.EnemyFinalUnits);
         logger.CopyTo(result.LogLines);
+    }
+
+    private static void CopyUnitSnapshots(List<CombatUnit> source, List<CombatUnit> destination)
+    {
+        destination.Clear();
+        for (int i = 0; i < source.Count; i++)
+        {
+            CombatUnit unit = source[i];
+            destination.Add(new CombatUnit(
+                unit.DisplayName,
+                unit.Attack,
+                unit.CurrentHealth,
+                unit.MaxHealth,
+                unit.IsPlayerSide,
+                unit.Slot,
+                unit.SourceHero,
+                unit.SourceEnemy));
+        }
     }
 
     private static void SortUnitsBySlot(List<CombatUnit> units)

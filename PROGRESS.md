@@ -51,6 +51,43 @@ Copy this block when adding a new entry. Paste it at the top of the Session log 
 
 <!-- Newest entries at the top. -->
 
+## 2026-05-15 - M10.1: Combat view rebuild kickoff
+
+**Milestone:** M10 - Combat view rebuild
+**Status:** Complete
+
+**Files added:**
+- `DungeonDebt/Assets/Scripts/UI/CombatPanelView.cs`
+- `DungeonDebt/Assets/Scripts/UI/CombatPanelView.cs.meta`
+- `DungeonDebt/Assets/Scripts/UI/CombatUnitCardView.cs`
+- `DungeonDebt/Assets/Scripts/UI/CombatUnitCardView.cs.meta`
+- `TestPlans/TP_M10.1.md`
+
+**Files modified:**
+- `DungeonDebt/Assets/Scripts/Data/CombatResult.cs` - added combat-start and combat-final unit snapshots for presentation.
+- `DungeonDebt/Assets/Scripts/Combat/CombatManager.cs` - copies read-only unit snapshots without changing resolver behavior.
+- `DungeonDebt/Assets/Scripts/UI/MainMenuPanel.cs` - builds and shows the combat board above a smaller retained combat log.
+- `TestPlans/TP_M10.1.md` - manual test plan for combat board, snapshot display, edge cases, and regression seams.
+
+**Acceptance criteria:**
+- [x] Combat view shows player/enemy combatants as visible panels during Combat, separate from the existing text log.
+- [x] Placeholder combat tiles show unit names, HP bars, tier-colored borders for heroes, enemy accent bands, and red dead-state styling.
+- [x] The view is populated from combat-start/combat-result data without changing combat resolution rules, target rules, rewards, upkeep, or hero effects.
+- [x] Existing `CombatLogView` remains visible and continues to stream the resolved log.
+- [x] No tweens, particles, audio, new combat states, new statuses, or gameplay behavior changes.
+
+**Test plan:** `TestPlans/TP_M10.1.md` - created; user visually verified the combat board through screenshot iterations and reported the final trapezoid formation layout looks good.
+
+**Deviations from plan:**
+- Final placeholder combat tiles intentionally omit visible ATK values; the combat log remains the temporary source of truth until M10.2 prototypes attack/take-damage visuals.
+- Combat layout evolved from simple rows into fixed formation lanes (`Enemy Back`, `Enemy Front`, `Hero Front`, `Hero Back`) to match the Formation screen's 2-front / 3-back structure.
+- Added script `.meta` files. Updated ignored generated `Assembly-CSharp.csproj` locally so `dotnet build` could include the new scripts.
+
+**Follow-up flagged:**
+- M10.2 should prototype live replay visuals and decide whether the current uGUI combat board can support attack/take-damage animation, or whether future M10 work needs a GameObject-based combat representation.
+
+**Next slice:** M10.2 - Combat replay and visual feasibility prototype.
+
 ## 2026-05-15 - M9.3: Upgrade delta preview
 
 **Milestone:** M9 - Bronze->Silver tiering
