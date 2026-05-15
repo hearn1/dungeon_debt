@@ -4,18 +4,18 @@ using UnityEngine.UI;
 
 public class FormationPanelView : MonoBehaviour
 {
-    private const int SlotWidth = 220;
-    private const int SlotHeight = 160;
+    private const int SlotWidth = 240;
+    private const int SlotHeight = 200;
     private const int SlotGap = 28;
-    private const int RowGap = 50;
-    private const int SectionLabelHeight = 28;
-    private const int SectionLabelGap = 6;
+    private const int RowGap = 20;
+    private const int SectionLabelHeight = 22;
+    private const int SectionLabelGap = 4;
     private const int ContinueButtonWidth = 260;
-    private const int ContinueButtonHeight = 60;
-    private const int ContinueButtonTopGap = 30;
-    private const int TitleHeight = 36;
-    private const int TitleTopOffset = 20;
-    private const int HintHeight = 22;
+    private const int ContinueButtonHeight = 48;
+    private const int ContinueButtonTopGap = 10;
+    private const int TitleHeight = 28;
+    private const int TitleTopOffset = 8;
+    private const int HintHeight = 18;
 
     [SerializeField] private Button _continueButton;
     [SerializeField] private Text _hintText;
@@ -163,7 +163,7 @@ public class FormationPanelView : MonoBehaviour
         hintText.color = new Color(0.75f, 0.76f, 0.7f, 1f);
         _hintText = hintText;
 
-        int frontlineRowTop = TitleTopOffset + TitleHeight + HintHeight + 18;
+        int frontlineRowTop = TitleTopOffset + TitleHeight + HintHeight + 8;
         Text frontLabel = CreateText("FrontlineLabel", root, _font, 20, FontStyle.Bold, TextAnchor.MiddleCenter);
         AnchorTopCentered(frontLabel.rectTransform, 400f, SectionLabelHeight, frontlineRowTop);
         frontLabel.text = "Frontline (slots 0–" + (GameRules.FrontlineSlots - 1) + ")";

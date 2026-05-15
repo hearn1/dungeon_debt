@@ -4,10 +4,8 @@ using UnityEngine.UI;
 
 public class FormationSlotView : MonoBehaviour
 {
-    private const int Padding = 10;
-    private const int NameFontSize = 20;
-    private const int StatsFontSize = 16;
-    private const int RoleFontSize = 14;
+    private const int Padding = 6;
+    private const int SlotLabelFontSize = 14;
     private const int EmptyFontSize = 22;
     private const int HighlightThickness = 4;
 
@@ -20,10 +18,8 @@ public class FormationSlotView : MonoBehaviour
     [SerializeField] private Image _background;
     [SerializeField] private Image _highlight;
     [SerializeField] private Text _slotLabel;
-    [SerializeField] private Text _nameText;
-    [SerializeField] private Text _statsText;
-    [SerializeField] private Text _roleText;
     [SerializeField] private Text _emptyText;
+    [SerializeField] private HeroCardView _card;
 
     private int _slotIndex;
     private Action<int> _onClick;
@@ -55,19 +51,19 @@ public class FormationSlotView : MonoBehaviour
         {
             _isOccupied = false;
             _background.color = EmptyColor;
-            _nameText.text = string.Empty;
-            _statsText.text = string.Empty;
-            _roleText.text = string.Empty;
+            _card.gameObject.SetActive(false);
+            _card.Clear();
             _emptyText.text = "(empty)";
+            _emptyText.enabled = true;
             return;
         }
 
         _isOccupied = true;
         _background.color = OccupiedColor;
         _emptyText.text = string.Empty;
-        _nameText.text = hero.Definition.DisplayName;
-        _statsText.text = "ATK " + hero.Attack + " / HP " + hero.Definition.BaseHealth + " / Up " + hero.UpkeepThisRound;
-        _roleText.text = hero.Definition.Role.ToString();
+        _emptyText.enabled = false;
+        _card.gameObject.SetActive(true);
+        _card.Refresh(hero);
     }
 
     public void SetSelected(bool selected)
@@ -123,23 +119,25 @@ public class FormationSlotView : MonoBehaviour
         _button = _background.gameObject.AddComponent<Button>();
         _button.targetGraphic = _background;
 
-        _slotLabel = CreateText("SlotLabel", backgroundRect, font, RoleFontSize, FontStyle.Italic, TextAnchor.UpperRight);
-        SetAnchored(_slotLabel.rectTransform, Padding, -Padding - 20, -Padding, -Padding);
-        _slotLabel.color = new Color(0.7f, 0.72f, 0.65f, 1f);
+        GameObject cardObject = new GameObject("HeroCard", typeof(RectTransform));
+        RectTransform cardRect = cardObject.GetComponent<RectTransform>();
+        cardRect.SetParent(root, false);
+        cardRect.anchorMin = new Vector2(0f, 0f);
+        cardRect.anchorMax = new Vector2(1f, 1f);
+        cardRect.offsetMin = Vector2.zero;
+        cardRect.offsetMax = Vector2.zero;
+        _card = cardObject.AddComponent<HeroCardView>();
+        _card.Initialize(font);
 
-        _nameText = CreateText("Name", backgroundRect, font, NameFontSize, FontStyle.Bold, TextAnchor.UpperLeft);
-        SetAnchored(_nameText.rectTransform, Padding, -Padding - 28, -Padding - 30, -Padding);
-
-        _statsText = CreateText("Stats", backgroundRect, font, StatsFontSize, FontStyle.Normal, TextAnchor.UpperLeft);
-        SetAnchored(_statsText.rectTransform, Padding, -Padding - 54, -Padding, -Padding - 30);
-
-        _roleText = CreateText("Role", backgroundRect, font, RoleFontSize, FontStyle.Italic, TextAnchor.LowerLeft);
-        SetAnchored(_roleText.rectTransform, Padding, Padding, -Padding, Padding + 22);
-        _roleText.color = new Color(0.75f, 0.76f, 0.7f, 1f);
-
-        _emptyText = CreateText("Empty", backgroundRect, font, EmptyFontSize, FontStyle.Italic, TextAnchor.MiddleCenter);
+        _emptyText = CreateText("Empty", root, font, EmptyFontSize, FontStyle.Italic, TextAnchor.MiddleCenter);
         SetAnchored(_emptyText.rectTransform, Padding, Padding, -Padding, -Padding);
         _emptyText.color = new Color(0.5f, 0.5f, 0.55f, 1f);
+
+        // Slot label sits on top of the card in the bottom-right so it stays
+        // visible without colliding with the reserved tier slot (top-right).
+        _slotLabel = CreateText("SlotLabel", root, font, SlotLabelFontSize, FontStyle.Italic, TextAnchor.LowerRight);
+        SetAnchored(_slotLabel.rectTransform, Padding, Padding, -Padding, Padding + 18);
+        _slotLabel.color = new Color(0.75f, 0.76f, 0.7f, 1f);
     }
 
     private static RectTransform CreatePanel(string objectName, RectTransform parent, Color color)

@@ -37,6 +37,24 @@ public class HeroCardView : MonoBehaviour
             return;
         }
 
+        ApplyContent(hero, hero.BaseAttack, hero.BaseUpkeep);
+    }
+
+    // Formation uses live instance values so the player sees the same ATK and
+    // upkeep numbers the upcoming combat / upkeep math will use.
+    public void Refresh(HeroInstance instance)
+    {
+        if (instance == null || instance.Definition == null)
+        {
+            Clear();
+            return;
+        }
+
+        ApplyContent(instance.Definition, instance.Attack, instance.UpkeepThisRound);
+    }
+
+    private void ApplyContent(HeroDefinition hero, int attack, int upkeep)
+    {
         Color roleColor = GameRules.GetRoleColor(hero.Role);
         _roleBand.color = roleColor;
         _roleBand.enabled = true;
@@ -47,8 +65,8 @@ public class HeroCardView : MonoBehaviour
         _tierSlotOutline.enabled = true;
 
         _nameText.text = hero.DisplayName;
-        _statsText.text = "ATK " + hero.BaseAttack + "    HP " + hero.BaseHealth;
-        _upkeepText.text = "Upkeep " + hero.BaseUpkeep + "g";
+        _statsText.text = "ATK " + attack + "    HP " + hero.BaseHealth;
+        _upkeepText.text = "Upkeep " + upkeep + "g";
         _effectText.text = hero.EffectDescription;
     }
 
