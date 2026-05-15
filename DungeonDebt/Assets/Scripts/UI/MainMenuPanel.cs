@@ -10,7 +10,11 @@ public class MainMenuPanel : MonoBehaviour
     private const int ButtonGap = 28;
     private const int StatusTopOffset = 205;
     private const int ButtonRowTopOffset = 300;
+    private const int ReferenceHeight = 1080;
     private const int CombatLogTopOffset = 380;
+    private const int CombatUnitPanelHeight = 510;
+    private const int CombatPanelLogGap = 16;
+    private const int CombatLogStreamingTopOffset = CombatLogTopOffset + CombatUnitPanelHeight + CombatPanelLogGap;
     private const int RewardSummaryWidth = 520;
     private const int RewardSummaryHeight = 460;
     private const int EndScreenWidth = 640;
@@ -29,6 +33,7 @@ public class MainMenuPanel : MonoBehaviour
     [SerializeField] private Button _restartButton;
     [SerializeField] private Text _statusText;
     [SerializeField] private Text _resultText;
+    [SerializeField] private CombatPanelView _combatPanelView;
     [SerializeField] private CombatLogView _combatLogView;
     [SerializeField] private RewardSummaryView _rewardSummaryView;
     [SerializeField] private EndScreenView _endScreenView;
@@ -204,6 +209,7 @@ public class MainMenuPanel : MonoBehaviour
         _scoutPanelView.Hide();
         _rivalLeaderboardView.Hide();
         _rivalContinueButton.gameObject.SetActive(false);
+        _combatPanelView.Hide();
     }
 
     private void RunSandboxCombat()
@@ -213,6 +219,8 @@ public class MainMenuPanel : MonoBehaviour
         _statusText.text = "Combat running...";
         _resultText.text = string.Empty;
         _combatLogView.Clear();
+        _combatPanelView.Clear();
+        _combatPanelView.Show();
         _rewardSummaryView.Clear();
         _endScreenView.Hide();
         _shopPanelView.Hide();
@@ -228,9 +236,11 @@ public class MainMenuPanel : MonoBehaviour
             ? run.CurrentEncounter
             : DataRepository.SandboxEncounter;
         CombatResult result = new CombatManager().StartCombat(run, encounter);
+        _combatPanelView.Refresh(result.PlayerStartUnits, result.EnemyStartUnits);
 
         _combatLogView.StreamLines(result.LogLines, delegate
         {
+            _combatPanelView.Refresh(result.PlayerFinalUnits, result.EnemyFinalUnits);
             _gameManager.ChangeState(GameState.Reward);
             _runManager.ApplyPostCombatResult(result, encounter);
             _gameManager.ChangeState(GameState.Upkeep);
@@ -248,6 +258,8 @@ public class MainMenuPanel : MonoBehaviour
         {
             _runHeaderView.Refresh(_gameManager.CurrentRunState);
             _combatLogView.Clear();
+            _combatPanelView.Clear();
+            _combatPanelView.Hide();
             _rewardSummaryView.Clear();
             _endScreenView.Hide();
             _shopPanelView.Hide();
@@ -265,6 +277,8 @@ public class MainMenuPanel : MonoBehaviour
             _statusText.text = "Scout. Review the encounter, then Continue.";
             _resultText.text = string.Empty;
             _combatLogView.Clear();
+            _combatPanelView.Clear();
+            _combatPanelView.Hide();
             _rewardSummaryView.Clear();
             _endScreenView.Hide();
             _shopPanelView.Hide();
@@ -286,6 +300,8 @@ public class MainMenuPanel : MonoBehaviour
             _statusText.text = "Shop. Hire heroes, then Continue.";
             _resultText.text = string.Empty;
             _combatLogView.Clear();
+            _combatPanelView.Clear();
+            _combatPanelView.Hide();
             _rewardSummaryView.Clear();
             _endScreenView.Hide();
             _formationPanelView.Hide();
@@ -306,6 +322,8 @@ public class MainMenuPanel : MonoBehaviour
             _statusText.text = "Formation. Click two slots to swap, then Continue.";
             _resultText.text = string.Empty;
             _combatLogView.Clear();
+            _combatPanelView.Clear();
+            _combatPanelView.Hide();
             _rewardSummaryView.Clear();
             _endScreenView.Hide();
             _shopPanelView.Hide();
@@ -326,6 +344,8 @@ public class MainMenuPanel : MonoBehaviour
             _statusText.text = "Payroll. Choose one action, then Continue.";
             _resultText.text = string.Empty;
             _combatLogView.Clear();
+            _combatPanelView.Clear();
+            _combatPanelView.Hide();
             _rewardSummaryView.Clear();
             _endScreenView.Hide();
             _shopPanelView.Hide();
@@ -363,6 +383,8 @@ public class MainMenuPanel : MonoBehaviour
             _statusText.text = "Rivals updated. Review the leaderboard, then Continue.";
             _resultText.text = string.Empty;
             _combatLogView.Clear();
+            _combatPanelView.Clear();
+            _combatPanelView.Hide();
             _rewardSummaryView.Clear();
             _endScreenView.Hide();
             _shopPanelView.Hide();
@@ -383,6 +405,8 @@ public class MainMenuPanel : MonoBehaviour
         {
             _statusText.text = gameState == GameState.Victory ? "Run won." : "Run lost.";
             _rewardSummaryView.Clear();
+            _combatPanelView.Clear();
+            _combatPanelView.Hide();
             _shopPanelView.Hide();
             _formationPanelView.Hide();
             _payrollPanelView.Hide();
@@ -447,8 +471,20 @@ public class MainMenuPanel : MonoBehaviour
         _restartButton = CreateButton("RestartButton", buttonRow, "Restart Sandbox");
         SetAnchoredRect(_restartButton.GetComponent<RectTransform>(), 1f, 0.5f, 1f, 0.5f, -ButtonWidth * 0.5f, 0f, ButtonWidth, ButtonHeight);
 
+        RectTransform combatPanel = CreateRect("CombatPanel", root);
+        SetAnchoredRect(
+            combatPanel,
+            0f, 0f, 1f, 1f,
+            HorizontalMargin,
+            ReferenceHeight - CombatLogTopOffset - CombatUnitPanelHeight,
+            -HorizontalMargin - RewardSummaryWidth - ButtonGap,
+            -CombatLogTopOffset);
+        _combatPanelView = combatPanel.gameObject.AddComponent<CombatPanelView>();
+        _combatPanelView.Initialize(GetRuntimeFont());
+        _combatPanelView.Hide();
+
         RectTransform logPanel = CreatePanel("CombatLogPanel", root, new Color(0.16f, 0.17f, 0.2f, 1f));
-        SetAnchoredRect(logPanel, 0f, 0f, 1f, 1f, HorizontalMargin, 100f, -HorizontalMargin - RewardSummaryWidth - ButtonGap, -CombatLogTopOffset);
+        SetAnchoredRect(logPanel, 0f, 0f, 1f, 1f, HorizontalMargin, 100f, -HorizontalMargin - RewardSummaryWidth - ButtonGap, -CombatLogStreamingTopOffset);
 
         ScrollRect scrollRect = logPanel.gameObject.AddComponent<ScrollRect>();
         scrollRect.horizontal = false;
