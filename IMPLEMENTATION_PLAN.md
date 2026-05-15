@@ -1037,6 +1037,11 @@ Beyond that, do not invest in a test framework in MVP.
 
 Read these aloud before opening a Codex session. They are not suggestions.
 
+**Phase 2 carve-outs (M8+):** Two rules below are amended per §15. All others remain in force.
+
+- Trivial shapes, role-icon glyphs, and a small placeholder sprite set under `Assets/Art/` are allowed for Phase 2 UI work.
+- Bronze→Silver hero tiering is in scope (M9 only). No Gold tier, still no equipment / traits / factions / synergies.
+
 - **Do not add extra heroes** beyond the 12 in §7.
 - **Do not add equipment**, items, or inventory of any kind.
 - **Do not add traits, factions, or synergies** beyond the listed role labels.
@@ -1055,6 +1060,111 @@ Read these aloud before opening a Codex session. They are not suggestions.
 
 When Codex/Claude Code suggests an out-of-scope feature, respond with: *"Out of scope for MVP per IMPLEMENTATION_PLAN.md §14. Skip it."*
 
+(For Phase 2 work, the equivalent response is *"Out of scope for Phase 2 per IMPLEMENTATION_PLAN.md §15."*)
+
+---
+
+## 15. Phase 2 — Readability, Tiering, Balance
+
+Phase 2 is post-M7 polish plus one contained gameplay expansion. It does **not** lift the major MVP bans: no save/load, equipment, traits/factions/synergies, real multiplayer or online ghosts, procedural maps, meta progression, tutorials, audio polish, or large content expansion.
+
+Phase 2 lifts exactly two rules from §14, restated here:
+
+1. **Art ceiling.** Trivial shapes, role-icon glyphs, and a small placeholder sprite set under `Assets/Art/` are allowed for UI work. No animation frames, no rigged characters, no tweens.
+2. **Hero tiering.** Bronze→Silver hero tiering is in scope (M9). No Gold tier. Tiering does not introduce equipment, traits, factions, or synergies.
+
+Slicing inside each Phase 2 milestone is decided when that milestone starts — not pre-committed here.
+
+### Milestones
+
+| # | Name | Output |
+|---|------|--------|
+| 8 | Card readability pass | Hero/enemy/shop/formation cards with role color, prominent upkeep, effect blurb, reserved tier-badge slot |
+| 9 | Bronze→Silver tiering | Duplicate-hire merges to Silver; Silver shop offers; per-hero Silver bonus active |
+| 10 | Combat view rebuild | Unit-card combat panel with HP bars and turn highlighting; text log retained as secondary pane |
+| 11 | Economy & balance pass | Tune resource curves and Silver tier probability; no new systems |
+
+### Milestone 8: Card readability pass
+
+**Goal.** Replace text-dense panels with card layouts that read at a glance, anywhere a hero or enemy is displayed outside of combat.
+
+**In scope:**
+
+- `HeroCardView` (used in Shop, Formation, party readouts): role badge with role color, name, stat block (Atk / HP / Upkeep), effect blurb, reserved tier-badge area in a fixed corner. The tier slot is rendered empty in M8 and populated in M9.
+- `EnemyCardView` (used in Scout and any out-of-combat enemy preview): name, stat block, effect blurb, encounter-role hint if applicable.
+- Run-header readout: visible deltas for Gold/Debt/Morale on round changes (label or color flash; no tweens).
+- Role color palette in `GameRules` (Tank / Damage / Support / Economy) plus a Bronze-tier badge color.
+- Optional small imported sprite set under `Assets/Art/` if it makes the cards clearer (role icons, frame borders). Stay placeholder.
+
+**Out of scope for M8:** any tier merge logic, combat unit cards, HP bars, animations beyond static color flashes.
+
+### Milestone 9: Bronze→Silver tiering
+
+**Goal.** Duplicate-hire merges to Silver; Silver offers exist directly in the shop pool; per-hero Silver bonus is active in combat and economy.
+
+**Mechanics:**
+
+- `HeroInstance` gains a `Tier` field (`HeroTier.Bronze` / `HeroTier.Silver`). `HeroDefinition` stays immutable.
+- **Duplicate hire:** hiring a hero you already own (any tier) consumes the offer and upgrades the existing instance to Silver. If the existing instance is already Silver, the offer is non-purchasable (refund vs. unhireable is locked in the M9.1 plan).
+- **Silver offers in pool:** Silver offers appear directly. Tier probability per round is a placeholder constant in `GameRules`; the curve is finalized in M11.
+- **Silver direct-hire cost:** Bronze hire cost + `SilverHireCostBonus` constant.
+- `HeroEffects` and stat reads consult `HeroInstance.Tier` to apply the Silver bonus.
+- Card UI populates the tier-badge slot reserved in M8.
+
+**Per-hero Silver bonus.** Exact numbers are deferred to M11 — only the bonus shape is locked here.
+
+| Hero | Bronze (Atk/HP/Upkeep, effect) | Silver bonus | Type |
+|---|---|---|---|
+| Warrior | 2/8/2, no effect | +Atk, +HP | Stat |
+| Knight | 1/10/4, redirect 1 backline hit | Redirect 2 backline hits | Effect |
+| Golem | 1/14/6, −1 dmg taken | Upkeep reduced | Upkeep |
+| Wizard | 3/4/5, +1 atk if full upkeep paid | Upkeep reduced (easier to trigger effect) | Upkeep |
+| Ninja | 4/3/4, lowest-HP target, +1 gold/kill | Upkeep reduced | Upkeep |
+| Ranger | 3/5/3, backline safe attack | +Atk | Stat |
+| Priest | 1/5/4, heal 2/round | Heal 3/round | Effect |
+| Bard | 1/4/3, +2 gold on win | +4 gold on win | Effect |
+| Enchanter | 1/4/3, +1 atk to adjacent Damage | +1 atk to all Damage allies (not just adjacent) | Effect |
+| Squire | 1/4/1, no effect | +Atk, +HP | Stat |
+| Treasurer | 0/4/2, −2 upkeep on top ally | −2 upkeep on top two allies, or −3 on top one | Effect |
+| Apprentice | 1/3/1, −1 Wizard upkeep | −2 Wizard upkeep | Effect |
+
+Distribution: 3 Stat, 6 Effect, 3 Upkeep.
+
+**Expected sub-slicing** (confirmed at the start of M9, not pre-committed):
+
+- **M9.1** — data model (`HeroInstance.Tier` + `HeroTier` enum), duplicate-hire merge behavior, tier-badge populated in the M8 slot. Silver bonuses stubbed so existing combat math is unchanged.
+- **M9.2** — Silver shop offers in the pool (placeholder probability constants in `GameRules`), Silver direct-hire cost, per-hero Silver bonuses wired into `HeroEffects` and stat reads.
+
+M9 is the largest Phase 2 milestone and should not be attempted as one slice.
+
+**Out of scope for M9:** Gold tier, traits/factions/synergies, any new hero source besides the shop.
+
+### Milestone 10: Combat view rebuild
+
+**Goal.** Replace scrolling-text-only combat with a visible unit-card view, log retained as a secondary pane.
+
+**In scope:**
+
+- Unit-card combat panel: each living combatant shown as a card with HP bar, current/max HP, role color, and tier badge (consumed from M9).
+- Turn highlighting: acting unit and its target visibly flash on each attack action.
+- HP bar updates step-by-step in time with the existing combat-log replay (synchronous resolver unchanged).
+- `CombatLogView` retained in a secondary pane so log lines remain readable.
+
+**Out of scope for M10:** combat math changes, tween animation, particles, VFX, audio, new combat states.
+
+### Milestone 11: Economy and balance pass
+
+**Goal.** Tune the prototype now that it reads cleanly and tiering exists. No new systems.
+
+**In scope:**
+
+- Tune `GameRules` constants: starting resources, reward sizes, upkeep math, interest divisor, end-condition thresholds.
+- Lock the Silver tier-probability curve (placeholder constants → final).
+- Lock per-hero Silver bonus numbers (where deferred from M9).
+- Replay full 10-round runs across a few archetype builds; document win-rate observations in `PROGRESS.md`.
+
+**Out of scope for M11:** new encounters, new heroes, new payroll actions, new rival behaviors, any system not present in M1–M10.
+
 ---
 
 ## Appendix: Milestone-to-Section Map
@@ -1068,5 +1178,9 @@ When prompting Codex for a single milestone, attach this plan and reference:
 - M5 (Payroll) → §4 (PayrollActionDefinition), §5 (Payroll constants), §10 (PayrollPanelView).
 - M6 (Full Run) → §7 (all hero effects), §8 (all encounters), §10 (ScoutPanelView).
 - M7 (Rivals) → §4 (RivalGuildState), §9, §10 (RivalLeaderboardView).
+- M8 (Card readability pass) → §15, §10 (existing panels for re-skin).
+- M9 (Bronze→Silver tiering) → §15, §4 (HeroInstance.Tier addition), §7 (per-hero Silver bonus table in §15).
+- M10 (Combat view rebuild) → §15, §6 (combat flow), §10 (combat panel area).
+- M11 (Economy & balance pass) → §15, §5, plus §7/§8/§9 for tuning targets.
 
 Each milestone prompt should attach only the relevant sections to keep Codex focused.

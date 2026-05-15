@@ -4,77 +4,74 @@ This file always describes the **next** session's work. Rewrite it at the end of
 
 ---
 
-## Session: M7.3 - M7 full-run verification and milestone closeout
+## Session: M8.1 - Card readability foundation
 
-**Milestone:** M7 - Rival Ghosts
-**Slice goal:** Run one final M7 verification pass across rival leaderboard, scripted ghost fights, reward/morale rules, and the full 10-round loop; fix only any regressions found inside M7 scope.
+**Milestone:** M8 - Card readability pass
+**Slice goal:** Introduce reusable `HeroCardView` and `EnemyCardView` components with role color, prominent upkeep, effect blurb, and a reserved (empty) tier-badge slot - and use them in Shop and Scout. Formation card adoption is deferred to M8.2.
 
 ### Background
 
-M7.1 completed local scripted rival state, RivalUpdate flow, and Scout/RivalUpdate leaderboard display. R003 fixed hire placement after formation movement. M7.2 replaced the Round 3/6/9 Slime placeholder ghost fights with scripted Greedy, Carry, and Frugal ghost teams, added ghost reward/loss modifiers, and reused Priest-style healing for the Frugal Healer.
+Phase 2 begins. M1-M7 are complete; M7.3 closeout signed off on 2026-05-15. The Phase 2 plan lives in `IMPLEMENTATION_PLAN.md` §15. CLAUDE.md was amended at the end of the planning session to add a Phase 2 carve-out for trivial UI art and Bronze->Silver tiering.
 
-`TestPlans/TP_M7.2.md` was run by the user and all tests appeared to be passing.
-
-M7 should now be close to complete. This slice is a closeout pass, not a feature expansion. Do not add new rival systems, online ghosts, replay, accounts, dynamic drafting, visual ghost effects, new UI screens, or extra content.
+M8.1 is the foundation slice for the card readability pass. It must produce **reusable** card views, not a one-off shop panel. Combat unit cards belong to M10. Tiering logic belongs to M9 - this slice only reserves the visual slot.
 
 ### Acceptance Criteria
 
-1. **Full M7 loop verified.** A run can proceed through Scout -> Shop -> Formation -> Payroll -> Combat -> Reward -> RivalUpdate -> Scout, including rounds 3, 6, and 9 ghost fights.
-2. **Leaderboard behavior preserved.** Scout shows the compact leaderboard, RivalUpdate shows the full leaderboard, and rival stats advance once per non-terminal round using the M7.1 scripted rules.
-3. **Ghost fights verified.** Round 3 Greedy, Round 6 Carry, and Round 9 Frugal ghost fights use their scripted teams and no longer use Slime placeholders.
-4. **Reward/morale rules verified.** Ghost wins award +10 gold, ghost losses apply -8 morale, and normal dungeon fights still use normal reward/loss math.
-5. **Milestone closeout ready.** Any regressions found are either fixed within M7 scope or filed in `REGRESSIONS.md`; no out-of-scope features are added.
+1. `HeroCardView` renders a hero (Bronze tier) with: role color band/badge, name, Atk/HP/Upkeep stat block, effect blurb, and a reserved tier-badge area in a fixed corner that is visibly present but empty.
+2. `EnemyCardView` renders an enemy with: name, Atk/HP stat block, effect blurb, and an encounter-role hint where applicable.
+3. `GameRules` exposes a role color palette (Tank, Damage, Support, Economy) and a Bronze-tier badge color, consumed by both views.
+4. The Shop panel renders each shop offer using `HeroCardView`. The Scout panel renders the upcoming enemy (single representative or list) using `EnemyCardView`. Formation panel may continue to use its existing slot view this slice.
+5. No tiering merge logic, no HP bars, no combat view changes, no tween animation, no audio/VFX, no forbidden folders.
 
 ### Files Claude Code May Create
 
 ```
-TestPlans/TP_M7.3.md
+DungeonDebt/Assets/Scripts/UI/EnemyCardView.cs
+TestPlans/TP_M8.1.md
 ```
+
+`HeroCardView.cs` already exists from M3.2 - **modify it in place** to add the role badge, prominent upkeep, effect blurb, and reserved tier-badge slot. Do not create a parallel/replacement file. Only create from scratch if the existing file is genuinely missing.
 
 ### Files Claude Code May Modify
 
-Only if verification finds a regression:
-
 ```
-DungeonDebt/Assets/Scripts/Core/DataRepository.cs
-DungeonDebt/Assets/Scripts/Run/RunManager.cs
-DungeonDebt/Assets/Scripts/Combat/HeroEffects.cs
-DungeonDebt/Assets/Scripts/Data/GameEnums.cs
-DungeonDebt/Assets/Scripts/Core/GameRules.cs
-DungeonDebt/Assets/Scripts/Run/RivalManager.cs
-DungeonDebt/Assets/Scripts/UI/RivalLeaderboardView.cs
-DungeonDebt/Assets/Scripts/UI/MainMenuPanel.cs
-TestPlans/TP_M7.3.md
+DungeonDebt/Assets/Scripts/UI/HeroCardView.cs          - existing card extended with role color, upkeep prominence, blurb, reserved tier-badge slot
+DungeonDebt/Assets/Scripts/Core/GameRules.cs           - role color palette + Bronze badge color (see C# note below)
+DungeonDebt/Assets/Scripts/UI/ShopOfferView.cs         - host or compose HeroCardView
+DungeonDebt/Assets/Scripts/UI/ShopPanelView.cs         - adapt offer rendering pipeline if needed
+DungeonDebt/Assets/Scripts/UI/ScoutPanelView.cs        - render enemy preview via EnemyCardView
+DungeonDebt/Assets/Scripts/UI/MainMenuPanel.cs         - only as needed for wiring
 ```
 
-If no regression is found, create only the test plan and report the closeout verification results.
+If a small placeholder sprite set helps the cards read cleaner, files under `DungeonDebt/Assets/Art/` may also be added (kept trivial per CLAUDE.md §Scope control carve-out).
+
+**C# note on role colors:** `UnityEngine.Color` is a struct and **cannot** be declared `const` in C#. Use `public static readonly Color TankColor = new Color(...)` (or a `GetRoleColor(HeroRole)` helper) in `GameRules`. Do not attempt `const Color` - it will not compile.
 
 ### Files Claude Code Does NOT Create or Modify
 
-- `Resources/`, `StreamingAssets/`, `Tests/`, `Editor/` - forbidden.
-- New online, replay, account, server, matchmaking, save/load, or dynamic rival shop systems.
-- New heroes, equipment, traits, factions, synergies, maps, tutorial, audio, VFX, or meta progression.
+- `Resources/`, `StreamingAssets/`, `Tests/`, `Editor/` - still forbidden.
+- `CombatManager`, `CombatLogger`, `HeroEffects`, `HeroDefinition`, `HeroInstance` - out of scope for M8.1.
+- `FormationPanelView` / `FormationSlotView` - Formation card adoption is deferred to M8.2.
+- Any tiering-related field, enum, or logic - that is M9.
 - `PROGRESS.md` / `REGRESSIONS.md` mid-session unless the user explicitly asks for end-of-session doc updates.
 
 ### Relevant Context To Re-read During Orient
 
-- `REGRESSIONS.md` Open section - confirm no open blocker before starting M7.3.
-- `PROGRESS.md` latest entries - M7.2, R003, and M7.1.
-- `IMPLEMENTATION_PLAN.md` §9 - Rival Ghost System Plan.
-- `IMPLEMENTATION_PLAN.md` §11 Milestone 7 - expected output, required behavior, and manual test steps.
-- `GAME_DESIGN.md` Rival Guild Ghost System and MVP Encounter List sections.
-- `TestPlans/TP_M7.1.md`, `TestPlans/TP_R003.md`, and `TestPlans/TP_M7.2.md`.
-- M7 implementation files touched by M7.1/M7.2.
+- `IMPLEMENTATION_PLAN.md` §15 (entire Phase 2 plan), §10 (existing UI panel layout).
+- `CLAUDE.md` §Scope control Phase 2 carve-out, and §Core tech decisions (placeholder-art line).
+- `PROGRESS.md` latest entries (M7.3, M7.2, R003, M7.1).
+- Existing `ShopOfferView.cs`, `ShopPanelView.cs`, `ScoutPanelView.cs`, any pre-existing `HeroCardView` reference in `MainMenuPanel.cs`.
+- `DataRepository.cs` for the 12 hero stat references the cards must render correctly.
 
 ### Test Plan Output
 
-Claude Code creates `TestPlans/TP_M7.3.md` covering:
+Claude Code creates `TestPlans/TP_M8.1.md` covering:
 
-- **Happy path:** Complete a full run far enough to verify all three ghost fights and the RivalUpdate loop.
-- **Edge cases:** Verify at least one ghost win, one ghost loss, one normal dungeon win, one normal dungeon loss, and terminal round behavior.
-- **Rule checks:** No forbidden folders or out-of-scope rival systems; no `UnityEngine.Random`; scripted/local/deterministic rivals only.
-- **Regression checks:** R003 hire placement remains fixed; M7.1 leaderboard behavior remains intact; M7.2 ghost teams and modifiers remain intact; M6 encounter effects still work.
-- **Observable invariants:** Rival leaderboard always has 4 rows, ghost encounters have valid rival ids, rewards/morale match `GameRules`, and run flow advances exactly once per RivalUpdate.
+- **Happy path:** Open Shop -> 3 offers render as cards with role color, stats, blurb, empty tier-badge slot visible. Scout -> enemy preview renders as enemy card.
+- **Edge cases:** heroes with "No effect." blurb (Warrior, Squire), longest hero name, longest effect blurb wrap, low-stat heroes (Apprentice), high-HP hero (Golem).
+- **Rule checks:** no `UnityEngine.Random`; no tiering logic introduced; no combat view changes; no forbidden folders; any sprite added under `Assets/Art/` is trivial and placeholder.
+- **Regression checks:** M1.3 combat log streams; M3.2 Hire/Fire/Reroll still works; M6.1 Scout flow routes through all 10 encounters; M7 leaderboard panels intact on Scout and RivalUpdate.
+- **Observable invariants:** every hero card shows exactly one role badge, one stat block, one (empty) tier-badge slot; enemy cards never overflow panel bounds; no card displays negative stats.
 
 ### Start Prompt For The Next Session
 
