@@ -51,6 +51,36 @@ Copy this block when adding a new entry. Paste it at the top of the Session log 
 
 <!-- Newest entries at the top. -->
 
+## 2026-05-15 - M8.2: Formation card adoption
+
+**Milestone:** M8 - Card readability pass
+**Status:** Complete
+
+**Files added:**
+- `TestPlans/TP_M8.2.md`
+
+**Files modified:**
+- `DungeonDebt/Assets/Scripts/UI/HeroCardView.cs` - added `Refresh(HeroInstance)` overload + private `ApplyContent` so Formation uses live ATK / `UpkeepThisRound`.
+- `DungeonDebt/Assets/Scripts/UI/FormationSlotView.cs` - replaced inline name/stats/role fields with a hosted `HeroCardView`; kept background/button/highlight/empty placeholder; moved slot label to bottom-right to avoid colliding with the reserved tier slot.
+- `DungeonDebt/Assets/Scripts/UI/FormationPanelView.cs` - bumped slot size 220x160 -> 240x200 so the embedded card layout fits without text crunching; tightened title/hint/row-gap/continue-button chrome so the Continue button stays inside the host panel's ~600px height.
+
+**Acceptance criteria:**
+- [x] AC1 - Occupied slots render via `HeroCardView` with role band, badge, ATK/HP, prominent Upkeep, blurb, reserved tier slot.
+- [x] AC2 - Empty slots clearly empty; frontline/backline distinction preserved.
+- [x] AC3 - Click-swap reassignment + frontline targeting unchanged.
+- [x] AC4 - Reserved tier slot stays empty; no tier logic.
+- [x] AC5 - No `UnityEngine.Random`, tweens, audio/VFX, forbidden folders; `dotnet build` clean (0 warn / 0 err).
+
+**Test plan:** `TestPlans/TP_M8.2.md` - 18/18 pass.
+
+**Deviations from plan:**
+- Initial slot bump 220x160 -> 240x220 clipped the Continue button against the host panel's fixed ~600px height. Resolved in-slice by reducing slot height to 200 (matches M8.1 shop offer height) and tightening title/hint/row-gap/continue spacing. Slot width stayed at 240. No `MainMenuPanel.cs` change required.
+
+**Follow-up flagged:**
+- None.
+
+**Next slice:** M9.1 - Bronze->Silver tiering foundation (duplicate-hire merge, Silver shop offers, per-hero Silver bonus).
+
 ## 2026-05-15 - M8.1: Card readability foundation
 
 **Milestone:** M8 - Card readability pass

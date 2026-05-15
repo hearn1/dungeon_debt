@@ -4,63 +4,63 @@ This file always describes the **next** session's work. Rewrite it at the end of
 
 ---
 
-## Session: M8.2 - Formation card adoption
+## Session: M9.1 - Bronze->Silver tiering foundation
 
-**Milestone:** M8 - Card readability pass
-**Slice goal:** Adopt the M8.1 `HeroCardView` inside `FormationPanelView` / `FormationSlotView` so the formation lineup shares the readability pass (role band, role badge, prominent Upkeep, wrapped blurb, empty reserved tier slot). Drag/click slot semantics, frontline/backline distinction, and combat targeting remain unchanged.
+**Milestone:** M9 - Bronze->Silver tiering
+**Slice goal:** Introduce a per-hero `Tier` (Bronze default, Silver upgradeable), wire duplicate-hire of a Bronze hero already in the party to merge into Silver, surface the tier in the `HeroCardView` reserved tier slot, and apply the M9 per-hero Silver bonus during the run/combat math. Shop offers may surface Silver heroes per `IMPLEMENTATION_PLAN.md` §15 Milestone 9.
 
 ### Background
 
-M8.1 (2026-05-15) introduced reusable `HeroCardView` and `EnemyCardView` plus a role color palette + Bronze badge color in `GameRules`. Shop and Scout now render through them. Formation was deliberately deferred so the foundation slice could land cleanly. M8.2 closes the loop on milestone M8 by bringing Formation into the same visual language.
+M8.1 introduced `HeroCardView` + the role color palette + a reserved empty tier slot, plus an unused `GameRules.BronzeBadgeColor`. M8.2 propagated `HeroCardView` to Formation with live instance values for ATK / `UpkeepThisRound`. M9 is where the reserved tier slot stops being decorative and tier starts driving real numbers.
 
-### Acceptance Criteria
+CLAUDE.md §Scope control Phase 2 carve-out: tiering is Bronze->Silver only, **no Gold tier**, and tiering does **not** introduce equipment, traits, factions, or synergies. Per-hero Silver bonus only.
 
-1. Each occupied formation slot renders its hero through `HeroCardView` (or a thin wrapper that hosts it), showing role band, role badge, ATK/HP, prominent Upkeep, blurb, and the empty reserved tier-slot.
-2. Empty formation slots still render a clearly empty-looking placeholder distinguishable from an occupied card. Frontline vs backline remains visually obvious (existing labelling, color, or layout cue).
-3. Drag/click slot reassignment, frontline/backline targeting, and any existing slot affordances continue to work exactly as before. No combat-side changes.
-4. Bronze->Silver tier visuals remain a reserved empty slot (no tier glyph, no Bronze fill). Tier logic stays an M9 concern.
-5. No `UnityEngine.Random`, no tween/animation, no audio/VFX, no forbidden folders.
+### Acceptance Criteria (draft - finalize during Orient/Plan)
 
-### Files Claude Code May Create
+1. A `HeroTier` enum (`Bronze`, `Silver`) exists; `HeroInstance` exposes a `Tier` field defaulting to `Bronze`.
+2. Hiring a Bronze hero whose `HeroDefinition` is already in the party merges into Silver (no extra party slot is consumed; gold cost behavior per `IMPLEMENTATION_PLAN.md` §15).
+3. `HeroCardView` fills the reserved tier slot with a Bronze badge (using `GameRules.BronzeBadgeColor`) for Bronze and a distinguishable Silver badge for Silver. Empty slots and definition-only Refresh paths still leave the tier slot reserved/empty per M8.1.
+4. Silver heroes apply the M9 per-hero Silver bonus in combat / upkeep math (`HeroEffects` and/or `RunManager`), tuned via constants in `GameRules`.
+5. No Gold tier. No equipment, traits, factions, or synergies. No new `HeroEffectId` values unless required by a single Silver bonus hook; no `UnityEngine.Random`, tweens, audio/VFX, forbidden folders.
 
-```
-TestPlans/TP_M8.2.md
-```
-
-(May add a `FormationCardView` thin wrapper if it's the cleanest way to compose `HeroCardView` inside the existing slot.)
-
-### Files Claude Code May Modify
+### Files Claude Code May Create / Modify
 
 ```
-DungeonDebt/Assets/Scripts/UI/FormationSlotView.cs   - host HeroCardView for occupied slots; keep empty-slot placeholder.
-DungeonDebt/Assets/Scripts/UI/FormationPanelView.cs  - pass through font/data so slots can build the new view; tweak slot sizing if needed.
+DungeonDebt/Assets/Scripts/Data/GameEnums.cs            - add HeroTier enum.
+DungeonDebt/Assets/Scripts/Data/HeroInstance.cs         - add Tier field, default Bronze.
+DungeonDebt/Assets/Scripts/Run/ShopManager.cs           - duplicate-hire merge into Silver; offer-pool semantics may change to allow Silver offers.
+DungeonDebt/Assets/Scripts/Core/DataRepository.cs       - Silver offer surfacing if pool-driven.
+DungeonDebt/Assets/Scripts/Core/GameRules.cs            - Silver bonus tunables, Silver badge color.
+DungeonDebt/Assets/Scripts/UI/HeroCardView.cs           - fill reserved tier slot per Tier.
+DungeonDebt/Assets/Scripts/Combat/HeroEffects.cs OR
+DungeonDebt/Assets/Scripts/Run/RunManager.cs            - apply Silver bonus.
+TestPlans/TP_M9.1.md
 ```
 
 ### Files Claude Code Does NOT Create or Modify
 
-- `Resources/`, `StreamingAssets/`, `Tests/`, `Editor/` - still forbidden.
-- `CombatManager`, `CombatLogger`, `HeroEffects`, `HeroDefinition`, `HeroInstance`, `EnemyDefinition` - out of scope.
-- `ShopOfferView`, `ShopPanelView`, `ScoutPanelView`, `EnemyCardView`, `HeroCardView` (beyond an additive parameter if strictly needed) - already settled in M8.1.
-- Any tier enum/field/logic - that is M9.
+- `Resources/`, `StreamingAssets/`, `Tests/`, `Editor/` - forbidden folders.
+- Anything Gold-tier, equipment, trait, faction, or synergy related.
+- `CombatManager.cs`, `CombatLogger.cs`, `EnemyDefinition.cs`, `EncounterDefinition.cs` unless a Silver hook strictly requires it (raise as a planning question if so).
 - `PROGRESS.md` / `REGRESSIONS.md` mid-session unless user asks.
 
 ### Relevant Context To Re-read During Orient
 
-- `IMPLEMENTATION_PLAN.md` §15 (Phase 2 plan) and §10 (existing UI panel layout).
-- `CLAUDE.md` §Scope control Phase 2 carve-out.
-- `PROGRESS.md` latest entry (M8.1).
-- `SESSION_PROTOCOL.md` step 6 - test plan now defaults to Happy path / Edge cases / Observable invariants only; no Rule checks; Regression checks opt-in.
-- Existing `FormationSlotView.cs`, `FormationPanelView.cs`, and the M8.1 `HeroCardView.cs` to confirm the API for hosting it.
+- `IMPLEMENTATION_PLAN.md` §15 (Phase 2 plan) and §7 (hero list) - especially the Silver bonus spec.
+- `CLAUDE.md` §Scope control Phase 2 carve-out (Bronze->Silver only, no Gold).
+- `PROGRESS.md` latest entries (M8.1, M8.2).
+- `HeroCardView.cs` (M8.1) - tier slot is already rendered as a faintly filled outlined rect; M9.1 will add a glyph/fill keyed off Tier.
+- `ShopManager.cs` - current hire flow + the `Party.Count` -> first-empty-slot fix from R003.
 
 ### Test Plan Output
 
-`TestPlans/TP_M8.2.md` covering:
+`TestPlans/TP_M9.1.md` covering:
 
-- **Happy path:** Formation panel shows occupied slots as full hero cards (role band, badge, ATK/HP, Upkeep, blurb, empty tier slot). Empty slots render as obvious placeholders.
-- **Edge cases:** longest-name hero in a slot; lowest-stat (Apprentice) in a slot; full 5/5 party with one of each role visible at once; partial party (e.g. 2 occupied, 3 empty) renders cleanly.
-- **Observable invariants:** 5 slots always present (2 frontline + 3 backline); occupied slots never overlap; an empty slot never renders hero data; frontline/backline visual distinction is preserved.
+- **Happy path:** Hire a Bronze hero. Hire the same hero again -> merges to Silver in the same slot; card shows Silver badge; per-hero Silver bonus applies in next combat / upkeep math.
+- **Edge cases:** merge attempt when target is already Silver (no-op or refund - per design); merge attempt when party is full; merge attempt when offer pool happens to surface a Silver hero directly.
+- **Observable invariants:** party size never grows from a merge; tier slot is always visibly filled (Bronze or Silver) on every occupied card; empty slots still show the reserved-but-empty look.
 
-(Per updated `SESSION_PROTOCOL.md` step 6, omit Rule checks. Add a short Regression check only if the slice's diff plausibly threatens drag/click reassignment or frontline targeting - and if so, name the exact at-risk seam.)
+(Per `SESSION_PROTOCOL.md` step 6: omit Rule checks. Include Regression checks only if the slice's diff plausibly threatens upkeep math, combat resolution, or shop hire flow - and if so, name the exact at-risk seam.)
 
 ### Start Prompt For The Next Session
 
