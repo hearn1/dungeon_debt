@@ -44,6 +44,7 @@ public class MainMenuPanel : MonoBehaviour
     [SerializeField] private RivalLeaderboardView _rivalLeaderboardView;
     [SerializeField] private Button _rivalContinueButton;
     [SerializeField] private Sprite _swordSprite;
+    [SerializeField] private SpriteCatalog _spriteCatalog;
 
     private static Font _runtimeFont;
 
@@ -482,7 +483,7 @@ public class MainMenuPanel : MonoBehaviour
             -HorizontalMargin - RewardSummaryWidth - ButtonGap,
             -CombatLogTopOffset);
         _combatPanelView = combatPanel.gameObject.AddComponent<CombatPanelView>();
-        _combatPanelView.Initialize(GetRuntimeFont(), _swordSprite);
+        _combatPanelView.Initialize(GetRuntimeFont(), _swordSprite, _spriteCatalog);
         _combatPanelView.Hide();
 
         RectTransform logPanel = CreatePanel("CombatLogPanel", root, new Color(0.16f, 0.17f, 0.2f, 1f));

@@ -119,6 +119,119 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
+--- !u!1 &244569043
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 244569045}
+  - component: {fileID: 244569044}
+  m_Layer: 0
+  m_Name: SpriteCatalog
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &244569044
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 244569043}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7c4a1d9e3b2f4e8a9c6d5b0a1f2e3d4c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpriteCatalog
+  _heroSprites:
+  - Id: warrior
+    Sprite: {fileID: 3944610533857416082, guid: ea4688cf231aa884f96a470979ac8160, type: 3}
+  - Id: knight
+    Sprite: {fileID: 4495478712733764576, guid: 20ee9c5238a6ccd499089612b73558ec, type: 3}
+  - Id: golem
+    Sprite: {fileID: 8821016199925446121, guid: fb85562a153b6c74ca855b488d419c48, type: 3}
+  - Id: wizard
+    Sprite: {fileID: 3422849895820167655, guid: d8bdf0ce18dbe4b49a4877ed119db0a6, type: 3}
+  - Id: ninja
+    Sprite: {fileID: -2759152716061183957, guid: a095b3b5b40d4d94db7050f6ca4119c0, type: 3}
+  - Id: ranger
+    Sprite: {fileID: -2850707533075056667, guid: 81cf650f3ee04f141acc6b555c454f8d, type: 3}
+  - Id: priest
+    Sprite: {fileID: -827016883341640748, guid: 62b3c3cd321fdbc49a78c303b0702e62, type: 3}
+  - Id: bard
+    Sprite: {fileID: 4506250295028507687, guid: 7c42a49dcb68bcf4e97546f314c0760c, type: 3}
+  - Id: enchanter
+    Sprite: {fileID: 3687422982976160562, guid: c72d74cca2e5c044a9556618f673b8d1, type: 3}
+  - Id: squire
+    Sprite: {fileID: -8000610280604025132, guid: 0bda44c0c3bdb114780b999c7b1da3b9, type: 3}
+  - Id: treasurer
+    Sprite: {fileID: -5834168581057352126, guid: 3f71c1e34da7c9d419b16c6f0887c2d3, type: 3}
+  - Id: apprentice
+    Sprite: {fileID: 1618752819756978370, guid: fa4028dda0dbe9c4698c23c6657a48a5, type: 3}
+  _enemySprites:
+  - Id: slime
+    Sprite: {fileID: 368543389579951487, guid: 529eea36249a62c4b8a4422282f8da97, type: 3}
+  - Id: training_dummy
+    Sprite: {fileID: 1896707455174686301, guid: 81af9d3c4f96a4e4ba1cbef279635ba5, type: 3}
+  - Id: cave_bat
+    Sprite: {fileID: -671583076500848588, guid: 8831b098fcd83724f88eacf748cc216c, type: 3}
+  - Id: goblin_thief
+    Sprite: {fileID: 6325236414480547402, guid: 54663e3715a760a4298cad6d1f061fcc, type: 3}
+  - Id: tax_collector
+    Sprite: {fileID: 4208244824111947266, guid: 79827136423c15440951d9c714aac9a1, type: 3}
+  - Id: backline_bat
+    Sprite: {fileID: 8604738795106864349, guid: e12fe5cb4ae2857489df8e44d7ecd376, type: 3}
+  - Id: debt_wraith
+    Sprite: {fileID: 1655289579149708449, guid: 2ceb61a0e91cecd4f9ddf79a36b051d9, type: 3}
+  - Id: treasure_leech
+    Sprite: {fileID: 5684991185611102525, guid: b2e4f1109a293e6498cc4f1805bacfa1, type: 3}
+  - Id: dungeon_auditor
+    Sprite: {fileID: -2789339930533015943, guid: 8b67eda03e1737f41bfad31b71401b66, type: 3}
+  - Id: greedy_tank
+    Sprite: {fileID: 2690025214303124512, guid: 5fc75f80aa689d941a0a9f23bf3236a8, type: 3}
+  - Id: greedy_carry
+    Sprite: {fileID: -3846757252222209633, guid: 6f303ddf8dd3f174fb46101dd039b17c, type: 3}
+  - Id: carry_protector
+    Sprite: {fileID: -3006939450267640419, guid: 12dd93e0c1d21b443b5f7eb8c3565984, type: 3}
+  - Id: carry_carry
+    Sprite: {fileID: 3345027847075408667, guid: e41dab5619bceb14ab6cbd17495ba18a, type: 3}
+  - Id: frugal_guard
+    Sprite: {fileID: 8428572170095416701, guid: a50431a6b22df784fa3709b47e2d6fa5, type: 3}
+  - Id: frugal_archer
+    Sprite: {fileID: -8617327947402816667, guid: 3b0c505e31991af4a81f7809e694b1c3, type: 3}
+  - Id: frugal_healer
+    Sprite: {fileID: -4332955236082231499, guid: 9332e7ffc7319b14cb77b3a5387bd503, type: 3}
+  _effectSprites:
+  - Id: melee_stab
+    Sprite: {fileID: -7861158670212991219, guid: 6d359927f5309d74292eef2be95a898e, type: 3}
+  - Id: arrow
+    Sprite: {fileID: -765150924802650856, guid: af42bcc66469aed4eb5c01ce5be0091e, type: 3}
+  - Id: fireball
+    Sprite: {fileID: 5353841184698615464, guid: b8ffe200953041b48a119cebdf17e1da, type: 3}
+  - Id: heal
+    Sprite: {fileID: -1049461823314036041, guid: 7dcc0d5ea4e863845b3d49c88df5cad8, type: 3}
+  - Id: enchant
+    Sprite: {fileID: -8018582906829244171, guid: 3d18171ecd64f674e9821bdce2e0a3d3, type: 3}
+--- !u!4 &244569045
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 244569043}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 960, y: 540, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &519420028
 GameObject:
   m_ObjectHideFlags: 0
@@ -449,6 +562,7 @@ MonoBehaviour:
   _rivalLeaderboardView: {fileID: 0}
   _rivalContinueButton: {fileID: 0}
   _swordSprite: {fileID: -3753825769889500098, guid: 80e4f8cc91b871e48abd86986f177c98, type: 3}
+  _spriteCatalog: {fileID: 244569044}
 --- !u!1 &2075150858
 GameObject:
   m_ObjectHideFlags: 0
@@ -560,3 +674,4 @@ SceneRoots:
   - {fileID: 619394802}
   - {fileID: 2075150862}
   - {fileID: 1502514673}
+  - {fileID: 244569045}

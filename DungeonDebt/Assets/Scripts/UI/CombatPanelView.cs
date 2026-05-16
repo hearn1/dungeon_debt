@@ -39,6 +39,7 @@ public class CombatPanelView : MonoBehaviour
     private readonly List<CombatUnit> _scratchPlayerBack = new List<CombatUnit>();
     private Font _font;
     private Sprite _swordSprite;
+    private SpriteCatalog _spriteCatalog;
 
     private enum StabPhase { Idle, Lunge, Hold, Retract }
     private Image _stabSword;
@@ -48,10 +49,11 @@ public class CombatPanelView : MonoBehaviour
     private Vector3 _stabFromLocal;
     private Vector3 _stabToLocal;
 
-    public void Initialize(Font font, Sprite swordSprite)
+    public void Initialize(Font font, Sprite swordSprite, SpriteCatalog spriteCatalog)
     {
         _font = font;
         _swordSprite = swordSprite;
+        _spriteCatalog = spriteCatalog;
         BuildUi(font);
         Clear();
     }
@@ -326,12 +328,39 @@ public class CombatPanelView : MonoBehaviour
             if (unit != null)
             {
                 cards[i].Refresh(unit);
+                cards[i].SetPortrait(ResolveBaseSprite(unit));
             }
             else
             {
                 cards[i].Clear();
             }
         }
+    }
+
+    // Presentation-only lookup: hero cards key on the hero definition id,
+    // enemy cards on the enemy definition id. A null catalog or a missing
+    // sprite returns null, which the card renders as the placeholder box.
+    private Sprite ResolveBaseSprite(CombatUnit unit)
+    {
+        if (_spriteCatalog == null || unit == null)
+        {
+            return null;
+        }
+
+        if (unit.IsPlayerSide)
+        {
+            if (unit.SourceHero != null && unit.SourceHero.Definition != null)
+            {
+                return _spriteCatalog.GetHeroSprite(unit.SourceHero.Definition.Id);
+            }
+            return null;
+        }
+
+        if (unit.SourceEnemy != null)
+        {
+            return _spriteCatalog.GetEnemySprite(unit.SourceEnemy.Id);
+        }
+        return null;
     }
 
     private static CombatUnit FindUnitInSlot(IReadOnlyList<CombatUnit> units, int slot)
