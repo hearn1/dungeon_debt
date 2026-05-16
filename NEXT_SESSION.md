@@ -4,102 +4,112 @@ This file always describes the **next** session's work. Rewrite it at the end of
 
 ---
 
-## Session: M15.0 - Difficulty modifiers planning + first-slice definition
+## Session: M15.2 - Apply combat HP/damage multipliers + retune
 
 **Milestone:** M15 - Difficulty modifiers
-**Slice goal:** Lock the difficulty-modifier design (preset roster, the exact existing-constant surface each preset shifts, selection UI placement, and default) and hand off a ready, narrowly-scoped M15.1 implementable slice. No gameplay code changes this session.
+**Slice goal:** Read the four run-scoped combat multipliers already carried on `RunState` and apply them at the `CombatManager` unit-construction seams so the selected difficulty preset actually changes the fight, then do a light first-pass retune of the multiplier values.
 
 ### Why this slice exists
 
-Phase 3 vertical order (per `IMPLEMENTATION_PLAN.md` section 16) is M12 -> M13 -> M14 -> **M15 difficulty modifiers** -> M16 -> M17 -> M18+. M12-M14 are done: debt rework, Act 1 framing, and a proof-of-concept Act 2 mini vertical. M14.2 retest/tuning and broader Act 2 fight expansion were intentionally deferred - M14.1 already proved the run can reasonably carry into a second act.
+M15.0 locked the M15 design. M15.1 (complete) built the preset data model, MainMenu selection, and run-scoped **economy** application, and confirmed by code trace that the four combat HP/damage multipliers are stored on `RunState` but read **nowhere** in combat - so today difficulty only shifts economy (modest deltas) and the fight feels identical across presets. M15.2 closes that gap: it applies the carried multipliers and then tunes them.
 
-M15 ("Difficulty modifiers") is a fresh vertical with open product decisions (which presets, what each preset changes, where the player picks one, what the default is). Following the M14.0 precedent, this session is a **planning slice**: resolve those decisions against scope and produce a Definition-of-ready M15.1, rather than coding an under-specified feature.
+### Locked design (from M15.0, unchanged)
 
-### What the milestone is (from IMPLEMENTATION_PLAN.md section 16, Milestone 15)
+| Preset | Hero HP | Hero dmg | Enemy HP | Enemy dmg |
+|---|---|---|---|---|
+| Apprentice Ledger (easy) | x1.25 | x1.0 | x1.0 | x0.85 |
+| Standard Contract (default) | x1.0 | x1.0 | x1.0 | x1.0 |
+| Predatory Interest (hard) | x1.0 | x1.0 | x1.20 | x1.20 |
 
-- **Goal:** add replayability and balance testing through small run-contract presets.
-- **In scope:** presets such as Apprentice Ledger, Standard Contract, and Predatory Interest that modify existing `GameRules`-style constants through a small approved surface.
-- **Out of scope:** unlocks, persistent progression, achievements, save/load, or online rankings.
-- **Phase 3 scope rules that bind M15:** one vertical per milestone; reuse existing UI surfaces first (MainMenu, RunHeader, Scout, etc.) before new screens; keep `GameRules` as the tuning surface (new thresholds live there); no save/load or meta progression - each run remains a fresh session.
+**Hard constraint (from M15.0):** current health is the **floor** for both heroes and enemies - no preset reduces HP below today's values. All HP multipliers are >= 1.0 by construction; the rounding rule chosen this slice must not round a x1.0 HP below today's integer value (i.e. Standard must remain byte-identical to legacy combat).
+
+The multiplier values live as named constants in `GameRules` (added in M15.1) and flow `DifficultyPreset` -> `RunManager.InitializeRun` -> `RunState.HeroHealthMultiplier` / `HeroDamageMultiplier` / `EnemyHealthMultiplier` / `EnemyDamageMultiplier`. M15.2 only **reads** those `RunState` fields - it does not re-plumb the data path.
 
 ### Scope
 
-**Approved for M15.0 (planning only):**
-- Decide the preset roster (start from the three named in the plan: Apprentice Ledger / Standard Contract / Predatory Interest; confirm count and identity).
-- For each preset, specify exactly which existing `GameRules` constants it shifts and to what values (e.g. starting gold/debt/morale, interest divisor, debt limit, reward/upkeep, Silver chance) - reuse existing constants; do not invent new gameplay systems.
-- Decide the small approved application surface: a `DifficultyPreset` plain-C# data concept + a single application point at run init (`RunManager.InitializeRun`), driven by values sourced from `GameRules` (no scattered magic numbers).
-- Decide the selection UI using an existing surface (recommended: a preset selector on the existing MainMenu before Start Run) and the default preset (recommended: Standard Contract = current balance, so default behavior is unchanged).
-- Write a ready M15.1 brief: slice ID, one-sentence goal, files-to-create/modify list, 2-5 acceptance criteria.
-- Update `NEXT_SESSION.md` to that ready M15.1 (end-of-session step).
+**In scope for M15.2:**
+- Apply `RunState.HeroHealthMultiplier` and `RunState.HeroDamageMultiplier` to player units, and `RunState.EnemyHealthMultiplier` / `RunState.EnemyDamageMultiplier` to enemy units, at the `CombatManager` build seams (`BuildPlayerUnits`, `BuildEnemyUnits`).
+- Thread `RunState` into `BuildEnemyUnits` (currently `EncounterDefinition`-only) via the existing `StartCombat` call path - no event bus, no new manager.
+- Keep the multiplier application consistent everywhere a unit's max health is (re)computed for combat, including the between-round hero-health restore and any start/clone unit copy, so a difficulty never desyncs mid-combat (see risks).
+- One agreed integer rounding rule for scaled health and attack, defined in `GameRules` or a single helper (no scattered `Mathf.RoundToInt` calls), that preserves the HP floor and keeps Standard == legacy.
+- A light first-pass retune of the M15.0 multiplier constants only if combat testing shows a preset is trivially easy/impossible - conservative, constants in `GameRules` only.
+- `TestPlans/TP_M15.2.md`.
 
-**Not approved for M15.0:**
-- No gameplay/UI code changes, no new files except this brief rewrite at end of session.
-- No new combat/economy/debt systems, no new resources, no new content (heroes/enemies/encounters/acts), no save/load, no persistent unlocks, no achievements, no difficulty effects beyond shifting existing `GameRules` constants.
-- No Act 2 expansion work (explicitly deferred).
+**Not in scope for M15.2 (out of scope / later):**
+- Any economy re-plumbing (M15.1 owns it and is done).
+- New presets, new heroes/enemies/encounters/payroll, Act work, relics, XP, save/load, persistence, unlocks, achievements, a new screen.
+- Status keywords, crit/dodge/types, or any combat-system expansion beyond a flat stat multiply.
+- Reworking the combat resolution algorithm; only unit construction stats change.
+- "Restart Sandbox bypasses the menu" cleanup (separate later UI pass, flagged in PROGRESS).
 
-### Definition of ready (for this planning slice)
+### Definition of ready
 
-- ID: M15.0.
+- ID: M15.2.
 - One-sentence goal: above.
-- Files: none created/modified except `NEXT_SESSION.md` at end of session (and `PROGRESS.md` only if the user explicitly asks).
-- Acceptance criteria: below.
+- Files: listed below.
+- Acceptance criteria: 5, below.
 - No open blocker regressions in `REGRESSIONS.md` (none currently open).
 
 ### Relevant plan/design sections
 
-- `IMPLEMENTATION_PLAN.md` section 16: "Phase 3 vertical order", "Phase 3 scope rules", "Milestone 15: Difficulty modifiers".
-- `IMPLEMENTATION_PLAN.md` section 5 (MVP rule definitions / numeric rules) and the existing `GameRules.cs` constant surface.
-- `IMPLEMENTATION_PLAN.md` section 3 (state machine - where run init / a pre-run selection fits).
-- `GAME_DESIGN.md` "MVP Scope" and economy/loss-condition sections.
-- `CLAUDE.md` / `AGENTS.md` Scope control + Phase 3 carve-outs.
+- `IMPLEMENTATION_PLAN.md` section 16: "Milestone 15: Difficulty modifiers", "Phase 3 scope rules".
+- `IMPLEMENTATION_PLAN.md` section 6 (combat flow / unit construction).
+- `GAME_DESIGN.md` combat math section.
+- `CLAUDE.md` / `AGENTS.md` Scope control + Phase 3 carve-outs; "Combat is deterministic".
+- `PROGRESS.md` M15.1 entry (multipliers are carried, not applied - this slice applies them).
 
-### Files Claude Code Should Read (planning inputs, do not modify)
+### Files Claude Code Should Read (inputs)
 
 ```
-IMPLEMENTATION_PLAN.md
-GAME_DESIGN.md
+IMPLEMENTATION_PLAN.md (section 16, 6)
 CLAUDE.md
-AGENTS.md
 SESSION_PROTOCOL.md
 REGRESSIONS.md
-PROGRESS.md
-DungeonDebt/Assets/Scripts/Core/GameRules.cs
-DungeonDebt/Assets/Scripts/Run/RunManager.cs
-DungeonDebt/Assets/Scripts/Core/GameManager.cs
-DungeonDebt/Assets/Scripts/Data/RunState.cs
-DungeonDebt/Assets/Scripts/UI/MainMenuPanel.cs
-DungeonDebt/Assets/Scripts/UI/RunHeaderView.cs
+PROGRESS.md (last 2-3 entries)
+DungeonDebt/Assets/Scripts/Combat/CombatManager.cs   (BuildPlayerUnits ~85, BuildEnemyUnits ~114, StartCombat caller, between-round restore ~258-262, start/clone copy ~286-292)
+DungeonDebt/Assets/Scripts/Combat/HeroEffects.cs     (GetTierAdjustedMaxHealth - where hero max HP is derived)
+DungeonDebt/Assets/Scripts/Data/RunState.cs          (the 4 multiplier fields)
+DungeonDebt/Assets/Scripts/Data/CombatUnit.cs        (Attack / MaxHealth / CurrentHealth shape)
+DungeonDebt/Assets/Scripts/Core/GameRules.cs         (multiplier constants; home for a rounding-rule helper if added)
+DungeonDebt/Assets/Scripts/Run/RunManager.cs         (PrepareSandboxRun hero-health seed ~96-104 - check it does not desync)
 ```
 
-### Files Claude Code Should Create / Modify
+### Files Claude Code Should Create
 
 ```
-NEXT_SESSION.md   - end-of-session rewrite to the ready M15.1 brief.
-(PROGRESS.md      - only if the user explicitly asks Claude Code to update it directly.)
+TestPlans/TP_M15.2.md
+```
+
+### Files Claude Code Should Modify
+
+```
+DungeonDebt/Assets/Scripts/Combat/CombatManager.cs  - apply the 4 RunState multipliers at the build seams; thread RunState into BuildEnemyUnits; keep mid-combat health-recompute paths consistent.
+DungeonDebt/Assets/Scripts/Core/GameRules.cs        - only if a single rounding-rule helper/constant is needed, and only if a conservative multiplier retune is warranted.
+NEXT_SESSION.md                                     - end-of-session rewrite to the next ready brief.
 ```
 
 ### Files Claude Code Does NOT Touch
 
-- Any gameplay/UI/data source file (this is a planning slice).
+- `DungeonDebt/Assets/Scripts/Data/DifficultyPreset.cs`, `RunManager.InitializeRun`, `GameManager`, `MainMenuPanel.cs`, `RunHeaderView.cs`, `EndScreenView.cs`, `DataRepository.cs` - M15.1 data path is complete and correct; M15.2 only consumes the existing `RunState` fields.
 - `DungeonDebt/Assets/Scenes/Main.unity`, prefabs, `Assets/Art/**`.
-- Files for save/load, unlocks, persistence, achievements, new content, or new systems.
-- `REGRESSIONS.md` unless a new regression is found and the user asks to file it.
+- Economy / interest / debt math (M15.1-owned, unchanged).
+- `REGRESSIONS.md` / `PROGRESS.md` (summary step only; user commits).
 
 ### Acceptance criteria
 
-1. The M15 preset roster is decided and written down (identity + intent of each preset).
-2. Each preset's exact existing-`GameRules`-constant deltas are specified, with no new gameplay systems or new resources introduced.
-3. The application surface (a `DifficultyPreset` data concept applied once at run init, values rooted in `GameRules`) and the selection UI placement + default preset are decided, reusing an existing UI surface.
-4. A Definition-of-ready M15.1 slice exists (ID, one-sentence goal, files list, 2-5 acceptance criteria) and `NEXT_SESSION.md` is rewritten to it.
-5. No gameplay/UI code was changed this session; the project still builds with 0 warnings / 0 errors (unchanged).
+1. Player units are built with `MaxHealth` and `Attack` scaled by `RunState.HeroHealthMultiplier` / `HeroDamageMultiplier`; enemy units by `RunState.EnemyHealthMultiplier` / `EnemyDamageMultiplier`, at the `CombatManager` build seams; `RunState` is threaded into enemy construction via the existing `StartCombat` path (no event bus / new manager).
+2. Standard Contract combat is **byte-identical to the pre-M15.2 build** (all multipliers x1.0 with the chosen rounding rule produce unchanged hero/enemy HP and damage, unchanged combat log, unchanged win/loss); the HP floor constraint holds for every preset.
+3. Apprentice Ledger is observably easier in combat (heroes ~+25% HP, enemies ~-15% damage) and Predatory Interest observably harder (enemies ~+20% HP and damage); differences are visible in the combat log/unit panel and consistent across rounds and between-round hero-health restore (no mid-combat desync).
+4. Combat remains deterministic (no `UnityEngine.Random`); scaling uses one centralized integer rounding rule (no scattered rounding); any multiplier retune is a conservative constant change in `GameRules` only, with the rationale noted.
+5. `TestPlans/TP_M15.2.md` exists (happy path: each preset's scaled hero/enemy stats in round 1; edge: Standard == legacy, HP-floor check, rounding boundary; observable invariants; targeted regression check that Standard combat and M15.1 economy are unchanged). `dotnet build DungeonDebt.sln` passes 0 warnings / 0 errors.
 
-### Planning prompts for M15.0
+### Notes / risks for the implementer
 
-- Confirm the preset roster: exactly the three plan-named presets (Apprentice Ledger / Standard Contract / Predatory Interest), or a different count/identity.
-- Confirm the default preset is Standard Contract = today's exact constants, so existing behavior and prior balance/test results are unchanged unless a harder/easier preset is picked.
-- Confirm the selection UI lives on the existing MainMenu (a small preset toggle/buttons before Start Run) rather than a new screen.
-- Confirm which constants are fair game per preset (starting gold/debt/morale, interest divisor, debt limit, win/loss reward, upkeep-related, Silver offer chance) and which are off-limits.
-- Confirm whether the chosen preset name should be surfaced read-only in the run header for clarity (recommended, reuses an existing surface).
+- **Main risk - mid-combat desync:** hero max health is derived in more than one place (`CombatManager.BuildPlayerUnits` ~96, the between-round restore ~258-262, and `RunManager.PrepareSandboxRun` ~96-104 which is currently unused in the real run but seeds `HeroInstance.CurrentHealth`). If the multiplier is applied in `BuildPlayerUnits` only, a restored hero between rounds can revert to unscaled HP. Apply via one shared helper used by every combat HP-recompute site, or confirm the unused paths cannot run in a real run.
+- `BuildEnemyUnits(EncounterDefinition)` has no `RunState` today - widen its signature and update the single `StartCombat` caller; do not introduce a static/global.
+- Rounding: HP multipliers are >= 1.0 so any sane rule preserves the floor, but verify x1.0 rounds to exactly today's integer (Standard regression). Enemy damage x0.85 must not round attack below 1 for an attacker with attack > 0 unless that already matches today for x1.0 (it does not affect Standard).
+- Keep the `[M15.1]` diagnostic-log pattern habit: TP_M15.2 should add a temporary PRE/POST `Debug.Log` of built unit `Attack`/`MaxHealth` per preset with an explicit revert step, since `CombatUnit` is plain C# and not Inspector-visible.
+- Determinism: do not let scaling introduce float tie-break differences; round to int at construction so the existing integer combat loop and leftmost-slot tie-break are unaffected.
 
 ### Start Prompt For The Next Session
 

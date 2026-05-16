@@ -29,7 +29,10 @@ public class RunHeaderView : MonoBehaviour
         int act = runState.Act <= 0 ? 1 : runState.Act;
         int roundWithinAct = GameRules.GetRoundWithinAct(act, runState.Round);
         int roundsInAct = GameRules.GetRoundsInAct(act);
-        _roundText.text = GameRules.GetActLabel(act) + " - Round " + roundWithinAct + "/" + roundsInAct;
+        string presetSuffix = string.IsNullOrEmpty(runState.DifficultyDisplayName)
+            ? string.Empty
+            : " - " + runState.DifficultyDisplayName;
+        _roundText.text = GameRules.GetActLabel(act) + " - Round " + roundWithinAct + "/" + roundsInAct + presetSuffix;
         _goldText.text = "Gold " + runState.Gold;
         _debtText.text = "Debt " + runState.Debt + " (" + GameRules.GetDebtStatusLabel(runState.Debt) + ")";
         _moraleText.text = "Morale " + runState.Morale;

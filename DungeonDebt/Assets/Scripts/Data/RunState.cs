@@ -34,4 +34,16 @@ public class RunState
     public string LatestEndReason { get; set; }
     public EncounterDefinition CurrentEncounter { get; set; }
     public bool FullUpkeepPaidLastRound { get; set; }
+
+    // M15.1 difficulty preset. Run-scoped so a preset never mutates GameRules.
+    // InterestDivisor/DebtLimit are read by RunManager interest + debt-defeat
+    // math. The four combat multipliers are carried but not yet applied (M15.2).
+    public DifficultyPresetId SelectedDifficulty { get; set; }
+    public string DifficultyDisplayName { get; set; }
+    public int InterestDivisor { get; set; }
+    public int DebtLimit { get; set; }
+    public float HeroHealthMultiplier { get; set; }
+    public float HeroDamageMultiplier { get; set; }
+    public float EnemyHealthMultiplier { get; set; }
+    public float EnemyDamageMultiplier { get; set; }
 }
