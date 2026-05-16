@@ -1037,7 +1037,7 @@ Beyond that, do not invest in a test framework in MVP.
 
 Read these aloud before opening a Codex session. They are not suggestions.
 
-**Phase 2 carve-outs (M8+):** Two rules below are amended per §15. All others remain in force.
+**Phase 2 carve-outs (M8+) and Phase 3 carve-outs (M12+):** The rules below are amended only by the explicit milestone scopes in §15 and §16. All others remain in force.
 
 - Trivial shapes, role-icon glyphs, and a small placeholder sprite set under `Assets/Art/` are allowed for Phase 2 UI work.
 - Bronze→Silver hero tiering is in scope (M9 only). No Gold tier, still no equipment / traits / factions / synergies.
@@ -1203,6 +1203,142 @@ Notes: Treasurer has 0 attack and never attacks, so it routes no attack effect; 
 
 **Out of scope for M11:** new encounters, new heroes, new payroll actions, new rival behaviors, any system not present in M1–M10.
 
+
+## 16. Phase 3 — Vertical Expansion
+
+Phase 3 begins after M11's economy/balance pass. The prototype is now playable enough to add one vertical at a time, but the project should still stay small and Codex-friendly.
+
+Phase 3 does **not** approve a broad feature explosion. The following remain out of scope unless a later Phase 3 milestone explicitly ratifies them: full equipment inventory, large hero roster expansion, large campaign/act system, complex status stacking, save/load, online features, meta progression, tutorials, audio polish, or full RPG progression.
+
+### Phase 3 vertical order
+
+Use this order unless a later planning session changes it:
+
+| Priority | Milestone | Vertical | Output |
+|---:|---|---|---|
+| 1 | M12 | Debt rework and resource-pressure readability | Debt-status tiers, Shop repayment, clearer interest/debt warnings |
+| 2 | M13 | Act 1 framing and transition shell | Treat current 10 rounds as Act 1 and add an act-clear handoff shell |
+| 3 | M14 | Act 2 mini vertical | Add a small 3-5 encounter follow-up using existing systems |
+| 4 | M15 | Difficulty modifiers | Simple run contracts/difficulty presets built from existing constants |
+| 5 | M16 | Relic/policy rewards | Loot-like run modifiers without hero equipment or inventory |
+| 6 | M17 | Narrow veterancy | One capped hero XP/veteran bump, if still needed after economy is stable |
+| 7 | M18+ | One status keyword vertical | Add at most one readable status keyword in a contained slice |
+
+### Phase 3 scope rules
+
+- **One vertical per milestone.** Do not combine debt, acts, loot, XP, and statuses in one session.
+- **Reuse existing UI surfaces first.** Prefer RunHeader, RewardSummary, EndScreen, Scout, Shop, and existing card views before creating new screens.
+- **No full inventory/equipment in Phase 3 planning by default.** If loot is added later, start with global run policies/relics, not per-hero items.
+- **No broad hero roster expansion.** New enemies are allowed only inside an approved content milestone such as M14.
+- **No complex status stack system.** A later status slice may add one keyword and one clear timing rule only.
+- **No save/load or meta progression.** Each run remains a fresh session.
+- **Keep `GameRules` as the tuning surface.** New numeric thresholds live there, not scattered through logic files.
+
+### Milestone 12: Debt rework and resource-pressure readability
+
+**Goal.** Make debt feel less instantly punishing while preserving it as the central strategic pressure.
+
+**Why now.** M11 made the current 10-round run acceptable as Act 1 / initial difficulty, but user feedback is that debt currently feels overly punishing. Debt is the game's core hook, so this should be addressed before acts, loot/relics, XP, difficulty modes, or combat-status expansion.
+
+**Design direction.** Debt becomes a readable risk track with escalating warning tiers rather than a surprise fail meter. The player should understand when debt is safe, when it is risky, and when one more unpaid bill may end the run. Debt also needs a recovery loop: the player must be able to deliberately spend gold to pay down principal, rather than only avoiding future debt.
+
+**Debt status tiers.** Exact names and thresholds can tune over time, but M12 starts with:
+
+| Status | Intended feel | Suggested threshold |
+|---|---|---:|
+| Stable | No immediate problem | 0-5 debt |
+| Strained | Debt matters, but the run is healthy | 6-11 debt |
+| Dangerous | Interest and debt-scaled enemies are a real threat | 12-19 debt |
+| Critical | Near bankruptcy; urgent recovery needed | 20+ debt |
+
+**Initial M12 implementation target.** Keep the first pass conservative:
+
+- Add a Shop **Pay Debt** control that converts gold into debt reduction at 1:1.
+- First-pass repayment rule: `DebtPaymentCap = 3`; payment amount = `min(Gold, Debt, GameRules.DebtPaymentCap)`; enabled only when `Gold > 0` and `Debt > 0`.
+- The repayment action immediately spends gold, so it competes with hiring and rerolling.
+- Add debt status/readability around the existing debt pressure.
+- Keep unpaid upkeep, loan debt, interest, Debt Wraith scaling, and debt defeat intact. The point is not to remove debt; it is to make debt readable and recoverable.
+- M12.1 may still tune debt thresholds/interest conservatively if the implementation plan for the slice calls for it, but repayment is the core gameplay change.
+
+**In scope for M12:**
+
+- `GameRules` constants/helpers for debt tiers, debt limit, interest divisor, and `DebtPaymentCap`.
+- Run-header debt status display.
+- Shop Pay Debt button/control.
+- Reward/upkeep summary copy that explains debt gained, interest paid/added, and status changes.
+- End-screen debt-defeat copy aligned with the new threshold.
+- Balance TSV logging kept compatible with the changed thresholds.
+- Manual test plans that exercise exact threshold boundaries.
+
+**Out of scope for M12:**
+
+- New heroes, new encounters, new payroll actions, Act 2, relics/loot, equipment/inventory, XP/veterancy, difficulty mode selection, damage/status types, save/load, tutorials, or new resource types.
+- Removing debt loss entirely.
+- Automatic surplus repayment.
+- Adding or replacing payroll actions for repayment.
+- Hero behavior changes, enemy behavior changes, high-debt shop surcharges, specific encounter warnings, or new debt enemies before the Shop repayment loop has been tested.
+- Rewriting the whole economy loop.
+- Changing combat math except for existing debt-dependent behavior continuing to read current debt.
+
+#### M12 expected sub-slicing
+
+- **M12.1 — Debt status + Shop repayment.**
+  - *Goal:* make debt more readable and recoverable without removing its strategic pressure.
+  - *Files (anticipated):* `GameRules.cs`, `RunState.cs` only if summary fields are needed, `RunManager.cs` if debt-status/repayment helpers belong there, `ShopManager.cs`, `RunHeaderView.cs`, `ShopPanelView.cs`, `MainMenuPanel.cs` if callback wiring is needed, `RewardSummaryView.cs` if general warning/status copy is needed, `TestPlans/TP_M12.1.md`.
+  - *Acceptance target:* player can see `Stable` / `Strained` / `Dangerous` / `Critical`; Shop Pay Debt spends up to `DebtPaymentCap` gold to reduce debt 1:1; repayment updates gold/debt immediately and competes with hire/reroll; warnings stay general; Debt Wraith, payroll, hero effects, enemy effects, and content remain unchanged.
+- **M12.2 — Debt retest and follow-up tuning.**
+  - *Goal:* run a small post-rework balance matrix using the existing balance TSV logger and tune only the M12 constants/repayment cap if needed.
+  - *Files (anticipated):* likely `GameRules.cs`, `TestPlans/TP_M12.2.md`, possibly `NEXT_SESSION.md`/`PROGRESS.md` handoff text only.
+  - *Acceptance target:* at least three observed run archetypes: stable/no-loan, loan-heavy, and high-upkeep/Silver-heavy; results decide whether to tune repayment/debt pressure, explore deferred debt interactions, or proceed to M13 Act 1 framing.
+
+### Milestone 13: Act 1 framing and transition shell
+
+**Goal.** Reframe the current 10-round dungeon as Act 1 without building a full campaign yet.
+
+**In scope:** act title/copy, Act 1 clear summary, placeholder Act 2 handoff, and documentation of what would carry forward.
+
+**Out of scope:** building Act 2 content, adding a map, save/load, campaign progression, or branching paths.
+
+### Milestone 14: Act 2 mini vertical
+
+**Goal.** Add a small follow-up content slice only after Act 1 framing is accepted.
+
+**In scope:** 3-5 new encounters using existing systems, one new encounter theme, one simple boss, and scout/reward balancing.
+
+**Out of scope:** large campaign, new hero roster, procedural map, full act structure, or new core systems.
+
+### Milestone 15: Difficulty modifiers
+
+**Goal.** Add replayability and balance testing through small run-contract presets.
+
+**In scope:** presets such as Apprentice Ledger, Standard Contract, and Predatory Interest that modify existing `GameRules`-style constants through a small approved surface.
+
+**Out of scope:** unlocks, persistent progression, achievements, save/load, or online rankings.
+
+### Milestone 16: Relic/policy rewards
+
+**Goal.** Add loot-like excitement without equipment or inventory.
+
+**In scope:** global run modifiers presented as card choices, such as guild policies or relics that affect existing economy/combat hooks.
+
+**Out of scope:** per-hero equipment, item slots, inventory management, item rarity ladders, or large item pools.
+
+### Milestone 17: Narrow veterancy
+
+**Goal.** Consider a capped XP-style progression only if the economy is stable after M12-M16.
+
+**In scope:** at most one veteran bump per hero, with no skill tree and no branching choices.
+
+**Out of scope:** full RPG leveling, skill trees, class evolution, or meta progression.
+
+### Milestone 18+: One status keyword vertical
+
+**Goal.** Add one readable combat keyword only after the combat UI and balance can support it.
+
+**In scope:** one keyword, one timing rule, one or two enemies/heroes using it, and a targeted test plan.
+
+**Out of scope:** damage types, resistances, status stacks, large debuff libraries, or full combat-type systems.
+
 ---
 
 ## Appendix: Milestone-to-Section Map
@@ -1220,5 +1356,7 @@ When prompting Codex for a single milestone, attach this plan and reference:
 - M9 (Bronze→Silver tiering) → §15, §4 (HeroInstance.Tier addition), §7 (per-hero Silver bonus table in §15).
 - M10 (Combat view rebuild) → §15, §6 (combat flow), §10 (combat panel area).
 - M11 (Economy & balance pass) → §15, §5, plus §7/§8/§9 for tuning targets.
+- M12 (Debt rework and resource-pressure readability) → §16, §5 (debt/upkeep/interest), §10 (RunHeader, Shop, RewardSummary, EndScreen), §12 (GameRules/RunManager/ShopManager responsibilities).
+- M13+ (Phase 3 vertical expansion) → §16 plus the relevant existing systems named in the chosen milestone.
 
 Each milestone prompt should attach only the relevant sections to keep Codex focused.
