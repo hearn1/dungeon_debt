@@ -121,6 +121,7 @@ public class GameManager : MonoBehaviour
 
         GameState nextState = _runManager.EvaluateNextState();
         RunState runState = CurrentRunState;
+        BalanceRunLogger.LogRound(runState, nextState);
         if (runState != null)
         {
             runState.SelectedPayrollAction = null;
