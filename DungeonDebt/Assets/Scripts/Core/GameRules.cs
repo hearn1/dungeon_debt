@@ -66,6 +66,7 @@ public static class GameRules
     public const int RivalMoraleDebtPenalty = 2;
 
     public const int CombatTurnLimit = 10;
+    public const int MinimumPositiveCombatStat = 1;
 
     // M15.1 difficulty presets. Standard Contract reuses the base economy
     // constants above (StartingGold/StartingDebt/StartingMorale/
@@ -181,6 +182,27 @@ public static class GameRules
     public static bool IsHighDebtPressure(int debt)
     {
         return debt >= DangerousDebtThreshold;
+    }
+
+    public static int ScaleCombatStat(int baseValue, float multiplier)
+    {
+        if (baseValue <= 0)
+        {
+            return 0;
+        }
+
+        if (multiplier <= 0f)
+        {
+            return baseValue;
+        }
+
+        int scaledValue = Mathf.CeilToInt(baseValue * multiplier);
+        if (scaledValue < MinimumPositiveCombatStat)
+        {
+            return MinimumPositiveCombatStat;
+        }
+
+        return scaledValue;
     }
 
     public static int GetRoundsInAct(int act)

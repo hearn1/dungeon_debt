@@ -213,7 +213,8 @@ public static class HeroEffects
         // Debt Wraith: scale attack with current debt.
         if (run != null)
         {
-            int wraithAttack = 1 + (run.Debt / GameRules.DebtWraithDebtDivisor);
+            int wraithBaseAttack = 1 + (run.Debt / GameRules.DebtWraithDebtDivisor);
+            int wraithAttack = GameRules.ScaleCombatStat(wraithBaseAttack, run.EnemyDamageMultiplier);
             for (int i = 0; i < enemyUnits.Count; i++)
             {
                 CombatUnit unit = enemyUnits[i];
