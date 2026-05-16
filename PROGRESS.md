@@ -51,6 +51,48 @@ Copy this block when adding a new entry. Paste it at the top of the Session log 
 
 <!-- Newest entries at the top. -->
 
+## 2026-05-16 - M10.7: Combat-screen layout pass (v2 footer-card, practical Unity fit)
+
+**Milestone:** M10 - Combat view rebuild
+**Status:** Complete (user visually accepted combat result; formal TP_M10.7 checkbox run not fully recorded)
+
+**Files added:**
+- `TestPlans/TP_M10.7.md`
+
+**Files removed:**
+- `Combat Layout v2.html`
+- `Combat Layouts.html`
+- `combat-card-v2.jsx`
+- `combat-variants.jsx`
+- `design-canvas (1).jsx`
+- `tweaks-panel.jsx`
+
+**Files modified:**
+- `DungeonDebt/Assets/Scripts/UI/CombatUnitCardView.cs` - reshaped combat unit cards into portrait cards with a bottom footer band, 1px role-accent footer edge, HP track, and no-sprite name fallback.
+- `DungeonDebt/Assets/Scripts/UI/CombatPanelView.cs` - enlarged combat card/grid constants to `200x176` and explicitly applied card RectTransform sizing so Unity does not fall back to default 100x100 cards.
+- `DungeonDebt/Assets/Scripts/UI/MainMenuPanel.cs` - added combat-only top reclaim via `CombatScreenTopOffset`, plus a compact combat status/restart header that stays clear of the persistent run header.
+- `TestPlans/Capture.PNG` - user-provided visual capture used to verify the first pass and expose the unresolved card-size/header overlap issues.
+
+**Acceptance criteria:**
+- [x] AC1 - `CombatUnitCardView` is now a portrait card: portrait above a fixed bottom footer, HP in the footer, role-accent footer edge, darker footer background, and name only as the no-sprite fallback.
+- [x] AC2 - Combat-only relayout reclaims vertical space and cards are meaningfully larger than 150x102 (`200x176` final fit); the scrolling log remains in its existing strip.
+- [x] AC3 - Non-combat panel offsets were not changed; shop/formation/payroll/scout/reward/end/leaderboard continue using the shared existing layout.
+- [x] AC4 - Existing card states are preserved: role band, tier frame, acting outline, hit flash, dead tint, no-sprite name fallback, and HP colour threshold.
+- [x] AC5 - `CombatLogView`/combat math/run/data/flow/art/scene were not changed; M10.5 effect motion still reads live card world positions and should track the new card size.
+
+**Test plan:** `TestPlans/TP_M10.7.md` created. `dotnet build DungeonDebt.sln` passed with 0 warnings / 0 errors. User visually accepted the corrected combat layout; full manual checkbox run remains available for regression sweep.
+
+**Deviations from plan:**
+- Final card height is `176` rather than the ideal `208`, preserving the scrolling log and bounded top reclaim.
+- The compact combat header was placed in the upper-right combat area below the run header after `Capture.PNG` showed the first pass overlapping the persistent Round/Gold/Debt/Morale header.
+- Added an explicit card RectTransform sizing fix after `Capture.PNG` showed Unity ignored preferred card size while row layout child-control sizing was disabled.
+
+**Follow-up flagged:**
+- M10.5 effect motion and R001 long-log scroll are covered in `TP_M10.7.md`; run them during the next broad visual/regression sweep if desired.
+- Balance work can now proceed to M11.
+
+**Next slice:** M11.1 - Economy and balance baseline run matrix.
+
 ## 2026-05-16 - M10.6: Combat card cleanup (thin tier frame + name as no-sprite fallback)
 
 **Milestone:** M10 - Combat view rebuild

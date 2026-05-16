@@ -28,7 +28,7 @@ public static class GameRules
         }
     }
 
-    public const int StartingGold = 100;
+    public const int StartingGold = 15;
     public const int StartingDebt = 0;
     public const int StartingMorale = 30;
     public const int DebtLimit = 20;

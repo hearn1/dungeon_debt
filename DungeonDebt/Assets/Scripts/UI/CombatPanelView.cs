@@ -7,9 +7,15 @@ public class CombatPanelView : MonoBehaviour
     private const int Padding = 18;
     private const int TitleHeight = 30;
     private const int RowLabelWidth = 104;
-    private const int CardWidth = 150;
-    private const int CardHeight = 102;
-    private const int CardGap = 18;
+    // M10.7: enlarged for the v2 footer-card layout. The combat-only screen
+    // reclaim in MainMenuPanel frees ~316px of top chrome (combat panel grows
+    // 510 -> 826px) while the scrolling log stays put. Largest 4-row fit there
+    // is ~176 tall (ideal was 208; capped here to preserve the unchanged
+    // scrolling log and the bounded top reclaim): bottom of row 4 =
+    // 56 + 4*176 + 5*8 = 800 <= 826 panel height.
+    private const int CardWidth = 200;
+    private const int CardHeight = 176;
+    private const int CardGap = 22;
     private const int RowGap = 8;
     private const int FrontlineSlots = GameRules.FrontlineSlots;
     private const int BacklineSlots = GameRules.BacklineSlots;
@@ -515,11 +521,30 @@ public class CombatPanelView : MonoBehaviour
         {
             RectTransform cardRect = CreateRect("CombatUnitCard", row);
             LayoutElement layoutElement = cardRect.gameObject.AddComponent<LayoutElement>();
-            layoutElement.preferredWidth = CardWidth;
-            layoutElement.preferredHeight = CardHeight;
+            ApplyCardSize(cardRect, layoutElement);
             CombatUnitCardView card = cardRect.gameObject.AddComponent<CombatUnitCardView>();
             card.Initialize(_font);
             cards.Add(card);
+        }
+
+        for (int i = 0; i < cards.Count; i++)
+        {
+            RectTransform cardRect = (RectTransform)cards[i].transform;
+            LayoutElement layoutElement = cardRect.GetComponent<LayoutElement>();
+            ApplyCardSize(cardRect, layoutElement);
+        }
+    }
+
+    private static void ApplyCardSize(RectTransform cardRect, LayoutElement layoutElement)
+    {
+        // The row layout leaves childControlWidth/Height disabled so cards keep
+        // their explicit RectTransform size. Preferred size alone is ignored in
+        // that mode and Unity falls back to the default 100x100 rect.
+        cardRect.sizeDelta = new Vector2(CardWidth, CardHeight);
+        if (layoutElement != null)
+        {
+            layoutElement.preferredWidth = CardWidth;
+            layoutElement.preferredHeight = CardHeight;
         }
     }
 
