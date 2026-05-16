@@ -51,6 +51,39 @@ Copy this block when adding a new entry. Paste it at the top of the Session log 
 
 <!-- Newest entries at the top. -->
 
+## 2026-05-16 - M18.2: Relic/upgrade variants for player-side status access
+
+**Milestone:** M18 - Combat status keywords
+**Status:** Complete
+
+**Files added:**
+- `TestPlans/TP_M18.2.md`
+
+**Files modified:**
+- `DungeonDebt/Assets/Scripts/Data/GameEnums.cs` - added status relic IDs.
+- `DungeonDebt/Assets/Scripts/Core/GameRules.cs` - added status relic names and descriptions.
+- `DungeonDebt/Assets/Scripts/Core/DataRepository.cs` - added Shield Clause, Red Ink Brand, Caustic Writ, and Toxic Collateral to the existing relic pool.
+- `DungeonDebt/Assets/Scripts/Combat/CombatManager.cs` - applies player-side relic status effects after damage lands and only when the target survives.
+- `DungeonDebt/Assets/Scripts/Combat/HeroEffects.cs` - adds Silver upgrade status access for Knight, Ninja, Wizard, and Enchanter.
+- `NEXT_SESSION.md` - rewrote the handoff for post-M18 next-vertical planning.
+
+**Acceptance criteria:**
+- [x] A small set of new relic/policy definitions gives player-side access to selected M18.1 statuses using the existing relic reward flow.
+- [x] Player-side status effects reuse the M18.1 status data, logs, replay refresh, and combat-card indicators; no duplicate status system is introduced.
+- [x] Status relic effects are deterministic and readable: combat-start effects happen before the first action, and on-attack effects apply to the target after damage lands if the target survives.
+- [x] Existing enemy-side M18.1 statuses still work, including attack-applied Burned / Poisoned / Weakened behavior.
+- [x] `TestPlans/TP_M18.2.md` exists with happy path, edge cases, observable invariants, and targeted regression checks for relic reward routing, active relic visibility, status replay/card refresh, prior relic effects, and Silver status upgrades.
+
+**Test plan:** `TestPlans/TP_M18.2.md` - drafted for manual Unity verification; `dotnet build DungeonDebt\DungeonDebt.sln` passed with 0 warnings / 0 errors.
+
+**Deviations from plan:**
+- User expanded the slice after initial implementation to add a narrow hero-upgrade status pipeline: Silver Knight starts Guarded; Silver Ninja applies Poisoned; Silver Wizard applies Burned; Silver Enchanter applies Weakened. These reuse the same M18.1 status system and do not add new statuses or screens.
+
+**Follow-up flagged:**
+- M18 is considered complete. Only reopen status work for manual-test regressions or explicit tuning.
+
+**Next slice:** M19.0 - Post-M18 next-vertical planning.
+
 ## 2026-05-16 - M18.1: Multi-status combat keywords, enemy-side first pass
 
 **Milestone:** M18 - Combat status keywords

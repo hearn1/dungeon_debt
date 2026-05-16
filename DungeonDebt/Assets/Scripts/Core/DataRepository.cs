@@ -444,7 +444,27 @@ public static class DataRepository
         new RelicDefinition(
             RelicId.GuildDividend,
             "Guild Dividend",
-            "Gain +1 extra gold in each reward phase.")
+            "Gain +1 extra gold in each reward phase."),
+
+        new RelicDefinition(
+            RelicId.ShieldClause,
+            GameRules.ShieldClauseRelicName,
+            GameRules.ShieldClauseRelicDescription),
+
+        new RelicDefinition(
+            RelicId.RedInkBrand,
+            GameRules.RedInkBrandRelicName,
+            GameRules.RedInkBrandRelicDescription),
+
+        new RelicDefinition(
+            RelicId.CausticWrit,
+            GameRules.CausticWritRelicName,
+            GameRules.CausticWritRelicDescription),
+
+        new RelicDefinition(
+            RelicId.ToxicCollateral,
+            GameRules.ToxicCollateralRelicName,
+            GameRules.ToxicCollateralRelicDescription)
     };
 
     private static readonly EncounterDefinition SandboxEncounterDefinition = new EncounterDefinition(
