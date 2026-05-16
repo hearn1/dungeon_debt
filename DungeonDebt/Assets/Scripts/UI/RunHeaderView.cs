@@ -28,7 +28,7 @@ public class RunHeaderView : MonoBehaviour
 
         _roundText.text = "Round " + runState.Round;
         _goldText.text = "Gold " + runState.Gold;
-        _debtText.text = "Debt " + runState.Debt;
+        _debtText.text = "Debt " + runState.Debt + " (" + GameRules.GetDebtStatusLabel(runState.Debt) + ")";
         _moraleText.text = "Morale " + runState.Morale;
     }
 

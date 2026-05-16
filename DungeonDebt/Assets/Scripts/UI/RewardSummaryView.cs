@@ -5,7 +5,7 @@ using UnityEngine.UI;
 public class RewardSummaryView : MonoBehaviour
 {
     private const int TitleFontSize = 28;
-    private const int BodyFontSize = 22;
+    private const int BodyFontSize = 20;
     private const int Padding = 24;
     private const int TitleHeight = 44;
     private const int ContinueButtonHeight = 56;
@@ -45,6 +45,12 @@ public class RewardSummaryView : MonoBehaviour
             payrollSection = runState.LatestPayrollSummary + "\n";
         }
 
+        string debtWarning = string.Empty;
+        if (GameRules.IsHighDebtPressure(runState.Debt))
+        {
+            debtWarning = "\nHigh debt increases interest pressure and can interact badly with debt-scaling threats.";
+        }
+
         _bodyText.text =
             "Combat: " + (runState.LatestCombatWon ? "Win" : "Loss") + "\n" +
             "Gold gained: +" + runState.LatestRewardGold + "\n" +
@@ -56,7 +62,9 @@ public class RewardSummaryView : MonoBehaviour
             "Interest charged: " + runState.LatestInterestCharged + "\n" +
             "Interest paid: " + runState.LatestInterestPaid + "\n" +
             "Interest to debt: " + runState.LatestInterestAddedToDebt + "\n" +
-            "Final: Gold " + runState.Gold + " / Debt " + runState.Debt + " / Morale " + runState.Morale;
+            "Debt status: " + GameRules.GetDebtStatusLabel(runState.Debt) + "\n" +
+            "Final: Gold " + runState.Gold + " / Debt " + runState.Debt + " / Morale " + runState.Morale +
+            debtWarning;
 
         if (_continueButton != null)
         {

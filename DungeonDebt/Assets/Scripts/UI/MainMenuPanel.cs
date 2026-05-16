@@ -69,7 +69,7 @@ public class MainMenuPanel : MonoBehaviour
         _restartButton.onClick.AddListener(RestartCombat);
         _rewardSummaryView.SetOnContinue(HandleContinueClicked);
         _endScreenView.SetOnNewRun(HandleNewRunClicked);
-        _shopPanelView.SetHandlers(HandleHireClicked, HandleFireClicked, HandleRerollClicked, HandleShopContinueClicked);
+        _shopPanelView.SetHandlers(HandleHireClicked, HandleFireClicked, HandleRerollClicked, HandlePayDebtClicked, HandleShopContinueClicked);
         _formationPanelView.SetHandlers(HandleFormationSwap, HandleFormationContinue);
         _payrollPanelView.SetActions(DataRepository.AllPayrollActions);
         _payrollPanelView.SetHandlers(HandlePayrollSelect, HandlePayrollContinue);
@@ -159,6 +159,18 @@ public class MainMenuPanel : MonoBehaviour
         }
 
         shopManager.Reroll();
+        RefreshShop();
+    }
+
+    private void HandlePayDebtClicked()
+    {
+        ShopManager shopManager = _gameManager.ShopManager;
+        if (shopManager == null)
+        {
+            return;
+        }
+
+        shopManager.PayDebt();
         RefreshShop();
     }
 
