@@ -9,7 +9,7 @@ public class EndScreenView : MonoBehaviour
     private const int ReasonFontSize = 26;
     private const int StatsFontSize = 24;
     private const int TitleHeight = 64;
-    private const int ReasonHeight = 48;
+    private const int ReasonHeight = 76;
     private const int ButtonWidth = 240;
     private const int ButtonHeight = 64;
 
@@ -38,7 +38,7 @@ public class EndScreenView : MonoBehaviour
 
         if (isVictory)
         {
-            _titleText.text = "Victory";
+            _titleText.text = "Act 1 Clear";
             _titleText.color = new Color(0.7f, 0.92f, 0.62f, 1f);
         }
         else
@@ -50,15 +50,24 @@ public class EndScreenView : MonoBehaviour
         string reason = runState != null && !string.IsNullOrEmpty(runState.LatestEndReason)
             ? runState.LatestEndReason
             : (isVictory ? "Run cleared." : "Run ended.");
+        if (isVictory)
+        {
+            reason = "Auditor defeated.\nAct 2 is not implemented yet.";
+        }
         _reasonText.text = reason;
 
         if (runState != null)
         {
+            string handoffText = isVictory
+                ? "\nFuture handoff: review party, gold, debt, morale."
+                : string.Empty;
+
             _statsText.text =
                 "Final round: " + runState.Round + "\n" +
                 "Gold: " + runState.Gold + "\n" +
                 "Debt: " + runState.Debt + "\n" +
-                "Morale: " + runState.Morale;
+                "Morale: " + runState.Morale +
+                handoffText;
         }
         else
         {
