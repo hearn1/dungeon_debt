@@ -51,6 +51,34 @@ Copy this block when adding a new entry. Paste it at the top of the Session log 
 
 <!-- Newest entries at the top. -->
 
+## 2026-05-16 - M18.0: Status keyword planning + first-slice definition
+
+**Milestone:** M18 - Combat status keywords
+**Status:** Complete
+
+**Files added:**
+- `TestPlans/TP_M18.0.md`
+
+**Files modified:**
+- `NEXT_SESSION.md` - rewrote the next session brief to define M18.1 as a multi-status enemy-side first pass.
+
+**Acceptance criteria:**
+- [x] The first M18 implementation slice is defined with ID, goal, files, and 2-5 acceptance criteria.
+- [x] The proposed slice defines the approved status set: Guarded, Burned, Poisoned, Marked, Weakened, Inspired.
+- [x] The plan explicitly excludes generalized stacks, durations, cleanse/dispel, resistances, damage types, crit/dodge, broad status engines, relic/upgrade access, and unrelated content.
+- [x] `NEXT_SESSION.md` is rewritten to a ready implementation slice.
+
+**Test plan:** `TestPlans/TP_M18.0.md` - drafted as a planning-document review checklist; no Unity runtime behavior changed.
+
+**Deviations from plan:**
+- M18.1 intentionally expands the original one-keyword M18 placeholder into a compact multi-status first pass per user direction during M18.0.
+- Added `TP_M18.0.md` for protocol compliance even though the planning brief expected no created files.
+
+**Follow-up flagged:**
+- Consider updating `IMPLEMENTATION_PLAN.md` section 16 later so the source plan matches the user-approved multi-status M18 direction.
+
+**Next slice:** M18.1 - Multi-status combat keywords, enemy-side first pass.
+
 ## 2026-05-16 - M17.1: Tiered veterancy XP + stat bumps
 
 **Milestone:** M17 - Tiered veterancy
