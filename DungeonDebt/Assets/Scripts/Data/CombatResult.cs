@@ -5,6 +5,7 @@ public class CombatResult
     public CombatResult()
     {
         LogLines = new List<string>();
+        ReplayEvents = new List<CombatReplayEvent>();
         SurvivorFlags = new Dictionary<string, bool>();
         DeadHeroes = new List<HeroInstance>();
         PlayerStartUnits = new List<CombatUnit>();
@@ -16,6 +17,7 @@ public class CombatResult
     public bool PlayerWon { get; set; }
     public int CombatRoundsElapsed { get; set; }
     public List<string> LogLines { get; }
+    public List<CombatReplayEvent> ReplayEvents { get; }
     public Dictionary<string, bool> SurvivorFlags { get; }
     public List<HeroInstance> DeadHeroes { get; }
     public List<CombatUnit> PlayerStartUnits { get; }

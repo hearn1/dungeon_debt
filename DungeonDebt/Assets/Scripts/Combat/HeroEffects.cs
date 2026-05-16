@@ -682,7 +682,7 @@ public static class HeroEffects
         healTarget.CurrentHealth = newHealth;
         if (logger != null)
         {
-            logger.LogMessage(healer.DisplayName + " heals " + healTarget.DisplayName + " for " + healed + ".");
+            logger.LogHeal(healer, healTarget, healed);
         }
     }
 

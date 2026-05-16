@@ -276,6 +276,7 @@ public class CombatManager
         CopyUnitSnapshots(playerUnits, result.PlayerFinalUnits);
         CopyUnitSnapshots(enemyUnits, result.EnemyFinalUnits);
         logger.CopyTo(result.LogLines);
+        logger.CopyReplayTo(result.ReplayEvents);
     }
 
     private static void CopyUnitSnapshots(List<CombatUnit> source, List<CombatUnit> destination)
