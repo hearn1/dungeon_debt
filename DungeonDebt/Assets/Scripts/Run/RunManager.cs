@@ -43,6 +43,7 @@ public class RunManager : MonoBehaviour
         _random = new System.Random(unchecked((int)DateTime.Now.Ticks));
 
         RunState runState = new RunState();
+        runState.Act = 1;
         runState.Round = 1;
         runState.Gold = GameRules.StartingGold;
         runState.Debt = GameRules.StartingDebt;
@@ -204,15 +205,29 @@ public class RunManager : MonoBehaviour
             return GameState.Defeat;
         }
 
-        if (_currentRunState.Round >= GameRules.FinalRound)
+        if (_currentRunState.Act >= GameRules.FinalAct)
+        {
+            if (_currentRunState.Round >= GameRules.Act2FinalRound)
+            {
+                if (_currentRunState.LatestCombatWon)
+                {
+                    _currentRunState.LatestEndReason = "Act 2 cleared.";
+                    return GameState.Victory;
+                }
+
+                _currentRunState.LatestEndReason = "Act 2 final round failed.";
+                return GameState.Defeat;
+            }
+        }
+        else if (_currentRunState.Round >= GameRules.Act1FinalRound)
         {
             if (_currentRunState.LatestCombatWon)
             {
-                _currentRunState.LatestEndReason = "Final round cleared.";
+                _currentRunState.LatestEndReason = "Act 1 cleared.";
                 return GameState.Victory;
             }
 
-            _currentRunState.LatestEndReason = "Final round failed.";
+            _currentRunState.LatestEndReason = "Act 1 final round failed.";
             return GameState.Defeat;
         }
 
@@ -299,6 +314,20 @@ public class RunManager : MonoBehaviour
 
         _currentRunState.Round += 1;
         _currentRunState.HasLatestRewardSummary = false;
+        ResetPartyTierStats(_currentRunState);
+    }
+
+    public void AdvanceToAct2()
+    {
+        if (_currentRunState == null)
+        {
+            return;
+        }
+
+        _currentRunState.Act = GameRules.FinalAct;
+        _currentRunState.Round = GameRules.Act1FinalRound + 1;
+        _currentRunState.HasLatestRewardSummary = false;
+        _currentRunState.LatestEndReason = null;
         ResetPartyTierStats(_currentRunState);
     }
 

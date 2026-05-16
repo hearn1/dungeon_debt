@@ -9,6 +9,7 @@ public class RunState
         Encounters = new List<EncounterDefinition>();
     }
 
+    public int Act { get; set; }
     public int Round { get; set; }
     public int Gold { get; set; }
     public int Debt { get; set; }

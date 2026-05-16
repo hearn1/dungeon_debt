@@ -51,6 +51,47 @@ Copy this block when adding a new entry. Paste it at the top of the Session log 
 
 <!-- Newest entries at the top. -->
 
+## 2026-05-16 - M14.1: Act 2 state shell + 3-encounter mini vertical
+
+**Milestone:** M14 - Act 2 mini vertical
+**Status:** Complete (pending user run of TP_M14.1.md)
+
+**Files added:**
+- `TestPlans/TP_M14.1.md`
+
+**Files modified:**
+- `DungeonDebt/Assets/Scripts/Core/GameRules.cs` - Act constants (Act1/Act2FinalRound, Act1/Act2Rounds, FinalAct) + act display helpers.
+- `DungeonDebt/Assets/Scripts/Data/RunState.cs` - added explicit `int Act` field.
+- `DungeonDebt/Assets/Scripts/Core/DataRepository.cs` - 3 Act 2 rival-rematch encounters (abs rounds 11-13) + 8 upgraded enemy defs reusing Act 1 enemy ids for art/effect reuse; sandbox run sets Act=1.
+- `DungeonDebt/Assets/Scripts/Run/RunManager.cs` - InitializeRun sets Act=1; act-aware `EvaluateNextState`; new `AdvanceToAct2()`.
+- `DungeonDebt/Assets/Scripts/Core/GameManager.cs` - new `ContinueToAct2()` routing through `ChangeState(Scout)`.
+- `DungeonDebt/Assets/Scripts/UI/EndScreenView.cs` - 3-way end screen, single reused button (Continue to Act 2 / New Run).
+- `DungeonDebt/Assets/Scripts/UI/MainMenuPanel.cs` - wired ContinueToAct2 callback; act-aware Scout/Victory status copy.
+- `DungeonDebt/Assets/Scripts/UI/RunHeaderView.cs` - act-aware round display.
+- `DungeonDebt/Assets/Scripts/UI/ScoutPanelView.cs` - act-aware title/type copy.
+
+**Acceptance criteria:**
+- [x] Act 1 round-10 win offers a real Continue to Act 2 path (not the old dead end).
+- [x] Continuing preserves live party/tiers/gold/debt/morale/rival state; routes to Act 2 round 1 Scout via existing transitions.
+- [x] Exactly 3 upgraded rival-guild rematches using existing systems only (higher stats, +1 Carry unit, reused FrugalGhostHeal; no new effects/art/heroes/payroll/resources).
+- [x] Header/scout/status/end-screen distinguish Act 1 clear / Act 2 rounds 1-3 / Act 2 complete / defeat.
+- [x] `TestPlans/TP_M14.1.md` exists with happy path, edge cases, observable invariants, targeted regression checks.
+
+**Test plan:** `TestPlans/TP_M14.1.md` - drafted; not yet run by user. `dotnet build DungeonDebt.sln` passed with 0 warnings / 0 errors (rebuilt after the enemy-id art-reuse fix).
+
+**Deviations from plan:**
+- `RunState.cs` gained an explicit `int Act` field per user choice (NEXT_SESSION recommended absolute-round + UI mapping with no act data model). Minimized to one property; absolute `Round` kept as the encounter-lookup key so EncounterManager/RivalManager/BalanceRunLogger needed no changes. Flagged in the plan and user-approved.
+- Removed an invalid "lower `Act1FinalRound`" test fast-path during test-plan authoring: it would desync Act 2 encounter lookup (encounters keyed to absolute 11-13; `AdvanceToAct2` derives the start round from `Act1FinalRound`). Edge cases use only the defeat temporary setup.
+- Post-implementation fix: Act 2 enemy ids initially `act2_*` showed no portrait (catalog miss). Changed to reuse Act 1 enemy ids so existing portrait art and attack-effect category resolve. Enemy `Id` is not a unique key anywhere (`AllEnemies` is unused; SpriteCatalog seeds from its own id list), so duplicate ids are safe. Touched only `DataRepository.cs` (already in the slice change set).
+
+**Follow-up flagged:**
+- M14.2 retest/tuning slice was intentionally skipped per user decision: M14.1 is accepted as a proof that the run can carry into a second act. M14 is closed as a proof vertical; Act 2 fight expansion is deferred (revisit in a later content milestone).
+- Act 2 enemy stats are conservative first-pass numbers; left as-is until Act 2 is expanded.
+- Act 2 Complete is a temporary finale (no further content yet) - expected per scope.
+- `TP_M14.1.md` was not run end-to-end by the user; M14.1 visually accepted via the live Act 2 Greedy fight + art-reuse fix instead.
+
+**Next slice:** M15.0 - Difficulty modifiers planning + first-slice definition.
+
 ## 2026-05-16 - M13.1: Act 1 framing and transition shell
 
 **Milestone:** M13 - Act 1 framing and transition shell

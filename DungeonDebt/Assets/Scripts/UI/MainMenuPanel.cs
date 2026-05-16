@@ -69,6 +69,7 @@ public class MainMenuPanel : MonoBehaviour
         _restartButton.onClick.AddListener(RestartCombat);
         _rewardSummaryView.SetOnContinue(HandleContinueClicked);
         _endScreenView.SetOnNewRun(HandleNewRunClicked);
+        _endScreenView.SetOnContinueAct2(HandleContinueAct2Clicked);
         _shopPanelView.SetHandlers(HandleHireClicked, HandleFireClicked, HandleRerollClicked, HandlePayDebtClicked, HandleShopContinueClicked);
         _formationPanelView.SetHandlers(HandleFormationSwap, HandleFormationContinue);
         _payrollPanelView.SetActions(DataRepository.AllPayrollActions);
@@ -124,6 +125,16 @@ public class MainMenuPanel : MonoBehaviour
     private void HandleNewRunClicked()
     {
         _gameManager.StartRun();
+    }
+
+    private void HandleContinueAct2Clicked()
+    {
+        _gameManager.ContinueToAct2();
+    }
+
+    private static string CurrentActLabel(RunState runState)
+    {
+        return GameRules.GetActLabel(runState != null ? runState.Act : 1);
     }
 
     private void HandleHireClicked(int offerIndex)
@@ -324,7 +335,7 @@ public class MainMenuPanel : MonoBehaviour
         if (gameState == GameState.Scout)
         {
             SetCombatChromeVisible(false);
-            _statusText.text = "Act 1 Scout. Review the encounter, then Continue.";
+            _statusText.text = CurrentActLabel(_gameManager.CurrentRunState) + " Scout. Review the encounter, then Continue.";
             _resultText.text = string.Empty;
             _combatLogView.Clear();
             _combatPanelView.Clear();
@@ -459,7 +470,16 @@ public class MainMenuPanel : MonoBehaviour
         if (gameState == GameState.Victory || gameState == GameState.Defeat)
         {
             SetCombatChromeVisible(false);
-            _statusText.text = gameState == GameState.Victory ? "Act 1 cleared." : "Run lost.";
+            if (gameState == GameState.Victory)
+            {
+                RunState endRun = _gameManager.CurrentRunState;
+                bool isAct1Clear = endRun == null || endRun.Act < GameRules.FinalAct;
+                _statusText.text = isAct1Clear ? "Act 1 cleared. Continue to Act 2." : "Act 2 complete.";
+            }
+            else
+            {
+                _statusText.text = "Run lost.";
+            }
             _rewardSummaryView.Clear();
             _combatPanelView.Clear();
             _combatPanelView.Hide();

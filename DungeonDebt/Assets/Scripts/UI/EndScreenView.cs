@@ -20,6 +20,8 @@ public class EndScreenView : MonoBehaviour
     [SerializeField] private Text _newRunLabel;
 
     private Action _onNewRun;
+    private Action _onContinueAct2;
+    private bool _act1ClearHandoff;
 
     public void Initialize(Font font)
     {
@@ -32,13 +34,26 @@ public class EndScreenView : MonoBehaviour
         _onNewRun = onNewRun;
     }
 
+    public void SetOnContinueAct2(Action onContinueAct2)
+    {
+        _onContinueAct2 = onContinueAct2;
+    }
+
     public void Show(RunState runState, bool isVictory)
     {
         gameObject.SetActive(true);
 
-        if (isVictory)
+        int act = runState != null ? runState.Act : 1;
+        _act1ClearHandoff = isVictory && act < GameRules.FinalAct;
+
+        if (_act1ClearHandoff)
         {
             _titleText.text = "Act 1 Clear";
+            _titleText.color = new Color(0.7f, 0.92f, 0.62f, 1f);
+        }
+        else if (isVictory)
+        {
+            _titleText.text = "Act 2 Complete";
             _titleText.color = new Color(0.7f, 0.92f, 0.62f, 1f);
         }
         else
@@ -47,27 +62,33 @@ public class EndScreenView : MonoBehaviour
             _titleText.color = new Color(0.95f, 0.55f, 0.5f, 1f);
         }
 
-        string reason = runState != null && !string.IsNullOrEmpty(runState.LatestEndReason)
-            ? runState.LatestEndReason
-            : (isVictory ? "Run cleared." : "Run ended.");
-        if (isVictory)
+        string reason;
+        if (_act1ClearHandoff)
         {
-            reason = "Auditor defeated.\nAct 2 is not implemented yet.";
+            reason = "Act 1 cleared.\nThe rival guilds regroup for Act 2.";
+        }
+        else if (isVictory)
+        {
+            reason = "Rival guilds defeated.\nTemporary Act 2 finale - no further content yet.";
+        }
+        else
+        {
+            reason = runState != null && !string.IsNullOrEmpty(runState.LatestEndReason)
+                ? runState.LatestEndReason
+                : "Run ended.";
         }
         _reasonText.text = reason;
 
         if (runState != null)
         {
-            string handoffText = isVictory
-                ? "\nFuture handoff: review party, gold, debt, morale."
-                : string.Empty;
+            int withinAct = GameRules.GetRoundWithinAct(act, runState.Round);
+            int roundsInAct = GameRules.GetRoundsInAct(act);
 
             _statsText.text =
-                "Final round: " + runState.Round + "\n" +
+                GameRules.GetActLabel(act) + " - Round " + withinAct + "/" + roundsInAct + "\n" +
                 "Gold: " + runState.Gold + "\n" +
                 "Debt: " + runState.Debt + "\n" +
-                "Morale: " + runState.Morale +
-                handoffText;
+                "Morale: " + runState.Morale;
         }
         else
         {
@@ -77,7 +98,7 @@ public class EndScreenView : MonoBehaviour
         if (_newRunButton != null)
         {
             _newRunButton.interactable = true;
-            _newRunLabel.text = "New Run";
+            _newRunLabel.text = _act1ClearHandoff ? "Continue to Act 2" : "New Run";
         }
     }
 
@@ -134,6 +155,16 @@ public class EndScreenView : MonoBehaviour
         if (_newRunButton != null)
         {
             _newRunButton.interactable = false;
+        }
+
+        if (_act1ClearHandoff)
+        {
+            if (_onContinueAct2 != null)
+            {
+                _onContinueAct2.Invoke();
+            }
+
+            return;
         }
 
         if (_onNewRun != null)

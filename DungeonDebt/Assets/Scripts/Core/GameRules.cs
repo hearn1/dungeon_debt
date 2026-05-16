@@ -66,7 +66,16 @@ public static class GameRules
     public const int RivalMoraleDebtPenalty = 2;
 
     public const int CombatTurnLimit = 10;
+
+    // Act structure. RunState.Round stays an absolute counter: Act 1 is
+    // rounds 1-10, Act 2 is rounds 11-13. FinalRound is the Act 1 boundary
+    // (kept for existing references); Act2FinalRound is the Act 2 boundary.
     public const int FinalRound = 10;
+    public const int Act1FinalRound = 10;
+    public const int Act2FinalRound = 13;
+    public const int Act1Rounds = 10;
+    public const int Act2Rounds = 3;
+    public const int FinalAct = 2;
 
     public const int LoanGoldGain = 5;
     public const int LoanDebtCost = 6;
@@ -149,5 +158,30 @@ public static class GameRules
     public static bool IsHighDebtPressure(int debt)
     {
         return debt >= DangerousDebtThreshold;
+    }
+
+    public static int GetRoundsInAct(int act)
+    {
+        return act >= FinalAct ? Act2Rounds : Act1Rounds;
+    }
+
+    public static int GetRoundWithinAct(int act, int absoluteRound)
+    {
+        if (act >= FinalAct)
+        {
+            return absoluteRound - Act1FinalRound;
+        }
+
+        return absoluteRound;
+    }
+
+    public static string GetActLabel(int act)
+    {
+        return "Act " + (act >= FinalAct ? FinalAct : 1);
+    }
+
+    public static int GetActFinalRound(int act)
+    {
+        return act >= FinalAct ? Act2FinalRound : Act1FinalRound;
     }
 }
