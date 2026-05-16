@@ -4,31 +4,35 @@ This file always describes the **next** session's work. Rewrite it at the end of
 
 ---
 
-## Session: M19.0 - Post-M18 next-vertical planning
+## Session: M19.0 - Prototype assessment and consolidation plan
 
-**Milestone:** M19 - TBD after M18
-**Slice goal:** Decide and document the next approved Phase 3 vertical now that M18 combat statuses are complete, without starting implementation in the same session.
+**Milestone:** M19 - Prototype assessment / consolidation
+**Slice goal:** Decide whether Dungeon Debt needs another vertical at all, or whether the next phase should tighten, balance, prune, and clarify existing systems.
 
 ### Why this slice exists
 
 M18 is complete: M18.0 planned the six-status direction, M18.1 added the compact enemy-side status foundation, and M18.2 added narrow player-side access through relics and Silver hero upgrades.
 
-The existing `IMPLEMENTATION_PLAN.md` Phase 3 order currently ends at M18+. Before implementation continues, the next session should choose the next vertical deliberately, define a ready first slice, and update the handoff docs so the next implementation session has a clear scope.
+The existing `IMPLEMENTATION_PLAN.md` Phase 3 order currently ends at M18+. More importantly, the prototype now has most of the originally imagined vertical layers: debt readability, acts, difficulty, relics, veterancy, and statuses. The next session should assess whether adding another vertical would improve the game, or whether the better move is consolidation: balance, clarity, pacing, UX, pruning, and outside-tester readiness.
 
 ### Scope
 
 **In scope for M19.0:**
 - Review the completed M18 state and any manual-test notes from `TestPlans/TP_M18.2.md`.
 - Check `REGRESSIONS.md` for blockers or newly reported M18 issues.
-- Decide whether the next work is:
-  - a targeted M18 regression/tuning follow-up, or
-  - a new Phase 3 milestone such as content, balance, UI polish, or another user-approved vertical.
-- Draft a ready next implementation slice with ID, goal, files, and 2-5 acceptance criteria.
+- Assess the current prototype as a whole:
+  - Is the core loop fun enough round-to-round?
+  - Which systems are carrying the experience?
+  - Which systems feel noisy, redundant, under-tested, or overgrown?
+  - Does the game need more content/features, or does it need tightening?
+  - What would make it clearer and more playable for an outside tester?
+- Decide whether the next work should be consolidation, a targeted regression/tuning follow-up, or a genuinely necessary new vertical.
+- Draft a ready next implementation slice with ID, goal, files, and 2-5 acceptance criteria based on that assessment.
 - Rewrite `NEXT_SESSION.md` for that ready slice.
 - Create `TestPlans/TP_M19.0.md` as a planning/document-review checklist if the session changes no runtime code.
 
 **Not in scope for M19.0:**
-- Implementing the next vertical in the same session.
+- Implementing the next vertical or consolidation slice in the same session.
 - Adding new heroes, enemies, relics, statuses, acts, UI screens, save/load, meta progression, equipment, inventory, tutorials, audio, particles, VFX, or broad architecture.
 - Changing M18 behavior unless a specific regression is selected instead of planning.
 - Updating `PROGRESS.md` or `REGRESSIONS.md` mid-session.
@@ -47,8 +51,8 @@ The existing `IMPLEMENTATION_PLAN.md` Phase 3 order currently ends at M18+. Befo
 - `CLAUDE.md` / `AGENTS.md` Scope control, architectural rules, coding conventions, and Definition of ready.
 - `PROGRESS.md` latest M18.2/M18.1/M18.0 entries.
 - `REGRESSIONS.md` Open section.
-- `IMPLEMENTATION_PLAN.md` section 16 Phase 3 scope rules and any future section the user wants to add or select.
-- `GAME_DESIGN.md` MVP scope and any design section relevant to the proposed next vertical.
+- `IMPLEMENTATION_PLAN.md` section 16 Phase 3 scope rules.
+- `GAME_DESIGN.md` core loop, MVP scope, strategic tension, and design warning sections.
 
 ### Files Claude Code Should Read
 
@@ -59,7 +63,7 @@ REGRESSIONS.md
 PROGRESS.md (latest M18.2/M18.1/M18.0 entries)
 NEXT_SESSION.md
 IMPLEMENTATION_PLAN.md (section 16)
-GAME_DESIGN.md (MVP scope and relevant next-vertical sections)
+GAME_DESIGN.md (core loop, MVP scope, strategic tension, design warning)
 TestPlans/TP_M18.2.md
 ```
 
@@ -78,7 +82,7 @@ NEXT_SESSION.md - rewrite it to describe the next ready implementation slice aft
 Optional only with explicit user approval during planning:
 
 ```
-IMPLEMENTATION_PLAN.md - add or amend a concise M19 milestone entry if the user wants the plan itself updated.
+IMPLEMENTATION_PLAN.md - add or amend a concise consolidation milestone entry if the user wants the plan itself updated.
 ```
 
 ### Files Claude Code Does NOT Touch
@@ -89,21 +93,23 @@ IMPLEMENTATION_PLAN.md - add or amend a concise M19 milestone entry if the user 
 
 ### Acceptance criteria
 
-1. The next implementation slice after M18 is chosen or explicitly deferred because a regression/tuning follow-up is more important.
-2. The chosen next slice has an ID, one-sentence goal, files to create/modify, and 2-5 acceptance criteria.
-3. `NEXT_SESSION.md` is rewritten to that ready slice so the following session can start with Orient.
-4. No runtime code or out-of-scope feature work is started during M19.0.
+1. The session produces a clear recommendation: consolidate existing systems, fix/tune M18, or add a new vertical only if there is a strong reason.
+2. The assessment names the prototype's strongest systems, weakest/noisiest systems, and biggest outside-tester readiness gaps.
+3. The chosen next slice has an ID, one-sentence goal, files to create/modify, and 2-5 acceptance criteria.
+4. `NEXT_SESSION.md` is rewritten to that ready slice so the following session can start with Orient.
+5. No runtime code or out-of-scope feature work is started during M19.0.
 
 ### Planning guidance
 
-Start by asking the user what they want the next vertical to be, unless a blocker regression exists. The current Phase 3 list ended at M18, so do not invent M19 implementation scope without user confirmation.
+Start from the assumption that another vertical is not automatically desirable. The question is whether the current prototype needs breadth or focus.
 
 Reasonable options to discuss:
 
 - A small status/relic balance pass if M18.2 manual testing finds rough edges.
-- A content or encounter polish milestone using existing systems.
-- A UI readability polish milestone for relic/status/veterancy density.
-- Updating `IMPLEMENTATION_PLAN.md` to define the next Phase 3 vertical before coding.
+- A consolidation milestone focused on balance, clarity, pacing, and readability.
+- A UX/readability milestone for relic/status/veterancy density.
+- A content polish milestone using existing systems only, if playtesting shows the run is too repetitive.
+- Updating `IMPLEMENTATION_PLAN.md` to define a consolidation phase before coding.
 
 ### Manual test expectations
 
