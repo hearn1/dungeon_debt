@@ -18,6 +18,7 @@ public class CombatUnitCardView : MonoBehaviour
     private static readonly Color ActingOutlineColor = new Color(1f, 0.92f, 0.42f, 1f);
 
     [SerializeField] private Image _background;
+    [SerializeField] private Image _portrait;
     [SerializeField] private Image _roleBand;
     [SerializeField] private Image _tierBorderTop;
     [SerializeField] private Image _tierBorderBottom;
@@ -88,6 +89,12 @@ public class CombatUnitCardView : MonoBehaviour
             _roleBand.enabled = false;
         }
 
+        if (_portrait != null)
+        {
+            _portrait.sprite = null;
+            _portrait.enabled = false;
+        }
+
         SetTierBorderEnabled(false);
         SetActing(false);
 
@@ -130,6 +137,28 @@ public class CombatUnitCardView : MonoBehaviour
         }
 
         SetHpDisplay(currentHealth, maxHealth);
+    }
+
+    // Static base art for this unit, resolved by stable id upstream. A null
+    // sprite disables the portrait Image so the existing placeholder card box
+    // (background tint, role band, borders) shows through unchanged.
+    public void SetPortrait(Sprite sprite)
+    {
+        if (_portrait == null)
+        {
+            return;
+        }
+
+        if (sprite == null)
+        {
+            _portrait.sprite = null;
+            _portrait.enabled = false;
+            return;
+        }
+
+        _portrait.sprite = sprite;
+        _portrait.color = Color.white;
+        _portrait.enabled = true;
     }
 
     public void SetActing(bool acting)
@@ -343,6 +372,15 @@ public class CombatUnitCardView : MonoBehaviour
         SetBottomAnchored(_tierBorderBottom.rectTransform, 0f, 0f, 0f, TierBorderThickness);
         SetAnchored(_tierBorderLeft.rectTransform, 0f, 0f, TierBorderThickness, 0f);
         SetAnchored(_tierBorderRight.rectTransform, -TierBorderThickness, 0f, 0f, 0f);
+
+        // Created after the tier-frame images (which currently fill the card)
+        // so the portrait is not occluded, but before the name/HP/flash
+        // overlays so text stays on top. preserveAspect centres the square
+        // art in a band clear of the bottom HP track.
+        _portrait = CreateImage("Portrait", root);
+        SetAnchored(_portrait.rectTransform, RoleBandWidth + Padding, Padding + 24 + 8, -Padding, -(Padding + 8));
+        _portrait.preserveAspect = true;
+        _portrait.enabled = false;
 
         _nameText = CreateText("Name", root, font, NameFontSize, FontStyle.Bold, TextAnchor.UpperLeft);
         SetTopAnchored(_nameText.rectTransform, RoleBandWidth + Padding, Padding + 8, -Padding, 46);

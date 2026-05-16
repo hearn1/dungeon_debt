@@ -51,6 +51,47 @@ Copy this block when adding a new entry. Paste it at the top of the Session log 
 
 <!-- Newest entries at the top. -->
 
+## 2026-05-16 - M10.4: Sprite catalog + static base sprites on combat cards
+
+**Milestone:** M10 - Combat view rebuild
+**Status:** Complete
+
+**Files added:**
+- `DungeonDebt/Assets/Scripts/UI/SpriteCatalog.cs`
+- `DungeonDebt/Assets/Scripts/UI/SpriteCatalog.cs.meta`
+- `TestPlans/TP_M10.4.md`
+- `DungeonDebt/Assets/Art/Units/Heroes/*.png` + `.meta` (12, user-supplied)
+- `DungeonDebt/Assets/Art/Units/Enemies/*.png` + `.meta` (16, user-supplied)
+- `DungeonDebt/Assets/Art/Effects/*.png` + `.meta` (5, user-supplied; consumed in M10.5)
+
+**Files modified:**
+- `DungeonDebt/Assets/Scripts/UI/CombatUnitCardView.cs` - confined upper/centre portrait Image + SetPortrait + Clear reset; portrait created after the tier-frame images so it is not occluded for heroes.
+- `DungeonDebt/Assets/Scripts/UI/CombatPanelView.cs` - SpriteCatalog passed via Initialize; ResolveBaseSprite resolves hero/enemy art by stable id per card.
+- `DungeonDebt/Assets/Scripts/UI/MainMenuPanel.cs` - serialized `_spriteCatalog`, passed to CombatPanelView; `_swordSprite`/`sword.png` untouched.
+- `DungeonDebt/Assembly-CSharp.csproj` - local Compile entry for new script (Unity regenerates).
+- Art folders reorganised to `SPRITE_CHECKLIST.md` layout (`Units/Heroes`, `Units/Enemies`, `Effects`); legacy `Combat/sword.png` left intact for M10.5.
+
+**Acceptance criteria:**
+- [x] AC1 - SpriteCatalog MonoBehaviour, typed lookups (hero/enemy/effect), null-on-miss, self-seeds 33 ids, presentation-only.
+- [x] AC2 - Hero and enemy combat cards display the correct base sprite by stable id (verified live: Slime/Enchanter/Wizard/Ranger/Treasurer portraits render).
+- [x] AC3 - Missing/unassigned sprite falls back to placeholder box (observed before slots were assigned; no errors, no layout break).
+- [x] AC4 - No combat/run/data/effect/flow change; `_swordSprite`/`sword.png` path intact.
+- [x] AC5 - No tween/Animator/particles/audio/unique art; static base sprite only (effect slots seeded but unused until M10.5).
+
+**Test plan:** `TestPlans/TP_M10.4.md` - happy path + fallback exercised live during the Editor session (enemy then hero portraits, placeholder fallback when slots empty). Formal full step-by-step run not recorded; behaviour confirmed via screenshots and a temporary diagnostic (added then reverted, build clean, no residue).
+
+**Deviations from plan:**
+- Per user decision (option b), `Main.unity` was not hand-edited; `SpriteCatalog` self-seeds its 33 ids via OnValidate/Reset/Awake and the user added + wired the component in the Editor.
+- Portrait z-order moved to after the tier-frame images (root cause of heroes initially showing no art - see follow-up).
+
+**Follow-up flagged:**
+- **Pre-existing bug (discovered in M10.4, out of scope):** in `CombatUnitCardView.BuildUi` the hero tier-border left/right images use `SetAnchored(...)` and render as full-card opaque rectangles in the tier colour instead of thin edges, so hero cards read as solid orange/grey blocks. Spawned as a separate task; recommend filing as a regression. Fix bundled into the next slice.
+- User request: remove the now-redundant unit name text on combat cards (portraits identify units). Folded into the next slice; consider keeping the name only as the no-sprite fallback.
+- M10.2 AC4 feasibility verdict still pending the user's TP_M10.2 Editor run (carried).
+- M10.3 has no PROGRESS.md entry (docs-only slice) - paste if tracked.
+
+**Next slice:** M10.6 - Combat card cleanup (thin tier frame + remove redundant name text)
+
 ## 2026-05-15 - M10.2: Combat replay and visual feasibility prototype
 
 **Milestone:** M10 - Combat view rebuild
