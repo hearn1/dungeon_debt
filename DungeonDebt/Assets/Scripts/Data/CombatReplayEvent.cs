@@ -1,9 +1,13 @@
+using System.Collections.Generic;
+
 public enum CombatReplayEventKind
 {
     Message,
     Attack,
     Heal,
-    Death
+    Death,
+    StatusChange,
+    StatusDamage
 }
 
 // Plain C# data emitted by CombatLogger in lockstep with each LogLine, so the
@@ -16,6 +20,8 @@ public class CombatReplayEvent
     {
         Kind = kind;
         LogText = logText;
+        AttackerStatuses = new List<CombatStatusId>();
+        TargetStatuses = new List<CombatStatusId>();
     }
 
     public CombatReplayEventKind Kind { get; private set; }
@@ -24,9 +30,13 @@ public class CombatReplayEvent
     public int AttackerSlot { get; set; }
     public bool AttackerIsPlayerSide { get; set; }
     public string AttackerHeroId { get; set; }
+    public List<CombatStatusId> AttackerStatuses { get; }
+    public int AttackerPoisonDamage { get; set; }
 
     public int TargetSlot { get; set; }
     public bool TargetIsPlayerSide { get; set; }
+    public List<CombatStatusId> TargetStatuses { get; }
+    public int TargetPoisonDamage { get; set; }
 
     public int Amount { get; set; }
     public int TargetHealthAfter { get; set; }

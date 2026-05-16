@@ -24,11 +24,15 @@ public class CombatLogger
         evt.AttackerSlot = attacker.Slot;
         evt.AttackerIsPlayerSide = attacker.IsPlayerSide;
         evt.AttackerHeroId = ResolveHeroId(attacker);
+        CopyStatusSnapshot(attacker, evt.AttackerStatuses);
+        evt.AttackerPoisonDamage = attacker.Statuses.PoisonDamage;
         evt.TargetSlot = defender.Slot;
         evt.TargetIsPlayerSide = defender.IsPlayerSide;
         evt.Amount = damage;
         evt.TargetHealthAfter = defender.CurrentHealth;
         evt.TargetMaxHealth = defender.MaxHealth;
+        CopyStatusSnapshot(defender, evt.TargetStatuses);
+        evt.TargetPoisonDamage = defender.Statuses.PoisonDamage;
         _events.Add(evt);
     }
 
@@ -41,11 +45,15 @@ public class CombatLogger
         evt.AttackerSlot = healer.Slot;
         evt.AttackerIsPlayerSide = healer.IsPlayerSide;
         evt.AttackerHeroId = ResolveHeroId(healer);
+        CopyStatusSnapshot(healer, evt.AttackerStatuses);
+        evt.AttackerPoisonDamage = healer.Statuses.PoisonDamage;
         evt.TargetSlot = target.Slot;
         evt.TargetIsPlayerSide = target.IsPlayerSide;
         evt.Amount = amount;
         evt.TargetHealthAfter = target.CurrentHealth;
         evt.TargetMaxHealth = target.MaxHealth;
+        CopyStatusSnapshot(target, evt.TargetStatuses);
+        evt.TargetPoisonDamage = target.Statuses.PoisonDamage;
         _events.Add(evt);
     }
 
@@ -59,6 +67,38 @@ public class CombatLogger
         evt.TargetIsPlayerSide = unit.IsPlayerSide;
         evt.TargetHealthAfter = 0;
         evt.TargetMaxHealth = unit.MaxHealth;
+        CopyStatusSnapshot(unit, evt.TargetStatuses);
+        evt.TargetPoisonDamage = unit.Statuses.PoisonDamage;
+        _events.Add(evt);
+    }
+
+    public void LogStatusChange(CombatUnit unit, string message)
+    {
+        _lines.Add(message);
+
+        CombatReplayEvent evt = new CombatReplayEvent(CombatReplayEventKind.StatusChange, message);
+        evt.TargetSlot = unit.Slot;
+        evt.TargetIsPlayerSide = unit.IsPlayerSide;
+        evt.TargetHealthAfter = unit.CurrentHealth;
+        evt.TargetMaxHealth = unit.MaxHealth;
+        CopyStatusSnapshot(unit, evt.TargetStatuses);
+        evt.TargetPoisonDamage = unit.Statuses.PoisonDamage;
+        _events.Add(evt);
+    }
+
+    public void LogStatusDamage(CombatUnit unit, CombatStatusId statusId, int damage)
+    {
+        string text = unit.DisplayName + " takes " + damage + " " + GameRules.GetCombatStatusLabel(statusId) + " damage.";
+        _lines.Add(text);
+
+        CombatReplayEvent evt = new CombatReplayEvent(CombatReplayEventKind.StatusDamage, text);
+        evt.TargetSlot = unit.Slot;
+        evt.TargetIsPlayerSide = unit.IsPlayerSide;
+        evt.Amount = damage;
+        evt.TargetHealthAfter = unit.CurrentHealth;
+        evt.TargetMaxHealth = unit.MaxHealth;
+        CopyStatusSnapshot(unit, evt.TargetStatuses);
+        evt.TargetPoisonDamage = unit.Statuses.PoisonDamage;
         _events.Add(evt);
     }
 
@@ -106,5 +146,19 @@ public class CombatLogger
             return null;
         }
         return unit.SourceHero.Definition.Id;
+    }
+
+    private static void CopyStatusSnapshot(CombatUnit unit, List<CombatStatusId> destination)
+    {
+        if (unit == null || unit.Statuses == null || destination == null)
+        {
+            return;
+        }
+
+        IReadOnlyList<CombatStatusId> statuses = unit.Statuses.ActiveStatuses;
+        for (int i = 0; i < statuses.Count; i++)
+        {
+            destination.Add(statuses[i]);
+        }
     }
 }

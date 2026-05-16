@@ -10,6 +10,12 @@ public static class GameRules
     public static readonly Color BronzeBadgeColor = new Color(0.72f, 0.45f, 0.20f, 1f);
     public static readonly Color SilverBadgeColor = new Color(0.82f, 0.84f, 0.88f, 1f);
     public static readonly Color ReservedTierSlotOutlineColor = new Color(0.45f, 0.45f, 0.5f, 0.6f);
+    public static readonly Color GuardedStatusColor = new Color(0.24f, 0.52f, 0.88f, 1f);
+    public static readonly Color BurnedStatusColor = new Color(0.92f, 0.42f, 0.12f, 1f);
+    public static readonly Color PoisonedStatusColor = new Color(0.22f, 0.64f, 0.24f, 1f);
+    public static readonly Color MarkedStatusColor = new Color(0.82f, 0.18f, 0.18f, 1f);
+    public static readonly Color WeakenedStatusColor = new Color(0.48f, 0.50f, 0.54f, 1f);
+    public static readonly Color InspiredStatusColor = new Color(0.92f, 0.72f, 0.18f, 1f);
 
     public static Color GetRoleColor(HeroRole role)
     {
@@ -83,6 +89,14 @@ public static class GameRules
 
     public const int CombatTurnLimit = 10;
     public const int MinimumPositiveCombatStat = 1;
+    public const int GuardedDamageDivisor = 2;
+    public const int BurnedAttackPenalty = 1;
+    public const int BurnedSelfDamage = 1;
+    public const int PoisonInitialDamage = 1;
+    public const int PoisonDamageGrowth = 1;
+    public const int MarkedIncomingDamageBonus = 1;
+    public const int WeakenedAttackPenalty = 1;
+    public const int InspiredAttackBonus = 1;
 
     // M15.1 difficulty presets. Standard Contract reuses the base economy
     // constants above (StartingGold/StartingDebt/StartingMorale/
@@ -173,6 +187,69 @@ public static class GameRules
         }
 
         return payment;
+    }
+
+    public static string GetCombatStatusLabel(CombatStatusId statusId)
+    {
+        switch (statusId)
+        {
+            case CombatStatusId.Guarded:
+                return "Guarded";
+            case CombatStatusId.Burned:
+                return "Burned";
+            case CombatStatusId.Poisoned:
+                return "Poisoned";
+            case CombatStatusId.Marked:
+                return "Marked";
+            case CombatStatusId.Weakened:
+                return "Weakened";
+            case CombatStatusId.Inspired:
+                return "Inspired";
+            default:
+                return string.Empty;
+        }
+    }
+
+    public static string GetCombatStatusLetter(CombatStatusId statusId)
+    {
+        switch (statusId)
+        {
+            case CombatStatusId.Guarded:
+                return "G";
+            case CombatStatusId.Burned:
+                return "B";
+            case CombatStatusId.Poisoned:
+                return "P";
+            case CombatStatusId.Marked:
+                return "M";
+            case CombatStatusId.Weakened:
+                return "W";
+            case CombatStatusId.Inspired:
+                return "I";
+            default:
+                return string.Empty;
+        }
+    }
+
+    public static Color GetCombatStatusColor(CombatStatusId statusId)
+    {
+        switch (statusId)
+        {
+            case CombatStatusId.Guarded:
+                return GuardedStatusColor;
+            case CombatStatusId.Burned:
+                return BurnedStatusColor;
+            case CombatStatusId.Poisoned:
+                return PoisonedStatusColor;
+            case CombatStatusId.Marked:
+                return MarkedStatusColor;
+            case CombatStatusId.Weakened:
+                return WeakenedStatusColor;
+            case CombatStatusId.Inspired:
+                return InspiredStatusColor;
+            default:
+                return new Color(0.5f, 0.5f, 0.5f, 1f);
+        }
     }
 
     public static string GetDebtStatusLabel(int debt)

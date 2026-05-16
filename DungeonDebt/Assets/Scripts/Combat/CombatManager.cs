@@ -136,6 +136,11 @@ public class CombatManager
                 null,
                 enemy);
 
+            for (int j = 0; j < enemy.StartingStatuses.Count; j++)
+            {
+                unit.Statuses.Add(enemy.StartingStatuses[j]);
+            }
+
             enemyUnits.Add(unit);
         }
 
@@ -213,8 +218,12 @@ public class CombatManager
 
     private void ApplyAttack(CombatUnit attacker, CombatUnit defender, CombatLogger logger)
     {
+        int damage = attacker.Attack;
+        damage = ApplyOutgoingStatusModifiers(attacker, damage, logger);
+        damage = ApplyIncomingStatusModifiers(defender, damage, logger);
+
         int reduction = HeroEffects.GetDamageReduction(defender);
-        int damage = attacker.Attack - reduction;
+        damage -= reduction;
         if (damage < 0)
         {
             damage = 0;
@@ -232,6 +241,168 @@ public class CombatManager
         {
             logger.LogDeath(defender);
             HeroEffects.OnKill(attacker, defender, _run, logger);
+        }
+        else
+        {
+            ApplyAttackStatuses(attacker, defender, logger);
+        }
+
+        ApplyPostAttackStatusDamage(attacker, logger);
+    }
+
+    private static void ApplyAttackStatuses(CombatUnit attacker, CombatUnit defender, CombatLogger logger)
+    {
+        if (attacker == null || defender == null || attacker.SourceEnemy == null)
+        {
+            return;
+        }
+
+        IReadOnlyList<CombatStatusId> attackStatuses = attacker.SourceEnemy.AttackStatuses;
+        for (int i = 0; i < attackStatuses.Count; i++)
+        {
+            CombatStatusId statusId = attackStatuses[i];
+            bool added = defender.Statuses.Add(statusId);
+            if (added && logger != null)
+            {
+                logger.LogStatusChange(
+                    defender,
+                    attacker.DisplayName + " applies " + GameRules.GetCombatStatusLabel(statusId) + " to " + defender.DisplayName + ".");
+            }
+        }
+    }
+
+    private static int ApplyOutgoingStatusModifiers(CombatUnit attacker, int damage, CombatLogger logger)
+    {
+        if (attacker == null || attacker.Statuses == null)
+        {
+            return damage;
+        }
+
+        if (attacker.Statuses.Has(CombatStatusId.Weakened))
+        {
+            int before = damage;
+            damage -= GameRules.WeakenedAttackPenalty;
+            if (damage < 0)
+            {
+                damage = 0;
+            }
+            if (logger != null)
+            {
+                logger.LogStatusChange(attacker, attacker.DisplayName + " is Weakened (" + before + " -> " + damage + " attack).");
+            }
+        }
+
+        if (attacker.Statuses.Has(CombatStatusId.Burned))
+        {
+            int before = damage;
+            damage -= GameRules.BurnedAttackPenalty;
+            if (damage < 0)
+            {
+                damage = 0;
+            }
+            if (logger != null)
+            {
+                logger.LogStatusChange(attacker, attacker.DisplayName + " is Burned (" + before + " -> " + damage + " attack).");
+            }
+        }
+
+        if (attacker.Statuses.Has(CombatStatusId.Inspired))
+        {
+            int before = damage;
+            damage += GameRules.InspiredAttackBonus;
+            attacker.Statuses.Remove(CombatStatusId.Inspired);
+            if (logger != null)
+            {
+                logger.LogStatusChange(attacker, attacker.DisplayName + " spends Inspired (" + before + " -> " + damage + " attack).");
+            }
+        }
+
+        return damage;
+    }
+
+    private static int ApplyIncomingStatusModifiers(CombatUnit defender, int damage, CombatLogger logger)
+    {
+        if (defender == null || defender.Statuses == null)
+        {
+            return damage;
+        }
+
+        if (defender.Statuses.Has(CombatStatusId.Marked))
+        {
+            int before = damage;
+            damage += GameRules.MarkedIncomingDamageBonus;
+            defender.Statuses.Remove(CombatStatusId.Marked);
+            if (logger != null)
+            {
+                logger.LogStatusChange(defender, defender.DisplayName + " is Marked (" + before + " -> " + damage + " incoming damage).");
+            }
+        }
+
+        if (defender.Statuses.Has(CombatStatusId.Guarded))
+        {
+            int before = damage;
+            damage = (damage + GameRules.GuardedDamageDivisor - 1) / GameRules.GuardedDamageDivisor;
+            defender.Statuses.Remove(CombatStatusId.Guarded);
+            if (logger != null)
+            {
+                logger.LogStatusChange(defender, defender.DisplayName + " spends Guarded (" + before + " -> " + damage + " incoming damage).");
+            }
+        }
+
+        return damage;
+    }
+
+    private static void ApplyPostAttackStatusDamage(CombatUnit attacker, CombatLogger logger)
+    {
+        if (attacker == null || !attacker.IsAlive || attacker.Statuses == null)
+        {
+            return;
+        }
+
+        if (attacker.Statuses.Has(CombatStatusId.Burned))
+        {
+            ApplyStatusDamage(attacker, CombatStatusId.Burned, GameRules.BurnedSelfDamage, logger);
+            if (!attacker.IsAlive)
+            {
+                return;
+            }
+        }
+
+        if (attacker.Statuses.Has(CombatStatusId.Poisoned))
+        {
+            int poisonDamage = attacker.Statuses.PoisonDamage;
+            ApplyStatusDamage(attacker, CombatStatusId.Poisoned, poisonDamage, logger);
+            if (attacker.IsAlive)
+            {
+                attacker.Statuses.IncreasePoisonDamage();
+                if (logger != null)
+                {
+                    logger.LogStatusChange(attacker, attacker.DisplayName + "'s poison rises to " + attacker.Statuses.PoisonDamage + ".");
+                }
+            }
+        }
+    }
+
+    private static void ApplyStatusDamage(CombatUnit unit, CombatStatusId statusId, int damage, CombatLogger logger)
+    {
+        if (damage <= 0)
+        {
+            return;
+        }
+
+        unit.CurrentHealth -= damage;
+        if (unit.CurrentHealth < 0)
+        {
+            unit.CurrentHealth = 0;
+        }
+
+        if (logger != null)
+        {
+            logger.LogStatusDamage(unit, statusId, damage);
+            if (!unit.IsAlive)
+            {
+                logger.LogDeath(unit);
+            }
         }
     }
 
@@ -289,7 +460,7 @@ public class CombatManager
         for (int i = 0; i < source.Count; i++)
         {
             CombatUnit unit = source[i];
-            destination.Add(new CombatUnit(
+            CombatUnit snapshot = new CombatUnit(
                 unit.DisplayName,
                 unit.Attack,
                 unit.CurrentHealth,
@@ -297,7 +468,9 @@ public class CombatManager
                 unit.IsPlayerSide,
                 unit.Slot,
                 unit.SourceHero,
-                unit.SourceEnemy));
+                unit.SourceEnemy);
+            snapshot.CopyStatusesFrom(unit);
+            destination.Add(snapshot);
         }
     }
 

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -10,6 +11,7 @@ public class CombatUnitCardView : MonoBehaviour
     private const int NameFontSize = 14;
     private const int HpFontSize = 12;
     private const int VeteranFontSize = 9;
+    private const int StatusFontSize = 11;
     private const float HitFlashDuration = 0.275f;
 
     // Portrait card: a fixed-height bottom footer band holds the name slot
@@ -24,6 +26,11 @@ public class CombatUnitCardView : MonoBehaviour
     private const int FooterPortraitGap = 2;
     private const int VeteranTrackHeight = 12;
     private const int VeteranTrackGap = 4;
+    private const int StatusIndicatorSize = 18;
+    private const int StatusIndicatorGap = 3;
+    private const int StatusIndicatorTopInset = 6;
+    private const int StatusIndicatorRightInset = 6;
+    private const int MaxStatusIndicators = 6;
 
     private static readonly Color HitFlashColor = new Color(1f, 0.32f, 0.28f, 1f);
     private static readonly Color ActingOutlineColor = new Color(1f, 0.92f, 0.42f, 1f);
@@ -51,6 +58,8 @@ public class CombatUnitCardView : MonoBehaviour
     [SerializeField] private Text _veteranText;
     [SerializeField] private Image _hitFlashOverlay;
 
+    private readonly List<Image> _statusBackgrounds = new List<Image>();
+    private readonly List<Text> _statusTexts = new List<Text>();
     private CombatUnit _currentUnit;
     private float _hitFlashT = -1f;
 
@@ -104,6 +113,7 @@ public class CombatUnitCardView : MonoBehaviour
         _nameText.text = unit.DisplayName;
         SetHpDisplay(unit.CurrentHealth, unit.MaxHealth);
         SetVeterancy(playerUnit, playerUnit ? unit.SourceHero.VeteranXp : 0);
+        SetStatuses(unit.Statuses);
 
         ApplyTierBorder(unit, playerUnit);
     }
@@ -163,6 +173,7 @@ public class CombatUnitCardView : MonoBehaviour
         }
 
         SetVeterancy(false, 0);
+        HideStatusIndicators();
         ResetHitFlash();
     }
 
@@ -180,6 +191,24 @@ public class CombatUnitCardView : MonoBehaviour
         }
 
         SetHpDisplay(currentHealth, maxHealth);
+    }
+
+    public void SetStatusSnapshot(IReadOnlyList<CombatStatusId> statuses, int poisonDamage)
+    {
+        if (_currentUnit != null)
+        {
+            _currentUnit.Statuses.CopyFrom(null);
+            if (statuses != null)
+            {
+                for (int i = 0; i < statuses.Count; i++)
+                {
+                    _currentUnit.Statuses.Add(statuses[i]);
+                }
+            }
+            _currentUnit.Statuses.SetPoisonDamage(poisonDamage);
+        }
+
+        SetStatuses(statuses, poisonDamage);
     }
 
     // Static base art for this unit, resolved by stable id upstream. A null
@@ -319,6 +348,66 @@ public class CombatUnitCardView : MonoBehaviour
         _veteranFill.rectTransform.anchorMax = new Vector2(GameRules.GetVeteranProgressRatio(veteranXp), 1f);
     }
 
+    private void SetStatuses(CombatStatusState statusState)
+    {
+        if (statusState == null)
+        {
+            HideStatusIndicators();
+            return;
+        }
+
+        SetStatuses(statusState.ActiveStatuses, statusState.PoisonDamage);
+    }
+
+    private void SetStatuses(IReadOnlyList<CombatStatusId> statuses, int poisonDamage)
+    {
+        HideStatusIndicators();
+        if (statuses == null)
+        {
+            return;
+        }
+
+        int visibleCount = statuses.Count;
+        if (visibleCount > MaxStatusIndicators)
+        {
+            visibleCount = MaxStatusIndicators;
+        }
+
+        for (int i = 0; i < visibleCount; i++)
+        {
+            CombatStatusId statusId = statuses[i];
+            _statusBackgrounds[i].enabled = true;
+            _statusBackgrounds[i].color = GameRules.GetCombatStatusColor(statusId);
+            _statusTexts[i].enabled = true;
+            _statusTexts[i].text = GameRules.GetCombatStatusLetter(statusId);
+            _statusTexts[i].color = Color.white;
+
+            if (statusId == CombatStatusId.Poisoned && poisonDamage > GameRules.PoisonInitialDamage)
+            {
+                _statusTexts[i].text = GameRules.GetCombatStatusLetter(statusId) + poisonDamage;
+                _statusTexts[i].fontSize = StatusFontSize - 2;
+            }
+            else
+            {
+                _statusTexts[i].fontSize = StatusFontSize;
+            }
+        }
+    }
+
+    private void HideStatusIndicators()
+    {
+        for (int i = 0; i < _statusBackgrounds.Count; i++)
+        {
+            _statusBackgrounds[i].enabled = false;
+        }
+
+        for (int i = 0; i < _statusTexts.Count; i++)
+        {
+            _statusTexts[i].enabled = false;
+            _statusTexts[i].text = string.Empty;
+        }
+    }
+
     private void ApplyTierBorder(CombatUnit unit, bool playerUnit)
     {
         if (!playerUnit)
@@ -395,7 +484,12 @@ public class CombatUnitCardView : MonoBehaviour
         // portrait claims the full card above the footer band, minus the role
         // band gutter and the tier inset; preserveAspect keeps the art centred.
         _portrait = CreateImage("Portrait", root);
-        SetAnchored(_portrait.rectTransform, RoleBandWidth + 2, FooterHeight + FooterPortraitGap, -3, -4);
+        SetAnchored(
+            _portrait.rectTransform,
+            RoleBandWidth + 2,
+            FooterHeight + FooterPortraitGap,
+            -3,
+            -(StatusIndicatorTopInset + StatusIndicatorSize + 4));
         _portrait.preserveAspect = true;
         _portrait.enabled = false;
 
@@ -453,6 +547,24 @@ public class CombatUnitCardView : MonoBehaviour
         hitInit.a = 0f;
         _hitFlashOverlay.color = hitInit;
         _hitFlashOverlay.enabled = false;
+
+        for (int i = 0; i < MaxStatusIndicators; i++)
+        {
+            Image statusBg = CreateImage("StatusIndicator" + i, root);
+            SetTopRightFixed(
+                statusBg.rectTransform,
+                StatusIndicatorRightInset + (i * (StatusIndicatorSize + StatusIndicatorGap)),
+                StatusIndicatorTopInset,
+                StatusIndicatorSize);
+            statusBg.enabled = false;
+            _statusBackgrounds.Add(statusBg);
+
+            Text statusText = CreateText("StatusText" + i, statusBg.rectTransform, font, StatusFontSize, FontStyle.Bold, TextAnchor.MiddleCenter);
+            statusText.horizontalOverflow = HorizontalWrapMode.Overflow;
+            Stretch(statusText.rectTransform, 0f);
+            statusText.enabled = false;
+            _statusTexts.Add(statusText);
+        }
 
         _actingTop = CreateImage("ActingOutlineTop", root);
         _actingBottom = CreateImage("ActingOutlineBottom", root);
@@ -522,6 +634,15 @@ public class CombatUnitCardView : MonoBehaviour
         rectTransform.anchorMax = new Vector2(1f, 1f);
         rectTransform.offsetMin = new Vector2(left, -top - height);
         rectTransform.offsetMax = new Vector2(right, -top);
+    }
+
+    private static void SetTopRightFixed(RectTransform rectTransform, float right, float top, float size)
+    {
+        rectTransform.anchorMin = new Vector2(1f, 1f);
+        rectTransform.anchorMax = new Vector2(1f, 1f);
+        rectTransform.pivot = new Vector2(1f, 1f);
+        rectTransform.anchoredPosition = new Vector2(-right, -top);
+        rectTransform.sizeDelta = new Vector2(size, size);
     }
 
     private static void Stretch(RectTransform rectTransform, float inset)

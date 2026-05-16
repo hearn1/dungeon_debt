@@ -18,6 +18,7 @@ public class CombatUnit
         Slot = slot;
         SourceHero = sourceHero;
         SourceEnemy = sourceEnemy;
+        Statuses = new CombatStatusState();
     }
 
     public string DisplayName { get; set; }
@@ -28,8 +29,20 @@ public class CombatUnit
     public int Slot { get; set; }
     public HeroInstance SourceHero { get; set; }
     public EnemyDefinition SourceEnemy { get; set; }
+    public CombatStatusState Statuses { get; private set; }
     public bool IsAlive
     {
         get { return CurrentHealth > 0; }
+    }
+
+    public void CopyStatusesFrom(CombatUnit source)
+    {
+        if (source == null)
+        {
+            Statuses.CopyFrom(null);
+            return;
+        }
+
+        Statuses.CopyFrom(source.Statuses);
     }
 }

@@ -74,3 +74,14 @@ public enum RelicId
     CampRations,
     GuildDividend
 }
+
+public enum CombatStatusId
+{
+    None,
+    Guarded,
+    Burned,
+    Poisoned,
+    Marked,
+    Weakened,
+    Inspired
+}

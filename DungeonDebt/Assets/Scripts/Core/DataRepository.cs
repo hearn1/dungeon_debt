@@ -145,7 +145,9 @@ public static class DataRepository
         2,
         3,
         EnemyEffectId.None,
-        "No effect.");
+        "Starts Marked. Applies Burned on attack.",
+        new CombatStatusId[] { CombatStatusId.Marked },
+        new CombatStatusId[] { CombatStatusId.Burned });
 
     private static readonly EnemyDefinition GoblinThief = new EnemyDefinition(
         "goblin_thief",
@@ -153,7 +155,9 @@ public static class DataRepository
         2,
         4,
         EnemyEffectId.GoblinStealGold,
-        "Steals gold if alive past combat round 3.");
+        "Applies Weakened on attack; steals gold if alive past combat round 3.",
+        null,
+        new CombatStatusId[] { CombatStatusId.Weakened });
 
     private static readonly EnemyDefinition TaxCollector = new EnemyDefinition(
         "tax_collector",
@@ -161,7 +165,9 @@ public static class DataRepository
         1,
         8,
         EnemyEffectId.None,
-        "Encounter raises upkeep this round.");
+        "Applies Weakened on attack. Encounter raises upkeep this round.",
+        null,
+        new CombatStatusId[] { CombatStatusId.Weakened });
 
     private static readonly EnemyDefinition BacklineBat = new EnemyDefinition(
         "backline_bat",
@@ -169,7 +175,9 @@ public static class DataRepository
         3,
         4,
         EnemyEffectId.BackBatBackline,
-        "Attacks lowest-HP backline hero on combat round 2.");
+        "Starts Marked. Applies Burned on attack; attacks lowest-HP backline hero on combat round 2.",
+        new CombatStatusId[] { CombatStatusId.Marked },
+        new CombatStatusId[] { CombatStatusId.Burned });
 
     private static readonly EnemyDefinition DebtWraith = new EnemyDefinition(
         "debt_wraith",
@@ -177,7 +185,9 @@ public static class DataRepository
         1,
         10,
         EnemyEffectId.DebtWraithScales,
-        "Attack scales with player debt at combat start.");
+        "Applies Poisoned on attack. Attack scales with player debt at combat start.",
+        null,
+        new CombatStatusId[] { CombatStatusId.Poisoned });
 
     private static readonly EnemyDefinition TreasureLeech = new EnemyDefinition(
         "treasure_leech",
@@ -185,7 +195,9 @@ public static class DataRepository
         1,
         12,
         EnemyEffectId.TreasureLeechRewardDrain,
-        "Reduces reward if alive at combat end.");
+        "Applies Poisoned on attack. Reduces reward if alive at combat end.",
+        null,
+        new CombatStatusId[] { CombatStatusId.Poisoned });
 
     private static readonly EnemyDefinition DungeonAuditor = new EnemyDefinition(
         "dungeon_auditor",
@@ -193,7 +205,9 @@ public static class DataRepository
         3,
         20,
         EnemyEffectId.DungeonAuditorBoss,
-        "Raises upkeep and deals periodic damage.");
+        "Starts Inspired and applies Burned on attack. Raises upkeep and deals periodic damage.",
+        new CombatStatusId[] { CombatStatusId.Inspired },
+        new CombatStatusId[] { CombatStatusId.Burned });
 
     private static readonly EnemyDefinition GreedyTank = new EnemyDefinition(
         "greedy_tank",
@@ -209,7 +223,9 @@ public static class DataRepository
         4,
         4,
         EnemyEffectId.None,
-        "No effect.");
+        "Starts Inspired and Marked.",
+        CombatStatusId.Inspired,
+        CombatStatusId.Marked);
 
     private static readonly EnemyDefinition CarryProtector = new EnemyDefinition(
         "carry_protector",
@@ -217,7 +233,8 @@ public static class DataRepository
         1,
         10,
         EnemyEffectId.None,
-        "No effect.");
+        "Starts Guarded.",
+        CombatStatusId.Guarded);
 
     private static readonly EnemyDefinition CarryCarry = new EnemyDefinition(
         "carry_carry",
@@ -225,7 +242,8 @@ public static class DataRepository
         6,
         6,
         EnemyEffectId.None,
-        "No effect.");
+        "Starts Inspired.",
+        CombatStatusId.Inspired);
 
     private static readonly EnemyDefinition FrugalGuard = new EnemyDefinition(
         "frugal_guard",
@@ -233,7 +251,8 @@ public static class DataRepository
         2,
         6,
         EnemyEffectId.None,
-        "No effect.");
+        "Starts Guarded.",
+        CombatStatusId.Guarded);
 
     private static readonly EnemyDefinition FrugalArcher = new EnemyDefinition(
         "frugal_archer",
@@ -241,7 +260,9 @@ public static class DataRepository
         3,
         4,
         EnemyEffectId.None,
-        "No effect.");
+        "Applies Weakened on attack.",
+        null,
+        new CombatStatusId[] { CombatStatusId.Weakened });
 
     private static readonly EnemyDefinition FrugalHealer = new EnemyDefinition(
         "frugal_healer",
@@ -271,7 +292,9 @@ public static class DataRepository
         6,
         7,
         EnemyEffectId.None,
-        "No effect.");
+        "Starts Inspired and Marked.",
+        CombatStatusId.Inspired,
+        CombatStatusId.Marked);
 
     private static readonly EnemyDefinition Act2CarryProtector = new EnemyDefinition(
         "carry_protector",
@@ -279,7 +302,8 @@ public static class DataRepository
         2,
         14,
         EnemyEffectId.None,
-        "No effect.");
+        "Starts Guarded.",
+        CombatStatusId.Guarded);
 
     private static readonly EnemyDefinition Act2CarryChampion = new EnemyDefinition(
         "carry_carry",
@@ -287,7 +311,8 @@ public static class DataRepository
         8,
         9,
         EnemyEffectId.None,
-        "No effect.");
+        "Starts Inspired.",
+        CombatStatusId.Inspired);
 
     private static readonly EnemyDefinition Act2CarrySupport = new EnemyDefinition(
         "carry_protector",
@@ -295,7 +320,8 @@ public static class DataRepository
         2,
         10,
         EnemyEffectId.None,
-        "No effect.");
+        "Starts Guarded.",
+        CombatStatusId.Guarded);
 
     private static readonly EnemyDefinition Act2FrugalGuard = new EnemyDefinition(
         "frugal_guard",
@@ -303,7 +329,8 @@ public static class DataRepository
         3,
         9,
         EnemyEffectId.None,
-        "No effect.");
+        "Starts Guarded.",
+        CombatStatusId.Guarded);
 
     private static readonly EnemyDefinition Act2FrugalArcher = new EnemyDefinition(
         "frugal_archer",
@@ -311,7 +338,9 @@ public static class DataRepository
         4,
         6,
         EnemyEffectId.None,
-        "No effect.");
+        "Applies Weakened on attack.",
+        null,
+        new CombatStatusId[] { CombatStatusId.Weakened });
 
     private static readonly EnemyDefinition Act2FrugalHealer = new EnemyDefinition(
         "frugal_healer",
@@ -319,7 +348,9 @@ public static class DataRepository
         2,
         8,
         EnemyEffectId.FrugalGhostHeal,
-        "Heals leftmost living ally each combat round.");
+        "Applies Poisoned on attack. Heals leftmost living ally each combat round.",
+        null,
+        new CombatStatusId[] { CombatStatusId.Poisoned });
 
     private static readonly List<HeroDefinition> HeroDefinitions = new List<HeroDefinition>
     {
