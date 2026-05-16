@@ -51,6 +51,35 @@ Copy this block when adding a new entry. Paste it at the top of the Session log 
 
 <!-- Newest entries at the top. -->
 
+## 2026-05-16 - M10.6: Combat card cleanup (thin tier frame + name as no-sprite fallback)
+
+**Milestone:** M10 - Combat view rebuild
+**Status:** Complete (user accepted changes; formal TP_M10.6 Editor run skipped as the change was minimal/layout-only)
+
+**Files added:**
+- `TestPlans/TP_M10.6.md`
+
+**Files modified:**
+- `DungeonDebt/Assets/Scripts/UI/CombatUnitCardView.cs` - tier-border top/bottom/left/right now use the fixed-thickness `SetEdge*` strip helpers (left/right were full-card `SetAnchored` fills - the M10.4-flagged bug); unit name text shown only as the no-sprite fallback, driven by `SetPortrait`/disabled in `Clear`; trimmed stale tier-frame comment.
+
+**Acceptance criteria:**
+- [x] AC1 - thin four-sided tier frame, consistent thickness, no card fill / portrait occlusion.
+- [x] AC2 - name shown only as no-sprite fallback (kept so the placeholder box stays identifiable; contained in `SetPortrait`).
+- [x] AC3 - portrait/HP/role band/thin frame legible; no card-size/row change; enemy cards only see the allowed name change.
+- [x] AC4 - no combat/run/data/effect/flow change; `SpriteCatalog`/`MainMenuPanel`/`_swordSprite`/`sword.png` untouched.
+- [x] AC5 - layout-only; no tween/Animator/particles/audio/new art.
+
+**Test plan:** `TestPlans/TP_M10.6.md` created (happy path, edge cases incl. no-sprite fallback + revert, invariants, regression checks). Formal Editor run skipped by user decision - change is minimal and layout-only; visually accepted.
+
+**Deviations from plan:**
+- None. The M10.4-spawned standalone tier-border task never landed (no branch/commit), so this slice covered both items as orientation predicted.
+
+**Follow-up flagged:**
+- M10.4 tier-border finding was never filed as a regression; fixed here, so no separate regression needed.
+- M10.2 AC4 feasibility verdict still pending user TP_M10.2 Editor run (carried).
+
+**Next slice:** M10.5 - shared effect-sprite set + category-routed source->target motion.
+
 ## 2026-05-16 - M10.4: Sprite catalog + static base sprites on combat cards
 
 **Milestone:** M10 - Combat view rebuild

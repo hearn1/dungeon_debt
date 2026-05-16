@@ -101,6 +101,7 @@ public class CombatUnitCardView : MonoBehaviour
         if (_nameText != null)
         {
             _nameText.text = string.Empty;
+            _nameText.enabled = false;
         }
 
         if (_hpText != null)
@@ -144,12 +145,21 @@ public class CombatUnitCardView : MonoBehaviour
     // (background tint, role band, borders) shows through unchanged.
     public void SetPortrait(Sprite sprite)
     {
+        // The unit name is redundant clutter once a portrait identifies the
+        // unit, so it is shown only as the fallback when no sprite resolves and
+        // the bare placeholder box would otherwise be unidentifiable.
+        bool hasSprite = sprite != null;
+        if (_nameText != null)
+        {
+            _nameText.enabled = !hasSprite;
+        }
+
         if (_portrait == null)
         {
             return;
         }
 
-        if (sprite == null)
+        if (!hasSprite)
         {
             _portrait.sprite = null;
             _portrait.enabled = false;
@@ -368,15 +378,15 @@ public class CombatUnitCardView : MonoBehaviour
         _tierBorderBottom = CreateImage("TierBorderBottom", root);
         _tierBorderLeft = CreateImage("TierBorderLeft", root);
         _tierBorderRight = CreateImage("TierBorderRight", root);
-        SetTopAnchored(_tierBorderTop.rectTransform, 0f, 0f, 0f, TierBorderThickness);
-        SetBottomAnchored(_tierBorderBottom.rectTransform, 0f, 0f, 0f, TierBorderThickness);
-        SetAnchored(_tierBorderLeft.rectTransform, 0f, 0f, TierBorderThickness, 0f);
-        SetAnchored(_tierBorderRight.rectTransform, -TierBorderThickness, 0f, 0f, 0f);
+        SetEdgeTop(_tierBorderTop.rectTransform, TierBorderThickness);
+        SetEdgeBottom(_tierBorderBottom.rectTransform, TierBorderThickness);
+        SetEdgeLeft(_tierBorderLeft.rectTransform, TierBorderThickness);
+        SetEdgeRight(_tierBorderRight.rectTransform, TierBorderThickness);
 
-        // Created after the tier-frame images (which currently fill the card)
-        // so the portrait is not occluded, but before the name/HP/flash
-        // overlays so text stays on top. preserveAspect centres the square
-        // art in a band clear of the bottom HP track.
+        // Created after the tier-frame images so the portrait is not occluded,
+        // but before the name/HP/flash overlays so they stay on top.
+        // preserveAspect centres the square art in a band clear of the bottom
+        // HP track.
         _portrait = CreateImage("Portrait", root);
         SetAnchored(_portrait.rectTransform, RoleBandWidth + Padding, Padding + 24 + 8, -Padding, -(Padding + 8));
         _portrait.preserveAspect = true;
