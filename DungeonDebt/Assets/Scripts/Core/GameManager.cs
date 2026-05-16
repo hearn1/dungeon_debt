@@ -139,6 +139,24 @@ public class GameManager : MonoBehaviour
             runState.SelectedPayrollAction = null;
         }
 
+        if (_runManager.TryPreparePendingRelicReward(nextState))
+        {
+            ChangeState(GameState.RelicReward);
+            return;
+        }
+
+        ChangeState(nextState);
+    }
+
+    public void ContinueAfterRelicReward(RelicId relicId)
+    {
+        EnsureManagers();
+        if (_runManager == null)
+        {
+            return;
+        }
+
+        GameState nextState = _runManager.SelectPendingRelic(relicId);
         ChangeState(nextState);
     }
 

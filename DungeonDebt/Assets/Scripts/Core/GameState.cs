@@ -8,6 +8,7 @@ public enum GameState
     Formation,
     Combat,
     Reward,
+    RelicReward,
     Upkeep,
     RivalUpdate,
     Victory,

@@ -93,8 +93,9 @@ public class CombatManager
         for (int i = 0; i < run.Party.Count; i++)
         {
             HeroInstance hero = run.Party[i];
-            int maxHealth = GetScaledHeroMaxHealth(hero, run);
-            int attack = GameRules.ScaleCombatStat(hero.Attack, run.HeroDamageMultiplier);
+            int maxHealth = RunManager.GetScaledHeroMaxHealth(hero, run);
+            int attack = GameRules.ScaleCombatStat(hero.Attack, run.HeroDamageMultiplier) +
+                RunManager.GetRelicAttackBonus(run, hero);
             CombatUnit unit = new CombatUnit(
                 hero.Definition.DisplayName,
                 attack,
@@ -262,7 +263,7 @@ public class CombatManager
             // here so any UI rendered between combats sees a coherent value.
             if (unit.SourceHero != null && unit.SourceHero.Definition != null)
             {
-                unit.SourceHero.CurrentHealth = GetScaledHeroMaxHealth(unit.SourceHero, _run);
+                unit.SourceHero.CurrentHealth = RunManager.GetScaledHeroMaxHealth(unit.SourceHero, _run);
             }
         }
 
@@ -320,10 +321,4 @@ public class CombatManager
         return 0;
     }
 
-    private static int GetScaledHeroMaxHealth(HeroInstance hero, RunState run)
-    {
-        return GameRules.ScaleCombatStat(
-            HeroEffects.GetTierAdjustedMaxHealth(hero),
-            run != null ? run.HeroHealthMultiplier : GameRules.NoCombatMultiplier);
-    }
 }

@@ -26,6 +26,8 @@ public class MainMenuPanel : MonoBehaviour
     private const int CombatLogStreamingTopOffset = CombatLogTopOffset + CombatUnitPanelHeight + CombatPanelLogGap;
     private const int RewardSummaryWidth = 520;
     private const int RewardSummaryHeight = 460;
+    private const int RelicRewardWidth = 680;
+    private const int RelicRewardHeight = 520;
     private const int EndScreenWidth = 640;
     private const int EndScreenHeight = 460;
     private const int LogScrollbarWidth = 14;
@@ -52,6 +54,7 @@ public class MainMenuPanel : MonoBehaviour
     [SerializeField] private CombatPanelView _combatPanelView;
     [SerializeField] private CombatLogView _combatLogView;
     [SerializeField] private RewardSummaryView _rewardSummaryView;
+    [SerializeField] private RelicRewardPanelView _relicRewardPanelView;
     [SerializeField] private EndScreenView _endScreenView;
     [SerializeField] private ShopPanelView _shopPanelView;
     [SerializeField] private FormationPanelView _formationPanelView;
@@ -81,6 +84,7 @@ public class MainMenuPanel : MonoBehaviour
         _startCombatButton.onClick.AddListener(StartCombat);
         _restartButton.onClick.AddListener(RestartCombat);
         _rewardSummaryView.SetOnContinue(HandleContinueClicked);
+        _relicRewardPanelView.SetOnSelect(HandleRelicSelected);
         _endScreenView.SetOnNewRun(HandleReturnToMainMenuClicked);
         _endScreenView.SetOnContinueAct2(HandleContinueAct2Clicked);
         _shopPanelView.SetHandlers(HandleHireClicked, HandleFireClicked, HandleRerollClicked, HandlePayDebtClicked, HandleShopContinueClicked);
@@ -143,6 +147,11 @@ public class MainMenuPanel : MonoBehaviour
     private void HandleContinueAct2Clicked()
     {
         _gameManager.ContinueToAct2();
+    }
+
+    private void HandleRelicSelected(RelicId relicId)
+    {
+        _gameManager.ContinueAfterRelicReward(relicId);
     }
 
     private void BuildDifficultySelector(RectTransform root)
@@ -358,6 +367,7 @@ public class MainMenuPanel : MonoBehaviour
         _rewardSummaryView.Clear();
         _runHeaderView.Clear();
         _endScreenView.Hide();
+        _relicRewardPanelView.Hide();
         _shopPanelView.Hide();
         _formationPanelView.Hide();
         _payrollPanelView.Hide();
@@ -381,6 +391,7 @@ public class MainMenuPanel : MonoBehaviour
         _combatPanelView.Clear();
         _combatPanelView.Show();
         _rewardSummaryView.Clear();
+        _relicRewardPanelView.Hide();
         _endScreenView.Hide();
         _shopPanelView.Hide();
         _formationPanelView.Hide();
@@ -420,6 +431,7 @@ public class MainMenuPanel : MonoBehaviour
     {
         SetCleanLayout(false);
         SetDifficultySelectorVisible(false);
+        _relicRewardPanelView.Hide();
 
         if (gameState == GameState.MainMenu)
         {
@@ -430,6 +442,7 @@ public class MainMenuPanel : MonoBehaviour
             _combatPanelView.Clear();
             _combatPanelView.Hide();
             _rewardSummaryView.Clear();
+            _relicRewardPanelView.Hide();
             _endScreenView.Hide();
             _shopPanelView.Hide();
             _formationPanelView.Hide();
@@ -452,6 +465,7 @@ public class MainMenuPanel : MonoBehaviour
             _combatPanelView.Clear();
             _combatPanelView.Hide();
             _rewardSummaryView.Clear();
+            _relicRewardPanelView.Hide();
             _endScreenView.Hide();
             _shopPanelView.Hide();
             _formationPanelView.Hide();
@@ -472,6 +486,7 @@ public class MainMenuPanel : MonoBehaviour
             _combatPanelView.Clear();
             _combatPanelView.Hide();
             _rewardSummaryView.Clear();
+            _relicRewardPanelView.Hide();
             _endScreenView.Hide();
             _shopPanelView.Hide();
             _formationPanelView.Hide();
@@ -496,6 +511,7 @@ public class MainMenuPanel : MonoBehaviour
             _combatPanelView.Clear();
             _combatPanelView.Hide();
             _rewardSummaryView.Clear();
+            _relicRewardPanelView.Hide();
             _endScreenView.Hide();
             _formationPanelView.Hide();
             _payrollPanelView.Hide();
@@ -519,6 +535,7 @@ public class MainMenuPanel : MonoBehaviour
             _combatPanelView.Clear();
             _combatPanelView.Hide();
             _rewardSummaryView.Clear();
+            _relicRewardPanelView.Hide();
             _endScreenView.Hide();
             _shopPanelView.Hide();
             _payrollPanelView.Hide();
@@ -542,6 +559,7 @@ public class MainMenuPanel : MonoBehaviour
             _combatPanelView.Clear();
             _combatPanelView.Hide();
             _rewardSummaryView.Clear();
+            _relicRewardPanelView.Hide();
             _endScreenView.Hide();
             _shopPanelView.Hide();
             _formationPanelView.Hide();
@@ -574,6 +592,30 @@ public class MainMenuPanel : MonoBehaviour
             return;
         }
 
+        if (gameState == GameState.RelicReward)
+        {
+            SetCleanLayout(true);
+            SetCombatChromeVisible(false);
+            _statusText.text = "Choose a relic.";
+            _resultText.text = string.Empty;
+            _combatLogView.Clear();
+            _combatPanelView.Clear();
+            _combatPanelView.Hide();
+            _rewardSummaryView.Clear();
+            _endScreenView.Hide();
+            _shopPanelView.Hide();
+            _formationPanelView.Hide();
+            _payrollPanelView.Hide();
+            _scoutPanelView.Hide();
+            _rivalLeaderboardView.Hide();
+            _rivalContinueButton.gameObject.SetActive(false);
+            _runHeaderView.Refresh(_gameManager.CurrentRunState);
+            _relicRewardPanelView.Refresh(_gameManager.CurrentRunState);
+            _startCombatButton.interactable = false;
+            _restartButton.interactable = true;
+            return;
+        }
+
         if (gameState == GameState.RivalUpdate)
         {
             SetCombatChromeVisible(false);
@@ -583,6 +625,7 @@ public class MainMenuPanel : MonoBehaviour
             _combatPanelView.Clear();
             _combatPanelView.Hide();
             _rewardSummaryView.Clear();
+            _relicRewardPanelView.Hide();
             _endScreenView.Hide();
             _shopPanelView.Hide();
             _formationPanelView.Hide();
@@ -612,6 +655,7 @@ public class MainMenuPanel : MonoBehaviour
                 _statusText.text = "Run lost.";
             }
             _rewardSummaryView.Clear();
+            _relicRewardPanelView.Hide();
             _combatPanelView.Clear();
             _combatPanelView.Hide();
             _shopPanelView.Hide();
@@ -794,6 +838,11 @@ public class MainMenuPanel : MonoBehaviour
 
         _rewardSummaryView = rewardSummaryPanel.gameObject.AddComponent<RewardSummaryView>();
         _rewardSummaryView.Initialize(GetRuntimeFont());
+
+        RectTransform relicRewardPanel = CreateRect("RelicRewardPanel", root);
+        SetAnchoredRect(relicRewardPanel, 0.5f, 0.5f, 0.5f, 0.5f, 0f, -20f, RelicRewardWidth, RelicRewardHeight);
+        _relicRewardPanelView = relicRewardPanel.gameObject.AddComponent<RelicRewardPanelView>();
+        _relicRewardPanelView.Initialize(GetRuntimeFont());
 
         _resultText = CreateText("ResultText", root, string.Empty, 32, FontStyle.Bold, TextAnchor.MiddleCenter);
         SetAnchoredRect(_resultText.rectTransform, 0.5f, 0f, 0.5f, 0f, 0f, 45f, 800f, 52f);

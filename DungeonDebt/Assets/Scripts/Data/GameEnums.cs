@@ -66,3 +66,11 @@ public enum DifficultyPresetId
     StandardContract,
     PredatoryInterest
 }
+
+public enum RelicId
+{
+    BladeCharter,
+    IronOath,
+    CampRations,
+    GuildDividend
+}

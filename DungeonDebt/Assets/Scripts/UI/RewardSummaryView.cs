@@ -45,6 +45,16 @@ public class RewardSummaryView : MonoBehaviour
             payrollSection = runState.LatestPayrollSummary + "\n";
         }
 
+        string relicSection = string.Empty;
+        if (runState.ActiveRelics.Count > 0)
+        {
+            relicSection = "Active relics: " + FormatActiveRelics(runState) + "\n";
+            if (runState.LatestRelicRewardGold > 0)
+            {
+                relicSection += "Relic bonus: +" + runState.LatestRelicRewardGold + " gold\n";
+            }
+        }
+
         string debtWarning = string.Empty;
         if (GameRules.IsHighDebtPressure(runState.Debt))
         {
@@ -56,6 +66,7 @@ public class RewardSummaryView : MonoBehaviour
             "Gold gained: +" + runState.LatestRewardGold + "\n" +
             "Morale change: " + FormatSigned(runState.LatestMoraleChange) + "\n" +
             payrollSection +
+            relicSection +
             "Upkeep due: " + runState.LatestTotalUpkeep + "\n" +
             "Upkeep paid: " + runState.LatestUpkeepPaid + "\n" +
             "Upkeep shortfall: " + runState.LatestUpkeepShortfall + "\n" +
@@ -197,6 +208,22 @@ public class RewardSummaryView : MonoBehaviour
         }
 
         return value.ToString();
+    }
+
+    private static string FormatActiveRelics(RunState runState)
+    {
+        string text = string.Empty;
+        for (int i = 0; i < runState.ActiveRelics.Count; i++)
+        {
+            if (i > 0)
+            {
+                text += ", ";
+            }
+
+            text += DataRepository.GetRelic(runState.ActiveRelics[i]).DisplayName;
+        }
+
+        return text;
     }
 
     private static void SetAnchoredRect(RectTransform rectTransform, float anchorMinX, float anchorMinY, float anchorMaxX, float anchorMaxY, float leftOrCenterX, float bottomOrCenterY, float rightOrWidth, float topOrHeight)
