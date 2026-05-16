@@ -23,7 +23,7 @@ It is intentionally small. Target: a playable prototype in 2–4 weeks.
 
 M1–M7 are complete. The project now has a playable end-to-end prototype with run flow, shop, formation, payroll, scout, 10 encounters, hero/enemy effects, rival ghosts, and leaderboard.
 
-Current phase: **Phase 2** — post-M7 readability, tiering, combat presentation, and balance (`IMPLEMENTATION_PLAN.md` §15). Follow `NEXT_SESSION.md` for the active slice.
+Current phase: **Phase 3** — vertical expansion after the playable Phase 2 prototype. The active approved slice is M12.1 debt status + Shop repayment; follow `NEXT_SESSION.md` and `IMPLEMENTATION_PLAN.md` §16 for the active scope.
 
 ---
 
@@ -143,6 +143,10 @@ From `IMPLEMENTATION_PLAN.md` §14. These are hard limits.
 
 All other rules below remain in force for Phase 2.
 
+**Phase 3 carve-outs (post-M11, see `IMPLEMENTATION_PLAN.md` §16):** Only the explicitly selected Phase 3 milestone is in scope. For M12, debt rework/readability is approved: debt thresholds, interest divisor, debt-status labels, existing UI summaries, and the M12.1 Shop Pay Debt recovery control may change. Acts, loot/relics, XP/veterancy, difficulty modes, and combat status keywords remain out of scope until their own milestones are selected.
+
+All other rules below remain in force for Phase 2 and Phase 3.
+
 - **Do not add extra heroes** beyond the 12 in §7 of the plan
 - **Do not add equipment, items, or inventory**
 - **Do not add traits, factions, or synergies** beyond the listed role labels
@@ -199,6 +203,7 @@ When the user asks for "the next milestone" or names one by number, here's what'
 | 9 | Bronze→Silver tiering | Duplicate-hire merges to Silver; Silver offers in shop; per-hero Silver bonus |
 | 10 | Combat view rebuild | Unit-card combat panel with HP bars and turn highlighting |
 | 11 | Economy & balance pass | Tune resource curves and Silver tier probability |
+| 12 | Debt rework/readability | Debt-status tiers, Shop repayment, clearer interest/debt warnings |
 
 Each milestone must pass its acceptance criteria before the next begins.
 

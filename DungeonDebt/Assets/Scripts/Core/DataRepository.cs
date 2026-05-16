@@ -295,7 +295,7 @@ public static class DataRepository
     private static readonly PayrollActionDefinition CutWagesAction = new PayrollActionDefinition(
         PayrollActionId.CutWages,
         "Cut Wages",
-        "Each hero's upkeep this round drops by " + GameRules.CutWagesUpkeepReduction + " (min 0). Each hero's attack drops by " + GameRules.CutWagesAttackPenalty + " (min 0).");
+        "Total upkeep this round drops by " + GameRules.CutWagesUpkeepReduction + " (min 0). Each hero's attack drops by " + GameRules.CutWagesAttackPenalty + " (min 0).");
 
     private static readonly PayrollActionDefinition PromiseVictoryBonusAction = new PayrollActionDefinition(
         PayrollActionId.PromiseVictoryBonus,

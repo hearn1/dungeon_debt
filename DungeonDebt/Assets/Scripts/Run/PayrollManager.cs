@@ -20,13 +20,6 @@ public class PayrollManager : MonoBehaviour
                 for (int i = 0; i < runState.Party.Count; i++)
                 {
                     HeroInstance hero = runState.Party[i];
-                    int reducedUpkeep = hero.UpkeepThisRound - GameRules.CutWagesUpkeepReduction;
-                    if (reducedUpkeep < 0)
-                    {
-                        reducedUpkeep = 0;
-                    }
-                    hero.UpkeepThisRound = reducedUpkeep;
-
                     int reducedAttack = hero.Attack - GameRules.CutWagesAttackPenalty;
                     if (reducedAttack < 0)
                     {
@@ -82,8 +75,8 @@ public class PayrollManager : MonoBehaviour
 
             case PayrollActionId.CutWages:
                 runState.LatestPayrollSummary =
-                    "Cut Wages: per-hero upkeep -" + GameRules.CutWagesUpkeepReduction +
-                    " (min 0), attack -" + GameRules.CutWagesAttackPenalty + " (min 0)";
+                    "Cut Wages: total upkeep -" + GameRules.CutWagesUpkeepReduction +
+                    " (min 0), attack -" + GameRules.CutWagesAttackPenalty + " per hero (min 0)";
                 break;
 
             case PayrollActionId.PromiseVictoryBonus:

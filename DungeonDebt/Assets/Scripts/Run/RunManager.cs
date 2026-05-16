@@ -343,6 +343,12 @@ public class RunManager : MonoBehaviour
             }
         }
 
+        if (runState.SelectedPayrollAction.HasValue &&
+            runState.SelectedPayrollAction.Value == PayrollActionId.CutWages)
+        {
+            totalUpkeep -= GameRules.CutWagesUpkeepReduction;
+        }
+
         if (totalUpkeep < 0)
         {
             totalUpkeep = 0;

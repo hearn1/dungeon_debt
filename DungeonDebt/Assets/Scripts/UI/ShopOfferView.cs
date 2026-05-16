@@ -45,7 +45,7 @@ public class ShopOfferView : MonoBehaviour
         }
         else if (offer.Tier == HeroTier.Silver)
         {
-            _hireLabel.text = "Hire Silver (" + offer.HireCost + "g)";
+            _hireLabel.text = "Silver " + offer.HireCost + "g";
         }
         else
         {

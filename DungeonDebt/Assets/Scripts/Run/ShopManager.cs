@@ -223,7 +223,7 @@ public class ShopManager : MonoBehaviour
             }
 
             int hireCost = picked.BaseUpkeep + GameRules.HireCostBonus;
-            if (tier == HeroTier.Silver)
+            if (tier == HeroTier.Silver || anyOwned.Contains(picked.Id))
             {
                 hireCost += GameRules.SilverHireCostBonus;
             }

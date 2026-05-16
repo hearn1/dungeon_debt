@@ -84,7 +84,7 @@ public static class GameRules
 
     // M9.2 Silver tier placeholders. Final numbers and probability curve are M11's job.
     public const int SilverHireCostBonus = 3;
-    public const float SilverOfferChance = 0.20f;
+    public const float SilverOfferChance = 0.12f;
     public const int SilverStatAttackBonus = 2;
     public const int SilverStatHealthBonus = 4;
     public const int SilverUpkeepReduction = 2;

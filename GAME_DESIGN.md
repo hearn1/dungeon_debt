@@ -374,13 +374,13 @@ Interest is paid after upkeep.
 If interest cannot be paid, unpaid interest becomes additional debt.
 ```
 
-Debt loss condition:
+Debt loss condition for the original MVP baseline:
 
 ```text
 If debt >= 20, lose the run.
 ```
 
-This can be tuned later, but it is clear enough for implementation.
+Phase 3 updates this from a hard-feeling fail meter into a clearer debt-pressure track. See **Phase 3 Debt Rework Direction** below.
 
 ---
 
@@ -615,6 +615,64 @@ The player loses if:
 - The player loses the final boss fight
 
 Keep this simple for MVP.
+
+---
+
+## Phase 3 Debt Rework Direction
+
+M11 proved the prototype is playable enough to treat the current 10-round dungeon as Act 1 / initial difficulty, but the debt mechanic needs to feel less instantly punishing.
+
+The design goal is:
+
+> Debt should feel like a risky pressure track, not a surprise fail meter.
+
+Debt still matters. It still represents unpaid wages, loans, and interest. It should still create greed, comeback, and collapse moments. The Phase 3 adjustment is about readability and recovery time, not removing consequences. Debt needs both a pressure loop and a recovery loop: the player should be able to deliberately spend scarce gold to pay down principal.
+
+### Debt status tiers
+
+Use clear labels anywhere the player checks debt:
+
+| Status | Intended player read |
+|---|---|
+| Stable | Debt is low or absent. The run is financially healthy. |
+| Strained | Debt is present. Interest matters, but recovery is realistic. |
+| Dangerous | Debt is shaping decisions and debt-scaling enemies are threatening. |
+| Critical | Bankruptcy is close. The player needs immediate recovery. |
+
+### Debt recovery
+
+The first recovery tool is a Shop **Pay Debt** action. It is explicit, player-controlled, and competes directly with hiring and rerolling.
+
+First-pass rule:
+
+```text
+DebtPaymentCap = 3
+Payment amount = min(Gold, Debt, DebtPaymentCap)
+Pay Debt is enabled only if Gold > 0 and Debt > 0.
+Paying debt immediately spends that gold and reduces debt 1:1.
+```
+
+Example button labels:
+
+- `Pay Debt (3g)`
+- `Pay Debt (2g)`
+- `No Debt`
+- `Need Gold`
+
+Do not use automatic surplus repayment for the first pass. The player chooses whether gold goes toward debt recovery, hiring, or rerolling.
+
+### First implementation target
+
+For M12.1, prefer a conservative rework:
+
+- Show the current debt status in the run header.
+- Add the Shop Pay Debt control described above.
+- Make repayment update gold/debt immediately so it competes with hire/reroll choices.
+- Keep debt warnings general: high debt increases interest pressure and can interact badly with debt-scaling threats.
+- Make reward/upkeep summaries explain debt gained, interest paid or added, and status changes.
+- Keep Take Loan, unpaid upkeep, Debt Wraith scaling, and debt defeat intact.
+
+Do not add automatic surplus repayment, new or replacement payroll actions, hero behavior changes, enemy behavior changes, high-debt shop surcharges, specific encounter warnings, new debt enemies, new resources, XP, loot, acts, or status effects as part of M12.1. Those can be considered in later M12.x slices after Shop repayment has been tested.
 
 ---
 

@@ -51,6 +51,42 @@ Copy this block when adding a new entry. Paste it at the top of the Session log 
 
 <!-- Newest entries at the top. -->
 
+## 2026-05-16 - M11.2: Cut Wages rule alignment and first economy retest
+
+**Milestone:** M11 - Economy and balance pass
+**Status:** Complete
+
+**Files added:**
+- `TestPlans/TP_M11.2.md`
+
+**Files modified:**
+- `DungeonDebt/Assets/Scripts/Run/PayrollManager.cs` - removed Cut Wages per-hero upkeep mutation, kept temporary per-hero attack penalty, and corrected the reward summary text.
+- `DungeonDebt/Assets/Scripts/Run/RunManager.cs` - applies Cut Wages as a single total-upkeep reduction during total upkeep calculation.
+- `DungeonDebt/Assets/Scripts/Core/DataRepository.cs` - corrected Cut Wages payroll card copy from per-hero upkeep reduction to total-upkeep reduction.
+- `DungeonDebt/Assets/Scripts/Core/GameRules.cs` - reduced `SilverOfferChance` from `0.20f` to `0.12f`.
+- `DungeonDebt/Assets/Scripts/Run/ShopManager.cs` - duplicate Bronze hires that upgrade an owned hero to Silver now include `SilverHireCostBonus`.
+- `DungeonDebt/Assets/Scripts/UI/ShopOfferView.cs` - shortened direct Silver offer button label so the gold cost remains visible.
+
+**Acceptance criteria:**
+- [x] Cut Wages reduces total upkeep by `GameRules.CutWagesUpkeepReduction` once per round, not once per hero, while still applying the attack penalty to all heroes for combat.
+- [x] Standard Pay, Take Loan, and Promise Victory Bonus behavior remain unchanged by the Cut Wages fix.
+- [x] Reward summary and balance TSV logs show corrected Cut Wages total-upkeep math.
+- [x] `TestPlans/TP_M11.2.md` exists and includes targeted checks plus short post-fix retest guidance.
+- [x] Session review identified the next tuning direction and concluded Act 1 / initial balance is good enough for now.
+
+**Test plan:** `TestPlans/TP_M11.2.md` was created but not run as a checkbox plan by user choice. Instead, live balance TSV logs were reviewed across multiple batches: post-Cut-Wages fix, post-`SilverOfferChance = 0.12f`, and post-duplicate-upgrade premium. `dotnet build DungeonDebt.sln` passed after each code change with 0 warnings / 0 errors.
+
+**Deviations from plan:**
+- With user approval, the session expanded from Cut Wages alignment into conservative M11 tuning: direct Silver offer chance was reduced, duplicate Silver upgrades were repriced, and a quick Silver hire button-label bug was fixed.
+- Manual checkbox execution of `TP_M11.2.md` was replaced by direct review of the generated balance TSV logs.
+
+**Follow-up flagged:**
+- Current 10-round balance looks acceptable if treated as Act 1 / initial difficulty: wins are common for stable runs, but debt, morale, and poor economy/combat decisions still produce meaningful losses.
+- No M12 exists in `IMPLEMENTATION_PLAN.md`; the next implementation round should be planned explicitly before coding resumes.
+- Potential future direction: act structure, difficulty modifiers, or a post-M11 planning pass. Do not add these until `IMPLEMENTATION_PLAN.md` is updated.
+
+**Next slice:** none currently defined - planned M1-M11 work is complete; next session should discuss/update the next implementation plan round.
+
 ## 2026-05-16 - M11.1: Economy and balance baseline run matrix
 
 **Milestone:** M11 - Economy and balance pass
