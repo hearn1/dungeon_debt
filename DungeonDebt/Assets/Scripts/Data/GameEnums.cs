@@ -72,7 +72,11 @@ public enum RelicId
     BladeCharter,
     IronOath,
     CampRations,
-    GuildDividend
+    GuildDividend,
+    ShieldClause,
+    RedInkBrand,
+    CausticWrit,
+    ToxicCollateral
 }
 
 public enum CombatStatusId

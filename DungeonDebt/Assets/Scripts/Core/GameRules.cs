@@ -57,6 +57,14 @@ public static class GameRules
     public const int IronOathHealthBonus = 1;
     public const int CampRationsHealthBonus = 1;
     public const int GuildDividendRewardGold = 1;
+    public const string ShieldClauseRelicName = "Shield Clause";
+    public const string ShieldClauseRelicDescription = "Leftmost frontline hero starts combat Guarded.";
+    public const string RedInkBrandRelicName = "Red Ink Brand";
+    public const string RedInkBrandRelicDescription = "First hero-side attack each combat applies Marked if the target survives.";
+    public const string CausticWritRelicName = "Caustic Writ";
+    public const string CausticWritRelicDescription = "Damage-role heroes apply Burned if their attack target survives.";
+    public const string ToxicCollateralRelicName = "Toxic Collateral";
+    public const string ToxicCollateralRelicDescription = "Damage-role heroes apply Poisoned if their attack target survives.";
     public const int VeteranTier1XpThreshold = 2;
     public const int VeteranTier2XpThreshold = 5;
     public const int VeteranTier3XpThreshold = 9;

@@ -4,56 +4,55 @@ This file always describes the **next** session's work. Rewrite it at the end of
 
 ---
 
-## Session: M18.2 - Relic/upgrade variants for player-side status access
+## Session: M19.0 - Prototype assessment and consolidation plan
 
-**Milestone:** M18 - Combat status keywords
-**Slice goal:** Add a narrow player-side access layer for the M18.1 status system through relic/upgrade variants, without expanding into a broad status engine or new reward system.
+**Milestone:** M19 - Prototype assessment / consolidation
+**Slice goal:** Decide whether Dungeon Debt needs another vertical at all, or whether the next phase should tighten, balance, prune, and clarify existing systems.
 
 ### Why this slice exists
 
-M18.1 added the compact combat-status foundation and enemy-side touchpoints for `Guarded`, `Burned`, `Poisoned`, `Marked`, `Weakened`, and `Inspired`. Manual verification confirmed the core status behavior, with an important readability correction: `Burned`, `Poisoned`, and `Weakened` are attack-applied statuses on the target, not starting wounds on enemies.
+M18 is complete: M18.0 planned the six-status direction, M18.1 added the compact enemy-side status foundation, and M18.2 added narrow player-side access through relics and Silver hero upgrades.
 
-M18.2 should let the player interact with the same status system in a small, readable way. The preferred implementation is to add status-oriented variants to the existing relic/policy reward surface rather than creating a new upgrade screen, new inventory, or player status-choice subsystem.
+The existing `IMPLEMENTATION_PLAN.md` Phase 3 order currently ends at M18+. More importantly, the prototype now has most of the originally imagined vertical layers: debt readability, acts, difficulty, relics, veterancy, and statuses. The next session should assess whether adding another vertical would improve the game, or whether the better move is consolidation: balance, clarity, pacing, UX, pruning, and outside-tester readiness.
 
 ### Scope
 
-**In scope for M18.2:**
-- Add a small number of new relic/policy definitions that grant player-side status access through existing combat hooks.
-- Prefer 3-4 status relics total, using existing `RelicReward` flow and `RunState.ActiveRelics`.
-- Candidate relic shapes:
-  - A defensive relic that gives one frontline hero `Guarded` at combat start.
-  - An offensive relic that makes the first player attack apply `Marked`.
-  - A pressure relic that lets Damage-role heroes apply `Burned` or `Poisoned` on attack.
-  - A morale/tempo relic that gives one hero `Inspired` at combat start.
-- Reuse M18.1 `CombatUnit` status state, logging, replay refresh, and card indicators.
-- Keep effects deterministic, synchronous, and small enough to explain in relic text.
-- Put any new numeric constants, labels, or helper decisions in `GameRules`.
-- Create `TestPlans/TP_M18.2.md`.
+**In scope for M19.0:**
+- Review the completed M18 state and any manual-test notes from `TestPlans/TP_M18.2.md`.
+- Check `REGRESSIONS.md` for blockers or newly reported M18 issues.
+- Assess the current prototype as a whole:
+  - Is the core loop fun enough round-to-round?
+  - Which systems are carrying the experience?
+  - Which systems feel noisy, redundant, under-tested, or overgrown?
+  - Does the game need more content/features, or does it need tightening?
+  - What would make it clearer and more playable for an outside tester?
+- Decide whether the next work should be consolidation, a targeted regression/tuning follow-up, or a genuinely necessary new vertical.
+- Draft a ready next implementation slice with ID, goal, files, and 2-5 acceptance criteria based on that assessment.
+- Rewrite `NEXT_SESSION.md` for that ready slice.
+- Create `TestPlans/TP_M19.0.md` as a planning/document-review checklist if the session changes no runtime code.
 
-**Not in scope for M18.2:**
-- A new upgrade reward screen unless planning proves existing relic rewards cannot support the slice.
-- New heroes, enemies, encounters, acts, equipment, inventory, save/load, meta progression, tutorials, audio, particles, VFX, or animations.
-- Generalized stacks, durations, cleanse/dispel, resistances, damage types, crit/dodge, or a broad debuff library.
-- Player-selected per-combat status targeting.
-- Statuses outside the six implemented in M18.1.
-- Reworking combat turn order, targeting, replay timing, or enemy-side M18.1 behavior except to integrate player-side status output cleanly.
+**Not in scope for M19.0:**
+- Implementing the next vertical or consolidation slice in the same session.
+- Adding new heroes, enemies, relics, statuses, acts, UI screens, save/load, meta progression, equipment, inventory, tutorials, audio, particles, VFX, or broad architecture.
+- Changing M18 behavior unless a specific regression is selected instead of planning.
+- Updating `PROGRESS.md` or `REGRESSIONS.md` mid-session.
 
 ### Definition of ready
 
-- ID: M18.2.
+- ID: M19.0.
 - One-sentence goal: above.
 - Files: listed below.
-- Acceptance criteria: 5, below.
-- No open blocker regressions in `REGRESSIONS.md` currently block implementation.
+- Acceptance criteria: 4, below.
+- No open blocker regressions in `REGRESSIONS.md` currently block planning.
 
 ### Relevant plan/design sections
 
-- `IMPLEMENTATION_PLAN.md` section 16: Phase 3 scope rules and M18+ status-keyword placeholder. Note that M18 is following the user-approved six-status expansion recorded in M18.0/M18.1.
-- `GAME_DESIGN.md` combat, run-flow, reward, and MVP scope sections.
-- `PROGRESS.md` latest M18.1/M18.0 entries.
-- `REGRESSIONS.md` Open section.
 - `SESSION_PROTOCOL.md` seven-step session flow.
 - `CLAUDE.md` / `AGENTS.md` Scope control, architectural rules, coding conventions, and Definition of ready.
+- `PROGRESS.md` latest M18.2/M18.1/M18.0 entries.
+- `REGRESSIONS.md` Open section.
+- `IMPLEMENTATION_PLAN.md` section 16 Phase 3 scope rules.
+- `GAME_DESIGN.md` core loop, MVP scope, strategic tension, and design warning sections.
 
 ### Files Claude Code Should Read
 
@@ -61,90 +60,60 @@ M18.2 should let the player interact with the same status system in a small, rea
 SESSION_PROTOCOL.md
 CLAUDE.md
 REGRESSIONS.md
-PROGRESS.md (last 2-3 entries)
+PROGRESS.md (latest M18.2/M18.1/M18.0 entries)
 NEXT_SESSION.md
 IMPLEMENTATION_PLAN.md (section 16)
-GAME_DESIGN.md (combat/reward/run-flow/scope sections)
-DungeonDebt/Assets/Scripts/Data/GameEnums.cs
-DungeonDebt/Assets/Scripts/Data/RelicDefinition.cs
-DungeonDebt/Assets/Scripts/Data/RunState.cs
-DungeonDebt/Assets/Scripts/Data/CombatUnit.cs
-DungeonDebt/Assets/Scripts/Data/CombatStatusState.cs
-DungeonDebt/Assets/Scripts/Core/GameRules.cs
-DungeonDebt/Assets/Scripts/Core/DataRepository.cs
-DungeonDebt/Assets/Scripts/Run/RunManager.cs
-DungeonDebt/Assets/Scripts/Combat/CombatManager.cs
-DungeonDebt/Assets/Scripts/Combat/HeroEffects.cs
-DungeonDebt/Assets/Scripts/Combat/CombatLogger.cs
-DungeonDebt/Assets/Scripts/UI/RelicRewardPanelView.cs
-DungeonDebt/Assets/Scripts/UI/RewardSummaryView.cs
-DungeonDebt/Assets/Scripts/UI/RunHeaderView.cs
-DungeonDebt/Assets/Scripts/UI/CombatUnitCardView.cs
-DungeonDebt/Assets/Scripts/UI/CombatPanelView.cs
-TestPlans/TP_M18.1.md
+GAME_DESIGN.md (core loop, MVP scope, strategic tension, design warning)
+TestPlans/TP_M18.2.md
 ```
 
 ### Files Claude Code Should Create
 
 ```
-TestPlans/TP_M18.2.md
-```
-
-Optional only if planning shows the relic effects need a separate one-class helper:
-
-```
-DungeonDebt/Assets/Scripts/Combat/RelicCombatEffects.cs
+TestPlans/TP_M19.0.md
 ```
 
 ### Files Claude Code Should Modify
 
 ```
-DungeonDebt/Assets/Scripts/Data/GameEnums.cs - add new RelicId values for the selected status relics.
-DungeonDebt/Assets/Scripts/Core/GameRules.cs - add any status relic constants and helper labels.
-DungeonDebt/Assets/Scripts/Core/DataRepository.cs - add the new relic definitions to the existing relic list.
-DungeonDebt/Assets/Scripts/Combat/CombatManager.cs - apply player-side status relic effects at combat start or on attack.
-DungeonDebt/Assets/Scripts/Combat/CombatLogger.cs - only if new player-side relic status application needs clearer log helper text beyond M18.1 helpers.
-DungeonDebt/Assets/Scripts/UI/RewardSummaryView.cs - only if active relic/status summary copy needs a small readability tweak.
-DungeonDebt/Assets/Scripts/UI/RunHeaderView.cs - only if active relic text crowding needs a small display adjustment.
+NEXT_SESSION.md - rewrite it to describe the next ready implementation slice after the planning decision.
+```
+
+Optional only with explicit user approval during planning:
+
+```
+IMPLEMENTATION_PLAN.md - add or amend a concise consolidation milestone entry if the user wants the plan itself updated.
 ```
 
 ### Files Claude Code Does NOT Touch
 
+- Runtime C# code, Unity scene, prefabs, art assets, project settings, generated Unity folders, or unrelated `.meta` files.
 - `PROGRESS.md` / `REGRESSIONS.md` directly unless the user explicitly asks for end-of-session doc updates.
-- Unity scene, prefabs, art assets, project settings, generated Unity folders, or unrelated `.meta` files.
-- Shop, payroll, rival, difficulty, veterancy, save/load, act, or reward-routing systems except where existing relic reward data is used.
 - New top-level folders, `Resources/`, `StreamingAssets/`, `Tests/`, or `Editor/`.
-- Enemy-side status touchpoints from M18.1 unless a specific regression from testing must be fixed.
 
 ### Acceptance criteria
 
-1. A small set of new relic/policy definitions gives player-side access to selected M18.1 statuses using the existing relic reward flow.
-2. Player-side status effects reuse the M18.1 status data, logs, replay refresh, and combat-card indicators; no duplicate status system is introduced.
-3. Status relic effects are deterministic and readable: combat-start effects happen before the first action, and on-attack effects apply to the target after damage lands if the target survives.
-4. Existing enemy-side M18.1 statuses still work, including attack-applied Burned / Poisoned / Weakened behavior.
-5. `TestPlans/TP_M18.2.md` exists with happy path, edge cases, observable invariants, and targeted regression checks for relic reward routing, active relic visibility, status replay/card refresh, and prior relic effects.
+1. The session produces a clear recommendation: consolidate existing systems, fix/tune M18, or add a new vertical only if there is a strong reason.
+2. The assessment names the prototype's strongest systems, weakest/noisiest systems, and biggest outside-tester readiness gaps.
+3. The chosen next slice has an ID, one-sentence goal, files to create/modify, and 2-5 acceptance criteria.
+4. `NEXT_SESSION.md` is rewritten to that ready slice so the following session can start with Orient.
+5. No runtime code or out-of-scope feature work is started during M19.0.
 
 ### Planning guidance
 
-Keep the final relic set small. It is better to add 3 readable relics than 6 noisy ones. Do not give every status a relic if that makes combat logs unreadable.
+Start from the assumption that another vertical is not automatically desirable. The question is whether the current prototype needs breadth or focus.
 
-Recommended first-pass relic concepts:
+Reasonable options to discuss:
 
-- `Shield Clause`: leftmost living frontline hero starts combat `Guarded`.
-- `Red Ink Brand`: first player attack each combat applies `Marked` to its target.
-- `Caustic Writ`: Damage-role heroes apply `Burned` on attack.
-- `Toxic Collateral`: Damage-role heroes apply `Poisoned` on attack.
-
-If four relics feels too noisy during planning, pick three and explicitly defer the fourth. Avoid adding separate UI affordances; these should appear in the existing relic offer screen and active relic displays.
+- A small status/relic balance pass if M18.2 manual testing finds rough edges.
+- A consolidation milestone focused on balance, clarity, pacing, and readability.
+- A UX/readability milestone for relic/status/veterancy density.
+- A content polish milestone using existing systems only, if playtesting shows the run is too repetitive.
+- Updating `IMPLEMENTATION_PLAN.md` to define a consolidation phase before coding.
 
 ### Manual test expectations
 
-- Verify each new status relic can appear in the existing relic reward flow.
-- Verify selected relics are stored on `RunState.ActiveRelics` and do not repeat.
-- Verify combat-start player statuses are visible before the first replayed attack.
-- Verify player on-attack status applications happen after damage lands and only if the target survives.
-- Verify existing relics from M16.1 still work: Blade Charter, Iron Oath, Camp Rations, and Guild Dividend.
-- Verify enemy-side M18.1 touchpoints still work after adding player-side access.
+M19.0 is a planning/documentation slice. If no runtime code changes, use `TestPlans/TP_M19.0.md` as a document-review checklist confirming the next slice is ready and no implementation files changed.
 
 ### Start Prompt For The Next Session
 

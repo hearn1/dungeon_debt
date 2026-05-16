@@ -4,6 +4,7 @@ public class CombatManager
 {
     private RunState _run;
     private int _knightRedirectsRemaining;
+    private bool _redInkBrandApplied;
 
     public CombatResult StartCombat(RunState run, EncounterDefinition encounter)
     {
@@ -14,8 +15,10 @@ public class CombatManager
 
         _run = run;
         _knightRedirectsRemaining = 0;
+        _redInkBrandApplied = false;
 
         HeroEffects.OnCombatStart(run, encounter, playerUnits, enemyUnits, logger, out _knightRedirectsRemaining);
+        ApplyCombatStartRelicStatuses(run, playerUnits, logger);
         CopyUnitSnapshots(playerUnits, result.PlayerStartUnits);
         CopyUnitSnapshots(enemyUnits, result.EnemyStartUnits);
 
@@ -245,9 +248,33 @@ public class CombatManager
         else
         {
             ApplyAttackStatuses(attacker, defender, logger);
+            HeroEffects.OnSurvivingAttack(attacker, defender, logger);
+            ApplyRelicAttackStatuses(attacker, defender, logger);
         }
 
         ApplyPostAttackStatusDamage(attacker, logger);
+    }
+
+    private static void ApplyCombatStartRelicStatuses(RunState run, List<CombatUnit> playerUnits, CombatLogger logger)
+    {
+        if (!RunManager.HasRelic(run, RelicId.ShieldClause))
+        {
+            return;
+        }
+
+        CombatUnit target = FindLeftmostLivingUnit(playerUnits, 0, GameRules.FrontlineSlots - 1);
+        if (target == null)
+        {
+            return;
+        }
+
+        bool added = target.Statuses.Add(CombatStatusId.Guarded);
+        if (added && logger != null)
+        {
+            logger.LogStatusChange(
+                target,
+                GameRules.ShieldClauseRelicName + " grants Guarded to " + target.DisplayName + ".");
+        }
     }
 
     private static void ApplyAttackStatuses(CombatUnit attacker, CombatUnit defender, CombatLogger logger)
@@ -268,6 +295,60 @@ public class CombatManager
                     defender,
                     attacker.DisplayName + " applies " + GameRules.GetCombatStatusLabel(statusId) + " to " + defender.DisplayName + ".");
             }
+        }
+    }
+
+    private void ApplyRelicAttackStatuses(CombatUnit attacker, CombatUnit defender, CombatLogger logger)
+    {
+        if (_run == null || attacker == null || defender == null)
+        {
+            return;
+        }
+
+        if (!attacker.IsPlayerSide || attacker.SourceHero == null || attacker.SourceHero.Definition == null)
+        {
+            return;
+        }
+
+        if (!_redInkBrandApplied && RunManager.HasRelic(_run, RelicId.RedInkBrand))
+        {
+            _redInkBrandApplied = true;
+            ApplyRelicStatus(defender, CombatStatusId.Marked, GameRules.RedInkBrandRelicName, logger);
+        }
+
+        if (attacker.SourceHero.Definition.Role != HeroRole.Damage)
+        {
+            return;
+        }
+
+        if (RunManager.HasRelic(_run, RelicId.CausticWrit))
+        {
+            ApplyRelicStatus(defender, CombatStatusId.Burned, GameRules.CausticWritRelicName, logger);
+        }
+
+        if (RunManager.HasRelic(_run, RelicId.ToxicCollateral))
+        {
+            ApplyRelicStatus(defender, CombatStatusId.Poisoned, GameRules.ToxicCollateralRelicName, logger);
+        }
+    }
+
+    private static void ApplyRelicStatus(
+        CombatUnit target,
+        CombatStatusId statusId,
+        string relicName,
+        CombatLogger logger)
+    {
+        if (target == null || target.Statuses == null)
+        {
+            return;
+        }
+
+        bool added = target.Statuses.Add(statusId);
+        if (added && logger != null)
+        {
+            logger.LogStatusChange(
+                target,
+                relicName + " applies " + GameRules.GetCombatStatusLabel(statusId) + " to " + target.DisplayName + ".");
         }
     }
 

@@ -146,9 +146,19 @@ public static class HeroEffects
 
             if (unit.SourceHero.Definition.EffectId == HeroEffectId.KnightRedirect)
             {
-                knightRedirectsRemaining = unit.SourceHero.Tier == HeroTier.Silver
+                bool silverKnight = unit.SourceHero.Tier == HeroTier.Silver;
+                knightRedirectsRemaining = silverKnight
                     ? GameRules.SilverKnightRedirectCount
                     : GameRules.BronzeKnightRedirectCount;
+
+                if (silverKnight)
+                {
+                    bool added = unit.Statuses.Add(CombatStatusId.Guarded);
+                    if (added && logger != null)
+                    {
+                        logger.LogStatusChange(unit, unit.DisplayName + " starts Guarded (Silver upgrade).");
+                    }
+                }
                 break;
             }
         }
@@ -349,6 +359,51 @@ public static class HeroEffects
 
     public static void OnAttack(CombatUnit attacker, CombatUnit defender, CombatLogger logger)
     {
+    }
+
+    public static void OnSurvivingAttack(CombatUnit attacker, CombatUnit defender, CombatLogger logger)
+    {
+        if (attacker == null || defender == null || !attacker.IsPlayerSide)
+        {
+            return;
+        }
+
+        if (attacker.SourceHero == null || attacker.SourceHero.Definition == null)
+        {
+            return;
+        }
+
+        if (attacker.SourceHero.Tier != HeroTier.Silver)
+        {
+            return;
+        }
+
+        CombatStatusId statusId = CombatStatusId.None;
+        if (attacker.SourceHero.Definition.EffectId == HeroEffectId.NinjaLowestTarget)
+        {
+            statusId = CombatStatusId.Poisoned;
+        }
+        else if (attacker.SourceHero.Definition.EffectId == HeroEffectId.WizardScaling)
+        {
+            statusId = CombatStatusId.Burned;
+        }
+        else if (attacker.SourceHero.Definition.EffectId == HeroEffectId.EnchanterAdjacent)
+        {
+            statusId = CombatStatusId.Weakened;
+        }
+
+        if (statusId == CombatStatusId.None)
+        {
+            return;
+        }
+
+        bool added = defender.Statuses.Add(statusId);
+        if (added && logger != null)
+        {
+            logger.LogStatusChange(
+                defender,
+                attacker.DisplayName + " applies " + GameRules.GetCombatStatusLabel(statusId) + " (Silver upgrade) to " + defender.DisplayName + ".");
+        }
     }
 
     public static void OnKill(CombatUnit attacker, CombatUnit defeatedUnit, RunState run, CombatLogger logger)
