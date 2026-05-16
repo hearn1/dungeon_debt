@@ -100,7 +100,7 @@ public class RunManager : MonoBehaviour
         {
             _currentRunState.Party.Add(sandboxRun.Party[i]);
             HeroEffects.ApplyTierStatSeed(_currentRunState.Party[i]);
-            _currentRunState.Party[i].CurrentHealth = HeroEffects.GetTierAdjustedMaxHealth(_currentRunState.Party[i]);
+            _currentRunState.Party[i].CurrentHealth = GetScaledHeroMaxHealth(_currentRunState.Party[i], _currentRunState);
         }
 
         return _currentRunState;
@@ -359,9 +359,16 @@ public class RunManager : MonoBehaviour
             HeroEffects.ApplyTierStatSeed(hero);
             if (hero != null)
             {
-                hero.CurrentHealth = HeroEffects.GetTierAdjustedMaxHealth(hero);
+                hero.CurrentHealth = GetScaledHeroMaxHealth(hero, runState);
             }
         }
+    }
+
+    private static int GetScaledHeroMaxHealth(HeroInstance hero, RunState runState)
+    {
+        return GameRules.ScaleCombatStat(
+            HeroEffects.GetTierAdjustedMaxHealth(hero),
+            runState != null ? runState.HeroHealthMultiplier : GameRules.NoCombatMultiplier);
     }
 
     private static int CalculateTotalUpkeep(RunState runState, EncounterDefinition encounter)

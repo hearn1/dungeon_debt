@@ -119,7 +119,9 @@ public class PayrollManager : MonoBehaviour
             }
 
             HeroEffects.ApplyTierStatSeed(hero);
-            hero.CurrentHealth = HeroEffects.GetTierAdjustedMaxHealth(hero);
+            hero.CurrentHealth = GameRules.ScaleCombatStat(
+                HeroEffects.GetTierAdjustedMaxHealth(hero),
+                runState.HeroHealthMultiplier);
         }
     }
 }
