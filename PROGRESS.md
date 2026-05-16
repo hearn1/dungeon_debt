@@ -51,6 +51,50 @@ Copy this block when adding a new entry. Paste it at the top of the Session log 
 
 <!-- Newest entries at the top. -->
 
+## 2026-05-16 - M15.1: Difficulty presets - data model + MainMenu selection + run-scoped economy
+
+**Milestone:** M15 - Difficulty modifiers
+**Status:** Complete (pending user run of TP_M15.1.md)
+
+**Files added:**
+- `DungeonDebt/Assets/Scripts/Data/DifficultyPreset.cs` (+ `.cs.meta`)
+- `TestPlans/TP_M15.1.md`
+
+**Files modified:**
+- `DungeonDebt/Assets/Scripts/Data/GameEnums.cs` - added `DifficultyPresetId` enum.
+- `DungeonDebt/Assets/Scripts/Core/GameRules.cs` - per-preset economy + 4 combat-multiplier constants + `DefaultDifficultyPreset`.
+- `DungeonDebt/Assets/Scripts/Core/DataRepository.cs` - assembles the 3 presets from GameRules constants; sandbox run seeded with Standard run-scoped fields.
+- `DungeonDebt/Assets/Scripts/Data/RunState.cs` - selected preset id/name + run-scoped `InterestDivisor`/`DebtLimit` + 4 carried combat multipliers.
+- `DungeonDebt/Assets/Scripts/Run/RunManager.cs` - `InitializeRun(DifficultyPresetId)`; interest math + debt-defeat read `RunState`, not `GameRules`.
+- `DungeonDebt/Assets/Scripts/Core/GameManager.cs` - `StartRun(DifficultyPresetId)` threads preset to `InitializeRun`; new `ReturnToMainMenu()`.
+- `DungeonDebt/Assets/Scripts/UI/MainMenuPanel.cs` - 3-button Run Contract selector; clean menu layout (hides combat/log/reward chrome on menu+end); `GameState.MainMenu` presentation branch.
+- `DungeonDebt/Assets/Scripts/UI/RunHeaderView.cs` - appends preset name to the Round cell.
+- `DungeonDebt/Assets/Scripts/UI/EndScreenView.cs` - end-of-run button relabelled "New Run" -> "Main Menu".
+- `DungeonDebt/Assembly-CSharp.csproj` - Compile include for the new script (build sync; Unity later regenerated consistently).
+- `NEXT_SESSION.md` - rewritten to the M15.2 brief.
+
+**Acceptance criteria:**
+- [x] 1 - `DifficultyPreset` + `DifficultyPresetId` exist; `DataRepository` assembles exactly 3 from `GameRules` constants; Standard == today's exact economy.
+- [x] 2 - MainMenu 3-preset selector, default Standard, threaded to `RunManager.InitializeRun`.
+- [x] 3 - `InitializeRun` sets gold/debt/morale + run-scoped `InterestDivisor`/`DebtLimit` + 4 carried multipliers; interest + debt-defeat read `RunState`; sandbox uses Standard.
+- [x] 4 - preset name on `RunState`, shown read-only in `RunHeaderView`; Standard reproduces legacy economy.
+- [x] 5 - `TP_M15.1.md` exists; `dotnet build DungeonDebt.sln` 0 warnings / 0 errors; combat multipliers carried but intentionally unapplied (M15.2) - documented, not a gap.
+
+**Test plan:** `TestPlans/TP_M15.1.md` - drafted, not yet run by user. Menu/flow visually accepted by user; preset economy application verified by code trace this session. `dotnet build` passes 0/0.
+
+**Deviations from plan:**
+- Run Contract selector placed as a centered block (~400px from top) instead of below the Start Run row, to avoid overlapping the end-screen panel.
+- Main-menu refactor (user-approved expansion beyond the slice's selector-only UI line item): the always-on combat-log + Reward Summary chrome is now hidden on the Ready and end screens, and a `GameState.MainMenu` presentation branch was added. Stays inside `MainMenuPanel.cs` (no scene/prefab/new files).
+- End-of-run flow change (user-approved): end screen "New Run" became "Main Menu" and routes to `GameState.MainMenu` so difficulty is chosen on the menu before Start Run. Act 1 -> Continue to Act 2 path unchanged.
+- `Assembly-CSharp.csproj` + a new `.cs.meta` were touched (mechanically required for the new script to compile/import).
+
+**Follow-up flagged:**
+- M15.2: apply the 4 combat HP/damage multipliers at `CombatManager.BuildPlayerUnits`/`BuildEnemyUnits` seams, then retune. Confirmed this session that the multipliers are carried but unread, so difficulty is currently economy-only - this is the expected M15.1/M15.2 boundary, accepted by the user.
+- "Restart Sandbox" (top chrome) still immediately restarts with the last preset, bypassing the menu - pre-existing; consider routing through the menu or removing in a later UI pass.
+- `TP_M15.1.md` not yet run end-to-end by the user.
+
+**Next slice:** M15.2 - apply combat HP/damage multipliers + retune.
+
 ## 2026-05-16 - M14.1: Act 2 state shell + 3-encounter mini vertical
 
 **Milestone:** M14 - Act 2 mini vertical

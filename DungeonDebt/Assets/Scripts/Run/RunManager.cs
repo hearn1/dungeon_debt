@@ -40,14 +40,29 @@ public class RunManager : MonoBehaviour
 
     public RunState InitializeRun()
     {
+        return InitializeRun(GameRules.DefaultDifficultyPreset);
+    }
+
+    public RunState InitializeRun(DifficultyPresetId presetId)
+    {
         _random = new System.Random(unchecked((int)DateTime.Now.Ticks));
+
+        DifficultyPreset preset = DataRepository.GetDifficultyPreset(presetId);
 
         RunState runState = new RunState();
         runState.Act = 1;
         runState.Round = 1;
-        runState.Gold = GameRules.StartingGold;
-        runState.Debt = GameRules.StartingDebt;
-        runState.Morale = GameRules.StartingMorale;
+        runState.SelectedDifficulty = preset.Id;
+        runState.DifficultyDisplayName = preset.DisplayName;
+        runState.Gold = preset.StartingGold;
+        runState.Debt = preset.StartingDebt;
+        runState.Morale = preset.StartingMorale;
+        runState.InterestDivisor = preset.InterestDivisor;
+        runState.DebtLimit = preset.DebtLimit;
+        runState.HeroHealthMultiplier = preset.HeroHealthMult;
+        runState.HeroDamageMultiplier = preset.HeroDamageMult;
+        runState.EnemyHealthMultiplier = preset.EnemyHealthMult;
+        runState.EnemyDamageMultiplier = preset.EnemyDamageMult;
         runState.RerollCount = 0;
         runState.SelectedPayrollAction = null;
         runState.FullUpkeepPaidLastRound = false;
@@ -152,7 +167,7 @@ public class RunManager : MonoBehaviour
             _currentRunState.Debt += upkeepShortfall;
         }
 
-        int interestCharged = (int)Math.Ceiling(_currentRunState.Debt / (double)GameRules.InterestDebtDivisor);
+        int interestCharged = (int)Math.Ceiling(_currentRunState.Debt / (double)_currentRunState.InterestDivisor);
         int interestPaid = interestCharged;
         int interestAddedToDebt = 0;
 
@@ -199,7 +214,7 @@ public class RunManager : MonoBehaviour
             return GameState.Defeat;
         }
 
-        if (_currentRunState.Debt >= GameRules.DebtLimit)
+        if (_currentRunState.Debt >= _currentRunState.DebtLimit)
         {
             _currentRunState.LatestEndReason = "Debt limit reached.";
             return GameState.Defeat;

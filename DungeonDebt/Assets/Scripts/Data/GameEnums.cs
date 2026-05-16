@@ -59,3 +59,10 @@ public enum PayrollActionId
     PromiseVictoryBonus,
     CutWages
 }
+
+public enum DifficultyPresetId
+{
+    ApprenticeLedger,
+    StandardContract,
+    PredatoryInterest
+}

@@ -569,6 +569,64 @@ public static class DataRepository
     public static readonly IReadOnlyList<PayrollActionDefinition> AllPayrollActions =
         new ReadOnlyCollection<PayrollActionDefinition>(PayrollActionDefinitions);
 
+    private static readonly DifficultyPreset[] DifficultyPresetDefinitions =
+    {
+        new DifficultyPreset(
+            DifficultyPresetId.ApprenticeLedger,
+            "Apprentice Ledger",
+            GameRules.ApprenticeStartingGold,
+            GameRules.StartingDebt,
+            GameRules.ApprenticeStartingMorale,
+            GameRules.ApprenticeInterestDivisor,
+            GameRules.ApprenticeDebtLimit,
+            GameRules.ApprenticeHeroHealthMult,
+            GameRules.NoCombatMultiplier,
+            GameRules.NoCombatMultiplier,
+            GameRules.ApprenticeEnemyDamageMult),
+
+        new DifficultyPreset(
+            DifficultyPresetId.StandardContract,
+            "Standard Contract",
+            GameRules.StartingGold,
+            GameRules.StartingDebt,
+            GameRules.StartingMorale,
+            GameRules.InterestDebtDivisor,
+            GameRules.DebtLimit,
+            GameRules.NoCombatMultiplier,
+            GameRules.NoCombatMultiplier,
+            GameRules.NoCombatMultiplier,
+            GameRules.NoCombatMultiplier),
+
+        new DifficultyPreset(
+            DifficultyPresetId.PredatoryInterest,
+            "Predatory Interest",
+            GameRules.PredatoryStartingGold,
+            GameRules.StartingDebt,
+            GameRules.StartingMorale,
+            GameRules.PredatoryInterestDivisor,
+            GameRules.PredatoryDebtLimit,
+            GameRules.NoCombatMultiplier,
+            GameRules.NoCombatMultiplier,
+            GameRules.PredatoryEnemyHealthMult,
+            GameRules.PredatoryEnemyDamageMult)
+    };
+
+    public static readonly IReadOnlyList<DifficultyPreset> AllDifficultyPresets =
+        new ReadOnlyCollection<DifficultyPreset>(DifficultyPresetDefinitions);
+
+    public static DifficultyPreset GetDifficultyPreset(DifficultyPresetId id)
+    {
+        for (int i = 0; i < DifficultyPresetDefinitions.Length; i++)
+        {
+            if (DifficultyPresetDefinitions[i].Id == id)
+            {
+                return DifficultyPresetDefinitions[i];
+            }
+        }
+
+        return DifficultyPresetDefinitions[(int)GameRules.DefaultDifficultyPreset];
+    }
+
     public static List<RivalGuildState> CreateRivalGuilds()
     {
         return new List<RivalGuildState>
@@ -604,12 +662,22 @@ public static class DataRepository
 
     public static RunState CreateSandboxRun()
     {
+        DifficultyPreset standard = GetDifficultyPreset(DifficultyPresetId.StandardContract);
+
         RunState run = new RunState();
         run.Act = 1;
         run.Round = 1;
-        run.Gold = GameRules.StartingGold;
-        run.Debt = GameRules.StartingDebt;
-        run.Morale = GameRules.StartingMorale;
+        run.SelectedDifficulty = standard.Id;
+        run.DifficultyDisplayName = standard.DisplayName;
+        run.Gold = standard.StartingGold;
+        run.Debt = standard.StartingDebt;
+        run.Morale = standard.StartingMorale;
+        run.InterestDivisor = standard.InterestDivisor;
+        run.DebtLimit = standard.DebtLimit;
+        run.HeroHealthMultiplier = standard.HeroHealthMult;
+        run.HeroDamageMultiplier = standard.HeroDamageMult;
+        run.EnemyHealthMultiplier = standard.EnemyHealthMult;
+        run.EnemyDamageMultiplier = standard.EnemyDamageMult;
         run.Party.Add(new HeroInstance(Warrior, 0));
         run.Party.Add(new HeroInstance(Squire, 1));
         run.Party.Add(new HeroInstance(Wizard, 2));

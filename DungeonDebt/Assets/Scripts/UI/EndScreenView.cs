@@ -98,7 +98,7 @@ public class EndScreenView : MonoBehaviour
         if (_newRunButton != null)
         {
             _newRunButton.interactable = true;
-            _newRunLabel.text = _act1ClearHandoff ? "Continue to Act 2" : "New Run";
+            _newRunLabel.text = _act1ClearHandoff ? "Continue to Act 2" : "Main Menu";
         }
     }
 
@@ -133,7 +133,7 @@ public class EndScreenView : MonoBehaviour
         _statsText = CreateText("Stats", root, font, StatsFontSize, FontStyle.Normal, TextAnchor.MiddleCenter);
         SetAnchoredRect(_statsText.rectTransform, 0f, 0f, 1f, 1f, Padding, Padding + ButtonHeight + Padding, -Padding, -Padding - TitleHeight - ReasonHeight - 12);
 
-        _newRunButton = CreateButton("NewRunButton", root, font, "New Run", out _newRunLabel);
+        _newRunButton = CreateButton("NewRunButton", root, font, "Main Menu", out _newRunLabel);
         SetAnchoredRect(
             _newRunButton.GetComponent<RectTransform>(),
             0.5f, 0f, 0.5f, 0f,

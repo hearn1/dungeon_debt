@@ -10,6 +10,7 @@ public class GameManager : MonoBehaviour
     [SerializeField] private RivalManager _rivalManager;
 
     private GameState _currentState = GameState.MainMenu;
+    private DifficultyPresetId _pendingDifficulty = GameRules.DefaultDifficultyPreset;
 
     public event Action<GameState> OnStateChanged;
 
@@ -69,8 +70,19 @@ public class GameManager : MonoBehaviour
 
     public void StartRun()
     {
+        StartRun(_pendingDifficulty);
+    }
+
+    public void StartRun(DifficultyPresetId presetId)
+    {
+        _pendingDifficulty = presetId;
         ChangeState(GameState.StartRun);
         ChangeState(GameState.Scout);
+    }
+
+    public void ReturnToMainMenu()
+    {
+        ChangeState(GameState.MainMenu);
     }
 
     public void ContinueFromScout()
@@ -161,7 +173,7 @@ public class GameManager : MonoBehaviour
 
         if (_currentState == GameState.StartRun && _runManager != null)
         {
-            _runManager.InitializeRun();
+            _runManager.InitializeRun(_pendingDifficulty);
         }
 
         if (_currentState == GameState.Scout && _encounterManager != null)

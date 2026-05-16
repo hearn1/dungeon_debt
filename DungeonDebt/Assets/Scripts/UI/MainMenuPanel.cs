@@ -34,6 +34,13 @@ public class MainMenuPanel : MonoBehaviour
     private const int RivalLeaderboardHeight = 240;
     private const int RivalContinueButtonWidth = 260;
     private const int RivalContinueButtonHeight = 60;
+    private const int DifficultySelectorTopOffset = 400;
+    private const int DifficultyCaptionHeight = 30;
+    private const int DifficultyButtonWidth = 220;
+    private const int DifficultyButtonHeight = 52;
+    private const int DifficultyButtonGap = 20;
+    private static readonly Color DifficultySelectedColor = new Color(0.78f, 0.69f, 0.41f, 1f);
+    private static readonly Color DifficultyUnselectedColor = new Color(0.30f, 0.31f, 0.34f, 1f);
 
     [SerializeField] private GameManager _gameManager;
     [SerializeField] private RunManager _runManager;
@@ -57,6 +64,12 @@ public class MainMenuPanel : MonoBehaviour
     [SerializeField] private Text _combatHeaderStatus;
     [SerializeField] private Button _combatHeaderRestartButton;
 
+    private RectTransform _difficultySelectorRoot;
+    private RectTransform _combatLogPanelRoot;
+    private RectTransform _rewardSummaryPanelRoot;
+    private readonly Button[] _difficultyButtons = new Button[3];
+    private DifficultyPresetId _selectedDifficulty = GameRules.DefaultDifficultyPreset;
+
     private static Font _runtimeFont;
 
 
@@ -68,7 +81,7 @@ public class MainMenuPanel : MonoBehaviour
         _startCombatButton.onClick.AddListener(StartCombat);
         _restartButton.onClick.AddListener(RestartCombat);
         _rewardSummaryView.SetOnContinue(HandleContinueClicked);
-        _endScreenView.SetOnNewRun(HandleNewRunClicked);
+        _endScreenView.SetOnNewRun(HandleReturnToMainMenuClicked);
         _endScreenView.SetOnContinueAct2(HandleContinueAct2Clicked);
         _shopPanelView.SetHandlers(HandleHireClicked, HandleFireClicked, HandleRerollClicked, HandlePayDebtClicked, HandleShopContinueClicked);
         _formationPanelView.SetHandlers(HandleFormationSwap, HandleFormationContinue);
@@ -109,12 +122,12 @@ public class MainMenuPanel : MonoBehaviour
 
     private void StartCombat()
     {
-        _gameManager.StartRun();
+        _gameManager.StartRun(_selectedDifficulty);
     }
 
     private void RestartCombat()
     {
-        _gameManager.StartRun();
+        _gameManager.StartRun(_selectedDifficulty);
     }
 
     private void HandleContinueClicked()
@@ -122,14 +135,105 @@ public class MainMenuPanel : MonoBehaviour
         _gameManager.ContinueAfterReward();
     }
 
-    private void HandleNewRunClicked()
+    private void HandleReturnToMainMenuClicked()
     {
-        _gameManager.StartRun();
+        _gameManager.ReturnToMainMenu();
     }
 
     private void HandleContinueAct2Clicked()
     {
         _gameManager.ContinueToAct2();
+    }
+
+    private void BuildDifficultySelector(RectTransform root)
+    {
+        int presetCount = DataRepository.AllDifficultyPresets.Count;
+        float rowWidth = (DifficultyButtonWidth * presetCount) + (DifficultyButtonGap * (presetCount - 1));
+        float totalHeight = DifficultyButtonHeight + DifficultyCaptionHeight;
+
+        _difficultySelectorRoot = CreateRect("DifficultySelector", root);
+        SetAnchoredRect(
+            _difficultySelectorRoot,
+            0.5f, 1f, 0.5f, 1f,
+            0f,
+            -(DifficultySelectorTopOffset + (totalHeight * 0.5f)),
+            rowWidth,
+            totalHeight);
+
+        Text caption = CreateText("DifficultyCaption", _difficultySelectorRoot, "Run Contract", 20, FontStyle.Bold, TextAnchor.MiddleCenter);
+        SetAnchoredRect(caption.rectTransform, 0f, 1f, 1f, 1f, 0f, -DifficultyCaptionHeight, 0f, 0f);
+
+        for (int i = 0; i < presetCount; i++)
+        {
+            DifficultyPreset preset = DataRepository.AllDifficultyPresets[i];
+            Button button = CreateButton("DifficultyButton" + i, _difficultySelectorRoot, preset.DisplayName);
+            float centerX = (-rowWidth * 0.5f) + (DifficultyButtonWidth * 0.5f) + (i * (DifficultyButtonWidth + DifficultyButtonGap));
+            SetAnchoredRect(button.GetComponent<RectTransform>(), 0.5f, 0f, 0.5f, 0f, centerX, DifficultyButtonHeight * 0.5f, DifficultyButtonWidth, DifficultyButtonHeight);
+            DifficultyPresetId presetId = preset.Id;
+            button.onClick.AddListener(delegate { HandleDifficultySelected(presetId); });
+            _difficultyButtons[i] = button;
+        }
+
+        RefreshDifficultySelector();
+    }
+
+    private void HandleDifficultySelected(DifficultyPresetId presetId)
+    {
+        _selectedDifficulty = presetId;
+        RefreshDifficultySelector();
+    }
+
+    private void RefreshDifficultySelector()
+    {
+        for (int i = 0; i < _difficultyButtons.Length; i++)
+        {
+            Button button = _difficultyButtons[i];
+            if (button == null)
+            {
+                continue;
+            }
+
+            Image image = button.GetComponent<Image>();
+            if (image != null)
+            {
+                bool isSelected = DataRepository.AllDifficultyPresets[i].Id == _selectedDifficulty;
+                image.color = isSelected ? DifficultySelectedColor : DifficultyUnselectedColor;
+            }
+        }
+    }
+
+    private void SetDifficultySelectorVisible(bool visible)
+    {
+        if (_difficultySelectorRoot != null)
+        {
+            _difficultySelectorRoot.gameObject.SetActive(visible);
+        }
+    }
+
+    // The combat-centric layout (log panel + reward summary panel) is reused
+    // across every state, so on the pre-run and end screens it bleeds onto an
+    // otherwise empty screen. SetCleanLayout(true) hides that chrome (used by
+    // the main menu and the end screen); SetCleanLayout(false) restores the
+    // gameplay layout. Selector visibility is controlled separately because the
+    // Run Contract picker belongs to the main menu only, not the end screen.
+    private void SetCleanLayout(bool clean)
+    {
+        if (_combatLogPanelRoot != null)
+        {
+            _combatLogPanelRoot.gameObject.SetActive(!clean);
+        }
+
+        if (_rewardSummaryPanelRoot != null)
+        {
+            _rewardSummaryPanelRoot.gameObject.SetActive(!clean);
+        }
+    }
+
+    private void ShowMainMenuLayout()
+    {
+        SetCleanLayout(true);
+        SetDifficultySelectorVisible(true);
+        RefreshDifficultySelector();
     }
 
     private static string CurrentActLabel(RunState runState)
@@ -245,6 +349,7 @@ public class MainMenuPanel : MonoBehaviour
     private void ResetUi()
     {
         SetCombatChromeVisible(false);
+        ShowMainMenuLayout();
         _statusText.text = "Ready";
         _resultText.text = string.Empty;
         _startCombatButton.interactable = true;
@@ -313,6 +418,32 @@ public class MainMenuPanel : MonoBehaviour
 
     private void HandleStateChanged(GameState gameState)
     {
+        SetCleanLayout(false);
+        SetDifficultySelectorVisible(false);
+
+        if (gameState == GameState.MainMenu)
+        {
+            SetCombatChromeVisible(false);
+            _statusText.text = "Ready";
+            _resultText.text = string.Empty;
+            _combatLogView.Clear();
+            _combatPanelView.Clear();
+            _combatPanelView.Hide();
+            _rewardSummaryView.Clear();
+            _endScreenView.Hide();
+            _shopPanelView.Hide();
+            _formationPanelView.Hide();
+            _payrollPanelView.Hide();
+            _scoutPanelView.Hide();
+            _rivalLeaderboardView.Hide();
+            _rivalContinueButton.gameObject.SetActive(false);
+            _runHeaderView.Clear();
+            _startCombatButton.interactable = true;
+            _restartButton.interactable = false;
+            ShowMainMenuLayout();
+            return;
+        }
+
         if (gameState == GameState.StartRun)
         {
             SetCombatChromeVisible(false);
@@ -491,6 +622,7 @@ public class MainMenuPanel : MonoBehaviour
             _rivalContinueButton.gameObject.SetActive(false);
             _endScreenView.Show(_gameManager.CurrentRunState, gameState == GameState.Victory);
             _restartButton.interactable = true;
+            SetCleanLayout(true);
         }
     }
 
@@ -547,6 +679,8 @@ public class MainMenuPanel : MonoBehaviour
         _restartButton = CreateButton("RestartButton", buttonRow, "Restart Sandbox");
         SetAnchoredRect(_restartButton.GetComponent<RectTransform>(), 1f, 0.5f, 1f, 0.5f, -ButtonWidth * 0.5f, 0f, ButtonWidth, ButtonHeight);
 
+        BuildDifficultySelector(root);
+
         RectTransform combatPanel = CreateRect("CombatPanel", root);
         SetAnchoredRect(
             combatPanel,
@@ -587,6 +721,7 @@ public class MainMenuPanel : MonoBehaviour
         _combatHeaderRoot.gameObject.SetActive(false);
 
         RectTransform logPanel = CreatePanel("CombatLogPanel", root, new Color(0.16f, 0.17f, 0.2f, 1f));
+        _combatLogPanelRoot = logPanel;
         SetAnchoredRect(logPanel, 0f, 0f, 1f, 1f, HorizontalMargin, 100f, -HorizontalMargin - RewardSummaryWidth - ButtonGap, -CombatLogStreamingTopOffset);
 
         ScrollRect scrollRect = logPanel.gameObject.AddComponent<ScrollRect>();
@@ -654,6 +789,7 @@ public class MainMenuPanel : MonoBehaviour
         _combatLogView.Initialize(logText, scrollRect);
 
         RectTransform rewardSummaryPanel = CreatePanel("RewardSummaryPanel", root, new Color(0.13f, 0.14f, 0.17f, 1f));
+        _rewardSummaryPanelRoot = rewardSummaryPanel;
         SetAnchoredRect(rewardSummaryPanel, 1f, 0.5f, 1f, 0.5f, -HorizontalMargin - (RewardSummaryWidth * 0.5f), -45f, RewardSummaryWidth, RewardSummaryHeight);
 
         _rewardSummaryView = rewardSummaryPanel.gameObject.AddComponent<RewardSummaryView>();

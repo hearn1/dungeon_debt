@@ -67,6 +67,29 @@ public static class GameRules
 
     public const int CombatTurnLimit = 10;
 
+    // M15.1 difficulty presets. Standard Contract reuses the base economy
+    // constants above (StartingGold/StartingDebt/StartingMorale/
+    // InterestDebtDivisor/DebtLimit) so it reproduces today's exact run.
+    // Apprentice/Predatory override only the values that differ. The four
+    // combat multipliers are carried onto RunState this slice but not yet
+    // applied in combat (M15.2). Hard constraint: no preset reduces HP below
+    // today's values, so all *HealthMult >= 1.0.
+    public const DifficultyPresetId DefaultDifficultyPreset = DifficultyPresetId.StandardContract;
+    public const float NoCombatMultiplier = 1f;
+
+    public const int ApprenticeStartingGold = 20;
+    public const int ApprenticeStartingMorale = 36;
+    public const int ApprenticeInterestDivisor = 4;
+    public const int ApprenticeDebtLimit = 24;
+    public const float ApprenticeHeroHealthMult = 1.25f;
+    public const float ApprenticeEnemyDamageMult = 0.85f;
+
+    public const int PredatoryStartingGold = 12;
+    public const int PredatoryInterestDivisor = 2;
+    public const int PredatoryDebtLimit = 18;
+    public const float PredatoryEnemyHealthMult = 1.20f;
+    public const float PredatoryEnemyDamageMult = 1.20f;
+
     // Act structure. RunState.Round stays an absolute counter: Act 1 is
     // rounds 1-10, Act 2 is rounds 11-13. FinalRound is the Act 1 boundary
     // (kept for existing references); Act2FinalRound is the Act 2 boundary.
