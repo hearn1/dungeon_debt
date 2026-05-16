@@ -62,11 +62,13 @@ public class ScoutPanelView : MonoBehaviour
     public void Refresh(RunState runState)
     {
         EncounterDefinition encounter = runState != null ? runState.CurrentEncounter : null;
-        int round = runState != null ? runState.Round : 0;
+        int act = runState != null && runState.Act > 0 ? runState.Act : 1;
+        string actLabel = GameRules.GetActLabel(act);
+        int round = runState != null ? GameRules.GetRoundWithinAct(act, runState.Round) : 0;
 
         if (encounter == null)
         {
-            _titleText.text = "Act 1 Scout";
+            _titleText.text = actLabel + " Scout";
             _typeText.text = string.Empty;
             _scoutText.text = "No encounter loaded.";
             _rewardText.text = string.Empty;
@@ -75,8 +77,8 @@ public class ScoutPanelView : MonoBehaviour
             return;
         }
 
-        _titleText.text = "Act 1 Round " + round + " - " + encounter.DisplayName;
-        _typeText.text = "Act 1 - " + FormatType(encounter.Type);
+        _titleText.text = actLabel + " Round " + round + " - " + encounter.DisplayName;
+        _typeText.text = actLabel + " - " + FormatType(encounter.Type);
         _scoutText.text = encounter.ScoutText;
         _rewardText.text = "Reward: " + encounter.BaseGoldReward + " gold";
         _dangerText.text = string.IsNullOrEmpty(encounter.DangerCategory)
@@ -181,7 +183,7 @@ public class ScoutPanelView : MonoBehaviour
 
         _titleText = CreateText("Title", root, _font, 32, FontStyle.Bold, TextAnchor.MiddleCenter);
         AnchorTopCentered(_titleText.rectTransform, ContentWidth, TitleHeight, TitleTopOffset);
-        _titleText.text = "Act 1 Scout";
+        _titleText.text = "Scout";
 
         _typeText = CreateText("Type", root, _font, 22, FontStyle.Italic, TextAnchor.MiddleCenter);
         AnchorTopCentered(_typeText.rectTransform, ContentWidth, TypeHeight, TypeTopOffset);

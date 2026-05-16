@@ -251,6 +251,76 @@ public static class DataRepository
         EnemyEffectId.FrugalGhostHeal,
         "Heals leftmost living ally each combat round.");
 
+    // Act 2 rival-guild rematches: same guild identities as Act 1, upgraded
+    // stats (and one extra Carry unit) using existing systems only. No new
+    // combat effects; the Frugal healer reuses the existing FrugalGhostHeal.
+    // Ids intentionally reuse the Act 1 enemy ids so the existing portrait
+    // art and attack-effect category resolve (presentation only; enemy Id is
+    // not a unique key anywhere — see SpriteCatalog / ResolveEnemyAttackEffectId).
+    private static readonly EnemyDefinition Act2GreedyTank = new EnemyDefinition(
+        "greedy_tank",
+        "Greedy Tank",
+        4,
+        12,
+        EnemyEffectId.None,
+        "No effect.");
+
+    private static readonly EnemyDefinition Act2GreedyCarry = new EnemyDefinition(
+        "greedy_carry",
+        "Greedy Carry",
+        6,
+        7,
+        EnemyEffectId.None,
+        "No effect.");
+
+    private static readonly EnemyDefinition Act2CarryProtector = new EnemyDefinition(
+        "carry_protector",
+        "Carry Protector",
+        2,
+        14,
+        EnemyEffectId.None,
+        "No effect.");
+
+    private static readonly EnemyDefinition Act2CarryChampion = new EnemyDefinition(
+        "carry_carry",
+        "Carry Champion",
+        8,
+        9,
+        EnemyEffectId.None,
+        "No effect.");
+
+    private static readonly EnemyDefinition Act2CarrySupport = new EnemyDefinition(
+        "carry_protector",
+        "Carry Vanguard",
+        2,
+        10,
+        EnemyEffectId.None,
+        "No effect.");
+
+    private static readonly EnemyDefinition Act2FrugalGuard = new EnemyDefinition(
+        "frugal_guard",
+        "Frugal Guard",
+        3,
+        9,
+        EnemyEffectId.None,
+        "No effect.");
+
+    private static readonly EnemyDefinition Act2FrugalArcher = new EnemyDefinition(
+        "frugal_archer",
+        "Frugal Archer",
+        4,
+        6,
+        EnemyEffectId.None,
+        "No effect.");
+
+    private static readonly EnemyDefinition Act2FrugalHealer = new EnemyDefinition(
+        "frugal_healer",
+        "Frugal Healer",
+        2,
+        8,
+        EnemyEffectId.FrugalGhostHeal,
+        "Heals leftmost living ally each combat round.");
+
     private static readonly List<HeroDefinition> HeroDefinitions = new List<HeroDefinition>
     {
         Warrior,
@@ -284,7 +354,15 @@ public static class DataRepository
         CarryCarry,
         FrugalGuard,
         FrugalArcher,
-        FrugalHealer
+        FrugalHealer,
+        Act2GreedyTank,
+        Act2GreedyCarry,
+        Act2CarryProtector,
+        Act2CarryChampion,
+        Act2CarrySupport,
+        Act2FrugalGuard,
+        Act2FrugalArcher,
+        Act2FrugalHealer
     };
 
     private static readonly PayrollActionDefinition TakeLoanAction = new PayrollActionDefinition(
@@ -449,7 +527,40 @@ public static class DataRepository
             new List<EnemyDefinition> { DungeonAuditor },
             GameRules.WinReward,
             EncounterEffectId.FinalBossDamage,
-            null)
+            null),
+
+        new EncounterDefinition(
+            11,
+            EncounterType.RivalGhost,
+            "Greedy Guild Rematch",
+            "The Greedy Guild returns for Act 2, richer and meaner. Bigger tanks, a deadlier carry.",
+            "Rival benchmark",
+            new List<EnemyDefinition> { Act2GreedyTank, Act2GreedyTank, Act2GreedyCarry },
+            GameRules.WinReward,
+            EncounterEffectId.None,
+            "greedy"),
+
+        new EncounterDefinition(
+            12,
+            EncounterType.RivalGhost,
+            "Carry Guild Rematch",
+            "The Carry Guild doubles down: a fortified front line shielding an even stronger champion.",
+            "Rival benchmark",
+            new List<EnemyDefinition> { Act2CarryProtector, Act2CarryProtector, Act2CarryChampion, Act2CarrySupport },
+            GameRules.WinReward,
+            EncounterEffectId.None,
+            "carry"),
+
+        new EncounterDefinition(
+            13,
+            EncounterType.RivalGhost,
+            "Frugal Guild Rematch",
+            "Act 2 capstone. The Frugal Guild fields a disciplined team with a healer that keeps it standing.",
+            "Rival benchmark",
+            new List<EnemyDefinition> { Act2FrugalGuard, Act2FrugalGuard, Act2FrugalArcher, Act2FrugalHealer },
+            GameRules.WinReward,
+            EncounterEffectId.None,
+            "frugal")
     };
 
     public static readonly IReadOnlyList<EncounterDefinition> Encounters =
@@ -494,6 +605,7 @@ public static class DataRepository
     public static RunState CreateSandboxRun()
     {
         RunState run = new RunState();
+        run.Act = 1;
         run.Round = 1;
         run.Gold = GameRules.StartingGold;
         run.Debt = GameRules.StartingDebt;

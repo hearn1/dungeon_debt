@@ -130,6 +130,18 @@ public class GameManager : MonoBehaviour
         ChangeState(nextState);
     }
 
+    public void ContinueToAct2()
+    {
+        EnsureManagers();
+        if (_runManager == null)
+        {
+            return;
+        }
+
+        _runManager.AdvanceToAct2();
+        ChangeState(GameState.Scout);
+    }
+
     public void ContinueFromRivalUpdate()
     {
         EnsureManagers();

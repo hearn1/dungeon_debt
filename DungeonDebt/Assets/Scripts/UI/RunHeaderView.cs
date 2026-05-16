@@ -26,7 +26,10 @@ public class RunHeaderView : MonoBehaviour
             return;
         }
 
-        _roundText.text = "Act 1 - Round " + runState.Round + "/" + GameRules.FinalRound;
+        int act = runState.Act <= 0 ? 1 : runState.Act;
+        int roundWithinAct = GameRules.GetRoundWithinAct(act, runState.Round);
+        int roundsInAct = GameRules.GetRoundsInAct(act);
+        _roundText.text = GameRules.GetActLabel(act) + " - Round " + roundWithinAct + "/" + roundsInAct;
         _goldText.text = "Gold " + runState.Gold;
         _debtText.text = "Debt " + runState.Debt + " (" + GameRules.GetDebtStatusLabel(runState.Debt) + ")";
         _moraleText.text = "Morale " + runState.Morale;
@@ -34,7 +37,7 @@ public class RunHeaderView : MonoBehaviour
 
     public void Clear()
     {
-        _roundText.text = "Act 1 - Round -/" + GameRules.FinalRound;
+        _roundText.text = GameRules.GetActLabel(1) + " - Round -/" + GameRules.Act1Rounds;
         _goldText.text = "Gold -";
         _debtText.text = "Debt -";
         _moraleText.text = "Morale -";
