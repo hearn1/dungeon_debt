@@ -43,6 +43,7 @@ public class MainMenuPanel : MonoBehaviour
     [SerializeField] private ScoutPanelView _scoutPanelView;
     [SerializeField] private RivalLeaderboardView _rivalLeaderboardView;
     [SerializeField] private Button _rivalContinueButton;
+    [SerializeField] private Sprite _swordSprite;
 
     private static Font _runtimeFont;
 
@@ -238,8 +239,9 @@ public class MainMenuPanel : MonoBehaviour
         CombatResult result = new CombatManager().StartCombat(run, encounter);
         _combatPanelView.Refresh(result.PlayerStartUnits, result.EnemyStartUnits);
 
-        _combatLogView.StreamLines(result.LogLines, delegate
+        _combatLogView.StreamReplay(result.ReplayEvents, _combatPanelView.ApplyReplayEvent, delegate
         {
+            _combatPanelView.ClearAllActing();
             _combatPanelView.Refresh(result.PlayerFinalUnits, result.EnemyFinalUnits);
             _gameManager.ChangeState(GameState.Reward);
             _runManager.ApplyPostCombatResult(result, encounter);
@@ -480,7 +482,7 @@ public class MainMenuPanel : MonoBehaviour
             -HorizontalMargin - RewardSummaryWidth - ButtonGap,
             -CombatLogTopOffset);
         _combatPanelView = combatPanel.gameObject.AddComponent<CombatPanelView>();
-        _combatPanelView.Initialize(GetRuntimeFont());
+        _combatPanelView.Initialize(GetRuntimeFont(), _swordSprite);
         _combatPanelView.Hide();
 
         RectTransform logPanel = CreatePanel("CombatLogPanel", root, new Color(0.16f, 0.17f, 0.2f, 1f));

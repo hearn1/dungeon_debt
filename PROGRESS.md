@@ -51,6 +51,49 @@ Copy this block when adding a new entry. Paste it at the top of the Session log 
 
 <!-- Newest entries at the top. -->
 
+## 2026-05-15 - M10.2: Combat replay and visual feasibility prototype
+
+**Milestone:** M10 - Combat view rebuild
+**Status:** Partial - code complete & builds clean; AC4 feasibility verdict pending user TP_M10.2 run
+
+**Files added:**
+- `DungeonDebt/Assets/Scripts/Data/CombatReplayEvent.cs`
+- `DungeonDebt/Assets/Scripts/Data/CombatReplayEvent.cs.meta`
+- `DungeonDebt/Assets/Art/Combat/sword.png` (user-supplied placeholder sprite)
+- `TestPlans/TP_M10.2.md`
+
+**Files modified:**
+- `DungeonDebt/Assets/Scripts/Data/CombatResult.cs` - added `ReplayEvents` list.
+- `DungeonDebt/Assets/Scripts/Combat/CombatLogger.cs` - parallel `CombatReplayEvent` per log line; new `LogHeal`.
+- `DungeonDebt/Assets/Scripts/Combat/CombatManager.cs` - copies replay events into result; resolver unchanged.
+- `DungeonDebt/Assets/Scripts/Combat/HeroEffects.cs` - shared heal callsite `LogMessage`->`LogHeal`; no effect math change.
+- `DungeonDebt/Assets/Scripts/UI/CombatLogView.cs` - added `StreamReplay(events, onStep, onComplete)`.
+- `DungeonDebt/Assets/Scripts/UI/CombatPanelView.cs` - `ApplyReplayEvent`, `ClearAllActing`, board-level traveling sword stab state machine.
+- `DungeonDebt/Assets/Scripts/UI/CombatUnitCardView.cs` - per-step HP setter, thin-edge acting outline, pulsing green heal frame, hit flash; per-card slash removed.
+- `DungeonDebt/Assets/Scripts/UI/MainMenuPanel.cs` - serialized `_swordSprite`; `StreamLines`->`StreamReplay`.
+- `DungeonDebt/Assembly-CSharp.csproj` - local Compile entry for new script (Unity regenerates).
+
+**Acceptance criteria:**
+- [x] AC1 - HP bars update per event during replay.
+- [x] AC2 - Visual prototype: acting outline + hit flash + heal frame + board-level Warrior sword stab.
+- [x] AC3 - Combat math/log/run flow unchanged; final-snapshot refresh preserved.
+- [ ] AC4 - Feasibility verdict (F1/F2/F3) to be recorded in TP_M10.2.md after user Editor run.
+- [x] AC5 - No tween lib/particles/audio/new states/resolver changes; sole new asset is user-supplied sword.png.
+
+**Test plan:** `TestPlans/TP_M10.2.md` - awaiting user run; visuals verbally approved ("looks good for a first pass").
+
+**Deviations from plan:**
+- `HeroEffects.cs` added at Plan checkpoint for heal HP-after data (single shared callsite swap).
+- Per-card slash replaced with board-level traveling sword stab; acting/heal changed from full-card fills to thin edge frames (user iteration).
+- Auditor damage stays Message-only (HP corrected by final snapshot); documented TP R4.
+
+**Follow-up flagged:**
+- AC4 verdict recording.
+- Sprite organization decision deferred to M10.3 planning slice (A: SpriteCatalog vs B: ScriptableObject); current single-field approach is Option A in miniature, non-scaling.
+- M10.3 must ratify scope amendments (CLAUDE.md §Scope control / IMPLEMENTATION_PLAN.md §15) before any per-entity sprite or per-card animation code.
+
+**Next slice:** M10.3 - Sprite-foundation planning slice (no code): decide sprite architecture, amend scope docs, produce PNG checklist.
+
 ## 2026-05-15 - M10.1: Combat view rebuild kickoff
 
 **Milestone:** M10 - Combat view rebuild

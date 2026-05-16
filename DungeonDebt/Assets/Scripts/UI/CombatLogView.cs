@@ -46,6 +46,12 @@ public class CombatLogView : MonoBehaviour
         _streamCoroutine = StartCoroutine(StreamLinesRoutine(lines, onComplete));
     }
 
+    public void StreamReplay(IReadOnlyList<CombatReplayEvent> events, Action<CombatReplayEvent> onStep, Action onComplete)
+    {
+        Clear();
+        _streamCoroutine = StartCoroutine(StreamReplayRoutine(events, onStep, onComplete));
+    }
+
     private IEnumerator StreamLinesRoutine(IReadOnlyList<string> lines, Action onComplete)
     {
         if (lines == null || _logText == null)
@@ -71,6 +77,50 @@ public class CombatLogView : MonoBehaviour
             }
 
             SnapToBottom();
+            yield return new WaitForSeconds(_lineDelaySeconds);
+        }
+
+        _streamCoroutine = null;
+        if (onComplete != null)
+        {
+            onComplete();
+        }
+    }
+
+    private IEnumerator StreamReplayRoutine(IReadOnlyList<CombatReplayEvent> events, Action<CombatReplayEvent> onStep, Action onComplete)
+    {
+        if (events == null || _logText == null)
+        {
+            _streamCoroutine = null;
+            if (onComplete != null)
+            {
+                onComplete();
+            }
+
+            yield break;
+        }
+
+        for (int i = 0; i < events.Count; i++)
+        {
+            CombatReplayEvent evt = events[i];
+            string text = evt != null ? evt.LogText : string.Empty;
+
+            if (i == 0)
+            {
+                _logText.text = text;
+            }
+            else
+            {
+                _logText.text += "\n" + text;
+            }
+
+            SnapToBottom();
+
+            if (onStep != null && evt != null)
+            {
+                onStep(evt);
+            }
+
             yield return new WaitForSeconds(_lineDelaySeconds);
         }
 
