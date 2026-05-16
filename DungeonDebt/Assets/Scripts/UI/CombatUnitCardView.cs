@@ -7,14 +7,11 @@ public class CombatUnitCardView : MonoBehaviour
     private const int RoleBandWidth = 6;
     private const int TierBorderThickness = 2;
     private const int ActingOutlineThickness = 4;
-    private const int HealFrameThickness = 5;
     private const int NameFontSize = 14;
     private const int HpFontSize = 12;
-    private const float HitFlashDuration = 0.22f;
-    private const float HealGlowDuration = 0.32f;
+    private const float HitFlashDuration = 0.275f;
 
     private static readonly Color HitFlashColor = new Color(1f, 0.32f, 0.28f, 1f);
-    private static readonly Color HealGlowColor = new Color(0.36f, 0.92f, 0.45f, 1f);
     private static readonly Color ActingOutlineColor = new Color(1f, 0.92f, 0.42f, 1f);
 
     [SerializeField] private Image _background;
@@ -33,14 +30,18 @@ public class CombatUnitCardView : MonoBehaviour
     [SerializeField] private Image _hpTrack;
     [SerializeField] private Image _hpFill;
     [SerializeField] private Image _hitFlashOverlay;
-    [SerializeField] private Image _healTop;
-    [SerializeField] private Image _healBottom;
-    [SerializeField] private Image _healLeft;
-    [SerializeField] private Image _healRight;
 
     private CombatUnit _currentUnit;
     private float _hitFlashT = -1f;
-    private float _healGlowT = -1f;
+
+    // Presentation-only: lets the combat view read this card's unit identity
+    // when a replay event carries only a slot (e.g. enemy attackers have no
+    // id on the event) to route the shared effect sprite by category. Read
+    // only; no behavior or mutation.
+    public CombatUnit CurrentUnit
+    {
+        get { return _currentUnit; }
+    }
 
     public void Initialize(Font font)
     {
@@ -121,7 +122,6 @@ public class CombatUnitCardView : MonoBehaviour
         }
 
         ResetHitFlash();
-        ResetHealGlow();
     }
 
     public void SetCurrentHealth(int currentHealth, int maxHealth)
@@ -190,17 +190,6 @@ public class CombatUnitCardView : MonoBehaviour
         _hitFlashT = 0f;
     }
 
-    public void PlayHealGlow()
-    {
-        if (_healTop == null)
-        {
-            return;
-        }
-        SetHealFrameEnabled(true);
-        SetHealFrameColor(HealGlowColor);
-        _healGlowT = 0f;
-    }
-
     private void Update()
     {
         if (_hitFlashT >= 0f)
@@ -218,24 +207,6 @@ public class CombatUnitCardView : MonoBehaviour
                 _hitFlashOverlay.color = c;
             }
         }
-
-        if (_healGlowT >= 0f)
-        {
-            _healGlowT += Time.deltaTime;
-            float t = _healGlowT / HealGlowDuration;
-            if (t >= 1f)
-            {
-                ResetHealGlow();
-            }
-            else if (_healTop != null)
-            {
-                Color c = HealGlowColor;
-                // Quick rise then fade so the green frame pulses in.
-                float alpha = t < 0.25f ? (t / 0.25f) : (1f - ((t - 0.25f) / 0.75f));
-                c.a = alpha;
-                SetHealFrameColor(c);
-            }
-        }
     }
 
     private void ResetHitFlash()
@@ -248,34 +219,6 @@ public class CombatUnitCardView : MonoBehaviour
             _hitFlashOverlay.color = c;
             _hitFlashOverlay.enabled = false;
         }
-    }
-
-    private void ResetHealGlow()
-    {
-        _healGlowT = -1f;
-        if (_healTop != null)
-        {
-            Color c = HealGlowColor;
-            c.a = 0f;
-            SetHealFrameColor(c);
-            SetHealFrameEnabled(false);
-        }
-    }
-
-    private void SetHealFrameEnabled(bool enabled)
-    {
-        if (_healTop != null) _healTop.enabled = enabled;
-        if (_healBottom != null) _healBottom.enabled = enabled;
-        if (_healLeft != null) _healLeft.enabled = enabled;
-        if (_healRight != null) _healRight.enabled = enabled;
-    }
-
-    private void SetHealFrameColor(Color color)
-    {
-        if (_healTop != null) _healTop.color = color;
-        if (_healBottom != null) _healBottom.color = color;
-        if (_healLeft != null) _healLeft.color = color;
-        if (_healRight != null) _healRight.color = color;
     }
 
     private void SetHpDisplay(int currentHealth, int maxHealth)
@@ -384,11 +327,12 @@ public class CombatUnitCardView : MonoBehaviour
         SetEdgeRight(_tierBorderRight.rectTransform, TierBorderThickness);
 
         // Created after the tier-frame images so the portrait is not occluded,
-        // but before the name/HP/flash overlays so they stay on top.
-        // preserveAspect centres the square art in a band clear of the bottom
-        // HP track.
+        // but before the name/HP/flash overlays so they stay on top. The name
+        // is hidden whenever a portrait resolves, so the portrait claims the
+        // full card minus the role band and the bottom HP track; preserveAspect
+        // keeps the art centred.
         _portrait = CreateImage("Portrait", root);
-        SetAnchored(_portrait.rectTransform, RoleBandWidth + Padding, Padding + 24 + 8, -Padding, -(Padding + 8));
+        SetAnchored(_portrait.rectTransform, RoleBandWidth + 2, Padding + 24 + 8 + 2, -3, -4);
         _portrait.preserveAspect = true;
         _portrait.enabled = false;
 
@@ -415,19 +359,6 @@ public class CombatUnitCardView : MonoBehaviour
         hitInit.a = 0f;
         _hitFlashOverlay.color = hitInit;
         _hitFlashOverlay.enabled = false;
-
-        _healTop = CreateImage("HealFrameTop", root);
-        _healBottom = CreateImage("HealFrameBottom", root);
-        _healLeft = CreateImage("HealFrameLeft", root);
-        _healRight = CreateImage("HealFrameRight", root);
-        SetEdgeTop(_healTop.rectTransform, HealFrameThickness);
-        SetEdgeBottom(_healBottom.rectTransform, HealFrameThickness);
-        SetEdgeLeft(_healLeft.rectTransform, HealFrameThickness);
-        SetEdgeRight(_healRight.rectTransform, HealFrameThickness);
-        Color healInit = HealGlowColor;
-        healInit.a = 0f;
-        SetHealFrameColor(healInit);
-        SetHealFrameEnabled(false);
 
         _actingTop = CreateImage("ActingOutlineTop", root);
         _actingBottom = CreateImage("ActingOutlineBottom", root);
