@@ -38,6 +38,25 @@ public class ShopManager : MonoBehaviour
         return true;
     }
 
+    public bool PayDebt()
+    {
+        RunState run = GetRunState();
+        if (run == null)
+        {
+            return false;
+        }
+
+        int payment = GameRules.CalculateDebtPaymentAmount(run.Gold, run.Debt);
+        if (payment <= 0)
+        {
+            return false;
+        }
+
+        run.Gold -= payment;
+        run.Debt -= payment;
+        return true;
+    }
+
     public bool Hire(int offerIndex)
     {
         if (offerIndex < 0 || offerIndex >= _currentOffers.Count)

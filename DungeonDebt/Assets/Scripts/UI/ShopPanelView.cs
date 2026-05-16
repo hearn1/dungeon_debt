@@ -22,6 +22,8 @@ public class ShopPanelView : MonoBehaviour
     [SerializeField] private RectTransform _partyColumn;
     [SerializeField] private Button _rerollButton;
     [SerializeField] private Text _rerollLabel;
+    [SerializeField] private Button _payDebtButton;
+    [SerializeField] private Text _payDebtLabel;
     [SerializeField] private Button _continueButton;
     [SerializeField] private Text _continueLabel;
 
@@ -34,6 +36,7 @@ public class ShopPanelView : MonoBehaviour
     private Action<int> _onHire;
     private Action<int> _onFire;
     private Action _onReroll;
+    private Action _onPayDebt;
     private Action _onContinue;
 
     public void Initialize(Font font)
@@ -42,11 +45,12 @@ public class ShopPanelView : MonoBehaviour
         BuildUi(font);
     }
 
-    public void SetHandlers(Action<int> onHire, Action<int> onFire, Action onReroll, Action onContinue)
+    public void SetHandlers(Action<int> onHire, Action<int> onFire, Action onReroll, Action onPayDebt, Action onContinue)
     {
         _onHire = onHire;
         _onFire = onFire;
         _onReroll = onReroll;
+        _onPayDebt = onPayDebt;
         _onContinue = onContinue;
     }
 
@@ -86,8 +90,28 @@ public class ShopPanelView : MonoBehaviour
 
         _rerollButton.interactable = runState.Gold >= GameRules.RerollCost;
         _rerollLabel.text = "Reroll (" + GameRules.RerollCost + "g)";
+        RefreshPayDebtButton(runState);
         _continueButton.interactable = true;
         _continueLabel.text = "Continue to Combat";
+    }
+
+    private void RefreshPayDebtButton(RunState runState)
+    {
+        int payment = GameRules.CalculateDebtPaymentAmount(runState.Gold, runState.Debt);
+        _payDebtButton.interactable = payment > 0;
+
+        if (runState.Debt <= 0)
+        {
+            _payDebtLabel.text = "No Debt";
+        }
+        else if (runState.Gold <= 0)
+        {
+            _payDebtLabel.text = "Need Gold";
+        }
+        else
+        {
+            _payDebtLabel.text = "Pay Debt (" + payment + "g)";
+        }
     }
 
     private static bool IsBronzeOwnedDuplicate(RunState runState, HeroDefinition hero)
@@ -275,6 +299,14 @@ public class ShopPanelView : MonoBehaviour
         rerollRect.anchoredPosition = new Vector2(Padding, Padding);
         rerollRect.sizeDelta = new Vector2(220f, FooterHeight - 8f);
 
+        _payDebtButton = CreateButton("PayDebtButton", root, font, "Pay Debt", out _payDebtLabel);
+        RectTransform payDebtRect = _payDebtButton.GetComponent<RectTransform>();
+        payDebtRect.anchorMin = new Vector2(0f, 0f);
+        payDebtRect.anchorMax = new Vector2(0f, 0f);
+        payDebtRect.pivot = new Vector2(0f, 0f);
+        payDebtRect.anchoredPosition = new Vector2(Padding + 236f, Padding);
+        payDebtRect.sizeDelta = new Vector2(220f, FooterHeight - 8f);
+
         _continueButton = CreateButton("ContinueButton", root, font, "Continue", out _continueLabel);
         RectTransform continueRect = _continueButton.GetComponent<RectTransform>();
         continueRect.anchorMin = new Vector2(1f, 0f);
@@ -284,6 +316,7 @@ public class ShopPanelView : MonoBehaviour
         continueRect.sizeDelta = new Vector2(260f, FooterHeight - 8f);
 
         _rerollButton.onClick.AddListener(HandleRerollClicked);
+        _payDebtButton.onClick.AddListener(HandlePayDebtClicked);
         _continueButton.onClick.AddListener(HandleContinueClicked);
     }
 
@@ -296,6 +329,10 @@ public class ShopPanelView : MonoBehaviour
         if (_continueButton != null)
         {
             _continueButton.onClick.RemoveListener(HandleContinueClicked);
+        }
+        if (_payDebtButton != null)
+        {
+            _payDebtButton.onClick.RemoveListener(HandlePayDebtClicked);
         }
     }
 
@@ -320,6 +357,14 @@ public class ShopPanelView : MonoBehaviour
         if (_onReroll != null)
         {
             _onReroll.Invoke();
+        }
+    }
+
+    private void HandlePayDebtClicked()
+    {
+        if (_onPayDebt != null)
+        {
+            _onPayDebt.Invoke();
         }
     }
 

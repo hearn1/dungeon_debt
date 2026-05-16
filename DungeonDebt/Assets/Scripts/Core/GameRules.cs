@@ -41,6 +41,7 @@ public static class GameRules
     public const int RerollCost = 2;
     public const int HireCostBonus = 2;
     public const int FireRefund = 1;
+    public const int DebtPaymentCap = 3;
 
     public const int WinReward = 8;
     public const int LossReward = 4;
@@ -49,6 +50,9 @@ public static class GameRules
     public const int DungeonLossMorale = 6;
     public const int RivalLossMorale = 8;
     public const int InterestDebtDivisor = 3;
+    public const int StrainedDebtThreshold = 6;
+    public const int DangerousDebtThreshold = 12;
+    public const int CriticalDebtThreshold = 20;
     public const int RivalIncomePerRound = 8;
     public const int GreedyRivalStartingPayroll = 10;
     public const int FrugalRivalStartingPayroll = 6;
@@ -100,4 +104,50 @@ public static class GameRules
     public const int BronzeTreasurerTargets = 1;
     public const int SilverTreasurerTargets = 2;
     public const int TreasurerUpkeepReduction = 2;
+
+    public static int CalculateDebtPaymentAmount(int gold, int debt)
+    {
+        if (gold <= 0 || debt <= 0)
+        {
+            return 0;
+        }
+
+        int payment = gold;
+        if (payment > debt)
+        {
+            payment = debt;
+        }
+
+        if (payment > DebtPaymentCap)
+        {
+            payment = DebtPaymentCap;
+        }
+
+        return payment;
+    }
+
+    public static string GetDebtStatusLabel(int debt)
+    {
+        if (debt >= CriticalDebtThreshold)
+        {
+            return "Critical";
+        }
+
+        if (debt >= DangerousDebtThreshold)
+        {
+            return "Dangerous";
+        }
+
+        if (debt >= StrainedDebtThreshold)
+        {
+            return "Strained";
+        }
+
+        return "Stable";
+    }
+
+    public static bool IsHighDebtPressure(int debt)
+    {
+        return debt >= DangerousDebtThreshold;
+    }
 }

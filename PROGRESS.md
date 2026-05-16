@@ -51,6 +51,39 @@ Copy this block when adding a new entry. Paste it at the top of the Session log 
 
 <!-- Newest entries at the top. -->
 
+## 2026-05-16 - M12.1: Debt status + Shop repayment
+
+**Milestone:** M12 - Debt rework and resource-pressure readability
+**Status:** Complete
+
+**Files added:**
+- `TestPlans/TP_M12.1.md`
+
+**Files modified:**
+- `DungeonDebt/Assets/Scripts/Core/GameRules.cs` - added debt payment cap, debt-status thresholds, and repayment/status helpers.
+- `DungeonDebt/Assets/Scripts/Run/ShopManager.cs` - added capped 1:1 Pay Debt action.
+- `DungeonDebt/Assets/Scripts/UI/ShopPanelView.cs` - added Pay Debt control and labels.
+- `DungeonDebt/Assets/Scripts/UI/MainMenuPanel.cs` - wired Pay Debt callback and immediate refresh.
+- `DungeonDebt/Assets/Scripts/UI/RunHeaderView.cs` - displays debt status in the header.
+- `DungeonDebt/Assets/Scripts/UI/RewardSummaryView.cs` - shows debt status and general high-debt warning copy.
+
+**Acceptance criteria:**
+- [x] Debt status is derived from current debt and displayed clearly in the run UI.
+- [x] Shop includes a Pay Debt control that converts up to `GameRules.DebtPaymentCap` gold into debt reduction at 1:1.
+- [x] Pay Debt immediately updates gold/debt and competes with hiring/rerolling.
+- [x] High debt danger is clearer through general status/warning copy only; Debt Wraith mechanics remain unchanged.
+- [x] No payroll actions, hero effects, enemy effects, act structure, or new content are added.
+
+**Test plan:** `TestPlans/TP_M12.1.md` - user completed testing and reported no issues; slice considered passed. `dotnet build DungeonDebt.sln` from `DungeonDebt/` passed with 0 warnings / 0 errors.
+
+**Deviations from plan:**
+- None.
+
+**Follow-up flagged:**
+- M12.1 tested cleanly; skip the optional M12.2 retest slice unless later balance feedback specifically calls for it.
+
+**Next slice:** M13.1 - Act 1 framing and transition shell.
+
 ## 2026-05-16 - M11.2: Cut Wages rule alignment and first economy retest
 
 **Milestone:** M11 - Economy and balance pass
