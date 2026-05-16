@@ -2,7 +2,11 @@
   "permissions": {
     "allow": [
       "Bash(awk 'NR>=1005 && NR<=1180' C:/Users/Matt/Desktop/Code/dungeon_debt/GAME_DESIGN.md)",
-      "Bash(dotnet build *)"
+      "Bash(dotnet build *)",
+      "Bash(ls *.csproj)",
+      "Bash(ls *.sln)",
+      "Bash(ls *.html)",
+      "Bash(find . -maxdepth 2 -iname \"*.html\" -not -path \"./.git/*\")"
     ]
   }
 }

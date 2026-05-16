@@ -7,17 +7,25 @@ public class CombatPanelView : MonoBehaviour
     private const int Padding = 18;
     private const int TitleHeight = 30;
     private const int RowLabelWidth = 104;
-    private const int CardWidth = 128;
-    private const int CardHeight = 96;
+    private const int CardWidth = 150;
+    private const int CardHeight = 102;
     private const int CardGap = 18;
     private const int RowGap = 8;
     private const int FrontlineSlots = GameRules.FrontlineSlots;
     private const int BacklineSlots = GameRules.BacklineSlots;
-    private const int StabSwordWidth = 40;
-    private const int StabSwordHeight = 132;
-    private const float StabLungeDuration = 0.10f;
-    private const float StabHoldDuration = 0.03f;
-    private const float StabRetractDuration = 0.07f;
+    private const int EffectSpriteSize = 80;
+    private const float EffectLungeDuration = 0.125f;
+    private const float EffectHoldDuration = 0.0375f;
+    private const float EffectRetractDuration = 0.0875f;
+
+    // Shared 5-sprite effect-category ids (match SpriteCatalog effect ids and
+    // IMPLEMENTATION_PLAN.md §15). No per-unit unique art: every unit routes
+    // to one of these.
+    private const string EffectMeleeStab = "melee_stab";
+    private const string EffectArrow = "arrow";
+    private const string EffectFireball = "fireball";
+    private const string EffectHeal = "heal";
+    private const string EffectEnchant = "enchant";
 
     [SerializeField] private Text _titleText;
     [SerializeField] private Text _enemyBackLabel;
@@ -38,21 +46,19 @@ public class CombatPanelView : MonoBehaviour
     private readonly List<CombatUnit> _scratchPlayerFront = new List<CombatUnit>();
     private readonly List<CombatUnit> _scratchPlayerBack = new List<CombatUnit>();
     private Font _font;
-    private Sprite _swordSprite;
     private SpriteCatalog _spriteCatalog;
 
-    private enum StabPhase { Idle, Lunge, Hold, Retract }
-    private Image _stabSword;
-    private RectTransform _stabSwordRect;
-    private StabPhase _stabPhase = StabPhase.Idle;
-    private float _stabT;
-    private Vector3 _stabFromLocal;
-    private Vector3 _stabToLocal;
+    private enum EffectPhase { Idle, Lunge, Hold, Retract }
+    private Image _effectSprite;
+    private RectTransform _effectSpriteRect;
+    private EffectPhase _effectPhase = EffectPhase.Idle;
+    private float _effectT;
+    private Vector3 _effectFromLocal;
+    private Vector3 _effectToLocal;
 
-    public void Initialize(Font font, Sprite swordSprite, SpriteCatalog spriteCatalog)
+    public void Initialize(Font font, SpriteCatalog spriteCatalog)
     {
         _font = font;
-        _swordSprite = swordSprite;
         _spriteCatalog = spriteCatalog;
         BuildUi(font);
         Clear();
@@ -74,6 +80,8 @@ public class CombatPanelView : MonoBehaviour
         RefreshFixedRow(_enemyFrontCards, _enemyFrontRow, _scratchEnemyFront, 0, FrontlineSlots);
         RefreshFixedRow(_playerFrontCards, _playerFrontRow, _scratchPlayerFront, 0, FrontlineSlots);
         RefreshFixedRow(_playerBackCards, _playerBackRow, _scratchPlayerBack, GameRules.FrontlineSlots, BacklineSlots);
+
+        PlayCombatStartEnchant(playerUnits);
     }
 
     public void Clear()
@@ -87,7 +95,7 @@ public class CombatPanelView : MonoBehaviour
         ClearCards(_enemyFrontCards);
         ClearCards(_playerFrontCards);
         ClearCards(_playerBackCards);
-        ResetStab();
+        ResetEffect();
     }
 
     public void Hide()
@@ -119,12 +127,15 @@ public class CombatPanelView : MonoBehaviour
             }
             if (targetCard != null)
             {
-                bool stabbed = false;
-                if (IsWarriorAttacker(evt) && attackerCard != null)
+                bool played = false;
+                if (attackerCard != null)
                 {
-                    stabbed = PlayStab(attackerCard, targetCard);
+                    string effectId = ResolveAttackEffectId(evt, attackerCard);
+                    Sprite sprite = GetEffectSprite(effectId);
+                    // Damage effects (stab/arrow/fireball) aim toward the target.
+                    played = PlayEffect(attackerCard, targetCard, sprite, true);
                 }
-                if (!stabbed)
+                if (!played)
                 {
                     targetCard.FlashHit();
                 }
@@ -143,7 +154,10 @@ public class CombatPanelView : MonoBehaviour
             }
             if (targetCard != null)
             {
-                targetCard.PlayHealGlow();
+                // Heal shows the shared upright heal sprite pulsed on the
+                // target (no travel, no rotation), matching the enchant
+                // treatment, instead of the prior green glow frame.
+                PlayEffect(targetCard, targetCard, GetEffectSprite(EffectHeal), false);
                 targetCard.SetCurrentHealth(evt.TargetHealthAfter, evt.TargetMaxHealth);
             }
             return;
@@ -170,107 +184,197 @@ public class CombatPanelView : MonoBehaviour
         ClearActingInRow(_playerBackCards);
     }
 
-    // Board-level traveling stab: a single shared sword sprite lunges from the
-    // attacker card to the target card and retracts. Returns false (so the
-    // caller falls back to a hit flash) if the sprite/cards are unavailable.
-    private bool PlayStab(CombatUnitCardView attackerCard, CombatUnitCardView targetCard)
+    // Board-level traveling effect: a single shared effect sprite lunges from
+    // the source card to the target card and retracts, synced to the replay
+    // step. When source == target (combat-start enchant) it pulses in place.
+    // Returns false (so an attack caller can fall back to a hit flash) if the
+    // sprite/cards are unavailable.
+    private bool PlayEffect(CombatUnitCardView fromCard, CombatUnitCardView toCard, Sprite sprite, bool aimAtTarget)
     {
-        if (_stabSword == null || _swordSprite == null || attackerCard == null || targetCard == null)
+        if (_effectSprite == null || sprite == null || fromCard == null || toCard == null)
         {
             return false;
         }
 
-        RectTransform parentRect = _stabSwordRect.parent as RectTransform;
+        RectTransform parentRect = _effectSpriteRect.parent as RectTransform;
         if (parentRect == null)
         {
             return false;
         }
 
-        Vector3 fromWorld = ((RectTransform)attackerCard.transform).position;
-        Vector3 toWorld = ((RectTransform)targetCard.transform).position;
-        _stabFromLocal = parentRect.InverseTransformPoint(fromWorld);
-        _stabToLocal = parentRect.InverseTransformPoint(toWorld);
-        _stabFromLocal.z = 0f;
-        _stabToLocal.z = 0f;
+        Vector3 fromWorld = ((RectTransform)fromCard.transform).position;
+        Vector3 toWorld = ((RectTransform)toCard.transform).position;
+        _effectFromLocal = parentRect.InverseTransformPoint(fromWorld);
+        _effectToLocal = parentRect.InverseTransformPoint(toWorld);
+        _effectFromLocal.z = 0f;
+        _effectToLocal.z = 0f;
 
-        Vector3 dir = _stabToLocal - _stabFromLocal;
-        // Sprite is authored pointing up (+Y); rotate so the tip leads toward
-        // the target. No spinning — a single fixed aim for the whole thrust.
-        float angle = Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg - 90f;
+        if (aimAtTarget)
+        {
+            Vector3 dir = _effectToLocal - _effectFromLocal;
+            // Sprite is authored pointing up (+Y); rotate so the tip leads
+            // toward the target. No spinning — one fixed aim for the thrust.
+            float angle = Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg - 90f;
+            _effectSpriteRect.localRotation = Quaternion.Euler(0f, 0f, angle);
+        }
+        else
+        {
+            // Heal/enchant stay upright (no directional aim).
+            _effectSpriteRect.localRotation = Quaternion.identity;
+        }
 
-        _stabSword.sprite = _swordSprite;
-        _stabSword.enabled = true;
-        _stabSword.color = Color.white;
-        _stabSwordRect.localRotation = Quaternion.Euler(0f, 0f, angle);
-        _stabSwordRect.localPosition = _stabFromLocal;
+        _effectSprite.sprite = sprite;
+        _effectSprite.enabled = true;
+        _effectSprite.color = Color.white;
+        _effectSpriteRect.localPosition = _effectFromLocal;
 
-        _stabPhase = StabPhase.Lunge;
-        _stabT = 0f;
+        _effectPhase = EffectPhase.Lunge;
+        _effectT = 0f;
         return true;
     }
 
     private void Update()
     {
-        if (_stabPhase == StabPhase.Idle)
+        if (_effectPhase == EffectPhase.Idle)
         {
             return;
         }
 
-        _stabT += Time.deltaTime;
+        _effectT += Time.deltaTime;
 
-        if (_stabPhase == StabPhase.Lunge)
+        if (_effectPhase == EffectPhase.Lunge)
         {
-            float p = _stabT / StabLungeDuration;
+            float p = _effectT / EffectLungeDuration;
             if (p >= 1f)
             {
-                _stabSwordRect.localPosition = _stabToLocal;
-                _stabPhase = StabPhase.Hold;
-                _stabT = 0f;
+                _effectSpriteRect.localPosition = _effectToLocal;
+                _effectPhase = EffectPhase.Hold;
+                _effectT = 0f;
                 return;
             }
             // Ease-out so the thrust snaps forward.
             float eased = 1f - ((1f - p) * (1f - p));
-            _stabSwordRect.localPosition = Vector3.Lerp(_stabFromLocal, _stabToLocal, eased);
+            _effectSpriteRect.localPosition = Vector3.Lerp(_effectFromLocal, _effectToLocal, eased);
             return;
         }
 
-        if (_stabPhase == StabPhase.Hold)
+        if (_effectPhase == EffectPhase.Hold)
         {
-            if (_stabT >= StabHoldDuration)
+            if (_effectT >= EffectHoldDuration)
             {
-                _stabPhase = StabPhase.Retract;
-                _stabT = 0f;
+                _effectPhase = EffectPhase.Retract;
+                _effectT = 0f;
             }
             return;
         }
 
         // Retract.
-        float r = _stabT / StabRetractDuration;
+        float r = _effectT / EffectRetractDuration;
         if (r >= 1f)
         {
-            ResetStab();
+            ResetEffect();
             return;
         }
-        _stabSwordRect.localPosition = Vector3.Lerp(_stabToLocal, _stabFromLocal, r);
+        _effectSpriteRect.localPosition = Vector3.Lerp(_effectToLocal, _effectFromLocal, r);
     }
 
-    private void ResetStab()
+    private void ResetEffect()
     {
-        _stabPhase = StabPhase.Idle;
-        _stabT = 0f;
-        if (_stabSword != null)
+        _effectPhase = EffectPhase.Idle;
+        _effectT = 0f;
+        if (_effectSprite != null)
         {
-            _stabSword.enabled = false;
+            _effectSprite.enabled = false;
         }
     }
 
-    private static bool IsWarriorAttacker(CombatReplayEvent evt)
+    private Sprite GetEffectSprite(string effectId)
     {
-        if (evt == null || !evt.AttackerIsPlayerSide || string.IsNullOrEmpty(evt.AttackerHeroId))
+        if (_spriteCatalog == null || string.IsNullOrEmpty(effectId))
         {
-            return false;
+            return null;
         }
-        return evt.AttackerHeroId == "warrior";
+        return _spriteCatalog.GetEffectSprite(effectId);
+    }
+
+    // Routes an attack replay event to one of the 5 shared effect ids.
+    // Player heroes carry an id on the event; enemies do not, so the
+    // attacker card's CurrentUnit supplies the enemy identity. Structured so
+    // a future per-enemy mapping (post-M10, if scope is re-ratified) only
+    // needs to extend ResolveEnemyAttackEffectId — it still must resolve to
+    // one of the shared ids unless the 5-sprite cap is lifted.
+    private static string ResolveAttackEffectId(CombatReplayEvent evt, CombatUnitCardView attackerCard)
+    {
+        if (evt != null && evt.AttackerIsPlayerSide && !string.IsNullOrEmpty(evt.AttackerHeroId))
+        {
+            return ResolveHeroAttackEffectId(evt.AttackerHeroId);
+        }
+
+        CombatUnit attacker = attackerCard != null ? attackerCard.CurrentUnit : null;
+        if (attacker != null && attacker.SourceEnemy != null)
+        {
+            return ResolveEnemyAttackEffectId(attacker.SourceEnemy.Id);
+        }
+
+        return EffectMeleeStab;
+    }
+
+    private static string ResolveHeroAttackEffectId(string heroId)
+    {
+        // §15 mapping: only Ranger/Wizard differ from the melee default.
+        if (heroId == "ranger")
+        {
+            return EffectArrow;
+        }
+        if (heroId == "wizard")
+        {
+            return EffectFireball;
+        }
+        return EffectMeleeStab;
+    }
+
+    private static string ResolveEnemyAttackEffectId(string enemyId)
+    {
+        // §15 mapping: only Frugal Archer differs from the melee default.
+        // Extension point for future per-enemy routing (still capped to the
+        // shared ids unless the scope docs are updated).
+        if (enemyId == "frugal_archer")
+        {
+            return EffectArrow;
+        }
+        return EffectMeleeStab;
+    }
+
+    // Combat-start flourish: if an Enchanter is on the player board, pulse the
+    // upright shared enchant sprite on its own card. Derived from the start
+    // snapshot only (no replay/combat state) — mirrors how ResolveBaseSprite
+    // reads unit identity for portraits.
+    private void PlayCombatStartEnchant(IReadOnlyList<CombatUnit> playerUnits)
+    {
+        if (playerUnits == null)
+        {
+            return;
+        }
+
+        for (int i = 0; i < playerUnits.Count; i++)
+        {
+            CombatUnit unit = playerUnits[i];
+            if (unit == null || unit.SourceHero == null || unit.SourceHero.Definition == null)
+            {
+                continue;
+            }
+            if (unit.SourceHero.Definition.Id != "enchanter")
+            {
+                continue;
+            }
+
+            CombatUnitCardView card = FindCard(true, unit.Slot);
+            if (card != null)
+            {
+                PlayEffect(card, card, GetEffectSprite(EffectEnchant), false);
+            }
+            return;
+        }
     }
 
     private CombatUnitCardView FindCard(bool isPlayerSide, int slot)
@@ -473,18 +577,18 @@ public class CombatPanelView : MonoBehaviour
         SetTopCentered(_playerBackRow, backRowWidth, fourthRowTop, CardHeight);
 
         // Created last so it is the topmost child of the combat panel and
-        // renders above every card row during the traveling-stab animation.
-        RectTransform swordRect = CreateRect("StabSword", root);
-        swordRect.anchorMin = new Vector2(0.5f, 0.5f);
-        swordRect.anchorMax = new Vector2(0.5f, 0.5f);
-        swordRect.pivot = new Vector2(0.5f, 0.5f);
-        swordRect.sizeDelta = new Vector2(StabSwordWidth, StabSwordHeight);
-        swordRect.localPosition = Vector3.zero;
-        _stabSword = swordRect.gameObject.AddComponent<Image>();
-        _stabSword.raycastTarget = false;
-        _stabSword.preserveAspect = true;
-        _stabSword.enabled = false;
-        _stabSwordRect = swordRect;
+        // renders above every card row during the traveling-effect animation.
+        RectTransform effectRect = CreateRect("EffectSprite", root);
+        effectRect.anchorMin = new Vector2(0.5f, 0.5f);
+        effectRect.anchorMax = new Vector2(0.5f, 0.5f);
+        effectRect.pivot = new Vector2(0.5f, 0.5f);
+        effectRect.sizeDelta = new Vector2(EffectSpriteSize, EffectSpriteSize);
+        effectRect.localPosition = Vector3.zero;
+        _effectSprite = effectRect.gameObject.AddComponent<Image>();
+        _effectSprite.raycastTarget = false;
+        _effectSprite.preserveAspect = true;
+        _effectSprite.enabled = false;
+        _effectSpriteRect = effectRect;
     }
 
     private static Text CreateRowLabel(string objectName, RectTransform parent, Font font, int top)

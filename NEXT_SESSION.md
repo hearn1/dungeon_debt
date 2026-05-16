@@ -4,60 +4,88 @@ This file always describes the **next** session's work. Rewrite it at the end of
 
 ---
 
-## Session: M10.5 - Shared effect sprites + category-routed source->target motion
+## Session: M10.7 — Combat-screen layout pass (v2 footer-card, made practical in Unity)
 
-**Milestone:** M10 - Combat view rebuild
-**Slice goal:** Replace the single hard-coded `_swordSprite`/`sword.png` stab path with the shared 5-sprite effect set from `SpriteCatalog`, routed by attack category, animated source->target via the existing M10.2 board-level motion state machine and synced to the replay.
+**Milestone:** M10 — Combat view rebuild
+**Slice goal:** Make the v2 "Footer" portrait-card design practical in Unity by (a) re-shaping `CombatUnitCardView` into a portrait card with a bottom name+HP footer and (b) a **bounded combat-only screen relayout** in `CombatPanelView` + `MainMenuPanel` that reclaims vertical space for the card grid — *without* moving the non-combat panels, without redesigning the combat log, and without editing the scene. This is a practical adaptation of the mock-up, **not** a 1:1 port.
 
 ### Why this slice exists
 
-M10.2 built a board-level traveling-sword stab state machine in `CombatPanelView`, fed by a single serialized `_swordSprite` (`Assets/Art/Combat/sword.png`). M10.4 landed `SpriteCatalog` (presentation-only, self-seeding 33 ids including the 5 effect ids) and the 5 effect PNGs now exist in `Assets/Art/Effects/`. M10.5 is the planned cutover: generalize the one-sprite stab into a category-routed shared-effect motion (`melee_stab`, `arrow`, `fireball`, `heal`, `enchant`), drop `_swordSprite`/`sword.png`, and pull all effect art from `SpriteCatalog`.
+M10.4/M10.6 made unit art render correctly, but at 150×102 the portrait is a ~70×60 inner slice. A design exploration (see *Design source*) picked the **portrait-card / footer-strip** direction (`combat-card-v2.jsx`, "Footer" variant, 200×208).
+
+Reviewing the mock-up surfaced the hard constraint that re-scoped this slice: the v2 design only fits 1080p because it uses **nearly the full screen height** for the card grid (≈976px: a 56px compact header + the grid + a thin log). In Unity the combat board is hard-capped at **510px** — `MainMenuPanel` sets `CombatUnitPanelHeight = 510` and `CombatLogTopOffset = 380` (the top ~380px holds the tall title, Start Run/Restart buttons, and status text). Four 208px rows need ~958px and cannot fit 510px. So the redesign is **not card-only** — it requires reclaiming the top chrome space for the combat screen specifically. `CombatLogTopOffset` is shared by the shop/formation/payroll/scout panels, so the reclaim must be combat-only.
+
+### Scope (re-scoped and approved by user)
+
+**Approved:**
+- Edit `CombatUnitCardView.cs` and `CombatPanelView.cs` for the v2 footer card + grid.
+- Edit `MainMenuPanel.cs` to add a **combat-only layout path**: a combat-specific top offset / compact combat presentation that reclaims vertical space for the board **only while in the Combat screen**.
+- Keep all non-combat panels (shop, formation, payroll, scout, reward, end, leaderboard) on the existing shared offsets — they must not move.
+- Keep `CombatLogView` behaviour and the existing scrolling combat log intact.
+- Treat **200×208 as the ideal target**; a smaller final runtime card size is acceptable if needed to preserve the scrolling log and the existing Start Run / Restart / "press Continue" controls.
+
+**Not approved for M10.7:**
+- Do not move all panels globally / do not change the shared `CombatLogTopOffset` for non-combat panels.
+- Do not edit `Assets/Scenes/Main.unity` unless there is genuinely no runtime-code alternative (MainMenuPanel builds its UI in code, so a runtime path is expected to exist — if not, stop and ask before touching the scene).
+- Do not redesign `CombatLogView` or reduce the real combat log to a one-line strip if that risks regressing R001 (long-combat scroll/truncation).
+- Do not add web-only visual treatments: CSS gradients/vignettes, box-shadow glows, drop-shadows, rounded-corner chrome, web fonts, shaders, new art, particles, tweens, or any VFX/animation system. Flat-colour approximations only (CLAUDE.md §Scope control still in force).
 
 ### Definition of ready
 
-- ID: M10.5. One-sentence goal: above. Files and acceptance criteria below.
-- M10.6 is complete (thin tier frame + name fallback landed); no open blocker regressions in `REGRESSIONS.md` (Open section currently empty).
-- **Decide at Plan:** how a replay event maps to one of the 5 effect categories. There is **no per-effect gameplay data** and none may be added (presentation-only). The mapping must be derived from existing `CombatReplayEvent` / attack-vs-heal-vs-enchant signal already present, not new state. Confirm the exact signal at Orient by reading `CombatReplayEvent.cs` and the M10.2 stab state machine in `CombatPanelView.cs`.
+- ID: M10.7. One-sentence goal: above. Files and acceptance criteria below.
+- M10.6 complete. M10.5 acceptance (effect motion) is the only pending M10 item and is independent (effects vs. layout) — do not block on it, but **verify M10.5's effect motion still tracks at the new card size/positions** (regression check).
+- No open 🔴 Blocker regressions in `REGRESSIONS.md` interact with this; R001 (closed) is the relevant historical risk for the log — protect it.
+- **Decide at Plan:**
+  1. The runtime mechanism for the combat-only reclaim in `MainMenuPanel`: how the title / Start Run / Restart / status block is compacted or repositioned **only for the Combat state** (e.g. a combat-specific offset + a compact combat header built in code and toggled by state), while leaving the shared layout for other states untouched. Confirm how these controls are currently shown during `GameState.Combat` and where the "press Continue" / Start Run / Restart affordances live in the compact combat layout.
+  2. Final `CardWidth`/`CardHeight`/`CardGap`/`RowGap` for `CombatPanelView`. Ideal 200/208/22/14; compute the real vertical budget = (combat screen height) − (compact combat header) − (retained scrolling log at its current behaviour) − (paddings/labels/title), divide across 4 rows + gaps, and pick the largest size ≤ that budget. Record the actual numbers chosen and why if < 200×208.
+  3. Footer construction in `CombatUnitCardView`: fixed-height footer band (default, matches `BuildUi` manual-anchoring style) containing the name above the HP track, with a 1px role-accent top edge and a slightly darker footer background. Drop the footer-bg Image if it fights the hit-flash/acting-outline layering — the 1px role edge alone is acceptable.
+  4. Whether enemy-sprite horizontal mirror and a flat dead-state marker (mock-up showed `scaleX(-1)` and a big "✕") are in or out. Default: **out** for M10.7 (keep current dead-state red tint); raise if you want them, do not assume.
 
-### Background (state after M10.6)
+### Design source
 
-`SpriteCatalog` exposes typed lookups incl. `GetEffectSprite(id)` for the 5 effect ids; it self-seeds and is wired via `MainMenuPanel._spriteCatalog` and passed into `CombatPanelView.Initialize`. Hero/enemy static portraits render by stable id with placeholder-box fallback; tier frame is a thin four-sided strip; unit name shows only when no portrait resolves. The M10.2 traveling-sword stab still uses the serialized `_swordSprite` (`Assets/Art/Combat/sword.png`) and a board-level source->target motion synced to the replay - that is exactly the path this slice generalizes and retires.
+- `Combat Layout v2.html` + `combat-card-v2.jsx` + `tweaks-panel.jsx` — **the final design.** Renders correctly. Chosen state (`V2_DEFAULTS`): style `footer`, card **200×208**, role band **6**, footer **56**. `CardFooter`/`CardShell`/`SpriteArea` show the structure: sprite fills above a bottom footer; footer has name (uppercase, ellipsis) above an HP bar, a 1px role-accent top border, darker bg; shell keeps role band / tier border / acting / dead vocabulary.
+- `Combat Layouts.html` — the earlier 3-variant comparison. Note: it references `design-canvas.jsx` but the repo file is `design-canvas (1).jsx`, so it will not render as-is. Not needed; v2 is authoritative.
+- The mock-up is HTML/CSS. Treat dimensions and structure as the **target**, port as flat uGUI. The mock-up's gradients, vignettes, glows, "TARGET" tag, damage numbers, and tweak panel are **reference only / out of scope**.
+
+### Background (state after M10.6 + M10.5 polish)
+
+`CombatUnitCardView.BuildUi` builds: background, left role band, 4 tier-border edge strips, portrait (anchored to leave a top name + bottom HP track), name text (top-anchored, hidden when a sprite resolves — M10.6), HP track/fill/centered HP text (bottom-anchored), hit-flash overlay, 4 acting-outline edge strips. `CombatPanelView` lays out 4 rows (enemy back, enemy front, hero front, hero back) by absolute top offsets derived from `CardHeight`, with `CardWidth=150, CardHeight=102, CardGap=18, RowGap=8`, and a center-anchored per-side row width; it also owns the shared effect-sprite motion (M10.5) and `EffectSpriteSize`. `MainMenuPanel` constructs the combat panel + log panel in code via `SetAnchoredRect` with `HorizontalMargin=140, CombatLogTopOffset=380, CombatUnitPanelHeight=510, CombatPanelLogGap=16, RewardSummaryWidth=520`, and the shop/formation/payroll/scout panels reuse `CombatLogTopOffset` as their top offset.
 
 ### Acceptance Criteria (finalize at Orient/Plan)
 
-1. The board-level effect motion uses `SpriteCatalog` effect sprites, not a serialized single sprite. `_swordSprite` is removed and `Assets/Art/Combat/sword.png` is retired.
-2. The correct effect sprite is chosen by category from the existing replay/attack signal (melee attack -> `melee_stab`, ranged -> `arrow`, magic damage -> `fireball`, heal -> `heal`, enchant/buff -> `enchant`). Exact category-to-id rules agreed at Plan; no new gameplay/effect data added.
-3. The effect travels source->target via hand-coded RectTransform interpolation synced to the existing replay step timing, reusing (not duplicating) the M10.2 motion state machine.
-4. No combat math, targeting, rewards, upkeep, hero-effect, or run-flow change; no new combat state. Replay/log content unchanged.
-5. No tween library, `Animator`, particles, VFX, screen shake, or audio. Exactly the 5 shared effect sprites; no per-unit/per-effect unique art; no extra effect sprites.
+1. `CombatUnitCardView` is a portrait card: the unit name moves from the top into a fixed-height bottom footer band that also holds the HP track; the portrait expands to fill everything above the footer, minus the left role-band gutter and the existing tier-border inset. Footer has a 1px role-accent top edge and a slightly darker background (or just the 1px edge if layering conflicts).
+2. A **combat-only** relayout reclaims vertical space so the four-row grid is meaningfully larger than 150×102, sized to the largest that fits the real budget (ideal 200×208; smaller allowed). Nothing clips or overflows at 1920×1080 with the run/combat header, panel title/labels, panel padding, and the **unchanged scrolling combat log** all present.
+3. Non-combat screens are visually unchanged: shop, formation, payroll, scout, reward summary, end screen, and rival leaderboard render exactly as before (the shared offsets they use are not modified). Verify by entering each state.
+4. All existing card states still render at the new size: role band, tier border (4 strips), acting outline (4 strips), hit-flash overlay, dead-state red tint, M10.6 name-only-when-no-sprite fallback, and HP fill colour switching at the 50% threshold. No new state, no new replay/combat data.
+5. `CombatLogView` behaviour is unchanged and the long-combat scroll (R001) still works — run a long support-heavy combat and confirm the log still scrolls and is not truncated. M10.5's category-routed effect motion still flies between the correct two cards and centres on the target at the new size/positions. No combat math, targeting, rewards, upkeep, hero-effect, run-flow, replay, log, sprite-catalog, scene, or art change.
 
 ### Files Claude Code May Modify
 
 ```
-DungeonDebt/Assets/Scripts/UI/CombatPanelView.cs   - category-routed source->target effect motion from SpriteCatalog.
-DungeonDebt/Assets/Scripts/UI/MainMenuPanel.cs     - remove serialized `_swordSprite`; effect sprites come from SpriteCatalog.
-DungeonDebt/Assets/Art/Combat/sword.png (+ .meta)  - retire (delete) once the cutover is verified.
-TestPlans/TP_M10.5.md                              - NEW: manual test plan.
+DungeonDebt/Assets/Scripts/UI/CombatUnitCardView.cs  — portrait card + bottom name/HP footer band; re-anchor for the new size.
+DungeonDebt/Assets/Scripts/UI/CombatPanelView.cs     — final card/grid constants; row + label offsets derive from CardHeight, keep them aligned; verify EffectSpriteSize/effect motion at the new size.
+DungeonDebt/Assets/Scripts/UI/MainMenuPanel.cs       — add a combat-only layout path (combat-specific offset / compact combat header built in code, toggled by Combat state) that reclaims board height; non-combat panel offsets untouched; combat log panel kept (may be repositioned but not redesigned or shrunk in a way that regresses R001).
+TestPlans/TP_M10.7.md                                — NEW: manual test plan (portrait card + footer, combat-only relayout, every non-combat screen unchanged, all card states, long-combat log scroll = R001 regression check, M10.5 effect motion regression check).
 ```
-
-(Confirm at Plan whether a small read-only category helper belongs in `CombatPanelView` or alongside `CombatReplayEvent`. Default: contained to `CombatPanelView`. `CombatReplayEvent.cs` may be **read** for the category signal but not have gameplay fields added.)
 
 ### Files Claude Code Does NOT Touch
 
-- `SpriteCatalog.cs` (consume only; do not add ids beyond the seeded 5 effects).
-- Any `Combat/`, `Run/`, `Core/`, or `Data/` gameplay script for behaviour changes (read-only inspection of `CombatReplayEvent.cs` for the category signal is allowed; no new fields/state).
-- `CombatUnitCardView.cs` (M10.6 just stabilized it; no card-layout change needed for this slice unless Plan surfaces a required anchor point - raise it first).
-- `Assets/Art/Units/**` and any non-effect art.
+- Any `Combat/`, `Run/`, `Core/`, or `Data/` script — presentation only.
+- `CombatLogView.cs` — no redesign; the scrolling log behaviour is preserved as-is.
+- `SpriteCatalog.cs` — no new ids / API change.
+- The shared `CombatLogTopOffset` semantics for non-combat panels — they keep the existing offsets and must not move.
+- `Assets/Scenes/Main.unity` and prefabs — only if there is no runtime-code alternative; if forced, stop and ask first.
+- `Assets/Art/**` — no new/retired art.
 - `IMPLEMENTATION_PLAN.md`, `CLAUDE.md`, `GAME_DESIGN.md`.
 - `PROGRESS.md` / `REGRESSIONS.md` mid-session (summary step only).
-- `Assets/Scenes/Main.unity`.
 
 ### Deferred (tracked, not this slice)
 
-- M10.2 AC4 feasibility verdict -> record in `TestPlans/TP_M10.2.md` from the user's Editor run before M10.2 is marked Complete in `PROGRESS.md`.
-- TP_M10.6 formal Editor run -> optional; slice accepted as visually verified, change was minimal/layout-only.
-- Per-hero / per-enemy / per-effect unique art -> post-M10, out of MVP unless re-ratified.
-- M11 - Economy & balance pass (after M10 closes out).
+- M10.5 acceptance run (effect motion) — independent; do not block, but regression-check it here.
+- Enemy-sprite mirror / flat dead "✕" marker — only if explicitly opted in at Plan.
+- Per-hero / per-enemy unique art — post-M10, out of MVP unless re-ratified.
+- "TARGET" tag / floating damage numbers — no replay signal to drive them; out.
+- M11 — Economy & balance pass.
 
 ### Start Prompt For The Next Session
 
