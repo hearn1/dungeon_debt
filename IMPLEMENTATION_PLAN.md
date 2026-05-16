@@ -1152,6 +1152,44 @@ M9 is the largest Phase 2 milestone and should not be attempted as one slice.
 
 **Out of scope for M10:** combat math changes, tween animation, particles, VFX, audio, new combat states.
 
+#### Sprite-storage architecture decision (ratified M10.3)
+
+Two options were weighed for how per-entity and shared-effect sprites are stored and looked up at runtime:
+
+- **Option A — `SpriteCatalog` MonoBehaviour (CHOSEN).** A single presentation-only MonoBehaviour lives in the scene and exposes serialized `id → Sprite` slots for hero base sprites, enemy base sprites, and the shared combat-effect set. Runtime UI/combat views query it by stable string id (`"warrior"`, `"slime"`, `"melee_stab"`, `"arrow"`, `"fireball"`, `"heal"`, `"enchant"`).
+  - *Pros:* keeps `CLAUDE.md` §Core tech "No ScriptableObjects" fully intact — smallest possible scope amendment; consistent with the existing scene-component + `DataRepository`-static philosophy; the roster is locked and tiny (12 + 16 + 5 = 33 sprites), so the main argument for ScriptableObjects (designer-managed, growing content) does not apply; no `Resources/`, no new asset type.
+  - *Cons:* a single inspector with ~33 serialized slots is mildly clumsy to populate by hand; Option B is the more Unity-idiomatic answer *at scale* — but this prototype is explicitly not at scale and explicitly anti-ScriptableObject.
+- **Option B — ScriptableObject sprite library (rejected).** A `.asset` sprite-library ScriptableObject. More idiomatic for large/growing rosters and designer workflows, but would require additionally amending the locked "No ScriptableObjects" rule for art assets. The scale benefit is irrelevant for a fixed 33-sprite roster, so the extra rule erosion is not justified.
+
+**Decision:** Option A. `SpriteCatalog` is presentation-only — it never defines stats, tiers, hero/enemy effects, shop behavior, or any gameplay data; it is a pure id→Sprite lookup consumed by views.
+
+#### M10 sub-slicing (M10.4, M10.5)
+
+M10.3 (this planning slice) produced this sub-slicing, the architecture decision above, the `CLAUDE.md`/§15 scope amendments, and `Assets/Art/SPRITE_CHECKLIST.md` (the exact PNG list the user must supply). The remaining M10 work is two ready-to-pick slices:
+
+- **M10.4 — Sprite catalog + static base sprites on cards.**
+  - *Goal:* introduce the `SpriteCatalog` MonoBehaviour and display each hero's/enemy's static base sprite on its combat unit card (and any other card surface), driven by stable id, with the existing placeholder box as fallback when a sprite is missing.
+  - *Files (anticipated):* new `Assets/Scripts/UI/SpriteCatalog.cs`; modify `CombatUnitCardView.cs` (render base sprite by id), `CombatPanelView.cs` and/or `MainMenuPanel.cs` (resolve and pass the catalog reference); scene/prefab wiring for the catalog component and its slots. No combat/run/data logic touched.
+  - *Precondition:* the user has supplied the 12 hero + 16 enemy base PNGs per `SPRITE_CHECKLIST.md`.
+- **M10.5 — Shared effect-sprite set + category-routed source→target motion.**
+  - *Goal:* on each attack/visual-effect replay step, select the shared effect sprite for that unit's effect category, spawn it, and move it source→target via hand-coded RectTransform interpolation, synced to the existing HP-bar + combat-log replay.
+  - *Files (anticipated):* modify `CombatPanelView.cs` (effect-sprite spawn/move state machine generalized from the M10.2 board-level sword stab), `CombatUnitCardView.cs` (source/target anchor points), `SpriteCatalog.cs` (effect-id lookup), `MainMenuPanel.cs` (catalog wiring). The existing M10.2 single `_swordSprite` field is replaced by the catalog's `melee_stab` entry. No tween library, no `Animator`, no particles; resolver unchanged.
+  - *Precondition:* M10.4 landed; the user has supplied the 5 shared effect PNGs.
+
+#### Effect-category mapping (recommended default, finalized at M10.5 start)
+
+Every attacking unit and every *visible* hero effect maps to exactly one of the 5 shared effect sprites. This is the recommended default routing; exact per-unit assignment is confirmable when M10.5 starts (it is presentation-only and changes no math):
+
+| Category id | Used by |
+|---|---|
+| `melee_stab` | Hero attacks: Warrior, Knight, Golem, Ninja, Squire, Bard, Apprentice, Enchanter (basic attack). Enemy attacks: Slime, Training Dummy, Cave Bat, Goblin Thief, Tax Collector, Backline Bat, Debt Wraith, Treasure Leech, Dungeon Auditor, Greedy Tank, Greedy Carry, Carry Protector, Carry Champion, Frugal Guard. (Default for any unit without a more specific category.) |
+| `arrow` | Hero attacks: Ranger. Enemy attacks: Frugal Archer. |
+| `fireball` | Hero attacks: Wizard. |
+| `heal` | Hero effect: Priest `OnEndOfCombatRound` heal. Enemy effect: Frugal Healer heal. |
+| `enchant` | Hero effect: Enchanter `OnCombatStart` Damage-ally buff. |
+
+Notes: Treasurer has 0 attack and never attacks, so it routes no attack effect; its upkeep effect has no combat visual. Non-visual hero effects (Bard gold-on-win, Knight redirect, Golem armor, Ninja gold-on-kill, etc.) trigger no effect sprite — only an attack uses the unit's attack category. Per-unit-unique attack/effect art is **deferred post-M10 and out of MVP unless re-ratified**; the 5-sprite shared set is the cap.
+
 ### Milestone 11: Economy and balance pass
 
 **Goal.** Tune the prototype now that it reads cleanly and tiering exists. No new systems.
