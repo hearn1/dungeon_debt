@@ -51,6 +51,37 @@ Copy this block when adding a new entry. Paste it at the top of the Session log 
 
 <!-- Newest entries at the top. -->
 
+## 2026-05-16 - M13.1: Act 1 framing and transition shell
+
+**Milestone:** M13 - Act 1 framing and transition shell
+**Status:** Complete
+
+**Files added:**
+- `TestPlans/TP_M13.1.md`
+
+**Files modified:**
+- `DungeonDebt/Assets/Scripts/UI/RunHeaderView.cs` - added persistent Act 1 round framing.
+- `DungeonDebt/Assets/Scripts/UI/ScoutPanelView.cs` - added Act 1 scout/title framing.
+- `DungeonDebt/Assets/Scripts/UI/EndScreenView.cs` - changed victory to Act 1 clear with a two-line Act 2 placeholder handoff.
+- `DungeonDebt/Assets/Scripts/UI/MainMenuPanel.cs` - aligned status copy with Act 1 framing.
+
+**Acceptance criteria:**
+- [x] Existing 10-round run is clearly framed as Act 1.
+- [x] Victory after round 10 reads as clearing Act 1 and shows a placeholder Act 2 handoff without starting Act 2.
+- [x] Defeat flow remains clear and does not imply Act 2 is reached.
+- [x] No gameplay flow, combat math, economy math, debt repayment, hero/enemy effects, or rival mechanics change.
+- [x] `TestPlans/TP_M13.1.md` exists with happy path, edge cases, observable invariants, and targeted regression checks.
+
+**Test plan:** `TestPlans/TP_M13.1.md` - user completed testing and reported the slice passed. One victory-screen Act 2 text clipping issue was found during testing and fixed by splitting the message into two lines. `dotnet build DungeonDebt.sln` from `DungeonDebt/` passed with 0 warnings / 0 errors.
+
+**Deviations from plan:**
+- None.
+
+**Follow-up flagged:**
+- M13.1 tested cleanly after the end-screen copy fit adjustment. No M13.2 polish slice is needed unless later copy/layout feedback appears.
+
+**Next slice:** M14.0 - Act 2 mini vertical planning.
+
 ## 2026-05-16 - M12.1: Debt status + Shop repayment
 
 **Milestone:** M12 - Debt rework and resource-pressure readability

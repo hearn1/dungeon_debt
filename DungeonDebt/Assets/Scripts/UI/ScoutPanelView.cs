@@ -66,7 +66,7 @@ public class ScoutPanelView : MonoBehaviour
 
         if (encounter == null)
         {
-            _titleText.text = "Scout";
+            _titleText.text = "Act 1 Scout";
             _typeText.text = string.Empty;
             _scoutText.text = "No encounter loaded.";
             _rewardText.text = string.Empty;
@@ -75,8 +75,8 @@ public class ScoutPanelView : MonoBehaviour
             return;
         }
 
-        _titleText.text = "Round " + round + " — " + encounter.DisplayName;
-        _typeText.text = FormatType(encounter.Type);
+        _titleText.text = "Act 1 Round " + round + " - " + encounter.DisplayName;
+        _typeText.text = "Act 1 - " + FormatType(encounter.Type);
         _scoutText.text = encounter.ScoutText;
         _rewardText.text = "Reward: " + encounter.BaseGoldReward + " gold";
         _dangerText.text = string.IsNullOrEmpty(encounter.DangerCategory)
@@ -181,7 +181,7 @@ public class ScoutPanelView : MonoBehaviour
 
         _titleText = CreateText("Title", root, _font, 32, FontStyle.Bold, TextAnchor.MiddleCenter);
         AnchorTopCentered(_titleText.rectTransform, ContentWidth, TitleHeight, TitleTopOffset);
-        _titleText.text = "Scout";
+        _titleText.text = "Act 1 Scout";
 
         _typeText = CreateText("Type", root, _font, 22, FontStyle.Italic, TextAnchor.MiddleCenter);
         AnchorTopCentered(_typeText.rectTransform, ContentWidth, TypeHeight, TypeTopOffset);

@@ -324,7 +324,7 @@ public class MainMenuPanel : MonoBehaviour
         if (gameState == GameState.Scout)
         {
             SetCombatChromeVisible(false);
-            _statusText.text = "Scout. Review the encounter, then Continue.";
+            _statusText.text = "Act 1 Scout. Review the encounter, then Continue.";
             _resultText.text = string.Empty;
             _combatLogView.Clear();
             _combatPanelView.Clear();
@@ -459,7 +459,7 @@ public class MainMenuPanel : MonoBehaviour
         if (gameState == GameState.Victory || gameState == GameState.Defeat)
         {
             SetCombatChromeVisible(false);
-            _statusText.text = gameState == GameState.Victory ? "Run won." : "Run lost.";
+            _statusText.text = gameState == GameState.Victory ? "Act 1 cleared." : "Run lost.";
             _rewardSummaryView.Clear();
             _combatPanelView.Clear();
             _combatPanelView.Hide();
