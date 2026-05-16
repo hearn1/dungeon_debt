@@ -51,6 +51,43 @@ Copy this block when adding a new entry. Paste it at the top of the Session log 
 
 <!-- Newest entries at the top. -->
 
+## 2026-05-16 - M17.1: Tiered veterancy XP + stat bumps
+
+**Milestone:** M17 - Tiered veterancy
+**Status:** Complete
+
+**Files added:**
+- `TestPlans/TP_M17.1.md`
+
+**Files modified:**
+- `CLAUDE.md` - removed stale active-slice tracking language so active work stays in `NEXT_SESSION.md`.
+- `DungeonDebt/Assets/Scripts/Data/HeroInstance.cs` - added run-local XP and computed Veteran tier state.
+- `DungeonDebt/Assets/Scripts/Data/RunState.cs` - stores latest veterancy summary text for Reward Summary.
+- `DungeonDebt/Assets/Scripts/Core/GameRules.cs` - added XP awards, Veteran thresholds, progress helpers, and Veteran stat bonus constants.
+- `DungeonDebt/Assets/Scripts/Run/RunManager.cs` - awards stacked survivor/rival/end-of-act/act-complete XP and refreshes hero stats.
+- `DungeonDebt/Assets/Scripts/Combat/HeroEffects.cs` - applies Veteran attack and max HP bonuses through existing stat surfaces.
+- `DungeonDebt/Assets/Scripts/UI/HeroCardView.cs` - shows instance XP/Veteran progress on hero and formation cards.
+- `DungeonDebt/Assets/Scripts/UI/CombatUnitCardView.cs` - shows XP/Veteran progress on player combat cards.
+- `DungeonDebt/Assets/Scripts/UI/RewardSummaryView.cs` - shows compact XP awards and tier-up callouts.
+
+**Acceptance criteria:**
+- [x] Heroes gain run-local XP after combat: +1 for surviving, extra XP for rival/end-of-act fights, and act-complete XP for all current heroes.
+- [x] Veteran tier is computed automatically from XP thresholds 2, 5, 9, then continued by increasing gaps (+5, +6, ...).
+- [x] Each Veteran tier grants configurable `GameRules` stat bonuses, initially +1 attack and +1 max HP per tier, stacking with Silver, relics, and difficulty modifiers.
+- [x] Hero instance cards / formation cards and player combat cards show readable XP/Veteran progress.
+- [x] Reward Summary calls out XP awards and new Veteran tiers without adding XP spending, skill trees, class evolution, equipment, save/load, or meta progression.
+
+**Test plan:** `TestPlans/TP_M17.1.md` - user reported everything looks good; `dotnet build DungeonDebt\DungeonDebt.sln` passed with 0 warnings / 0 errors.
+
+**Deviations from plan:**
+- User-approved `CLAUDE.md` cleanup included.
+- `CombatManager.cs` did not need changes because `CombatResult.DeadHeroes` already provided the survivor signal.
+
+**Follow-up flagged:**
+- None. M17 is considered closed; no M17.2 follow-up is needed.
+
+**Next slice:** M18.0 - Status keyword planning + first-slice definition.
+
 ## 2026-05-16 - M16.1: Relic rewards after boss wins
 
 **Milestone:** M16 - Relic rewards

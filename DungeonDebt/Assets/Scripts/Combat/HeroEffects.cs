@@ -15,7 +15,8 @@ public static class HeroEffects
             return;
         }
 
-        hero.Attack = GetTierAdjustedAttack(hero.Definition, hero.Tier);
+        hero.VeteranTier = GameRules.GetVeteranTierForXp(hero.VeteranXp);
+        hero.Attack = GetTierAdjustedAttack(hero.Definition, hero.Tier) + GetVeteranAttackBonus(hero);
         hero.UpkeepThisRound = GetTierAdjustedUpkeep(hero.Definition, hero.Tier);
     }
 
@@ -28,7 +29,7 @@ public static class HeroEffects
             return 0;
         }
 
-        return GetTierAdjustedMaxHealth(hero.Definition, hero.Tier);
+        return GetTierAdjustedMaxHealth(hero.Definition, hero.Tier) + GetVeteranHealthBonus(hero);
     }
 
     public static int GetTierAdjustedAttack(HeroDefinition hero, HeroTier tier)
@@ -92,6 +93,26 @@ public static class HeroEffects
 
         return hero.EffectId == HeroEffectId.None
             || hero.EffectId == HeroEffectId.RangerBackline;
+    }
+
+    private static int GetVeteranAttackBonus(HeroInstance hero)
+    {
+        if (hero == null)
+        {
+            return 0;
+        }
+
+        return hero.VeteranTier * GameRules.VeteranAttackBonusPerTier;
+    }
+
+    private static int GetVeteranHealthBonus(HeroInstance hero)
+    {
+        if (hero == null)
+        {
+            return 0;
+        }
+
+        return hero.VeteranTier * GameRules.VeteranHealthBonusPerTier;
     }
 
     private static bool HasSilverHealthBonus(HeroDefinition hero)

@@ -51,6 +51,17 @@ public static class GameRules
     public const int IronOathHealthBonus = 1;
     public const int CampRationsHealthBonus = 1;
     public const int GuildDividendRewardGold = 1;
+    public const int VeteranTier1XpThreshold = 2;
+    public const int VeteranTier2XpThreshold = 5;
+    public const int VeteranTier3XpThreshold = 9;
+    public const int VeteranContinuingInitialGap = 5;
+    public const int VeteranContinuingGapGrowth = 1;
+    public const int VeteranAttackBonusPerTier = 1;
+    public const int VeteranHealthBonusPerTier = 1;
+    public const int VeteranSurvivorXp = 1;
+    public const int VeteranRivalFightBonusXp = 1;
+    public const int VeteranEndOfActFightBonusXp = 1;
+    public const int VeteranActCompleteXp = 1;
 
     public const int DungeonLossMorale = 6;
     public const int RivalLossMorale = 8;
@@ -208,6 +219,98 @@ public static class GameRules
         }
 
         return scaledValue;
+    }
+
+    public static int GetVeteranTierForXp(int xp)
+    {
+        if (xp < VeteranTier1XpThreshold)
+        {
+            return 0;
+        }
+
+        int tier = 0;
+        int nextThreshold = VeteranTier1XpThreshold;
+
+        while (xp >= nextThreshold)
+        {
+            tier += 1;
+            nextThreshold = GetVeteranThresholdForTier(tier + 1);
+        }
+
+        return tier;
+    }
+
+    public static int GetVeteranThresholdForTier(int veteranTier)
+    {
+        if (veteranTier <= 0)
+        {
+            return 0;
+        }
+
+        if (veteranTier == 1)
+        {
+            return VeteranTier1XpThreshold;
+        }
+
+        if (veteranTier == 2)
+        {
+            return VeteranTier2XpThreshold;
+        }
+
+        if (veteranTier == 3)
+        {
+            return VeteranTier3XpThreshold;
+        }
+
+        int threshold = VeteranTier3XpThreshold;
+        int gap = VeteranContinuingInitialGap;
+        for (int tier = 4; tier <= veteranTier; tier++)
+        {
+            threshold += gap;
+            gap += VeteranContinuingGapGrowth;
+        }
+
+        return threshold;
+    }
+
+    public static int GetNextVeteranThresholdForXp(int xp)
+    {
+        int veteranTier = GetVeteranTierForXp(xp);
+        return GetVeteranThresholdForTier(veteranTier + 1);
+    }
+
+    public static float GetVeteranProgressRatio(int xp)
+    {
+        int nextThreshold = GetNextVeteranThresholdForXp(xp);
+        if (nextThreshold <= 0)
+        {
+            return 0f;
+        }
+
+        float ratio = (float)xp / nextThreshold;
+        if (ratio < 0f)
+        {
+            return 0f;
+        }
+
+        if (ratio > 1f)
+        {
+            return 1f;
+        }
+
+        return ratio;
+    }
+
+    public static string GetVeteranProgressLabel(int xp)
+    {
+        int veteranTier = GetVeteranTierForXp(xp);
+        int nextThreshold = GetNextVeteranThresholdForXp(xp);
+        if (veteranTier <= 0)
+        {
+            return "XP " + xp + "/" + nextThreshold;
+        }
+
+        return "V" + veteranTier + " XP " + xp + "/" + nextThreshold;
     }
 
     public static int GetRoundsInAct(int act)

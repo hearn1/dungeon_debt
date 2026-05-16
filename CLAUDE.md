@@ -23,7 +23,7 @@ It is intentionally small. Target: a playable prototype in 2–4 weeks.
 
 M1–M7 are complete. The project now has a playable end-to-end prototype with run flow, shop, formation, payroll, scout, 10 encounters, hero/enemy effects, rival ghosts, and leaderboard.
 
-Current phase: **Phase 3** — vertical expansion after the playable Phase 2 prototype. The active approved slice is M12.1 debt status + Shop repayment; follow `NEXT_SESSION.md` and `IMPLEMENTATION_PLAN.md` §16 for the active scope.
+Current phase: **Phase 3** — vertical expansion after the playable Phase 2 prototype. This file documents repository rules and setup; the active slice is tracked in `NEXT_SESSION.md` and scoped by `IMPLEMENTATION_PLAN.md` §16.
 
 ---
 

@@ -9,6 +9,7 @@ public class CombatUnitCardView : MonoBehaviour
     private const int ActingOutlineThickness = 4;
     private const int NameFontSize = 14;
     private const int HpFontSize = 12;
+    private const int VeteranFontSize = 9;
     private const float HitFlashDuration = 0.275f;
 
     // Portrait card: a fixed-height bottom footer band holds the name slot
@@ -21,6 +22,8 @@ public class CombatUnitCardView : MonoBehaviour
     private const int FooterHpTrackHeight = 20;
     private const int FooterHpBottomInset = 8;
     private const int FooterPortraitGap = 2;
+    private const int VeteranTrackHeight = 12;
+    private const int VeteranTrackGap = 4;
 
     private static readonly Color HitFlashColor = new Color(1f, 0.32f, 0.28f, 1f);
     private static readonly Color ActingOutlineColor = new Color(1f, 0.92f, 0.42f, 1f);
@@ -43,6 +46,9 @@ public class CombatUnitCardView : MonoBehaviour
     [SerializeField] private Text _hpText;
     [SerializeField] private Image _hpTrack;
     [SerializeField] private Image _hpFill;
+    [SerializeField] private Image _veteranTrack;
+    [SerializeField] private Image _veteranFill;
+    [SerializeField] private Text _veteranText;
     [SerializeField] private Image _hitFlashOverlay;
 
     private CombatUnit _currentUnit;
@@ -97,6 +103,7 @@ public class CombatUnitCardView : MonoBehaviour
 
         _nameText.text = unit.DisplayName;
         SetHpDisplay(unit.CurrentHealth, unit.MaxHealth);
+        SetVeterancy(playerUnit, playerUnit ? unit.SourceHero.VeteranXp : 0);
 
         ApplyTierBorder(unit, playerUnit);
     }
@@ -155,6 +162,7 @@ public class CombatUnitCardView : MonoBehaviour
             _hpTrack.enabled = false;
         }
 
+        SetVeterancy(false, 0);
         ResetHitFlash();
     }
 
@@ -289,6 +297,28 @@ public class CombatUnitCardView : MonoBehaviour
         _hpFill.rectTransform.anchorMax = new Vector2(ratio, 1f);
     }
 
+    private void SetVeterancy(bool visible, int veteranXp)
+    {
+        if (_veteranTrack == null || _veteranFill == null || _veteranText == null)
+        {
+            return;
+        }
+
+        _veteranTrack.enabled = visible;
+        _veteranFill.enabled = visible;
+        _veteranText.enabled = visible;
+
+        if (!visible)
+        {
+            _veteranText.text = string.Empty;
+            _veteranFill.rectTransform.anchorMax = new Vector2(0f, 1f);
+            return;
+        }
+
+        _veteranText.text = GameRules.GetVeteranProgressLabel(veteranXp);
+        _veteranFill.rectTransform.anchorMax = new Vector2(GameRules.GetVeteranProgressRatio(veteranXp), 1f);
+    }
+
     private void ApplyTierBorder(CombatUnit unit, bool playerUnit)
     {
         if (!playerUnit)
@@ -396,6 +426,26 @@ public class CombatUnitCardView : MonoBehaviour
         _hpText = CreateText("HpText", _hpTrack.rectTransform, font, HpFontSize, FontStyle.Bold, TextAnchor.MiddleCenter);
         _hpText.color = new Color(0.96f, 0.97f, 0.94f, 1f);
         Stretch(_hpText.rectTransform, 1f);
+
+        _veteranTrack = CreateImage("VeteranTrack", root);
+        _veteranTrack.color = new Color(0.06f, 0.07f, 0.08f, 1f);
+        SetBottomAnchored(
+            _veteranTrack.rectTransform,
+            RoleBandWidth + Padding,
+            FooterHeight + VeteranTrackGap,
+            -Padding,
+            VeteranTrackHeight);
+
+        _veteranFill = CreateImage("VeteranFill", _veteranTrack.rectTransform);
+        _veteranFill.color = new Color(0.76f, 0.64f, 0.30f, 1f);
+        _veteranFill.rectTransform.anchorMin = new Vector2(0f, 0f);
+        _veteranFill.rectTransform.anchorMax = new Vector2(1f, 1f);
+        _veteranFill.rectTransform.offsetMin = Vector2.zero;
+        _veteranFill.rectTransform.offsetMax = Vector2.zero;
+
+        _veteranText = CreateText("VeteranText", _veteranTrack.rectTransform, font, VeteranFontSize, FontStyle.Bold, TextAnchor.MiddleCenter);
+        _veteranText.color = new Color(0.98f, 0.96f, 0.84f, 1f);
+        Stretch(_veteranText.rectTransform, 1f);
 
         _hitFlashOverlay = CreateImage("HitFlashOverlay", root);
         StretchFill(_hitFlashOverlay.rectTransform);
