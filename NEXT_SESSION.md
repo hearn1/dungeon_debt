@@ -4,37 +4,41 @@ This file always describes the **next** session's work. Rewrite it at the end of
 
 ---
 
-## Session: M11.1 - Economy and balance baseline run matrix
+## Session: M11.2 - Cut Wages rule alignment and first economy retest
 
 **Milestone:** M11 - Economy and balance pass
-**Slice goal:** Establish a baseline balance picture for the current post-M10 prototype by running a small, repeatable manual run matrix and documenting concrete tuning observations before changing any economy or Silver-tier numbers.
+**Slice goal:** Align Cut Wages with the design/plan's total-upkeep reduction rule, then run a short targeted balance retest before making broader Silver or economy tuning changes.
 
 ### Why this slice exists
 
-M11 is explicitly about tuning the prototype now that readability, tiering, and combat presentation exist. The current `GameRules` values include several M9 placeholder Silver constants and broad economy constants (`StartingGold`, rewards, upkeep pressure, debt/interest thresholds). Before changing those numbers, this slice should answer: which player archetypes win, which fail, when debt or morale becomes dangerous, whether Silver offers feel too common/rare, and whether the final rounds create meaningful pressure.
+M11.1 added lightweight balance logging and collected multiple baseline runs. The strongest signal was not a broad numeric tuning target yet: **Cut Wages appears to be implemented as a per-hero upkeep reduction**, while the design and implementation plan describe it as reducing **total upkeep by 3 this round** while applying the attack penalty to all heroes.
 
-This is an observation slice, not a tuning slice. The output should make M11.2 ready to tune constants with evidence.
+Because Cut Wages currently drives many multi-hero parties to `UpkeepDue = 0`, it distorts debt, interest, Debt Wraith, Silver affordability, and late-run gold observations. M11.2 should fix/align that first, then rerun a small matrix to produce cleaner tuning evidence.
 
 ### Scope
 
-**Approved for M11.1:**
-- Run 3 baseline manual playthroughs (or until loss) using distinct archetypes:
-  - Balanced party: mix of Tank / Damage / Support / Economy.
-  - Aggressive party: prioritize Damage and early wins, accept higher upkeep.
-  - Economy/support party: prioritize Bard / Treasurer / Priest / Enchanter style sustain.
-- Record round-by-round outcomes: round reached, party shape, Silver hires/upgrades, gold, debt, morale, upkeep due/paid/shortfall, interest, payroll action chosen, win/loss, and end reason if any.
-- Create `TestPlans/TP_M11.1.md` with the run matrix checklist and observation fields.
-- Summarize findings in the chat and in the `PROGRESS.md` entry at session end.
-- Draft the proposed M11.2 tuning target: which constants/files to tune first and why.
+**Approved for M11.2:**
+- Inspect and align Cut Wages behavior with `GAME_DESIGN.md` and `IMPLEMENTATION_PLAN.md`:
+  - Keep the all-heroes attack penalty.
+  - Change upkeep handling from per-hero reduction to a total-upkeep reduction of `GameRules.CutWagesUpkeepReduction`.
+  - Preserve minimum total upkeep of 0.
+- Update reward/payroll summary text if needed so the UI describes the corrected behavior.
+- Keep `BalanceRunLogger` active and use it to compare before/after behavior.
+- Create `TestPlans/TP_M11.2.md` with targeted manual checks:
+  - Cut Wages total-upkeep math on 1, 3, and 5 hero parties.
+  - Standard Pay comparison.
+  - At least two short post-fix balance runs: one Cut Wages-heavy and one Standard Pay/loan mix.
+- Summarize whether M11.3 should tune Silver, rewards/upkeep, debt/interest, morale, or payroll constants next.
 
-**Not approved for M11.1:**
-- Do not change `GameRules.cs`, `ShopManager.cs`, `HeroEffects.cs`, `DataRepository.cs`, or any source file yet.
-- Do not add new telemetry systems, debug overlays, automated simulations, save/load, new encounters, new heroes, new payroll actions, new rival behavior, or new UI.
-- Do not alter Silver mechanics shape. M11 can tune numbers/probability, not add a new tiering system.
+**Not approved for M11.2:**
+- Do not tune Silver probability or Silver bonus numbers yet unless the Cut Wages alignment is complete and the user explicitly expands scope.
+- Do not add new payroll actions, encounters, heroes, UI panels, debug overlays, save/load, automated simulations, or seeded-run support.
+- Do not alter combat math, shop offer mechanics, rival behavior, scene files, prefabs, or art.
+- Do not remove `BalanceRunLogger`; it remains useful through M11.
 
 ### Definition of ready
 
-- ID: M11.1.
+- ID: M11.2.
 - One-sentence goal: above.
 - Files to create/modify are listed below.
 - Acceptance criteria are listed below.
@@ -43,45 +47,36 @@ This is an observation slice, not a tuning slice. The output should make M11.2 r
 ### Relevant plan sections
 
 - `IMPLEMENTATION_PLAN.md` §15, especially "Milestone 11: Economy and balance pass".
-- `IMPLEMENTATION_PLAN.md` §5 for economy/run rules.
-- `IMPLEMENTATION_PLAN.md` §7/§8/§9 for hero, encounter, and rival tuning context.
+- `IMPLEMENTATION_PLAN.md` §5 for payroll/upkeep rules.
+- `GAME_DESIGN.md` "Payroll Choice Phase" and "Upkeep Phase" for design intent.
 - `CLAUDE.md` Scope control still applies: no new systems or content while balancing.
 
-### Current tuning surfaces to inspect
+### M11.1 baseline findings to carry forward
 
-- `DungeonDebt/Assets/Scripts/Core/GameRules.cs`
-  - Starting resources and loss thresholds: `StartingGold`, `StartingDebt`, `StartingMorale`, `DebtLimit`.
-  - Shop economy: `RerollCost`, `HireCostBonus`, `FireRefund`.
-  - Rewards and penalties: `WinReward`, `LossReward`, `RivalWinBonus`, `DungeonLossMorale`, `RivalLossMorale`, `InterestDebtDivisor`.
-  - Payroll constants: `LoanGoldGain`, `LoanDebtCost`, `VictoryBonusGoldCost`, `VictoryBonusDebtOnLoss`, `VictoryBonusAttackBuff`, `CutWagesUpkeepReduction`, `CutWagesAttackPenalty`.
-  - Encounter pressure: `TaxCollectorUpkeep`, `AuditorUpkeep`, `AuditorDamageEvery`, `AuditorDamage`, `DebtWraithDebtDivisor`, `GoblinThiefStealGold`, `TreasureLeechStealGold`.
-  - M11 placeholders: `SilverOfferChance`, `SilverHireCostBonus`, `SilverStatAttackBonus`, `SilverStatHealthBonus`, `SilverUpkeepReduction`, and per-hero Silver bonus constants.
-- `DungeonDebt/Assets/Scripts/Run/RunManager.cs` for reward/upkeep/interest/end-condition flow.
-- `DungeonDebt/Assets/Scripts/Run/ShopManager.cs` for Silver offer probability and hire/upgrade cost behavior.
-- `DungeonDebt/Assets/Scripts/Combat/HeroEffects.cs` for per-hero Silver bonus application.
-- `DungeonDebt/Assets/Scripts/Core/DataRepository.cs` only as context for hero/encounter/rival numbers; do not edit in M11.1.
-
-### Acceptance criteria
-
-1. `TestPlans/TP_M11.1.md` exists and contains a manual baseline run matrix with at least three archetype runs and clear fields for round-by-round economy observations.
-2. At least three runs are executed or explicitly marked incomplete with the blocker/reason; each run records final result, round reached, ending gold/debt/morale, party/tier shape, and the main pressure point.
-3. Findings identify 3-6 concrete balance hypotheses for M11.2, each tied to specific constants or files.
-4. No gameplay/source constants are changed in M11.1.
-5. Session summary includes the observed baseline and a ready M11.2 recommendation.
+- Valid logs collected:
+  - Five victory runs: `104651`, `104954`, `105222`, `105930`, `110335`.
+  - Two meaningful defeat runs: `105845` debt defeat round 4, `110157` morale defeat round 9 with high debt.
+  - Two invalid/header-only starts: `105419`, `110551`.
+- Cut Wages-heavy runs frequently reached `UpkeepDue = 0` and ended with no player debt.
+- Standard Pay/loan coverage showed debt and interest can matter when loans are used.
+- Several wins reached 4-5 Silver heroes by round 10, so Silver pacing remains a likely later tuning target after Cut Wages is aligned.
 
 ### Files Claude Code May Modify
 
 ```
-TestPlans/TP_M11.1.md  - NEW: baseline balance run matrix and manual observation checklist.
-PROGRESS.md            - end-of-session entry only, if the user asks Claude Code to update it directly.
-NEXT_SESSION.md        - end-of-session rewrite only, to describe M11.2.
+DungeonDebt/Assets/Scripts/Run/PayrollManager.cs  - align Cut Wages application and summary text.
+DungeonDebt/Assets/Scripts/Run/RunManager.cs      - apply total Cut Wages upkeep reduction during total upkeep calculation if needed.
+TestPlans/TP_M11.2.md                             - NEW: targeted Cut Wages alignment and retest plan.
+PROGRESS.md                                      - end-of-session entry only, if the user asks Claude Code to update it directly.
+NEXT_SESSION.md                                  - end-of-session rewrite only, to describe M11.3.
 ```
 
-### Files Claude Code May Read But Not Modify In M11.1
+### Files Claude Code May Read But Should Not Modify Unless Planning Expands
 
 ```
 DungeonDebt/Assets/Scripts/Core/GameRules.cs
-DungeonDebt/Assets/Scripts/Run/RunManager.cs
+DungeonDebt/Assets/Scripts/Run/BalanceRunLogger.cs
+DungeonDebt/Assets/Scripts/Core/GameManager.cs
 DungeonDebt/Assets/Scripts/Run/ShopManager.cs
 DungeonDebt/Assets/Scripts/Combat/HeroEffects.cs
 DungeonDebt/Assets/Scripts/Core/DataRepository.cs
@@ -89,14 +84,21 @@ DungeonDebt/Assets/Scripts/Core/DataRepository.cs
 
 ### Files Claude Code Does NOT Touch
 
-- Any source file in `DungeonDebt/Assets/Scripts/**` during M11.1.
-- `Assets/Scenes/Main.unity`, prefabs, and `Assets/Art/**`.
+- `DungeonDebt/Assets/Scenes/Main.unity`, prefabs, and `Assets/Art/**`.
 - `GAME_DESIGN.md`, `IMPLEMENTATION_PLAN.md`, `CLAUDE.md`.
 - `REGRESSIONS.md` unless a new regression is found and the user asks to file it.
 
-### Suggested M11.2 Shape (do not start in M11.1)
+### Acceptance criteria
 
-M11.2 should be the first actual tuning slice. It will likely modify `GameRules.cs` only, unless M11.1 finds that Silver probability needs a round-based curve rather than the current single `SilverOfferChance`. If a curve is needed, plan it explicitly before touching `ShopManager.cs`.
+1. Cut Wages reduces total upkeep by `GameRules.CutWagesUpkeepReduction` once per round, not once per hero, while still applying the attack penalty to all heroes for combat.
+2. Standard Pay, Take Loan, and Promise Victory Bonus behavior remain unchanged.
+3. Reward summary and balance TSV logs show corrected Cut Wages total-upkeep math.
+4. `TestPlans/TP_M11.2.md` exists and includes targeted checks plus at least two short post-fix retest runs.
+5. Session summary identifies whether M11.3 should tune Silver, economy constants, morale/debt pressure, or payroll constants next.
+
+### Suggested M11.3 Shape (do not start in M11.2)
+
+M11.3 should be the first broad numeric tuning slice after corrected Cut Wages data. Likely candidates are `SilverOfferChance`, `SilverHireCostBonus`, `SilverUpkeepReduction`, reward/upkeep pressure, or morale/debt thresholds depending on M11.2 retest results.
 
 ### Start Prompt For The Next Session
 

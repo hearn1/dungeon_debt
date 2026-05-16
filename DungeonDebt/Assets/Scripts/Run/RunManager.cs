@@ -65,6 +65,8 @@ public class RunManager : MonoBehaviour
             }
         }
 
+        BalanceRunLogger.StartRun(_currentRunState);
+
         return _currentRunState;
     }
 

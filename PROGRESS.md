@@ -51,6 +51,40 @@ Copy this block when adding a new entry. Paste it at the top of the Session log 
 
 <!-- Newest entries at the top. -->
 
+## 2026-05-16 - M11.1: Economy and balance baseline run matrix
+
+**Milestone:** M11 - Economy and balance pass
+**Status:** Complete
+
+**Files added:**
+- `DungeonDebt/Assets/Scripts/Run/BalanceRunLogger.cs`
+- `DungeonDebt/Assets/Scripts/Run/BalanceRunLogger.cs.meta`
+- `TestPlans/TP_M11.1.md`
+
+**Files modified:**
+- `DungeonDebt/Assets/Scripts/Run/RunManager.cs` - starts a new balance TSV log when a run initializes.
+- `DungeonDebt/Assets/Scripts/Core/GameManager.cs` - writes one balance TSV row after each completed round is evaluated and before payroll selection is cleared.
+
+**Acceptance criteria:**
+- [x] `TestPlans/TP_M11.1.md` exists and contains a repeatable baseline run matrix with three archetypes, logger instructions, manual notes, invalid-run handling, and M11.2 synthesis fields.
+- [x] At least three runs were executed or explicitly invalidated: five valid victory logs, two meaningful defeat logs, and two header-only invalid starts were collected.
+- [x] Findings identify concrete M11.2 hypotheses tied to specific files/constants: Cut Wages implementation/constant, Silver offer and Silver bonus values, debt/interest pressure, morale loss values, and reward/upkeep curve.
+- [x] No gameplay/tuning constants were changed in M11.1.
+- [x] Session summary identified the observed baseline and a ready M11.2 recommendation.
+
+**Test plan:** `TestPlans/TP_M11.1.md` - logger created and verified through live Unity run logs; observed logs include Cut Wages-heavy wins, Standard Pay/loan coverage, debt defeat, morale defeat, and invalid header-only starts. `dotnet build` from `DungeonDebt/` passed with 0 warnings / 0 errors.
+
+**Deviations from plan:**
+- Revised mid-session with user confirmation from manual-only observation to lightweight balance telemetry. This added `BalanceRunLogger` and two source hooks, but did not alter gameplay math, tuning constants, scene files, prefabs, art, or design docs.
+
+**Follow-up flagged:**
+- First M11.2 target should be Cut Wages rule alignment: current behavior reduces each hero's upkeep by `GameRules.CutWagesUpkeepReduction`, while the design/plan describe reducing total upkeep by 3 for the round.
+- Re-run a small post-fix matrix before broad Silver/economy tuning.
+- Silver pacing looks hot: several wins reached 4-5 Silver heroes by round 10 with little or no debt.
+- Debt/interest pressure works when loans are used, but Cut Wages-heavy runs avoid debt almost entirely.
+
+**Next slice:** M11.2 - Cut Wages rule alignment and first economy retest.
+
 ## 2026-05-16 - M10.7: Combat-screen layout pass (v2 footer-card, practical Unity fit)
 
 **Milestone:** M10 - Combat view rebuild
