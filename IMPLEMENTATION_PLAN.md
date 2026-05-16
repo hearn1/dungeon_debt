@@ -1221,7 +1221,7 @@ Use this order unless a later planning session changes it:
 | 3 | M14 | Act 2 mini vertical | Add a small 3-5 encounter follow-up using existing systems |
 | 4 | M15 | Difficulty modifiers | Simple run contracts/difficulty presets built from existing constants |
 | 5 | M16 | Relic/policy rewards | Loot-like run modifiers without hero equipment or inventory |
-| 6 | M17 | Narrow veterancy | One capped hero XP/veteran bump, if still needed after economy is stable |
+| 6 | M17 | Tiered veterancy | Run-local hero XP with automatic stat tiers, if still needed after economy is stable |
 | 7 | M18+ | One status keyword vertical | Add at most one readable status keyword in a contained slice |
 
 ### Phase 3 scope rules
@@ -1323,13 +1323,13 @@ Use this order unless a later planning session changes it:
 
 **Out of scope:** per-hero equipment, item slots, inventory management, item rarity ladders, or large item pools.
 
-### Milestone 17: Narrow veterancy
+### Milestone 17: Tiered veterancy
 
-**Goal.** Consider a capped XP-style progression only if the economy is stable after M12-M16.
+**Goal.** Add run-local tiered veterancy only now that the economy, difficulty, and relic loops are stable enough to support it.
 
-**In scope:** at most one veteran bump per hero, with no skill tree and no branching choices.
+**In scope:** a small XP track on each `HeroInstance`, earned during the current run only. A hero gains +1 XP for surviving a fight. Rival-guild fights and end-of-act fights grant +1 additional XP to surviving heroes. Completing an act grants +1 XP to all current heroes, even if they did not survive the act-ending fight. Veteran tiers are awarded automatically at XP thresholds 2, 5, 9, then continue with increasing gaps (+5, +6, and so on). Each veteran tier grants configurable stat bonuses, initially +1 attack and +1 max HP per tier, stored in `GameRules`.
 
-**Out of scope:** full RPG leveling, skill trees, class evolution, or meta progression.
+**Out of scope:** XP spending, branching choices, skill trees, class evolution, new abilities, unlocks, save/load, meta progression, persistent account progress, hero classes, equipment, or any non-stat reward. Veterancy stacks with Silver tier, relics, and difficulty modifiers, but M17 should keep the implementation deterministic and readable.
 
 ### Milestone 18+: One status keyword vertical
 

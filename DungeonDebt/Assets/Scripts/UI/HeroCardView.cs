@@ -13,6 +13,8 @@ public class HeroCardView : MonoBehaviour
     private const int StatsFontSize = 16;
     private const int UpkeepFontSize = 20;
     private const int EffectFontSize = 13;
+    private const int VeteranFontSize = 11;
+    private const int VeteranTrackHeight = 16;
 
     [SerializeField] private Image _roleBand;
     [SerializeField] private Image _roleBadge;
@@ -22,6 +24,9 @@ public class HeroCardView : MonoBehaviour
     [SerializeField] private Text _statsText;
     [SerializeField] private Text _upkeepText;
     [SerializeField] private Text _effectText;
+    [SerializeField] private Image _veteranTrack;
+    [SerializeField] private Image _veteranFill;
+    [SerializeField] private Text _veteranText;
 
     public void Initialize(Font font)
     {
@@ -39,7 +44,7 @@ public class HeroCardView : MonoBehaviour
 
         // Definition-only path (shop offers, scout) has no instance, so the tier slot
         // stays in its reserved-but-empty M8.1 look.
-        ApplyContent(hero, hero.BaseAttack, hero.BaseHealth, hero.BaseUpkeep, null);
+        ApplyContent(hero, hero.BaseAttack, hero.BaseHealth, hero.BaseUpkeep, null, false, 0);
     }
 
     public void Refresh(HeroDefinition hero, HeroTier tier)
@@ -53,7 +58,7 @@ public class HeroCardView : MonoBehaviour
         int attack = HeroEffects.GetTierAdjustedAttack(hero, tier);
         int health = HeroEffects.GetTierAdjustedMaxHealth(hero, tier);
         int upkeep = HeroEffects.GetTierAdjustedUpkeep(hero, tier);
-        ApplyContent(hero, attack, health, upkeep, tier);
+        ApplyContent(hero, attack, health, upkeep, tier, false, 0);
     }
 
     // Formation uses live instance values so the player sees the same ATK and
@@ -67,10 +72,24 @@ public class HeroCardView : MonoBehaviour
         }
 
         int health = HeroEffects.GetTierAdjustedMaxHealth(instance);
-        ApplyContent(instance.Definition, instance.Attack, health, instance.UpkeepThisRound, instance.Tier);
+        ApplyContent(
+            instance.Definition,
+            instance.Attack,
+            health,
+            instance.UpkeepThisRound,
+            instance.Tier,
+            true,
+            instance.VeteranXp);
     }
 
-    private void ApplyContent(HeroDefinition hero, int attack, int health, int upkeep, HeroTier? tier)
+    private void ApplyContent(
+        HeroDefinition hero,
+        int attack,
+        int health,
+        int upkeep,
+        HeroTier? tier,
+        bool showVeterancy,
+        int veteranXp)
     {
         Color roleColor = GameRules.GetRoleColor(hero.Role);
         _roleBand.color = roleColor;
@@ -86,6 +105,7 @@ public class HeroCardView : MonoBehaviour
         _statsText.text = "ATK " + attack + "    HP " + health;
         _upkeepText.text = "Upkeep " + upkeep + "g";
         _effectText.text = hero.EffectDescription;
+        SetVeterancy(showVeterancy, veteranXp);
     }
 
     private void ApplyTierFill(HeroTier? tier)
@@ -143,6 +163,7 @@ public class HeroCardView : MonoBehaviour
         {
             _effectText.text = string.Empty;
         }
+        SetVeterancy(false, 0);
     }
 
     private void BuildUi(Font font)
@@ -214,7 +235,44 @@ public class HeroCardView : MonoBehaviour
 
         _effectText = CreateText("Effect", root, font, EffectFontSize, FontStyle.Italic, TextAnchor.UpperLeft);
         _effectText.verticalOverflow = VerticalWrapMode.Overflow;
-        SetAnchored(_effectText.rectTransform, contentLeft, Padding, contentRight, -Padding - 110);
+        SetAnchored(_effectText.rectTransform, contentLeft, Padding + VeteranTrackHeight + 6, contentRight, -Padding - 110);
+
+        _veteranTrack = CreateImage("VeteranTrack", root);
+        _veteranTrack.color = new Color(0.07f, 0.08f, 0.10f, 1f);
+        SetBottomAnchored(_veteranTrack.rectTransform, contentLeft, Padding, contentRight, VeteranTrackHeight);
+
+        _veteranFill = CreateImage("VeteranFill", _veteranTrack.rectTransform);
+        _veteranFill.color = new Color(0.76f, 0.64f, 0.30f, 1f);
+        _veteranFill.rectTransform.anchorMin = Vector2.zero;
+        _veteranFill.rectTransform.anchorMax = Vector2.one;
+        _veteranFill.rectTransform.offsetMin = Vector2.zero;
+        _veteranFill.rectTransform.offsetMax = Vector2.zero;
+
+        _veteranText = CreateText("VeteranText", _veteranTrack.rectTransform, font, VeteranFontSize, FontStyle.Bold, TextAnchor.MiddleCenter);
+        _veteranText.color = new Color(0.98f, 0.96f, 0.84f, 1f);
+        Stretch(_veteranText.rectTransform, 1f);
+    }
+
+    private void SetVeterancy(bool visible, int veteranXp)
+    {
+        if (_veteranTrack == null || _veteranFill == null || _veteranText == null)
+        {
+            return;
+        }
+
+        _veteranTrack.enabled = visible;
+        _veteranFill.enabled = visible;
+        _veteranText.enabled = visible;
+
+        if (!visible)
+        {
+            _veteranText.text = string.Empty;
+            _veteranFill.rectTransform.anchorMax = new Vector2(0f, 1f);
+            return;
+        }
+
+        _veteranText.text = GameRules.GetVeteranProgressLabel(veteranXp);
+        _veteranFill.rectTransform.anchorMax = new Vector2(GameRules.GetVeteranProgressRatio(veteranXp), 1f);
     }
 
     private static Image CreateImage(string objectName, RectTransform parent)
@@ -287,5 +345,21 @@ public class HeroCardView : MonoBehaviour
         rectTransform.anchorMax = new Vector2(1f, 1f);
         rectTransform.offsetMin = new Vector2(left, bottom);
         rectTransform.offsetMax = new Vector2(right, top);
+    }
+
+    private static void SetBottomAnchored(RectTransform rectTransform, float left, float bottom, float right, float height)
+    {
+        rectTransform.anchorMin = new Vector2(0f, 0f);
+        rectTransform.anchorMax = new Vector2(1f, 0f);
+        rectTransform.offsetMin = new Vector2(left, bottom);
+        rectTransform.offsetMax = new Vector2(right, bottom + height);
+    }
+
+    private static void Stretch(RectTransform rectTransform, float inset)
+    {
+        rectTransform.anchorMin = Vector2.zero;
+        rectTransform.anchorMax = Vector2.one;
+        rectTransform.offsetMin = new Vector2(inset, inset);
+        rectTransform.offsetMax = new Vector2(-inset, -inset);
     }
 }

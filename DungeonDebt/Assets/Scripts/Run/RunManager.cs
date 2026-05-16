@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Text;
 using UnityEngine;
 
 public class RunManager : MonoBehaviour
@@ -67,6 +68,7 @@ public class RunManager : MonoBehaviour
         runState.RerollCount = 0;
         runState.SelectedPayrollAction = null;
         runState.FullUpkeepPaidLastRound = false;
+        runState.LatestVeterancySummary = string.Empty;
 
         _currentRunState = runState;
         if (_rivalManager != null)
@@ -188,6 +190,8 @@ public class RunManager : MonoBehaviour
             _currentRunState.Gold = 0;
         }
 
+        string veterancySummary = AwardVeterancyXp(_currentRunState, combatResult, encounter);
+
         _currentRunState.HasLatestRewardSummary = true;
         _currentRunState.LatestCombatWon = combatResult.PlayerWon;
         _currentRunState.LatestRewardGold = rewardGold;
@@ -199,12 +203,15 @@ public class RunManager : MonoBehaviour
         _currentRunState.LatestInterestCharged = interestCharged;
         _currentRunState.LatestInterestPaid = interestPaid;
         _currentRunState.LatestInterestAddedToDebt = interestAddedToDebt;
+        _currentRunState.LatestVeterancySummary = veterancySummary;
         _currentRunState.FullUpkeepPaidLastRound = (upkeepShortfall == 0);
 
         if (_payrollManager != null)
         {
             _payrollManager.RevertPerCombatHeroStats(_currentRunState);
         }
+
+        ResetPartyTierStats(_currentRunState);
     }
 
     public bool TryPreparePendingRelicReward(GameState nextState)
@@ -464,6 +471,7 @@ public class RunManager : MonoBehaviour
 
         _currentRunState.Round += 1;
         _currentRunState.HasLatestRewardSummary = false;
+        _currentRunState.LatestVeterancySummary = string.Empty;
         ResetPartyTierStats(_currentRunState);
     }
 
@@ -478,6 +486,7 @@ public class RunManager : MonoBehaviour
         _currentRunState.Round = GameRules.Act1FinalRound + 1;
         _currentRunState.HasLatestRewardSummary = false;
         _currentRunState.LatestEndReason = null;
+        _currentRunState.LatestVeterancySummary = string.Empty;
         ResetPartyTierStats(_currentRunState);
     }
 
@@ -589,5 +598,125 @@ public class RunManager : MonoBehaviour
         }
 
         return totalUpkeep;
+    }
+
+    private static string AwardVeterancyXp(
+        RunState runState,
+        CombatResult combatResult,
+        EncounterDefinition encounter)
+    {
+        if (runState == null || combatResult == null)
+        {
+            return string.Empty;
+        }
+
+        int[] awards = new int[runState.Party.Count];
+        int survivorAward = GameRules.VeteranSurvivorXp;
+        if (IsRivalVeterancyEncounter(encounter))
+        {
+            survivorAward += GameRules.VeteranRivalFightBonusXp;
+        }
+
+        if (IsEndOfActEncounter(encounter))
+        {
+            survivorAward += GameRules.VeteranEndOfActFightBonusXp;
+        }
+
+        for (int i = 0; i < runState.Party.Count; i++)
+        {
+            HeroInstance hero = runState.Party[i];
+            if (hero == null)
+            {
+                continue;
+            }
+
+            if (!WasHeroDead(combatResult, hero))
+            {
+                awards[i] += survivorAward;
+            }
+        }
+
+        if (combatResult.PlayerWon && IsEndOfActEncounter(encounter))
+        {
+            for (int i = 0; i < runState.Party.Count; i++)
+            {
+                if (runState.Party[i] != null)
+                {
+                    awards[i] += GameRules.VeteranActCompleteXp;
+                }
+            }
+        }
+
+        StringBuilder summary = new StringBuilder();
+        for (int i = 0; i < runState.Party.Count; i++)
+        {
+            HeroInstance hero = runState.Party[i];
+            if (hero == null || hero.Definition == null || awards[i] <= 0)
+            {
+                continue;
+            }
+
+            int previousTier = hero.VeteranTier;
+            hero.VeteranXp += awards[i];
+            hero.VeteranTier = GameRules.GetVeteranTierForXp(hero.VeteranXp);
+
+            if (summary.Length > 0)
+            {
+                summary.Append("; ");
+            }
+
+            summary.Append(hero.Definition.DisplayName);
+            summary.Append(" +");
+            summary.Append(awards[i]);
+            summary.Append(" XP");
+
+            if (hero.VeteranTier > previousTier)
+            {
+                summary.Append(" -> Veteran ");
+                summary.Append(hero.VeteranTier);
+            }
+            else
+            {
+                summary.Append(" (");
+                summary.Append(GameRules.GetVeteranProgressLabel(hero.VeteranXp));
+                summary.Append(")");
+            }
+        }
+
+        return summary.ToString();
+    }
+
+    private static bool WasHeroDead(CombatResult combatResult, HeroInstance hero)
+    {
+        if (combatResult == null || hero == null)
+        {
+            return false;
+        }
+
+        for (int i = 0; i < combatResult.DeadHeroes.Count; i++)
+        {
+            if (combatResult.DeadHeroes[i] == hero)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool IsRivalVeterancyEncounter(EncounterDefinition encounter)
+    {
+        return encounter != null && encounter.Type == EncounterType.RivalGhost;
+    }
+
+    private static bool IsEndOfActEncounter(EncounterDefinition encounter)
+    {
+        if (encounter == null)
+        {
+            return false;
+        }
+
+        return encounter.Round == GameRules.Act1FinalRound ||
+            encounter.Round == GameRules.Act2FinalRound;
     }
 }

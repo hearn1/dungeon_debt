@@ -1275,13 +1275,15 @@ The first prototype should be called:
 
 ### Not Included
 
+This list describes the original first-playable baseline. Later Phase 3 milestones may explicitly ratify narrow versions of some items here in `IMPLEMENTATION_PLAN.md`; when they do, the plan's milestone scope controls that specific vertical.
+
 - Real multiplayer
 - Online ghosts
 - Random dungeon map
 - Full rival simulation
 - Complex rival drafting
 - Equipment
-- Hero XP
+- Hero XP in the original first-playable baseline
 - Large roster
 - Meta progression
 - Advanced animation

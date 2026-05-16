@@ -55,6 +55,12 @@ public class RewardSummaryView : MonoBehaviour
             }
         }
 
+        string veterancySection = string.Empty;
+        if (!string.IsNullOrEmpty(runState.LatestVeterancySummary))
+        {
+            veterancySection = "Veterancy: " + runState.LatestVeterancySummary + "\n";
+        }
+
         string debtWarning = string.Empty;
         if (GameRules.IsHighDebtPressure(runState.Debt))
         {
@@ -67,6 +73,7 @@ public class RewardSummaryView : MonoBehaviour
             "Morale change: " + FormatSigned(runState.LatestMoraleChange) + "\n" +
             payrollSection +
             relicSection +
+            veterancySection +
             "Upkeep due: " + runState.LatestTotalUpkeep + "\n" +
             "Upkeep paid: " + runState.LatestUpkeepPaid + "\n" +
             "Upkeep shortfall: " + runState.LatestUpkeepShortfall + "\n" +
