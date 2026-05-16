@@ -51,6 +51,81 @@ Copy this block when adding a new entry. Paste it at the top of the Session log 
 
 <!-- Newest entries at the top. -->
 
+## 2026-05-16 - M16.1: Relic rewards after boss wins
+
+**Milestone:** M16 - Relic rewards
+**Status:** Complete
+
+**Files added:**
+- `DungeonDebt/Assets/Scripts/Data/RelicDefinition.cs` (+ `.cs.meta`)
+- `DungeonDebt/Assets/Scripts/UI/RelicRewardPanelView.cs` (+ `.cs.meta`)
+- `TestPlans/TP_M16.1.md`
+
+**Files modified:**
+- `DungeonDebt/Assets/Scripts/Data/GameEnums.cs` - added `RelicId`.
+- `DungeonDebt/Assets/Scripts/Core/GameRules.cs` - added relic choice/stat/reward constants.
+- `DungeonDebt/Assets/Scripts/Core/DataRepository.cs` - added the four first-pass relic definitions and read-only access.
+- `DungeonDebt/Assets/Scripts/Data/RunState.cs` - stores active relics, pending relic choices, latest completed encounter, and pending post-relic routing.
+- `DungeonDebt/Assets/Scripts/Core/GameState.cs` - added `RelicReward`.
+- `DungeonDebt/Assets/Scripts/Core/GameManager.cs` - routes surviving eligible reward continues into Relic Reward, then resumes the original next state.
+- `DungeonDebt/Assets/Scripts/Run/RunManager.cs` - rolls non-duplicate relic offers with `System.Random`, stores selections, applies Guild Dividend, and exposes relic stat helpers.
+- `DungeonDebt/Assets/Scripts/Combat/CombatManager.cs` - applies player combat relic stat bonuses during unit construction/restoration.
+- `DungeonDebt/Assets/Scripts/UI/MainMenuPanel.cs` - creates, wires, shows, and hides the relic reward panel.
+- `DungeonDebt/Assets/Scripts/UI/RewardSummaryView.cs` - shows active relics and Guild Dividend reward bonus.
+- `DungeonDebt/Assets/Scripts/UI/RunHeaderView.cs` - shows active relic names in a small secondary header line.
+- `PROGRESS.md` - backfilled the missing M15.2 entry at the user's request.
+
+**Acceptance criteria:**
+- [x] Eligible boss-style wins route Reward Summary -> Relic Reward -> the original next state.
+- [x] Relic screen offers up to 3 random unowned choices via `RunManager.Random`; selected relics are stored on `RunState` and do not repeat.
+- [x] Blade Charter, Iron Oath, Camp Rations, and Guild Dividend exist as static data and apply to combat/reward calculations.
+- [x] Active relics are visible in the run UI without confusing debt/difficulty/act readouts.
+- [x] No equipment, inventory, rarity ladder, unlocks, save/load, new content, status keywords, or `UnityEngine.Random` usage was introduced; `TP_M16.1.md` covers the slice.
+
+**Test plan:** `TestPlans/TP_M16.1.md` - user reported testing passed. `dotnet build DungeonDebt.sln` passed with 0 warnings / 0 errors.
+
+**Deviations from plan:**
+- Defeat checks happen before relic reward per user decision during planning: if post-combat debt/morale defeats the run, no relic screen appears.
+- Active relic names are shown in both a small header line and Reward Summary; keep an eye on header crowding in later UI polish.
+
+**Follow-up flagged:**
+- M17 is only defined at milestone level, so the next session should define the first narrow veterancy slice before implementation.
+
+**Next slice:** M17.0 - Narrow veterancy planning + first-slice definition.
+
+## 2026-05-16 - M15.2: Combat HP/damage multipliers + retune
+
+**Milestone:** M15 - Difficulty modifiers
+**Status:** Complete
+
+**Files added:**
+- `TestPlans/TP_M15.2.md`
+
+**Files modified:**
+- `DungeonDebt/Assets/Scripts/Combat/CombatManager.cs` - applies run-scoped hero/enemy HP and damage multipliers during combat unit construction, and restores hero health to scaled max after combat.
+- `DungeonDebt/Assets/Scripts/Combat/HeroEffects.cs` - applies enemy damage multiplier to Debt Wraith debt-scaled attack.
+- `DungeonDebt/Assets/Scripts/Core/GameRules.cs` - added `MinimumPositiveCombatStat` and `ScaleCombatStat` helper for ceiling-based combat scaling.
+- `DungeonDebt/Assets/Scripts/Run/PayrollManager.cs` - resets post-payroll hero health to scaled max health.
+- `DungeonDebt/Assets/Scripts/Run/RunManager.cs` - seeds sandbox/round-advance hero health using scaled max health.
+- `NEXT_SESSION.md` - rewritten from the M16 planning brief to the ready M16.1 implementation brief.
+
+**Acceptance criteria:**
+- [x] Apprentice Ledger scales player max HP up without reducing 1-damage enemies to 0.
+- [x] Standard Contract preserves legacy combat stats and deterministic ordering.
+- [x] Predatory Interest scales enemy HP/damage, including Debt Wraith's debt-derived attack.
+- [x] Scaled max HP is respected by combat cards, healing caps, payroll stat reset, post-combat restoration, and round advance.
+- [x] `TestPlans/TP_M15.2.md` exists with happy path, edge cases, observable invariants, and targeted regression checks.
+
+**Test plan:** `TestPlans/TP_M15.2.md` - drafted; M15.2 was committed and merged as `20f380f` / PR #39. No open regression was filed from this slice.
+
+**Deviations from plan:**
+- None noted.
+
+**Follow-up flagged:**
+- M16.1 is ready as the next implementation slice: relic rewards after boss wins.
+
+**Next slice:** M16.1 - Relic rewards after boss wins.
+
 ## 2026-05-16 - M15.1: Difficulty presets - data model + MainMenu selection + run-scoped economy
 
 **Milestone:** M15 - Difficulty modifiers

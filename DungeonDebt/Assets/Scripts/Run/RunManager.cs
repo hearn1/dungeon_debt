@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 public class RunManager : MonoBehaviour
@@ -113,6 +114,7 @@ public class RunManager : MonoBehaviour
             return;
         }
 
+        _currentRunState.LatestCompletedEncounter = encounter;
         bool isRivalGhost = encounter != null && encounter.Type == EncounterType.RivalGhost;
         int rewardGold = combatResult.PlayerWon ? GameRules.WinReward : GameRules.LossReward;
         if (combatResult.PlayerWon && isRivalGhost)
@@ -142,6 +144,9 @@ public class RunManager : MonoBehaviour
         {
             rewardGold = 0;
         }
+
+        int relicRewardGold = HasRelic(_currentRunState, RelicId.GuildDividend) ? GameRules.GuildDividendRewardGold : 0;
+        rewardGold += relicRewardGold;
 
         _currentRunState.Gold += rewardGold;
         _currentRunState.Morale += moraleChange;
@@ -186,6 +191,7 @@ public class RunManager : MonoBehaviour
         _currentRunState.HasLatestRewardSummary = true;
         _currentRunState.LatestCombatWon = combatResult.PlayerWon;
         _currentRunState.LatestRewardGold = rewardGold;
+        _currentRunState.LatestRelicRewardGold = relicRewardGold;
         _currentRunState.LatestMoraleChange = moraleChange;
         _currentRunState.LatestTotalUpkeep = totalUpkeep;
         _currentRunState.LatestUpkeepPaid = upkeepPaid;
@@ -199,6 +205,135 @@ public class RunManager : MonoBehaviour
         {
             _payrollManager.RevertPerCombatHeroStats(_currentRunState);
         }
+    }
+
+    public bool TryPreparePendingRelicReward(GameState nextState)
+    {
+        if (_currentRunState == null)
+        {
+            return false;
+        }
+
+        ClearPendingRelicReward();
+
+        if (nextState == GameState.Defeat || !_currentRunState.LatestCombatWon)
+        {
+            return false;
+        }
+
+        EncounterDefinition encounter = _currentRunState.LatestCompletedEncounter;
+        if (!IsRelicEligibleEncounter(encounter))
+        {
+            return false;
+        }
+
+        List<RelicId> availableRelics = new List<RelicId>();
+        for (int i = 0; i < DataRepository.AllRelics.Count; i++)
+        {
+            RelicId relicId = DataRepository.AllRelics[i].Id;
+            if (!HasRelic(_currentRunState, relicId))
+            {
+                availableRelics.Add(relicId);
+            }
+        }
+
+        if (availableRelics.Count <= 0)
+        {
+            return false;
+        }
+
+        if (_random == null)
+        {
+            _random = new System.Random(unchecked((int)DateTime.Now.Ticks));
+        }
+
+        int choiceCount = GameRules.RelicChoiceCount;
+        if (choiceCount > availableRelics.Count)
+        {
+            choiceCount = availableRelics.Count;
+        }
+
+        for (int i = 0; i < choiceCount; i++)
+        {
+            int index = _random.Next(availableRelics.Count);
+            _currentRunState.PendingRelicChoices.Add(availableRelics[index]);
+            availableRelics.RemoveAt(index);
+        }
+
+        _currentRunState.PendingRelicNextState = nextState;
+        _currentRunState.HasPendingRelicReward = true;
+        return true;
+    }
+
+    public GameState SelectPendingRelic(RelicId relicId)
+    {
+        if (_currentRunState == null || !_currentRunState.HasPendingRelicReward)
+        {
+            return GameState.MainMenu;
+        }
+
+        GameState nextState = _currentRunState.PendingRelicNextState;
+        if (IsPendingRelicChoice(relicId) && !HasRelic(_currentRunState, relicId))
+        {
+            _currentRunState.ActiveRelics.Add(relicId);
+        }
+
+        ClearPendingRelicReward();
+        return nextState;
+    }
+
+    public static bool HasRelic(RunState runState, RelicId relicId)
+    {
+        if (runState == null)
+        {
+            return false;
+        }
+
+        for (int i = 0; i < runState.ActiveRelics.Count; i++)
+        {
+            if (runState.ActiveRelics[i] == relicId)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public static int GetRelicAttackBonus(RunState runState, HeroInstance hero)
+    {
+        if (hero == null || hero.Definition == null)
+        {
+            return 0;
+        }
+
+        if (hero.Definition.Role == HeroRole.Damage && HasRelic(runState, RelicId.BladeCharter))
+        {
+            return GameRules.BladeCharterAttackBonus;
+        }
+
+        return 0;
+    }
+
+    public static int GetRelicMaxHealthBonus(RunState runState, HeroInstance hero)
+    {
+        if (hero == null || hero.Definition == null)
+        {
+            return 0;
+        }
+
+        int bonus = 0;
+        if (hero.Definition.Role == HeroRole.Tank && HasRelic(runState, RelicId.IronOath))
+        {
+            bonus += GameRules.IronOathHealthBonus;
+        }
+
+        if (HasRelic(runState, RelicId.CampRations))
+        {
+            bonus += GameRules.CampRationsHealthBonus;
+        }
+
+        return bonus;
     }
 
     public GameState EvaluateNextState()
@@ -364,11 +499,59 @@ public class RunManager : MonoBehaviour
         }
     }
 
-    private static int GetScaledHeroMaxHealth(HeroInstance hero, RunState runState)
+    public static int GetScaledHeroMaxHealth(HeroInstance hero, RunState runState)
     {
-        return GameRules.ScaleCombatStat(
+        int scaledHealth = GameRules.ScaleCombatStat(
             HeroEffects.GetTierAdjustedMaxHealth(hero),
             runState != null ? runState.HeroHealthMultiplier : GameRules.NoCombatMultiplier);
+
+        return scaledHealth + GetRelicMaxHealthBonus(runState, hero);
+    }
+
+    private static bool IsRelicEligibleEncounter(EncounterDefinition encounter)
+    {
+        if (encounter == null)
+        {
+            return false;
+        }
+
+        if (encounter.Type == EncounterType.RivalGhost)
+        {
+            return true;
+        }
+
+        return encounter.Round == GameRules.Act1FinalRound ||
+            encounter.Round == GameRules.Act2FinalRound;
+    }
+
+    private bool IsPendingRelicChoice(RelicId relicId)
+    {
+        if (_currentRunState == null)
+        {
+            return false;
+        }
+
+        for (int i = 0; i < _currentRunState.PendingRelicChoices.Count; i++)
+        {
+            if (_currentRunState.PendingRelicChoices[i] == relicId)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private void ClearPendingRelicReward()
+    {
+        if (_currentRunState == null)
+        {
+            return;
+        }
+
+        _currentRunState.PendingRelicChoices.Clear();
+        _currentRunState.HasPendingRelicReward = false;
+        _currentRunState.PendingRelicNextState = GameState.MainMenu;
     }
 
     private static int CalculateTotalUpkeep(RunState runState, EncounterDefinition encounter)

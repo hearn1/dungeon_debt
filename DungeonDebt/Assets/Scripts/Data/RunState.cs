@@ -7,6 +7,8 @@ public class RunState
         Party = new List<HeroInstance>();
         Rivals = new List<RivalGuildState>();
         Encounters = new List<EncounterDefinition>();
+        ActiveRelics = new List<RelicId>();
+        PendingRelicChoices = new List<RelicId>();
     }
 
     public int Act { get; set; }
@@ -22,6 +24,7 @@ public class RunState
     public bool HasLatestRewardSummary { get; set; }
     public bool LatestCombatWon { get; set; }
     public int LatestRewardGold { get; set; }
+    public int LatestRelicRewardGold { get; set; }
     public int LatestMoraleChange { get; set; }
     public int LatestTotalUpkeep { get; set; }
     public int LatestUpkeepPaid { get; set; }
@@ -33,7 +36,12 @@ public class RunState
     public int LatestVictoryBonusLossDebt { get; set; }
     public string LatestEndReason { get; set; }
     public EncounterDefinition CurrentEncounter { get; set; }
+    public EncounterDefinition LatestCompletedEncounter { get; set; }
     public bool FullUpkeepPaidLastRound { get; set; }
+    public List<RelicId> ActiveRelics { get; }
+    public List<RelicId> PendingRelicChoices { get; }
+    public bool HasPendingRelicReward { get; set; }
+    public GameState PendingRelicNextState { get; set; }
 
     // M15.1 difficulty preset. Run-scoped so a preset never mutates GameRules.
     // InterestDivisor/DebtLimit are read by RunManager interest + debt-defeat

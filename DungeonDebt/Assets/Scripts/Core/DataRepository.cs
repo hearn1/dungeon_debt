@@ -393,6 +393,29 @@ public static class DataRepository
         SkipPayrollAction
     };
 
+    private static readonly RelicDefinition[] RelicDefinitions =
+    {
+        new RelicDefinition(
+            RelicId.BladeCharter,
+            "Blade Charter",
+            "Damage-role heroes get +1 attack in combat."),
+
+        new RelicDefinition(
+            RelicId.IronOath,
+            "Iron Oath",
+            "Tank-role heroes get +1 max health in combat."),
+
+        new RelicDefinition(
+            RelicId.CampRations,
+            "Camp Rations",
+            "All heroes get +1 max health in combat."),
+
+        new RelicDefinition(
+            RelicId.GuildDividend,
+            "Guild Dividend",
+            "Gain +1 extra gold in each reward phase.")
+    };
+
     private static readonly EncounterDefinition SandboxEncounterDefinition = new EncounterDefinition(
         1,
         EncounterType.Dungeon,
@@ -569,6 +592,9 @@ public static class DataRepository
     public static readonly IReadOnlyList<PayrollActionDefinition> AllPayrollActions =
         new ReadOnlyCollection<PayrollActionDefinition>(PayrollActionDefinitions);
 
+    public static readonly IReadOnlyList<RelicDefinition> AllRelics =
+        new ReadOnlyCollection<RelicDefinition>(RelicDefinitions);
+
     private static readonly DifficultyPreset[] DifficultyPresetDefinitions =
     {
         new DifficultyPreset(
@@ -625,6 +651,19 @@ public static class DataRepository
         }
 
         return DifficultyPresetDefinitions[(int)GameRules.DefaultDifficultyPreset];
+    }
+
+    public static RelicDefinition GetRelic(RelicId id)
+    {
+        for (int i = 0; i < RelicDefinitions.Length; i++)
+        {
+            if (RelicDefinitions[i].Id == id)
+            {
+                return RelicDefinitions[i];
+            }
+        }
+
+        return RelicDefinitions[0];
     }
 
     public static List<RivalGuildState> CreateRivalGuilds()

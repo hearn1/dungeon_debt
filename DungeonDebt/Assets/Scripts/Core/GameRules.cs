@@ -46,6 +46,11 @@ public static class GameRules
     public const int WinReward = 8;
     public const int LossReward = 4;
     public const int RivalWinBonus = 2;
+    public const int RelicChoiceCount = 3;
+    public const int BladeCharterAttackBonus = 1;
+    public const int IronOathHealthBonus = 1;
+    public const int CampRationsHealthBonus = 1;
+    public const int GuildDividendRewardGold = 1;
 
     public const int DungeonLossMorale = 6;
     public const int RivalLossMorale = 8;
