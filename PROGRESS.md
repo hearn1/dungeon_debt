@@ -51,6 +51,49 @@ Copy this block when adding a new entry. Paste it at the top of the Session log 
 
 <!-- Newest entries at the top. -->
 
+## 2026-05-16 - M18.1: Multi-status combat keywords, enemy-side first pass
+
+**Milestone:** M18 - Combat status keywords
+**Status:** Complete
+
+**Files added:**
+- `DungeonDebt/Assets/Scripts/Data/CombatStatusState.cs`
+- `DungeonDebt/Assets/Scripts/Data/CombatStatusState.cs.meta`
+- `TestPlans/TP_M18.1.md`
+
+**Files modified:**
+- `DungeonDebt/Assets/Scripts/Data/GameEnums.cs` - added `CombatStatusId`.
+- `DungeonDebt/Assets/Scripts/Data/CombatUnit.cs` - added mutable status state on combat units.
+- `DungeonDebt/Assets/Scripts/Data/CombatReplayEvent.cs` - carries health/status snapshots for replay refresh.
+- `DungeonDebt/Assets/Scripts/Data/EnemyDefinition.cs` - added starting statuses and attack-applied statuses.
+- `DungeonDebt/Assets/Scripts/Core/GameRules.cs` - added status labels, letters, colors, and numeric constants.
+- `DungeonDebt/Assets/Scripts/Core/DataRepository.cs` - assigned enemy-side status touchpoints to existing enemies only.
+- `DungeonDebt/Assets/Scripts/Combat/CombatManager.cs` - applied status modifiers, consumption, on-hit status delivery, and self-damage timing.
+- `DungeonDebt/Assets/Scripts/Combat/CombatLogger.cs` - logged status modifiers, applications, self-damage, poison increments, and status replay events.
+- `DungeonDebt/Assets/Scripts/UI/CombatUnitCardView.cs` - rendered color+letter status indicators in card chrome.
+- `DungeonDebt/Assets/Scripts/UI/CombatPanelView.cs` - refreshed status indicators during combat replay.
+- `TestPlans/TP_M18.1.md` - adjusted expected behavior after manual verification: Burned, Poisoned, and Weakened are attack-applied statuses, not enemy starting statuses.
+
+**Acceptance criteria:**
+- [x] `Guarded`, `Burned`, `Poisoned`, `Marked`, `Weakened`, and `Inspired` exist as compact combat statuses with deterministic effects.
+- [x] Enemy-side first pass applies statuses through existing enemy/encounter data only; no hero, relic, or upgrade access was added.
+- [x] Combat logs report status-driven damage changes, status applications, self-damage, poison increments, and consumed `Guarded` / `Marked` / `Inspired`.
+- [x] Combat unit cards show small color+letter status indicators without obscuring portrait art, HP bars, Veteran progress, or acting/hit feedback.
+- [x] `TestPlans/TP_M18.1.md` exists with happy path, edge cases, observable invariants, and targeted regression checks.
+
+**Test plan:** `TestPlans/TP_M18.1.md` - user manually verified statuses working; follow-up corrections landed and were confirmed: Burned, Poisoned, and Weakened are now applied to attack targets and take effect when the afflicted unit later attacks. `dotnet build DungeonDebt\DungeonDebt.sln` passed with 0 warnings / 0 errors.
+
+**Deviations from plan:**
+- M18.1 implemented all six statuses per M18.0/user approval, intentionally broader than the older `IMPLEMENTATION_PLAN.md` section 16 one-keyword placeholder.
+- Added `CombatStatusState.cs.meta` for Unity import hygiene.
+- After manual testing, Burned/Poisoned/Weakened were changed from enemy starting statuses to attack-applied statuses. Guarded/Marked/Inspired remain starting-status touchpoints where appropriate.
+
+**Follow-up flagged:**
+- M18.2 should add player-side status access through a narrow relic/upgrade variant surface, without introducing a broad status choice system.
+- Consider updating `IMPLEMENTATION_PLAN.md` section 16 later so the source plan matches the approved six-status M18 direction.
+
+**Next slice:** M18.2 - Relic/upgrade variants for player-side status access.
+
 ## 2026-05-16 - M18.0: Status keyword planning + first-slice definition
 
 **Milestone:** M18 - Combat status keywords

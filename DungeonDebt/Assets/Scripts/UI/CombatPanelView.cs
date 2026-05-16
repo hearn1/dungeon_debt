@@ -130,6 +130,7 @@ public class CombatPanelView : MonoBehaviour
             if (attackerCard != null)
             {
                 attackerCard.SetActing(true);
+                attackerCard.SetStatusSnapshot(evt.AttackerStatuses, evt.AttackerPoisonDamage);
             }
             if (targetCard != null)
             {
@@ -146,6 +147,7 @@ public class CombatPanelView : MonoBehaviour
                     targetCard.FlashHit();
                 }
                 targetCard.SetCurrentHealth(evt.TargetHealthAfter, evt.TargetMaxHealth);
+                targetCard.SetStatusSnapshot(evt.TargetStatuses, evt.TargetPoisonDamage);
             }
             return;
         }
@@ -157,6 +159,7 @@ public class CombatPanelView : MonoBehaviour
             if (healerCard != null)
             {
                 healerCard.SetActing(true);
+                healerCard.SetStatusSnapshot(evt.AttackerStatuses, evt.AttackerPoisonDamage);
             }
             if (targetCard != null)
             {
@@ -165,6 +168,7 @@ public class CombatPanelView : MonoBehaviour
                 // treatment, instead of the prior green glow frame.
                 PlayEffect(targetCard, targetCard, GetEffectSprite(EffectHeal), false);
                 targetCard.SetCurrentHealth(evt.TargetHealthAfter, evt.TargetMaxHealth);
+                targetCard.SetStatusSnapshot(evt.TargetStatuses, evt.TargetPoisonDamage);
             }
             return;
         }
@@ -175,6 +179,22 @@ public class CombatPanelView : MonoBehaviour
             if (targetCard != null)
             {
                 targetCard.SetCurrentHealth(0, evt.TargetMaxHealth);
+                targetCard.SetStatusSnapshot(evt.TargetStatuses, evt.TargetPoisonDamage);
+            }
+            return;
+        }
+
+        if (evt.Kind == CombatReplayEventKind.StatusChange || evt.Kind == CombatReplayEventKind.StatusDamage)
+        {
+            CombatUnitCardView targetCard = FindCard(evt.TargetIsPlayerSide, evt.TargetSlot);
+            if (targetCard != null)
+            {
+                targetCard.SetCurrentHealth(evt.TargetHealthAfter, evt.TargetMaxHealth);
+                targetCard.SetStatusSnapshot(evt.TargetStatuses, evt.TargetPoisonDamage);
+                if (evt.Kind == CombatReplayEventKind.StatusDamage)
+                {
+                    targetCard.FlashHit();
+                }
             }
             return;
         }
