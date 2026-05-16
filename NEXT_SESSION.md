@@ -4,88 +4,99 @@ This file always describes the **next** session's work. Rewrite it at the end of
 
 ---
 
-## Session: M10.7 — Combat-screen layout pass (v2 footer-card, made practical in Unity)
+## Session: M11.1 - Economy and balance baseline run matrix
 
-**Milestone:** M10 — Combat view rebuild
-**Slice goal:** Make the v2 "Footer" portrait-card design practical in Unity by (a) re-shaping `CombatUnitCardView` into a portrait card with a bottom name+HP footer and (b) a **bounded combat-only screen relayout** in `CombatPanelView` + `MainMenuPanel` that reclaims vertical space for the card grid — *without* moving the non-combat panels, without redesigning the combat log, and without editing the scene. This is a practical adaptation of the mock-up, **not** a 1:1 port.
+**Milestone:** M11 - Economy and balance pass
+**Slice goal:** Establish a baseline balance picture for the current post-M10 prototype by running a small, repeatable manual run matrix and documenting concrete tuning observations before changing any economy or Silver-tier numbers.
 
 ### Why this slice exists
 
-M10.4/M10.6 made unit art render correctly, but at 150×102 the portrait is a ~70×60 inner slice. A design exploration (see *Design source*) picked the **portrait-card / footer-strip** direction (`combat-card-v2.jsx`, "Footer" variant, 200×208).
+M11 is explicitly about tuning the prototype now that readability, tiering, and combat presentation exist. The current `GameRules` values include several M9 placeholder Silver constants and broad economy constants (`StartingGold`, rewards, upkeep pressure, debt/interest thresholds). Before changing those numbers, this slice should answer: which player archetypes win, which fail, when debt or morale becomes dangerous, whether Silver offers feel too common/rare, and whether the final rounds create meaningful pressure.
 
-Reviewing the mock-up surfaced the hard constraint that re-scoped this slice: the v2 design only fits 1080p because it uses **nearly the full screen height** for the card grid (≈976px: a 56px compact header + the grid + a thin log). In Unity the combat board is hard-capped at **510px** — `MainMenuPanel` sets `CombatUnitPanelHeight = 510` and `CombatLogTopOffset = 380` (the top ~380px holds the tall title, Start Run/Restart buttons, and status text). Four 208px rows need ~958px and cannot fit 510px. So the redesign is **not card-only** — it requires reclaiming the top chrome space for the combat screen specifically. `CombatLogTopOffset` is shared by the shop/formation/payroll/scout panels, so the reclaim must be combat-only.
+This is an observation slice, not a tuning slice. The output should make M11.2 ready to tune constants with evidence.
 
-### Scope (re-scoped and approved by user)
+### Scope
 
-**Approved:**
-- Edit `CombatUnitCardView.cs` and `CombatPanelView.cs` for the v2 footer card + grid.
-- Edit `MainMenuPanel.cs` to add a **combat-only layout path**: a combat-specific top offset / compact combat presentation that reclaims vertical space for the board **only while in the Combat screen**.
-- Keep all non-combat panels (shop, formation, payroll, scout, reward, end, leaderboard) on the existing shared offsets — they must not move.
-- Keep `CombatLogView` behaviour and the existing scrolling combat log intact.
-- Treat **200×208 as the ideal target**; a smaller final runtime card size is acceptable if needed to preserve the scrolling log and the existing Start Run / Restart / "press Continue" controls.
+**Approved for M11.1:**
+- Run 3 baseline manual playthroughs (or until loss) using distinct archetypes:
+  - Balanced party: mix of Tank / Damage / Support / Economy.
+  - Aggressive party: prioritize Damage and early wins, accept higher upkeep.
+  - Economy/support party: prioritize Bard / Treasurer / Priest / Enchanter style sustain.
+- Record round-by-round outcomes: round reached, party shape, Silver hires/upgrades, gold, debt, morale, upkeep due/paid/shortfall, interest, payroll action chosen, win/loss, and end reason if any.
+- Create `TestPlans/TP_M11.1.md` with the run matrix checklist and observation fields.
+- Summarize findings in the chat and in the `PROGRESS.md` entry at session end.
+- Draft the proposed M11.2 tuning target: which constants/files to tune first and why.
 
-**Not approved for M10.7:**
-- Do not move all panels globally / do not change the shared `CombatLogTopOffset` for non-combat panels.
-- Do not edit `Assets/Scenes/Main.unity` unless there is genuinely no runtime-code alternative (MainMenuPanel builds its UI in code, so a runtime path is expected to exist — if not, stop and ask before touching the scene).
-- Do not redesign `CombatLogView` or reduce the real combat log to a one-line strip if that risks regressing R001 (long-combat scroll/truncation).
-- Do not add web-only visual treatments: CSS gradients/vignettes, box-shadow glows, drop-shadows, rounded-corner chrome, web fonts, shaders, new art, particles, tweens, or any VFX/animation system. Flat-colour approximations only (CLAUDE.md §Scope control still in force).
+**Not approved for M11.1:**
+- Do not change `GameRules.cs`, `ShopManager.cs`, `HeroEffects.cs`, `DataRepository.cs`, or any source file yet.
+- Do not add new telemetry systems, debug overlays, automated simulations, save/load, new encounters, new heroes, new payroll actions, new rival behavior, or new UI.
+- Do not alter Silver mechanics shape. M11 can tune numbers/probability, not add a new tiering system.
 
 ### Definition of ready
 
-- ID: M10.7. One-sentence goal: above. Files and acceptance criteria below.
-- M10.6 complete. M10.5 acceptance (effect motion) is the only pending M10 item and is independent (effects vs. layout) — do not block on it, but **verify M10.5's effect motion still tracks at the new card size/positions** (regression check).
-- No open 🔴 Blocker regressions in `REGRESSIONS.md` interact with this; R001 (closed) is the relevant historical risk for the log — protect it.
-- **Decide at Plan:**
-  1. The runtime mechanism for the combat-only reclaim in `MainMenuPanel`: how the title / Start Run / Restart / status block is compacted or repositioned **only for the Combat state** (e.g. a combat-specific offset + a compact combat header built in code and toggled by state), while leaving the shared layout for other states untouched. Confirm how these controls are currently shown during `GameState.Combat` and where the "press Continue" / Start Run / Restart affordances live in the compact combat layout.
-  2. Final `CardWidth`/`CardHeight`/`CardGap`/`RowGap` for `CombatPanelView`. Ideal 200/208/22/14; compute the real vertical budget = (combat screen height) − (compact combat header) − (retained scrolling log at its current behaviour) − (paddings/labels/title), divide across 4 rows + gaps, and pick the largest size ≤ that budget. Record the actual numbers chosen and why if < 200×208.
-  3. Footer construction in `CombatUnitCardView`: fixed-height footer band (default, matches `BuildUi` manual-anchoring style) containing the name above the HP track, with a 1px role-accent top edge and a slightly darker footer background. Drop the footer-bg Image if it fights the hit-flash/acting-outline layering — the 1px role edge alone is acceptable.
-  4. Whether enemy-sprite horizontal mirror and a flat dead-state marker (mock-up showed `scaleX(-1)` and a big "✕") are in or out. Default: **out** for M10.7 (keep current dead-state red tint); raise if you want them, do not assume.
+- ID: M11.1.
+- One-sentence goal: above.
+- Files to create/modify are listed below.
+- Acceptance criteria are listed below.
+- No open blocker regressions in `REGRESSIONS.md` at handoff time.
 
-### Design source
+### Relevant plan sections
 
-- `Combat Layout v2.html` + `combat-card-v2.jsx` + `tweaks-panel.jsx` — **the final design.** Renders correctly. Chosen state (`V2_DEFAULTS`): style `footer`, card **200×208**, role band **6**, footer **56**. `CardFooter`/`CardShell`/`SpriteArea` show the structure: sprite fills above a bottom footer; footer has name (uppercase, ellipsis) above an HP bar, a 1px role-accent top border, darker bg; shell keeps role band / tier border / acting / dead vocabulary.
-- `Combat Layouts.html` — the earlier 3-variant comparison. Note: it references `design-canvas.jsx` but the repo file is `design-canvas (1).jsx`, so it will not render as-is. Not needed; v2 is authoritative.
-- The mock-up is HTML/CSS. Treat dimensions and structure as the **target**, port as flat uGUI. The mock-up's gradients, vignettes, glows, "TARGET" tag, damage numbers, and tweak panel are **reference only / out of scope**.
+- `IMPLEMENTATION_PLAN.md` §15, especially "Milestone 11: Economy and balance pass".
+- `IMPLEMENTATION_PLAN.md` §5 for economy/run rules.
+- `IMPLEMENTATION_PLAN.md` §7/§8/§9 for hero, encounter, and rival tuning context.
+- `CLAUDE.md` Scope control still applies: no new systems or content while balancing.
 
-### Background (state after M10.6 + M10.5 polish)
+### Current tuning surfaces to inspect
 
-`CombatUnitCardView.BuildUi` builds: background, left role band, 4 tier-border edge strips, portrait (anchored to leave a top name + bottom HP track), name text (top-anchored, hidden when a sprite resolves — M10.6), HP track/fill/centered HP text (bottom-anchored), hit-flash overlay, 4 acting-outline edge strips. `CombatPanelView` lays out 4 rows (enemy back, enemy front, hero front, hero back) by absolute top offsets derived from `CardHeight`, with `CardWidth=150, CardHeight=102, CardGap=18, RowGap=8`, and a center-anchored per-side row width; it also owns the shared effect-sprite motion (M10.5) and `EffectSpriteSize`. `MainMenuPanel` constructs the combat panel + log panel in code via `SetAnchoredRect` with `HorizontalMargin=140, CombatLogTopOffset=380, CombatUnitPanelHeight=510, CombatPanelLogGap=16, RewardSummaryWidth=520`, and the shop/formation/payroll/scout panels reuse `CombatLogTopOffset` as their top offset.
+- `DungeonDebt/Assets/Scripts/Core/GameRules.cs`
+  - Starting resources and loss thresholds: `StartingGold`, `StartingDebt`, `StartingMorale`, `DebtLimit`.
+  - Shop economy: `RerollCost`, `HireCostBonus`, `FireRefund`.
+  - Rewards and penalties: `WinReward`, `LossReward`, `RivalWinBonus`, `DungeonLossMorale`, `RivalLossMorale`, `InterestDebtDivisor`.
+  - Payroll constants: `LoanGoldGain`, `LoanDebtCost`, `VictoryBonusGoldCost`, `VictoryBonusDebtOnLoss`, `VictoryBonusAttackBuff`, `CutWagesUpkeepReduction`, `CutWagesAttackPenalty`.
+  - Encounter pressure: `TaxCollectorUpkeep`, `AuditorUpkeep`, `AuditorDamageEvery`, `AuditorDamage`, `DebtWraithDebtDivisor`, `GoblinThiefStealGold`, `TreasureLeechStealGold`.
+  - M11 placeholders: `SilverOfferChance`, `SilverHireCostBonus`, `SilverStatAttackBonus`, `SilverStatHealthBonus`, `SilverUpkeepReduction`, and per-hero Silver bonus constants.
+- `DungeonDebt/Assets/Scripts/Run/RunManager.cs` for reward/upkeep/interest/end-condition flow.
+- `DungeonDebt/Assets/Scripts/Run/ShopManager.cs` for Silver offer probability and hire/upgrade cost behavior.
+- `DungeonDebt/Assets/Scripts/Combat/HeroEffects.cs` for per-hero Silver bonus application.
+- `DungeonDebt/Assets/Scripts/Core/DataRepository.cs` only as context for hero/encounter/rival numbers; do not edit in M11.1.
 
-### Acceptance Criteria (finalize at Orient/Plan)
+### Acceptance criteria
 
-1. `CombatUnitCardView` is a portrait card: the unit name moves from the top into a fixed-height bottom footer band that also holds the HP track; the portrait expands to fill everything above the footer, minus the left role-band gutter and the existing tier-border inset. Footer has a 1px role-accent top edge and a slightly darker background (or just the 1px edge if layering conflicts).
-2. A **combat-only** relayout reclaims vertical space so the four-row grid is meaningfully larger than 150×102, sized to the largest that fits the real budget (ideal 200×208; smaller allowed). Nothing clips or overflows at 1920×1080 with the run/combat header, panel title/labels, panel padding, and the **unchanged scrolling combat log** all present.
-3. Non-combat screens are visually unchanged: shop, formation, payroll, scout, reward summary, end screen, and rival leaderboard render exactly as before (the shared offsets they use are not modified). Verify by entering each state.
-4. All existing card states still render at the new size: role band, tier border (4 strips), acting outline (4 strips), hit-flash overlay, dead-state red tint, M10.6 name-only-when-no-sprite fallback, and HP fill colour switching at the 50% threshold. No new state, no new replay/combat data.
-5. `CombatLogView` behaviour is unchanged and the long-combat scroll (R001) still works — run a long support-heavy combat and confirm the log still scrolls and is not truncated. M10.5's category-routed effect motion still flies between the correct two cards and centres on the target at the new size/positions. No combat math, targeting, rewards, upkeep, hero-effect, run-flow, replay, log, sprite-catalog, scene, or art change.
+1. `TestPlans/TP_M11.1.md` exists and contains a manual baseline run matrix with at least three archetype runs and clear fields for round-by-round economy observations.
+2. At least three runs are executed or explicitly marked incomplete with the blocker/reason; each run records final result, round reached, ending gold/debt/morale, party/tier shape, and the main pressure point.
+3. Findings identify 3-6 concrete balance hypotheses for M11.2, each tied to specific constants or files.
+4. No gameplay/source constants are changed in M11.1.
+5. Session summary includes the observed baseline and a ready M11.2 recommendation.
 
 ### Files Claude Code May Modify
 
 ```
-DungeonDebt/Assets/Scripts/UI/CombatUnitCardView.cs  — portrait card + bottom name/HP footer band; re-anchor for the new size.
-DungeonDebt/Assets/Scripts/UI/CombatPanelView.cs     — final card/grid constants; row + label offsets derive from CardHeight, keep them aligned; verify EffectSpriteSize/effect motion at the new size.
-DungeonDebt/Assets/Scripts/UI/MainMenuPanel.cs       — add a combat-only layout path (combat-specific offset / compact combat header built in code, toggled by Combat state) that reclaims board height; non-combat panel offsets untouched; combat log panel kept (may be repositioned but not redesigned or shrunk in a way that regresses R001).
-TestPlans/TP_M10.7.md                                — NEW: manual test plan (portrait card + footer, combat-only relayout, every non-combat screen unchanged, all card states, long-combat log scroll = R001 regression check, M10.5 effect motion regression check).
+TestPlans/TP_M11.1.md  - NEW: baseline balance run matrix and manual observation checklist.
+PROGRESS.md            - end-of-session entry only, if the user asks Claude Code to update it directly.
+NEXT_SESSION.md        - end-of-session rewrite only, to describe M11.2.
+```
+
+### Files Claude Code May Read But Not Modify In M11.1
+
+```
+DungeonDebt/Assets/Scripts/Core/GameRules.cs
+DungeonDebt/Assets/Scripts/Run/RunManager.cs
+DungeonDebt/Assets/Scripts/Run/ShopManager.cs
+DungeonDebt/Assets/Scripts/Combat/HeroEffects.cs
+DungeonDebt/Assets/Scripts/Core/DataRepository.cs
 ```
 
 ### Files Claude Code Does NOT Touch
 
-- Any `Combat/`, `Run/`, `Core/`, or `Data/` script — presentation only.
-- `CombatLogView.cs` — no redesign; the scrolling log behaviour is preserved as-is.
-- `SpriteCatalog.cs` — no new ids / API change.
-- The shared `CombatLogTopOffset` semantics for non-combat panels — they keep the existing offsets and must not move.
-- `Assets/Scenes/Main.unity` and prefabs — only if there is no runtime-code alternative; if forced, stop and ask first.
-- `Assets/Art/**` — no new/retired art.
-- `IMPLEMENTATION_PLAN.md`, `CLAUDE.md`, `GAME_DESIGN.md`.
-- `PROGRESS.md` / `REGRESSIONS.md` mid-session (summary step only).
+- Any source file in `DungeonDebt/Assets/Scripts/**` during M11.1.
+- `Assets/Scenes/Main.unity`, prefabs, and `Assets/Art/**`.
+- `GAME_DESIGN.md`, `IMPLEMENTATION_PLAN.md`, `CLAUDE.md`.
+- `REGRESSIONS.md` unless a new regression is found and the user asks to file it.
 
-### Deferred (tracked, not this slice)
+### Suggested M11.2 Shape (do not start in M11.1)
 
-- M10.5 acceptance run (effect motion) — independent; do not block, but regression-check it here.
-- Enemy-sprite mirror / flat dead "✕" marker — only if explicitly opted in at Plan.
-- Per-hero / per-enemy unique art — post-M10, out of MVP unless re-ratified.
-- "TARGET" tag / floating damage numbers — no replay signal to drive them; out.
-- M11 — Economy & balance pass.
+M11.2 should be the first actual tuning slice. It will likely modify `GameRules.cs` only, unless M11.1 finds that Silver probability needs a round-based curve rather than the current single `SilverOfferChance`. If a curve is needed, plan it explicitly before touching `ShopManager.cs`.
 
 ### Start Prompt For The Next Session
 

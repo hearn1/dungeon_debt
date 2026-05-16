@@ -12,6 +12,15 @@ public class MainMenuPanel : MonoBehaviour
     private const int ButtonRowTopOffset = 300;
     private const int ReferenceHeight = 1080;
     private const int CombatLogTopOffset = 380;
+    // Combat-only: the combat panel reclaims the top chrome (big title +
+    // status + Start/Restart row, all occluded by the opaque combat panel
+    // while it is active) so the card grid can grow. The scrolling log and
+    // every non-combat panel keep CombatLogTopOffset and do not move.
+    private const int CombatScreenTopOffset = 64;
+    private const int CombatHeaderTop = 96;
+    private const int CombatHeaderHeight = 48;
+    private const int CompactRestartWidth = 180;
+    private const int CompactRestartHeight = 40;
     private const int CombatUnitPanelHeight = 510;
     private const int CombatPanelLogGap = 16;
     private const int CombatLogStreamingTopOffset = CombatLogTopOffset + CombatUnitPanelHeight + CombatPanelLogGap;
@@ -44,6 +53,9 @@ public class MainMenuPanel : MonoBehaviour
     [SerializeField] private RivalLeaderboardView _rivalLeaderboardView;
     [SerializeField] private Button _rivalContinueButton;
     [SerializeField] private SpriteCatalog _spriteCatalog;
+    [SerializeField] private RectTransform _combatHeaderRoot;
+    [SerializeField] private Text _combatHeaderStatus;
+    [SerializeField] private Button _combatHeaderRestartButton;
 
     private static Font _runtimeFont;
 
@@ -86,6 +98,11 @@ public class MainMenuPanel : MonoBehaviour
         if (_rivalContinueButton != null)
         {
             _rivalContinueButton.onClick.RemoveListener(HandleRivalContinueClicked);
+        }
+
+        if (_combatHeaderRestartButton != null)
+        {
+            _combatHeaderRestartButton.onClick.RemoveListener(RestartCombat);
         }
     }
 
@@ -194,8 +211,17 @@ public class MainMenuPanel : MonoBehaviour
         _shopPanelView.Refresh(runState, _gameManager.ShopManager.CurrentOffers);
     }
 
+    private void SetCombatChromeVisible(bool visible)
+    {
+        if (_combatHeaderRoot != null)
+        {
+            _combatHeaderRoot.gameObject.SetActive(visible);
+        }
+    }
+
     private void ResetUi()
     {
+        SetCombatChromeVisible(false);
         _statusText.text = "Ready";
         _resultText.text = string.Empty;
         _startCombatButton.interactable = true;
@@ -218,6 +244,10 @@ public class MainMenuPanel : MonoBehaviour
         _startCombatButton.interactable = false;
         _restartButton.interactable = false;
         _statusText.text = "Combat running...";
+        if (_combatHeaderStatus != null)
+        {
+            _combatHeaderStatus.text = "Combat running...";
+        }
         _resultText.text = string.Empty;
         _combatLogView.Clear();
         _combatPanelView.Clear();
@@ -249,6 +279,10 @@ public class MainMenuPanel : MonoBehaviour
             _runHeaderView.Refresh(_gameManager.CurrentRunState);
             _rewardSummaryView.Refresh(_gameManager.CurrentRunState);
             _statusText.text = "Combat complete. Press Continue.";
+            if (_combatHeaderStatus != null)
+            {
+                _combatHeaderStatus.text = "Combat complete. Press Continue.";
+            }
             _resultText.text = result.PlayerWon ? "Result: Player wins!" : "Result: Player loses.";
             _restartButton.interactable = true;
         });
@@ -258,6 +292,7 @@ public class MainMenuPanel : MonoBehaviour
     {
         if (gameState == GameState.StartRun)
         {
+            SetCombatChromeVisible(false);
             _runHeaderView.Refresh(_gameManager.CurrentRunState);
             _combatLogView.Clear();
             _combatPanelView.Clear();
@@ -276,6 +311,7 @@ public class MainMenuPanel : MonoBehaviour
 
         if (gameState == GameState.Scout)
         {
+            SetCombatChromeVisible(false);
             _statusText.text = "Scout. Review the encounter, then Continue.";
             _resultText.text = string.Empty;
             _combatLogView.Clear();
@@ -299,6 +335,7 @@ public class MainMenuPanel : MonoBehaviour
 
         if (gameState == GameState.Shop)
         {
+            SetCombatChromeVisible(false);
             _statusText.text = "Shop. Hire heroes, then Continue.";
             _resultText.text = string.Empty;
             _combatLogView.Clear();
@@ -321,6 +358,7 @@ public class MainMenuPanel : MonoBehaviour
 
         if (gameState == GameState.Formation)
         {
+            SetCombatChromeVisible(false);
             _statusText.text = "Formation. Click two slots to swap, then Continue.";
             _resultText.text = string.Empty;
             _combatLogView.Clear();
@@ -343,6 +381,7 @@ public class MainMenuPanel : MonoBehaviour
 
         if (gameState == GameState.Payroll)
         {
+            SetCombatChromeVisible(false);
             _statusText.text = "Payroll. Choose one action, then Continue.";
             _resultText.text = string.Empty;
             _combatLogView.Clear();
@@ -370,6 +409,7 @@ public class MainMenuPanel : MonoBehaviour
 
         if (gameState == GameState.Combat)
         {
+            SetCombatChromeVisible(true);
             _shopPanelView.Hide();
             _formationPanelView.Hide();
             _payrollPanelView.Hide();
@@ -382,6 +422,7 @@ public class MainMenuPanel : MonoBehaviour
 
         if (gameState == GameState.RivalUpdate)
         {
+            SetCombatChromeVisible(false);
             _statusText.text = "Rivals updated. Review the leaderboard, then Continue.";
             _resultText.text = string.Empty;
             _combatLogView.Clear();
@@ -405,6 +446,7 @@ public class MainMenuPanel : MonoBehaviour
 
         if (gameState == GameState.Victory || gameState == GameState.Defeat)
         {
+            SetCombatChromeVisible(false);
             _statusText.text = gameState == GameState.Victory ? "Run won." : "Run lost.";
             _rewardSummaryView.Clear();
             _combatPanelView.Clear();
@@ -480,10 +522,37 @@ public class MainMenuPanel : MonoBehaviour
             HorizontalMargin,
             ReferenceHeight - CombatLogTopOffset - CombatUnitPanelHeight,
             -HorizontalMargin - RewardSummaryWidth - ButtonGap,
-            -CombatLogTopOffset);
+            -CombatScreenTopOffset);
         _combatPanelView = combatPanel.gameObject.AddComponent<CombatPanelView>();
         _combatPanelView.Initialize(GetRuntimeFont(), _spriteCatalog);
         _combatPanelView.Hide();
+
+        // Compact combat header. The enlarged combat panel is opaque and drawn
+        // after the shared title/status/Start-Restart row, so during combat
+        // those are occluded; this right-column strip restores a status readout
+        // and Restart control without covering the persistent run header.
+        _combatHeaderRoot = CreatePanel("CombatHeader", root, new Color(0.12f, 0.13f, 0.16f, 1f));
+        SetAnchoredRect(
+            _combatHeaderRoot,
+            1f, 1f, 1f, 1f,
+            -HorizontalMargin - (RewardSummaryWidth * 0.5f),
+            -(CombatHeaderTop + (CombatHeaderHeight * 0.5f)),
+            RewardSummaryWidth,
+            CombatHeaderHeight);
+
+        _combatHeaderStatus = CreateText("CombatHeaderStatus", _combatHeaderRoot, string.Empty, 18, FontStyle.Bold, TextAnchor.MiddleLeft);
+        SetAnchoredRect(_combatHeaderStatus.rectTransform, 0f, 0f, 1f, 1f, 8f, 0f, -(CompactRestartWidth + 24f), 0f);
+
+        _combatHeaderRestartButton = CreateButton("CombatHeaderRestart", _combatHeaderRoot, "Restart");
+        SetAnchoredRect(
+            _combatHeaderRestartButton.GetComponent<RectTransform>(),
+            1f, 0.5f, 1f, 0.5f,
+            -(CompactRestartWidth * 0.5f) - 4f,
+            0f,
+            CompactRestartWidth,
+            CompactRestartHeight);
+        _combatHeaderRestartButton.onClick.AddListener(RestartCombat);
+        _combatHeaderRoot.gameObject.SetActive(false);
 
         RectTransform logPanel = CreatePanel("CombatLogPanel", root, new Color(0.16f, 0.17f, 0.2f, 1f));
         SetAnchoredRect(logPanel, 0f, 0f, 1f, 1f, HorizontalMargin, 100f, -HorizontalMargin - RewardSummaryWidth - ButtonGap, -CombatLogStreamingTopOffset);

@@ -11,12 +11,26 @@ public class CombatUnitCardView : MonoBehaviour
     private const int HpFontSize = 12;
     private const float HitFlashDuration = 0.275f;
 
+    // Portrait card: a fixed-height bottom footer band holds the name slot
+    // (shown only as the no-sprite fallback, per M10.6) above the HP track,
+    // with a slim role-accent top edge and a slightly darker background. The
+    // portrait fills everything above the footer.
+    private const int FooterHeight = 52;
+    private const int FooterAccentThickness = 1;
+    private const int FooterNameHeight = 18;
+    private const int FooterHpTrackHeight = 20;
+    private const int FooterHpBottomInset = 8;
+    private const int FooterPortraitGap = 2;
+
     private static readonly Color HitFlashColor = new Color(1f, 0.32f, 0.28f, 1f);
     private static readonly Color ActingOutlineColor = new Color(1f, 0.92f, 0.42f, 1f);
+    private static readonly Color FooterColor = new Color(0.10f, 0.11f, 0.13f, 1f);
 
     [SerializeField] private Image _background;
     [SerializeField] private Image _portrait;
     [SerializeField] private Image _roleBand;
+    [SerializeField] private Image _footerBg;
+    [SerializeField] private Image _footerAccent;
     [SerializeField] private Image _tierBorderTop;
     [SerializeField] private Image _tierBorderBottom;
     [SerializeField] private Image _tierBorderLeft;
@@ -68,6 +82,16 @@ public class CombatUnitCardView : MonoBehaviour
             : new Color(0.22f, 0.08f, 0.08f, 1f);
         _roleBand.color = accent;
         _roleBand.enabled = true;
+        if (_footerBg != null)
+        {
+            _footerBg.color = FooterColor;
+            _footerBg.enabled = true;
+        }
+        if (_footerAccent != null)
+        {
+            _footerAccent.color = accent;
+            _footerAccent.enabled = true;
+        }
         _hpTrack.enabled = true;
         _hpFill.enabled = true;
 
@@ -88,6 +112,16 @@ public class CombatUnitCardView : MonoBehaviour
         if (_roleBand != null)
         {
             _roleBand.enabled = false;
+        }
+
+        if (_footerBg != null)
+        {
+            _footerBg.enabled = false;
+        }
+
+        if (_footerAccent != null)
+        {
+            _footerAccent.enabled = false;
         }
 
         if (_portrait != null)
@@ -327,21 +361,31 @@ public class CombatUnitCardView : MonoBehaviour
         SetEdgeRight(_tierBorderRight.rectTransform, TierBorderThickness);
 
         // Created after the tier-frame images so the portrait is not occluded,
-        // but before the name/HP/flash overlays so they stay on top. The name
-        // is hidden whenever a portrait resolves, so the portrait claims the
-        // full card minus the role band and the bottom HP track; preserveAspect
-        // keeps the art centred.
+        // but before the footer/name/HP/flash overlays so they stay on top. The
+        // portrait claims the full card above the footer band, minus the role
+        // band gutter and the tier inset; preserveAspect keeps the art centred.
         _portrait = CreateImage("Portrait", root);
-        SetAnchored(_portrait.rectTransform, RoleBandWidth + 2, Padding + 24 + 8 + 2, -3, -4);
+        SetAnchored(_portrait.rectTransform, RoleBandWidth + 2, FooterHeight + FooterPortraitGap, -3, -4);
         _portrait.preserveAspect = true;
         _portrait.enabled = false;
 
-        _nameText = CreateText("Name", root, font, NameFontSize, FontStyle.Bold, TextAnchor.UpperLeft);
-        SetTopAnchored(_nameText.rectTransform, RoleBandWidth + Padding, Padding + 8, -Padding, 46);
+        // Footer band: darker background spanning the bottom of the card (right
+        // of the role band) with a slim role-accent strip along its top edge.
+        _footerBg = CreateImage("FooterBg", root);
+        _footerBg.color = FooterColor;
+        SetBottomAnchored(_footerBg.rectTransform, RoleBandWidth, 0, 0, FooterHeight);
+        _footerBg.enabled = false;
+
+        _footerAccent = CreateImage("FooterAccent", root);
+        SetBottomAnchored(_footerAccent.rectTransform, RoleBandWidth, FooterHeight - FooterAccentThickness, 0, FooterAccentThickness);
+        _footerAccent.enabled = false;
+
+        _nameText = CreateText("Name", root, font, NameFontSize, FontStyle.Bold, TextAnchor.MiddleCenter);
+        SetBottomAnchored(_nameText.rectTransform, RoleBandWidth + Padding, FooterHpBottomInset + FooterHpTrackHeight + 2, -Padding, FooterNameHeight);
 
         _hpTrack = CreateImage("HpTrack", root);
         _hpTrack.color = new Color(0.06f, 0.07f, 0.08f, 1f);
-        SetBottomAnchored(_hpTrack.rectTransform, RoleBandWidth + Padding, Padding + 8, -Padding, 24);
+        SetBottomAnchored(_hpTrack.rectTransform, RoleBandWidth + Padding, FooterHpBottomInset, -Padding, FooterHpTrackHeight);
 
         _hpFill = CreateImage("HpFill", _hpTrack.rectTransform);
         _hpFill.rectTransform.anchorMin = new Vector2(0f, 0f);
