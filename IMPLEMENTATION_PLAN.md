@@ -1511,6 +1511,140 @@ Dead seams removed: `RunState.Encounters`, `DataRepository.PrepareSandboxRun`/`C
 
 ---
 
+### M20.0 act-format design outcome (completed 2026-05-16, documentation-only)
+
+No runtime C# / scene / prefab / art changed. This subsection is the design source for the M20.x implementation slices. User decisions captured in this session are marked **[locked]**; items left open are marked **[explore]** with a recommendation.
+
+#### Design reconciliation with `GAME_DESIGN.md`
+
+`GAME_DESIGN.md` §MVP Scope lists "Multiple acts / Full campaign" under **Not Included**, but the same section explicitly states that later Phase 3 milestones may ratify narrow versions, in which case the `IMPLEMENTATION_PLAN.md` milestone scope controls that vertical. M20 is that ratification for acts. This is a narrow act expansion (no map, no branching, no save/load, no campaign meta) — it does not contradict the design doc's core loop or design warning. The core loop (Scout → Shop → Payroll → Formation → Combat → Reward → Upkeep → Rival) is unchanged; acts only extend its length and content.
+
+#### Reusable act format (the template every act follows)
+
+An act is a contiguous block of absolute rounds (`GameRules.ActRoundCounts[i]` rounds for act `i+1`). The standard act is **10 slots**, parallel to Act 1, with this slot-role template:
+
+| Slot | Role | Type | Notes |
+|---:|---|---|---|
+| 1 | Intro / stat check | Dungeon | Light opener that re-establishes the act's theme |
+| 2 | Economy pressure | Dungeon | Gold/upkeep/reward-drain beat |
+| 3 | **Guild fight A** | RivalGhost | Easiest guild this act |
+| 4 | Formation/backline test | Dungeon | Asks something of positioning |
+| 5 | Threat ramp | Dungeon | Mid-act difficulty step |
+| 6 | **Guild fight B** | RivalGhost | Mid-difficulty guild this act |
+| 7 | Economy/debt punishment | Dungeon | Debt-scaling or reward-pressure beat |
+| 8 | Heavy dungeon | Dungeon | Pre-finale stress test |
+| 9 | **Guild fight C** | RivalGhost | Hardest guild this act |
+| 10 | **Capstone** | FinalBoss | Act boss; awards a relic (`RivalGhost OR FinalBoss` rule) |
+
+**[locked]** Recurring pressure beats that must recur every act (mapped onto the dungeon slots above): one upkeep/economy-drain fight, one debt-scaling fight, one formation/backline test, one reward-pressure fight. These keep the debt/payroll core hook active across the whole run.
+
+**[locked]** Guild-fight ordering is by rough difficulty: **Frugal (slot 3) → Greedy (slot 6) → Carry (slot 9)**. (This differs from Act 1's authored order; Act 1 itself is the intro act and is not retro-fitted.)
+
+**[locked]** Every act includes exactly one fight against each rival guild (Frugal, Greedy, Carry), reached through the existing `DataRepository.GetRivalEncounter(act, guild)` seam.
+
+#### Act 2 target — rounds 11–20, demonic identity
+
+**[locked]** Act 2 becomes a full 10-round act (`ActRoundCounts` → `{10, 10}`), rounds 11–20, with a **demonic theme** as its own identity. Act 1 was an intro; Acts 2–5 each get a distinct identity.
+
+Act 2 slot map (absolute round = `GameRules.GetAbsoluteRound(2, slot)`):
+
+| Slot | Round | Role | Enemy plan |
+|---:|---:|---|---|
+| 1 | 11 | Intro stat check | **NEW** demonic swarm |
+| 2 | 12 | Economy pressure | **NEW** demonic gold/upkeep drain |
+| 3 | 13 | Guild fight — **Frugal** | Reuse existing `Act2Frugal*` defs (retune only) |
+| 4 | 14 | Formation/backline test | **NEW** demonic backline striker |
+| 5 | 15 | Debt punishment | **REUSE Debt Wraith**, retuned for Act 2 (already demonic-fitting; no new asset) |
+| 6 | 16 | Guild fight — **Greedy** | Reuse existing `Act2Greedy*` defs (retune only) |
+| 7 | 17 | Reward pressure | **NEW** demonic reward-drain |
+| 8 | 18 | Heavy dungeon | **NEW** demonic brute |
+| 9 | 19 | Guild fight — **Carry** | Reuse existing `Act2Carry*` defs (retune only) |
+| 10 | 20 | Capstone | **NEW** demonic Act 2 final boss (`EncounterType.FinalBoss`, awards relic) |
+
+The three existing Act 2 rival rematch encounters (currently authored at `(2,1)/(2,2)/(2,3)` as Greedy/Carry/Frugal) are **re-slotted** to `(2,3)/(2,6)/(2,9)` in Frugal→Greedy→Carry order during M20.1. Their `Act2*` enemy definitions already exist and are reused (numeric retune only).
+
+#### New Act 2 enemy assets to author (called out now so art can start)
+
+Names are working placeholders — the user may rename. All are demonic-themed. These need **one static base sprite each** (per `CLAUDE.md` M10.4 carve-out; new enemies are allowed inside an approved content milestone, which M20 is):
+
+1. **Imp** — basic demonic swarm; Act 2 intro stat check (Slot 11). Slime analogue.
+2. **Soul Broker** — demonic economy pressure: drains gold / inflates upkeep (Slot 12). Goblin Thief / Tax Collector analogue.
+3. **Gloom Bat** — demonic backline striker; formation test (Slot 14). Backline Bat analogue.
+4. **Hoard Fiend** — demonic reward-drain: reduces reward if it survives (Slot 17). Treasure Leech analogue.
+5. **Brimstone Brute** — heavy front-line demon; pre-finale stress test (Slot 18).
+6. **Act 2 final boss** (working name **"Pit Lord" / "Infernal Auditor" / "Debt Archon"** — user to pick) — demonic capstone (Slot 20), `FinalBoss`, awards relic.
+
+Reused with no new asset: **Debt Wraith** (Slot 15, already fits the demonic theme; numeric retune only). The three Act 2 guild rematch rosters already have `Act2*` definitions and existing sprites — reuse as-is or recolor at the user's discretion (optional, not required for M20.1).
+
+So the minimum new-art set for Act 2 is **6 enemy sprites** (5 demonic dungeon/brute + 1 demonic boss).
+
+#### Acts 3/4/5 content pattern
+
+Later acts are **mostly content authoring**, no new feature work: append a round count to `GameRules.ActRoundCounts`, author 10 `(act, slot)` encounter definitions following the slot-role template, assign existing enemy/effect/relic/status hooks, supply per-act guild rosters via `GetRivalEncounter`, add new themed enemy sprites, and tune numbers in `GameRules`. Each act gets a distinct environment/theme identity (Act 2 = demonic; Acts 3–5 themes TBD with their own asset call-outs).
+
+**[explore] Act-identity structure for Acts 2–5 (decision deferred, does not block Act 2):**
+
+- **Option A — environment-themed acts (locked for Act 2).** Each act has an environment/monster identity; the capstone is a themed monster boss. The three guild fights remain mid-act benchmarks.
+- **Option B — guild-owned acts.** Acts 2–4 are each "owned" by one rival guild whose evolved leader *is* that act's `FinalBoss` capstone (the other two guild fights still appear mid-act). **Act 5** becomes a "super guild" / combined-guild gauntlet finale.
+- **Recommendation:** lock Act 2 as Option A (demonic environment) now so demonic enemy + boss art can begin immediately; decide Option A vs B for Acts 3–5 in a dedicated design note or an early M20.x design slice. Option B is compatible with the per-act "one fight vs each guild" invariant — it only changes what the capstone *is* — so deferring it does not block Act 2 implementation or asset work.
+
+#### Guild-evolution rule (directional, numbers are M20.x `GameRules` tuning)
+
+Each act, all three guilds grow, keeping their identities and their relative difficulty order (Frugal easiest → Greedy → Carry hardest):
+
+- **Frugal** — efficient/resilient. Modest per-act stat growth, growth weighted toward sustain (healer scaling). Lowest burst; placed first in the act.
+- **Greedy** — high-power/high-debt. Steepest raw attack/HP growth per act ("richer and meaner"); placed mid-act.
+- **Carry** — protects an escalating champion. The protected carry's attack scales hardest per act while the protectors scale modestly; placed last as the act's hardest guild fight.
+
+Growth is expressed as per-act multipliers/increments in `GameRules` (e.g. a per-act guild scaling table), not hardcoded per-encounter. M20.0 fixes only the *direction*; M20.x balance slices set final numbers.
+
+#### M20 encounter-randomness rule
+
+- **Guild slots (3, 6, 9) and the capstone (slot 10) are fixed:** single-candidate pools, deterministic, fixed order. This preserves the guild cadence and act narrative.
+- **Dungeon slots may hold pooled variants:** a `(act, slot)` key may have 2+ candidate `EncounterDefinition`s; `EncounterManager` selects one via the `RunManager.Random` seam already added in M19.3. Only *which non-guild encounter appears* varies — combat itself stays fully deterministic.
+- **M20.1 authors single-candidate pools only** (no randomization yet). Pooled dungeon variants are a later M20.x slice. The data is authored pool-ready (lists), so adding variants later is pure content, no code change.
+
+#### Late-hire catch-up proposal (proposal only — not implemented in M20.0 or M20.1)
+
+**[locked]** Direction: **act-aware minimum XP**. A hero hired during act `N` is granted a starting XP floor equal to a per-act constant (e.g. a `GameRules` `ActHireXpFloor` table), so a hero recruited in Act 2+ is not permanently behind veterans who have earned XP since Act 1. Tunable in `GameRules`; no new screen, no new UI — the existing veteran progress label/bar reflects the floor automatically. Alternative noted for the implementing slice: a "trained hire" first-act bonus-survival-XP rule. Implementation is a dedicated later M20.x slice, **not** M20.1, and must not add a progression screen or meta progression.
+
+#### Major-view design-proposal checklist
+
+Flags which views need a Claude readability design proposal **before** heavy Act 2 content lands (a view-readability proposal slice should precede or accompany the bulk content slices):
+
+| View | Status | Reason |
+|---|---|---|
+| Scout | **NEEDS proposal** | Must compactly communicate act, theme, escalating threat, guild identity, reward, and danger across 20 rounds |
+| Run Header / Run Contract | **NEEDS proposal** | Act indicator must stay legible across N acts alongside debt status + resources |
+| End / Act Transition | **NEEDS proposal** | M19.3 flagged literal "Act 1 Clear"/"Act 2 Complete" strings; must generalize for N acts + per-act identity |
+| Reward Summary | **NEEDS proposal** | Must distinguish act-clear vs normal round reward and the relic-on-capstone moment |
+| Combat | MONITOR | Recently rebuilt and the densest view; reference point. Re-check only if act content adds new indicators |
+| Rival Leaderboard / Update | MONITOR | Guilds now evolve per act; verify it still reads correctly across acts |
+| Shop / Formation / Payroll | LOW | Stable; revisit only if the late-hire rule or act-aware payroll variants add UI |
+| Relic Reward | LOW | Works through existing reward flow; no act-specific change expected |
+| Main Menu / Run Contract entry | LOW | No act-specific change at run start |
+
+The four **NEEDS proposal** views are a prerequisite gate before the bulk Act 2 content slices.
+
+#### M20.1 — first implementation slice (left ready)
+
+- **ID:** M20.1
+- **One-sentence goal:** Extend Act 2 to a full 10-round act (rounds 11–20) with a demonic-themed encounter skeleton — Frugal/Greedy/Carry guild fights at slots 3/6/9 and a new demonic `FinalBoss` at round 20 — using deterministic single-candidate encounter pools (no encounter randomization yet).
+- **Files to modify:**
+  - `DungeonDebt/Assets/Scripts/Core/GameRules.cs` — `ActRoundCounts` `{10, 3}` → `{10, 10}`; add Act 2 enemy/boss numeric constants.
+  - `DungeonDebt/Assets/Scripts/Core/DataRepository.cs` — author the 6 new Act 2 demonic enemy definitions; author 10 `(2, slot)` encounter definitions per the slot map; re-slot the existing Act 2 guild rematch encounters to `(2,3)/(2,6)/(2,9)` in Frugal→Greedy→Carry order; reuse Debt Wraith (retuned) at `(2,5)`.
+  - `DungeonDebt/Assets/Scripts/UI/EndScreenView.cs` — generalize the literal "Act 1 Clear"/"Act 2 Complete" copy for N acts (M19.3 follow-up).
+  - `DungeonDebt/Assets/Scenes/Main.unity` and/or the `SpriteCatalog` MonoBehaviour — add id→Sprite slots for the 6 new Act 2 enemies (presentation only, per M10.4 carve-out).
+  - `TestPlans/TP_M20.1.md` — manual test plan (new file).
+- **Acceptance criteria:**
+  1. `GameRules.ActRoundCounts` makes Act 2 a 10-round act (rounds 11–20); all act helpers and the Act 1→Act 2 transition resolve correctly for a 20-round run.
+  2. Act 2 has 10 authored `(2, slot)` encounters matching the slot map: demonic dungeon slots, guild fights at slots 3/6/9 in Frugal→Greedy→Carry order, and a `FinalBoss` at round 20 that awards a relic via the existing `RivalGhost OR FinalBoss` rule.
+  3. The 6 new Act 2 demonic enemy definitions exist and are referenced only by Act 2 encounters; Debt Wraith is reused (retuned) at slot 15; no Act 1 encounter or enemy behavior changes.
+  4. End/act-transition copy is generalized (no hardcoded "Act 1"/"Act 2" literals) and a full 20-round run is completable in the Unity Editor.
+  5. All Act 2 encounter pools are single-candidate/deterministic (no `RunManager.Random` variation introduced this slice); combat remains deterministic.
+
+---
+
 ## Appendix: Milestone-to-Section Map
 
 When prompting Codex for a single milestone, attach this plan and reference:
