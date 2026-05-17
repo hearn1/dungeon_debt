@@ -352,6 +352,77 @@ public static class DataRepository
         null,
         new CombatStatusId[] { CombatStatusId.Poisoned });
 
+    // Act 2 demonic dungeon roster (rounds 11-20). New ids carry their own
+    // placeholder sprite slots; all combat behavior reuses existing
+    // EnemyEffectId / EncounterEffectId values (no new combat systems).
+    private static readonly EnemyDefinition Imp = new EnemyDefinition(
+        "imp",
+        "Imp",
+        2,
+        5,
+        EnemyEffectId.None,
+        "No effect.");
+
+    private static readonly EnemyDefinition SoulBroker = new EnemyDefinition(
+        "soul_broker",
+        "Soul Broker",
+        2,
+        7,
+        EnemyEffectId.GoblinStealGold,
+        "Applies Weakened on attack; steals gold if alive past combat round 3.",
+        null,
+        new CombatStatusId[] { CombatStatusId.Weakened });
+
+    private static readonly EnemyDefinition GloomBat = new EnemyDefinition(
+        "gloom_bat",
+        "Gloom Bat",
+        4,
+        6,
+        EnemyEffectId.BackBatBackline,
+        "Starts Marked. Applies Burned on attack; attacks lowest-HP backline hero on combat round 2.",
+        new CombatStatusId[] { CombatStatusId.Marked },
+        new CombatStatusId[] { CombatStatusId.Burned });
+
+    // Reuses the debt_wraith sprite (no new asset, per M20.0); a separate
+    // definition so the Act 1 DebtWraith stays untouched.
+    private static readonly EnemyDefinition Act2DebtWraith = new EnemyDefinition(
+        "debt_wraith",
+        "Debt Wraith",
+        2,
+        16,
+        EnemyEffectId.DebtWraithScales,
+        "Applies Poisoned on attack. Attack scales with player debt at combat start.",
+        null,
+        new CombatStatusId[] { CombatStatusId.Poisoned });
+
+    private static readonly EnemyDefinition HoardFiend = new EnemyDefinition(
+        "hoard_fiend",
+        "Hoard Fiend",
+        2,
+        16,
+        EnemyEffectId.TreasureLeechRewardDrain,
+        "Applies Poisoned on attack. Reduces reward if alive at combat end.",
+        null,
+        new CombatStatusId[] { CombatStatusId.Poisoned });
+
+    private static readonly EnemyDefinition BrimstoneBrute = new EnemyDefinition(
+        "brimstone_brute",
+        "Brimstone Brute",
+        6,
+        22,
+        EnemyEffectId.None,
+        "No effect.");
+
+    private static readonly EnemyDefinition InfernalAuditor = new EnemyDefinition(
+        "infernal_auditor",
+        "Infernal Auditor",
+        5,
+        30,
+        EnemyEffectId.DungeonAuditorBoss,
+        "Starts Inspired and applies Burned on attack. Raises upkeep and deals periodic damage.",
+        new CombatStatusId[] { CombatStatusId.Inspired },
+        new CombatStatusId[] { CombatStatusId.Burned });
+
     private static readonly List<HeroDefinition> HeroDefinitions = new List<HeroDefinition>
     {
         Warrior,
@@ -393,7 +464,14 @@ public static class DataRepository
         Act2CarrySupport,
         Act2FrugalGuard,
         Act2FrugalArcher,
-        Act2FrugalHealer
+        Act2FrugalHealer,
+        Imp,
+        SoulBroker,
+        GloomBat,
+        Act2DebtWraith,
+        HoardFiend,
+        BrimstoneBrute,
+        InfernalAuditor
     };
 
     private static readonly PayrollActionDefinition TakeLoanAction = new PayrollActionDefinition(
@@ -587,6 +665,61 @@ public static class DataRepository
 
         new EncounterDefinition(
             2, 1,
+            EncounterType.Dungeon,
+            "Imp Swarm",
+            "The descent begins. A pack of imps boils up from the pit.",
+            "Basic stat check",
+            new List<EnemyDefinition> { Imp, Imp, Imp },
+            GameRules.WinReward,
+            EncounterEffectId.None,
+            RivalGuild.None),
+
+        new EncounterDefinition(
+            2, 2,
+            EncounterType.Dungeon,
+            "Soul Broker",
+            "If a Soul Broker survives past combat round 3, lose 3 gold.",
+            "Economy pressure",
+            new List<EnemyDefinition> { SoulBroker, Imp },
+            GameRules.WinReward,
+            EncounterEffectId.None,
+            RivalGuild.None),
+
+        new EncounterDefinition(
+            2, 3,
+            EncounterType.RivalGhost,
+            "Frugal Guild Rematch",
+            "The Frugal Guild returns, disciplined and resilient, its healer keeping it standing.",
+            "Rival benchmark",
+            new List<EnemyDefinition> { Act2FrugalGuard, Act2FrugalGuard, Act2FrugalArcher, Act2FrugalHealer },
+            GameRules.WinReward,
+            EncounterEffectId.None,
+            RivalGuild.Frugal),
+
+        new EncounterDefinition(
+            2, 4,
+            EncounterType.Dungeon,
+            "Gloom Bat",
+            "Attacks your lowest-health backline hero on turn 2.",
+            "Backline pressure",
+            new List<EnemyDefinition> { GloomBat, Imp },
+            GameRules.WinReward,
+            EncounterEffectId.None,
+            RivalGuild.None),
+
+        new EncounterDefinition(
+            2, 5,
+            EncounterType.Dungeon,
+            "Debt Wraith",
+            "Gains attack based on your current debt. Hardened for the descent.",
+            "Debt punishment",
+            new List<EnemyDefinition> { Act2DebtWraith },
+            GameRules.WinReward,
+            EncounterEffectId.None,
+            RivalGuild.None),
+
+        new EncounterDefinition(
+            2, 6,
             EncounterType.RivalGhost,
             "Greedy Guild Rematch",
             "The Greedy Guild returns for Act 2, richer and meaner. Bigger tanks, a deadlier carry.",
@@ -597,7 +730,29 @@ public static class DataRepository
             RivalGuild.Greedy),
 
         new EncounterDefinition(
-            2, 2,
+            2, 7,
+            EncounterType.Dungeon,
+            "Hoard Fiend",
+            "If the Hoard Fiend survives, your reward is reduced by 4 gold.",
+            "Reward pressure",
+            new List<EnemyDefinition> { HoardFiend, Imp },
+            GameRules.WinReward,
+            EncounterEffectId.None,
+            RivalGuild.None),
+
+        new EncounterDefinition(
+            2, 8,
+            EncounterType.Dungeon,
+            "Brimstone Brute",
+            "A towering demon. Heavy stress test before the final guild fight.",
+            "Heavy dungeon",
+            new List<EnemyDefinition> { BrimstoneBrute, Imp, Imp },
+            GameRules.WinReward,
+            EncounterEffectId.None,
+            RivalGuild.None),
+
+        new EncounterDefinition(
+            2, 9,
             EncounterType.RivalGhost,
             "Carry Guild Rematch",
             "The Carry Guild doubles down: a fortified front line shielding an even stronger champion.",
@@ -608,15 +763,15 @@ public static class DataRepository
             RivalGuild.Carry),
 
         new EncounterDefinition(
-            2, 3,
-            EncounterType.RivalGhost,
-            "Frugal Guild Rematch",
-            "Act 2 capstone. The Frugal Guild fields a disciplined team with a healer that keeps it standing.",
-            "Rival benchmark",
-            new List<EnemyDefinition> { Act2FrugalGuard, Act2FrugalGuard, Act2FrugalArcher, Act2FrugalHealer },
+            2, 10,
+            EncounterType.FinalBoss,
+            "Infernal Auditor",
+            "Act 2 capstone. The Infernal Auditor tallies your debts in fire.",
+            "Final boss",
+            new List<EnemyDefinition> { InfernalAuditor },
             GameRules.WinReward,
-            EncounterEffectId.None,
-            RivalGuild.Frugal)
+            EncounterEffectId.FinalBossDamage,
+            RivalGuild.None)
     };
 
     public static readonly IReadOnlyList<EncounterDefinition> Encounters =

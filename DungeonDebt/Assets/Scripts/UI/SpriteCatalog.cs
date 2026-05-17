@@ -30,7 +30,9 @@ public class SpriteCatalog : MonoBehaviour
         "slime", "training_dummy", "cave_bat", "goblin_thief", "tax_collector",
         "backline_bat", "debt_wraith", "treasure_leech", "dungeon_auditor",
         "greedy_tank", "greedy_carry", "carry_protector", "carry_carry",
-        "frugal_guard", "frugal_archer", "frugal_healer"
+        "frugal_guard", "frugal_archer", "frugal_healer",
+        "imp", "soul_broker", "gloom_bat", "hoard_fiend", "brimstone_brute",
+        "infernal_auditor"
     };
 
     private static readonly string[] EffectIds =

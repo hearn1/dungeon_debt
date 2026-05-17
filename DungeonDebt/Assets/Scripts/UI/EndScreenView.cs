@@ -20,8 +20,10 @@ public class EndScreenView : MonoBehaviour
     [SerializeField] private Text _newRunLabel;
 
     private Action _onNewRun;
+    // Generic "advance to the next act" callback; the legacy method name is
+    // kept so MainMenuPanel wiring is untouched.
     private Action _onContinueAct2;
-    private bool _act1ClearHandoff;
+    private bool _actClearHandoff;
 
     public void Initialize(Font font)
     {
@@ -44,16 +46,16 @@ public class EndScreenView : MonoBehaviour
         gameObject.SetActive(true);
 
         int act = runState != null ? runState.Act : 1;
-        _act1ClearHandoff = isVictory && act < GameRules.FinalAct;
+        _actClearHandoff = isVictory && act < GameRules.FinalAct;
 
-        if (_act1ClearHandoff)
+        if (_actClearHandoff)
         {
-            _titleText.text = "Act 1 Clear";
+            _titleText.text = GameRules.GetActLabel(act) + " Clear";
             _titleText.color = new Color(0.7f, 0.92f, 0.62f, 1f);
         }
         else if (isVictory)
         {
-            _titleText.text = "Act 2 Complete";
+            _titleText.text = "Victory";
             _titleText.color = new Color(0.7f, 0.92f, 0.62f, 1f);
         }
         else
@@ -63,13 +65,13 @@ public class EndScreenView : MonoBehaviour
         }
 
         string reason;
-        if (_act1ClearHandoff)
+        if (_actClearHandoff)
         {
-            reason = "Act 1 cleared.\nThe rival guilds regroup for Act 2.";
+            reason = GameRules.GetActLabel(act) + " cleared.\nThe rival guilds regroup for " + GameRules.GetActLabel(act + 1) + ".";
         }
         else if (isVictory)
         {
-            reason = "Rival guilds defeated.\nTemporary Act 2 finale - no further content yet.";
+            reason = "All rival guilds defeated.\n" + GameRules.GetActLabel(act) + " complete - the run is won.";
         }
         else
         {
@@ -98,7 +100,9 @@ public class EndScreenView : MonoBehaviour
         if (_newRunButton != null)
         {
             _newRunButton.interactable = true;
-            _newRunLabel.text = _act1ClearHandoff ? "Continue to Act 2" : "Main Menu";
+            _newRunLabel.text = _actClearHandoff
+                ? "Continue to " + GameRules.GetActLabel(act + 1)
+                : "Main Menu";
         }
     }
 
@@ -157,7 +161,7 @@ public class EndScreenView : MonoBehaviour
             _newRunButton.interactable = false;
         }
 
-        if (_act1ClearHandoff)
+        if (_actClearHandoff)
         {
             if (_onContinueAct2 != null)
             {
