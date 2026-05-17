@@ -1,0 +1,546 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Dungeon Debt — Reward Summary</title>
+<link rel="stylesheet" href="system.css" />
+<style>
+  .frame{ width:1920px; height:1080px; }
+
+  /* Same mini-header for context */
+  .miniheader{
+    height:88px;
+    background:var(--bg-strip);
+    border-bottom:1px solid var(--rule);
+    display:flex; align-items:center;
+    padding:0 28px;
+    gap:22px;
+  }
+  .miniheader .res-row{ display:flex; gap:24px; margin-left:auto; }
+
+  .reward{
+    height:calc(1080px - 88px);
+    padding: 28px 64px 28px;
+    box-sizing:border-box;
+    display:grid;
+    grid-template-rows: auto auto 1fr auto;
+    grid-template-areas:
+      "crumb"
+      "headline"
+      "detail"
+      "footer";
+    row-gap: 24px;
+  }
+
+  /* Crumb */
+  .r-crumb{
+    grid-area:crumb;
+    display:flex; align-items:center; gap:18px;
+  }
+  .r-crumb .h{
+    font-family:var(--f-mono);
+    font-size:12px;
+    letter-spacing:0.24em;
+    text-transform:uppercase;
+    color:var(--ink-mute);
+  }
+  .r-crumb .grow{ flex:1; height:1px; background:var(--rule-faint); }
+
+  /* Headline strip — big resolved facts, in one row */
+  .headline{
+    grid-area:headline;
+    display:grid;
+    grid-template-columns: 1.6fr 1fr 1fr 1fr;
+    gap:0;
+    border:1px solid var(--rule);
+    background:var(--bg-card);
+  }
+  .headline .cell{
+    padding:24px 28px;
+    border-right:1px solid var(--rule-faint);
+    display:flex; flex-direction:column; gap:6px;
+    min-height:140px;
+    justify-content:center;
+  }
+  .headline .cell:last-child{ border-right:none; }
+  .headline .cell .lab{
+    font-family:var(--f-mono);
+    font-size:11px;
+    letter-spacing:0.22em;
+    text-transform:uppercase;
+    color:var(--ink-mute);
+  }
+  .headline .cell .val{
+    font-family:var(--f-serif);
+    font-weight:700;
+    font-size:54px;
+    line-height:1;
+    color:var(--ink);
+    letter-spacing:-0.01em;
+  }
+  .headline .cell .sub{
+    font-family:var(--f-sans);
+    font-size:14px;
+    color:var(--ink-dim);
+  }
+  .headline .cell.win    .val{ color:var(--sev-stable); }
+  .headline .cell.loss   .val{ color:var(--sev-critical); }
+  .headline .cell.gold   .val{ color:var(--gold); font-family:var(--f-mono); font-size:48px; font-weight:600; }
+  .headline .cell.morale .val{ color:var(--morale); font-family:var(--f-mono); font-size:48px; font-weight:600; }
+  .headline .cell.debt   .val{ font-family:var(--f-mono); font-size:48px; font-weight:600; }
+
+  /* Debt change cell uses severity color */
+  .headline .cell.debt[data-tier="stable"]    .val{ color:var(--sev-stable); }
+  .headline .cell.debt[data-tier="strained"]  .val{ color:var(--sev-strained); }
+  .headline .cell.debt[data-tier="dangerous"] .val{ color:var(--sev-dangerous); }
+  .headline .cell.debt[data-tier="critical"]  { background:var(--sev-critical-bg); }
+  .headline .cell.debt[data-tier="critical"]  .val{ color:var(--sev-critical); }
+
+  .delta-pill{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    font-family:var(--f-mono);
+    font-size:12px;
+    letter-spacing:0.14em;
+    text-transform:uppercase;
+    padding:3px 10px;
+    border:1px solid var(--rule);
+    color:var(--ink-dim);
+    align-self:flex-start;
+  }
+  .delta-pill.up{ color:var(--sev-stable); border-color:var(--sev-stable); }
+  .delta-pill.down{ color:var(--sev-critical); border-color:var(--sev-critical); }
+  .delta-pill.warn{ color:var(--sev-dangerous); border-color:var(--sev-dangerous); }
+
+  /* Detail — two-column ledger */
+  .detail{
+    grid-area:detail;
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap:32px;
+  }
+  .detail .col{
+    border:1px solid var(--rule-faint);
+    background:var(--bg-card);
+    padding:20px 24px;
+  }
+  .detail .col h4{
+    font-family:var(--f-mono);
+    font-size:11px;
+    letter-spacing:0.24em;
+    text-transform:uppercase;
+    color:var(--ink-mute);
+    margin: 0 0 12px;
+    padding-bottom:8px;
+    border-bottom:1px solid var(--rule-faint);
+  }
+  .detail .group{ margin-bottom:18px; }
+  .detail .group:last-child{ margin-bottom:0; }
+  .detail .group .gh{
+    font-family:var(--f-sans);
+    font-size:13px; font-weight:600;
+    color:var(--ink-dim);
+    letter-spacing:0.05em;
+    margin-bottom:4px;
+  }
+  .kv .v.warn{ color:var(--sev-dangerous); }
+  .kv .v.crit{ color:var(--sev-critical); }
+  .kv.bigfinal{
+    border-top:1px solid var(--rule-strong);
+    margin-top:8px; padding-top:10px;
+  }
+  .kv.bigfinal .k{
+    font-family:var(--f-mono);
+    font-size:11px;
+    letter-spacing:0.22em;
+    text-transform:uppercase;
+    color:var(--ink-mute);
+  }
+  .kv.bigfinal .v{
+    font-family:var(--f-mono);
+    font-size:20px;
+    font-weight:600;
+    color:var(--ink);
+  }
+
+  /* Footer */
+  .r-footer{
+    grid-area:footer;
+    display:flex; justify-content:space-between; align-items:center;
+    border-top:1px solid var(--rule-faint);
+    padding-top:18px;
+  }
+  .r-footer .ledger{
+    display:flex; gap:32px;
+    font-family:var(--f-mono);
+    font-size:13px;
+    letter-spacing:0.06em;
+    color:var(--ink-dim);
+  }
+  .r-footer .ledger .item b{ color:var(--ink); font-weight:600; font-size:14px; }
+  .r-footer .ledger .item .lab{
+    font-size:11px;
+    letter-spacing:0.22em;
+    text-transform:uppercase;
+    color:var(--ink-mute);
+    display:block;
+  }
+
+  /* Capstone celebratory variant — same panel, brass */
+  .capstone-reward .headline{ border-color:var(--gold); }
+  .capstone-reward .headline .cell.win .val{ color:var(--gold); }
+  .relic-banner{
+    display:flex; align-items:center; gap:20px;
+    border:1px solid var(--gold);
+    background:#1a1610;
+    padding:20px 28px;
+    margin-top:0;
+  }
+  .relic-banner .crest{
+    width:44px; height:44px;
+    background:var(--gold);
+    color:var(--ink-invert);
+    display:flex; align-items:center; justify-content:center;
+    font-family:var(--f-serif); font-size:26px; font-weight:700;
+  }
+  .relic-banner .body{ display:flex; flex-direction:column; gap:2px; flex:1; }
+  .relic-banner .lab{
+    font-family:var(--f-mono);
+    font-size:11px;
+    letter-spacing:0.24em;
+    text-transform:uppercase;
+    color:var(--gold);
+  }
+  .relic-banner .title{
+    font-family:var(--f-serif);
+    font-size:24px;
+    font-weight:600;
+    color:var(--gold);
+  }
+  .relic-banner .desc{
+    font-family:var(--f-sans);
+    font-size:14px;
+    color:var(--ink-dim);
+  }
+</style>
+</head>
+<body>
+  <div class="page">
+    <p class="page-kicker">M20.2 · View 4 of 5</p>
+    <h1 class="page-title">Reward Summary</h1>
+    <p class="page-sub">
+      Re-prioritized after combat. The 4-cell headline strip resolves the round at a glance:
+      win/loss · net gold · morale change · debt + severity. Detail ledger keeps every existing
+      field (upkeep / interest / payroll / veterancy) but groups them so a flat 13-line wall becomes
+      two scannable columns. Capstone is the same panel + a brass relic banner above the headline.
+    </p>
+
+    <!-- ──────────────────────────────────────────────────────────── -->
+    <div class="variant">
+      <div class="variant-label">
+        <span class="tag">State A</span>
+        <span class="name">Normal round — Act 1, win, debt unchanged</span>
+        <span class="note">Baseline. Most rounds look like this. Single-pass scan: 4 cells.</span>
+      </div>
+      <div class="frame">
+        <div class="miniheader">
+          <div class="act-seal lg act-1"><div class="num">I</div><div class="meta"><div class="lab">Act 1 / 2</div><div class="theme">Dungeon</div></div></div>
+          <div class="res-row">
+            <div class="res"><div class="lab">Gold</div><div class="val">19</div></div>
+            <div class="res"><div class="lab">Morale</div><div class="val">29</div></div>
+            <div class="debt-chip" data-tier="stable">
+              <div class="swatch"></div>
+              <div class="body"><div class="top"><span class="lab">Debt</span><span class="val">3</span></div><div class="tier">Stable</div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="reward">
+          <div class="r-crumb">
+            <span class="h">Reward — Round 03 / 10 · Run 03 / 20</span>
+            <div class="kind dungeon"><span class="dot"></span>Dungeon</div>
+            <div class="grow"></div>
+            <span class="h">Standard contract · standard payroll</span>
+          </div>
+
+          <div class="headline">
+            <div class="cell win">
+              <div class="lab">Combat</div>
+              <div class="val">Win</div>
+              <div class="sub">No allies down · 3 turns</div>
+            </div>
+            <div class="cell gold">
+              <div class="lab">Net Gold</div>
+              <div class="val">+9</div>
+              <div class="delta-pill up">+8 reward · +1 relic</div>
+            </div>
+            <div class="cell morale">
+              <div class="lab">Morale</div>
+              <div class="val">−1</div>
+              <div class="delta-pill">round upkeep</div>
+            </div>
+            <div class="cell debt" data-tier="stable">
+              <div class="lab">Debt</div>
+              <div class="val">3</div>
+              <div class="delta-pill up">Stable · no change</div>
+            </div>
+          </div>
+
+          <div class="detail">
+            <div class="col">
+              <h4>Income</h4>
+              <div class="group">
+                <div class="kv"><div class="k">Combat reward (Slimes)</div><div class="v pos">+8 g</div></div>
+                <div class="kv"><div class="k">Active relic · Guild Dividend</div><div class="v pos">+1 g</div></div>
+                <div class="kv bigfinal"><div class="k">Gold gained</div><div class="v">+9 g</div></div>
+              </div>
+              <h4 style="margin-top:18px">Roster</h4>
+              <div class="kv"><div class="k">Veterancy this round</div><div class="v" style="color:var(--ink-mute); font-style:italic;">no tier-ups</div></div>
+            </div>
+
+            <div class="col">
+              <h4>Upkeep &amp; Interest</h4>
+              <div class="group">
+                <div class="gh">Upkeep · party of 3</div>
+                <div class="kv"><div class="k">Due</div><div class="v">−6 g</div></div>
+                <div class="kv"><div class="k">Paid</div><div class="v">−6 g</div></div>
+                <div class="kv"><div class="k">Shortfall</div><div class="v">0</div></div>
+              </div>
+              <div class="group">
+                <div class="gh">Interest on debt 3 · Standard rate</div>
+                <div class="kv"><div class="k">Charged</div><div class="v">−0 g</div></div>
+                <div class="kv"><div class="k">Paid</div><div class="v">0</div></div>
+                <div class="kv"><div class="k">To debt</div><div class="v">+0</div></div>
+              </div>
+              <div class="kv bigfinal"><div class="k">Debt after</div><div class="v">3 · Stable</div></div>
+            </div>
+          </div>
+
+          <div class="r-footer">
+            <div class="ledger">
+              <div class="item"><span class="lab">Final · Gold</span><b>19</b></div>
+              <div class="item"><span class="lab">Final · Debt</span><b>3 · Stable</b></div>
+              <div class="item"><span class="lab">Final · Morale</span><b>29</b></div>
+            </div>
+            <button class="btn btn--primary btn--lg">Continue <span class="chev">›</span></button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ──────────────────────────────────────────────────────────── -->
+    <div class="variant">
+      <div class="variant-label">
+        <span class="tag">State B</span>
+        <span class="name">Busy round — Loan payroll + veterancy + debt jumps Strained → Dangerous</span>
+        <span class="note">Worst-case density. Severity ramp surfaces the tier change above all else.</span>
+      </div>
+      <div class="frame">
+        <div class="miniheader">
+          <div class="act-seal lg act-1"><div class="num">I</div><div class="meta"><div class="lab">Act 1 / 2</div><div class="theme">Dungeon</div></div></div>
+          <div class="res-row">
+            <div class="res"><div class="lab">Gold</div><div class="val">11</div></div>
+            <div class="res"><div class="lab">Morale</div><div class="val">22</div></div>
+            <div class="debt-chip" data-tier="dangerous">
+              <div class="swatch"></div>
+              <div class="body"><div class="top"><span class="lab">Debt</span><span class="val">14</span></div><div class="tier">Dangerous</div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="reward">
+          <div class="r-crumb">
+            <span class="h">Reward — Round 07 / 10 · Run 07 / 20</span>
+            <div class="kind rival frugal"><span class="dot"></span>Rival · Frugal Guild</div>
+            <div class="grow"></div>
+            <span class="h" style="color:var(--sev-dangerous);">⚠ Payroll · Take Loan · interest applied</span>
+          </div>
+
+          <div class="headline">
+            <div class="cell win">
+              <div class="lab">Combat</div>
+              <div class="val">Win</div>
+              <div class="sub">2 allies down · 6 turns</div>
+            </div>
+            <div class="cell gold">
+              <div class="lab">Net Gold</div>
+              <div class="val">+3</div>
+              <div class="delta-pill up">+12 reward · −9 upkeep+interest</div>
+            </div>
+            <div class="cell morale">
+              <div class="lab">Morale</div>
+              <div class="val">−3</div>
+              <div class="delta-pill warn">2 down · loan strain</div>
+            </div>
+            <div class="cell debt" data-tier="dangerous">
+              <div class="lab">Debt</div>
+              <div class="val">14</div>
+              <div class="delta-pill warn">Strained → Dangerous · +6</div>
+            </div>
+          </div>
+
+          <div class="detail">
+            <div class="col">
+              <h4>Income &amp; Payroll</h4>
+              <div class="group">
+                <div class="gh">Income</div>
+                <div class="kv"><div class="k">Combat reward (Frugal Guild)</div><div class="v pos">+12 g</div></div>
+                <div class="kv"><div class="k">Active relic · Guild Dividend</div><div class="v pos">+1 g</div></div>
+                <div class="kv"><div class="k">Loan principal</div><div class="v pos">+5 g</div></div>
+                <div class="kv bigfinal"><div class="k">Gold in</div><div class="v">+18 g</div></div>
+              </div>
+              <div class="group">
+                <div class="gh" style="color:var(--sev-dangerous);">Payroll action · Take Loan</div>
+                <div class="kv"><div class="k">Debt added</div><div class="v warn">+6</div></div>
+                <div class="kv"><div class="k">Effect</div><div class="v" style="font-family:var(--f-sans); font-size:13px;">+5 g now, +6 debt this round</div></div>
+              </div>
+              <div class="group">
+                <div class="gh">Roster · Veterancy</div>
+                <div class="kv"><div class="k">Warrior <span style="color:var(--gold);">V1 → V2</span></div><div class="v" style="color:var(--gold);">+1 ATK · +2 HP</div></div>
+              </div>
+            </div>
+
+            <div class="col">
+              <h4>Upkeep &amp; Interest</h4>
+              <div class="group">
+                <div class="gh">Upkeep · party of 4</div>
+                <div class="kv"><div class="k">Due</div><div class="v">−9 g</div></div>
+                <div class="kv"><div class="k">Paid</div><div class="v">−9 g</div></div>
+                <div class="kv"><div class="k">Shortfall</div><div class="v">0</div></div>
+              </div>
+              <div class="group">
+                <div class="gh">Interest on debt 8 · Predatory rate</div>
+                <div class="kv"><div class="k">Charged</div><div class="v">−6 g</div></div>
+                <div class="kv"><div class="k">Paid</div><div class="v">−6 g</div></div>
+                <div class="kv"><div class="k">To debt (unpaid)</div><div class="v">+0</div></div>
+              </div>
+              <div class="kv bigfinal"><div class="k">Debt after</div><div class="v warn">14 · Dangerous</div></div>
+              <p style="font-family:var(--f-sans); font-size:13px; color:var(--sev-dangerous); margin:12px 0 0;">
+                ⚠ Bankruptcy at debt 20 — 6 away. Consider Cut Wages next round.
+              </p>
+            </div>
+          </div>
+
+          <div class="r-footer">
+            <div class="ledger">
+              <div class="item"><span class="lab">Final · Gold</span><b>11</b></div>
+              <div class="item"><span class="lab">Final · Debt</span><b style="color:var(--sev-dangerous);">14 · Dangerous</b></div>
+              <div class="item"><span class="lab">Final · Morale</span><b>22</b></div>
+            </div>
+            <button class="btn btn--primary btn--lg">Continue <span class="chev">›</span></button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ──────────────────────────────────────────────────────────── -->
+    <div class="variant">
+      <div class="variant-label">
+        <span class="tag">State C</span>
+        <span class="name">Capstone reward — Act 1 boss cleared, relic earned</span>
+        <span class="note">Same skeleton, plus a brass relic banner above the headline. Act-clear is unmistakable.</span>
+      </div>
+      <div class="frame capstone-reward">
+        <div class="miniheader" style="background:#15120a; border-bottom-color:var(--gold)">
+          <div class="act-seal lg act-1"><div class="num">I</div><div class="meta"><div class="lab">Cleared</div><div class="theme">Dungeon</div></div></div>
+          <div class="res-row">
+            <div class="res"><div class="lab">Gold</div><div class="val">28</div></div>
+            <div class="res"><div class="lab">Morale</div><div class="val">26</div></div>
+            <div class="debt-chip" data-tier="strained">
+              <div class="swatch"></div>
+              <div class="body"><div class="top"><span class="lab">Debt</span><span class="val">9</span></div><div class="tier">Strained</div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="reward">
+          <div class="r-crumb">
+            <span class="h" style="color:var(--gold);">★ Capstone reward — Round 10 / 10 · Run 10 / 20</span>
+            <div class="kind capstone"><span class="dot"></span>Act 1 cleared</div>
+            <div class="grow" style="background:var(--gold); opacity:0.4;"></div>
+            <span class="h" style="color:var(--gold);">Standard payroll · relic recovered</span>
+          </div>
+
+          <div class="relic-banner">
+            <div class="crest">★</div>
+            <div class="body">
+              <div class="lab">Relic earned · permanent run modifier</div>
+              <div class="title">Guild Dividend</div>
+              <div class="desc">Gain +1 extra gold in each reward phase. Persists into Act 2.</div>
+            </div>
+            <button class="btn btn--secondary" style="border-color:var(--gold); color:var(--gold);">Review 3 choices ›</button>
+          </div>
+
+          <div class="headline">
+            <div class="cell win">
+              <div class="lab">Combat · boss</div>
+              <div class="val">Win</div>
+              <div class="sub">All allies survived · 8 turns</div>
+            </div>
+            <div class="cell gold">
+              <div class="lab">Net Gold</div>
+              <div class="val">+15</div>
+              <div class="delta-pill up">+18 reward · −3 upkeep</div>
+            </div>
+            <div class="cell morale">
+              <div class="lab">Morale</div>
+              <div class="val">+2</div>
+              <div class="delta-pill up">act clear bonus</div>
+            </div>
+            <div class="cell debt" data-tier="strained">
+              <div class="lab">Debt</div>
+              <div class="val">9</div>
+              <div class="delta-pill up">Strained · −2 paid down</div>
+            </div>
+          </div>
+
+          <div class="detail">
+            <div class="col">
+              <h4>Income</h4>
+              <div class="group">
+                <div class="kv"><div class="k">Capstone reward · Act 1 boss</div><div class="v pos">+18 g</div></div>
+                <div class="kv bigfinal"><div class="k">Gold in</div><div class="v">+18 g</div></div>
+              </div>
+              <h4 style="margin-top:18px">Roster · Veterancy</h4>
+              <div class="kv"><div class="k">Ranger <span style="color:var(--gold);">V2 → V3</span></div><div class="v" style="color:var(--gold);">+1 ATK</div></div>
+              <div class="kv"><div class="k">Warrior <span style="color:var(--gold);">V1 → V2</span></div><div class="v" style="color:var(--gold);">+1 ATK · +2 HP</div></div>
+            </div>
+
+            <div class="col">
+              <h4>Upkeep &amp; Interest</h4>
+              <div class="group">
+                <div class="gh">Upkeep · party of 4</div>
+                <div class="kv"><div class="k">Due</div><div class="v">−9 g</div></div>
+                <div class="kv"><div class="k">Paid</div><div class="v">−9 g</div></div>
+                <div class="kv"><div class="k">Shortfall</div><div class="v">0</div></div>
+              </div>
+              <div class="group">
+                <div class="gh">Interest on debt 11 · Standard rate</div>
+                <div class="kv"><div class="k">Charged</div><div class="v">−3 g</div></div>
+                <div class="kv"><div class="k">Paid (+ overflow to principal)</div><div class="v">−5 g</div></div>
+                <div class="kv"><div class="k">Principal paid down</div><div class="v pos">−2</div></div>
+              </div>
+              <div class="kv bigfinal"><div class="k">Debt after</div><div class="v" style="color:var(--sev-strained)">9 · Strained</div></div>
+            </div>
+          </div>
+
+          <div class="r-footer">
+            <div class="ledger">
+              <div class="item"><span class="lab">Final · Gold</span><b>28</b></div>
+              <div class="item"><span class="lab">Final · Debt</span><b style="color:var(--sev-strained);">9 · Strained</b></div>
+              <div class="item"><span class="lab">Final · Morale</span><b>26</b></div>
+              <div class="item"><span class="lab">Relics</span><b style="color:var(--gold);">1 earned</b></div>
+            </div>
+            <button class="btn btn--primary btn--lg">Continue to Act 2 <span class="chev">›</span></button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <p class="page-sub" style="margin-top:48px; font-size:13px;">
+      <a href="index.html" style="color:var(--gold); text-decoration:none;">← back to index</a>
+    </p>
+  </div>
+</body>
+</html>

@@ -1,0 +1,472 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Dungeon Debt — Run Header</title>
+<link rel="stylesheet" href="system.css" />
+<style>
+  /* Run Header — sized as a top-chrome strip, not full 1080.
+     Two zones: primary row (88px) + relic/meta strip (32px).
+     Total fixed-height chrome = 120px. */
+  .header{
+    width:1920px;
+    height:120px;
+    background:var(--bg-strip);
+    border-bottom:1px solid var(--rule);
+    display:flex; flex-direction:column;
+    color:var(--ink);
+    font-family:var(--f-sans);
+  }
+  .header .row1{
+    height:88px;
+    display:flex; align-items:center;
+    padding: 0 28px;
+    gap:22px;
+    border-bottom:1px solid var(--rule-faint);
+  }
+  .header .row2{
+    height:32px;
+    display:flex; align-items:center;
+    padding: 0 28px;
+    gap:14px;
+  }
+
+  /* Round position cluster */
+  .roundpos{
+    display:flex; align-items:baseline; gap:14px;
+    padding:0 6px;
+  }
+  .roundpos .within{
+    font-family:var(--f-mono);
+    font-size:28px;
+    font-weight:600;
+    color:var(--ink);
+    letter-spacing:0.04em;
+    line-height:1;
+  }
+  .roundpos .within .of{ color:var(--ink-mute); font-weight:400; }
+  .roundpos .total{
+    font-family:var(--f-mono);
+    font-size:13px;
+    letter-spacing:0.18em;
+    text-transform:uppercase;
+    color:var(--ink-mute);
+    padding-left:12px;
+    border-left:1px solid var(--rule);
+    line-height:1.1;
+  }
+  .roundpos .total b{ color:var(--ink-dim); font-weight:600; font-size:14px; }
+  .roundpos .contract{
+    font-family:var(--f-sans);
+    font-size:12px;
+    letter-spacing:0.14em;
+    text-transform:uppercase;
+    color:var(--ink-mute);
+    border-left:1px solid var(--rule);
+    padding-left:12px;
+    line-height:1.1;
+  }
+  .roundpos .contract b{ color:var(--ink-dim); }
+
+  /* Vertical rule between clusters */
+  .vr{ width:1px; align-self:stretch; background:var(--rule-faint); }
+
+  /* Right-side resource cluster */
+  .resources{
+    display:flex; align-items:center; gap:24px;
+    margin-left:auto;
+  }
+
+  /* Relics strip */
+  .relics-strip{
+    display:flex; align-items:center; gap:10px;
+    flex:1;
+  }
+  .relics-strip .label{
+    font-family:var(--f-mono);
+    font-size:11px;
+    letter-spacing:0.22em;
+    text-transform:uppercase;
+    color:var(--ink-mute);
+    padding-right:8px;
+    border-right:1px solid var(--rule-faint);
+    margin-right:4px;
+  }
+  .relics-strip .empty{
+    font-family:var(--f-sans);
+    font-size:13px;
+    font-style:italic;
+    color:var(--ink-mute);
+  }
+
+  /* Compact run-progress that lives in row2 (small) */
+  .runline{
+    display:flex; align-items:center; gap:10px;
+    font-family:var(--f-mono);
+    font-size:11px;
+    letter-spacing:0.18em;
+    color:var(--ink-mute);
+    text-transform:uppercase;
+  }
+</style>
+</head>
+<body>
+  <div class="page">
+    <p class="page-kicker">M20.2 · View 1 of 5</p>
+    <h1 class="page-title">Run Header</h1>
+    <p class="page-sub">
+      Persistent top chrome — fixed 120px (88px primary row + 32px relic strip).
+      The primary row carries identity + run/act position on the left, resources + debt-status on the right.
+      Debt is the dominant readability element: chip uses the shared severity ramp and turns full red at Critical.
+      Per-act identity is one data row: Roman numeral, theme word, accent color. Acts 3–5 ship as new rows; no relayout.
+    </p>
+
+    <!-- ──────────────────────────────────────────────────────────── -->
+    <div class="variant">
+      <div class="variant-label">
+        <span class="tag">State A</span>
+        <span class="name">Act 1 · early run · Stable debt · no relics</span>
+        <span class="note">Baseline. Verify the seal, the runbar segmentation, and the empty-relic state.</span>
+      </div>
+
+      <div class="header act-1" style="--act-accent:#8a909a">
+        <div class="row1">
+          <!-- Act identity -->
+          <div class="act-seal lg act-1">
+            <div class="num">I</div>
+            <div class="meta">
+              <div class="lab">Act 1 / 2</div>
+              <div class="theme">Dungeon</div>
+            </div>
+          </div>
+
+          <div class="vr"></div>
+
+          <!-- Round position -->
+          <div class="roundpos">
+            <div class="within">04<span class="of">/10</span></div>
+            <div class="total">Round<br><b>04 / 20</b></div>
+            <div class="contract">Contract<br><b>Standard</b></div>
+          </div>
+
+          <div class="vr"></div>
+
+          <!-- Run progress meter -->
+          <div class="runbar">
+            <div class="acts">
+              <div class="agroup act-1" style="--act-accent:#8a909a">
+                <span class="alab">I</span>
+                <span class="tick past"></span>
+                <span class="tick past"></span>
+                <span class="tick past"></span>
+                <span class="tick cur"></span>
+                <span class="tick"></span>
+                <span class="tick"></span>
+                <span class="tick"></span>
+                <span class="tick"></span>
+                <span class="tick"></span>
+                <span class="tick cap"></span>
+              </div>
+              <div class="agroup act-2" style="--act-accent:#a8364a">
+                <span class="alab">II</span>
+                <span class="tick"></span>
+                <span class="tick"></span>
+                <span class="tick"></span>
+                <span class="tick"></span>
+                <span class="tick"></span>
+                <span class="tick"></span>
+                <span class="tick"></span>
+                <span class="tick"></span>
+                <span class="tick"></span>
+                <span class="tick cap"></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Resources -->
+          <div class="resources">
+            <div class="res">
+              <div class="lab">Gold</div>
+              <div class="val">15</div>
+            </div>
+            <div class="res">
+              <div class="lab">Morale</div>
+              <div class="val">30</div>
+            </div>
+            <div class="debt-chip" data-tier="stable">
+              <div class="swatch"></div>
+              <div class="body">
+                <div class="top">
+                  <span class="lab">Debt</span>
+                  <span class="val">0</span>
+                </div>
+                <div class="tier">Stable</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="row2">
+          <div class="relics-strip">
+            <span class="label">Relics</span>
+            <span class="empty">— none earned —</span>
+          </div>
+          <div class="runline">
+            <span>Run · 04 / 20</span>
+            <span style="color:var(--rule-strong)">·</span>
+            <span>Next capstone · R10 (Act 1 boss)</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ──────────────────────────────────────────────────────────── -->
+    <div class="variant">
+      <div class="variant-label">
+        <span class="tag">State B</span>
+        <span class="name">Act 1 · mid-act · Dangerous debt · 1 relic</span>
+        <span class="note">Severity language at work. Tier word + swatch shift, not parenthetical.</span>
+      </div>
+
+      <div class="header act-1" style="--act-accent:#8a909a">
+        <div class="row1">
+          <div class="act-seal lg act-1">
+            <div class="num">I</div>
+            <div class="meta">
+              <div class="lab">Act 1 / 2</div>
+              <div class="theme">Dungeon</div>
+            </div>
+          </div>
+
+          <div class="vr"></div>
+
+          <div class="roundpos">
+            <div class="within">07<span class="of">/10</span></div>
+            <div class="total">Round<br><b>07 / 20</b></div>
+            <div class="contract">Contract<br><b>Predatory</b></div>
+          </div>
+
+          <div class="vr"></div>
+
+          <div class="runbar">
+            <div class="acts">
+              <div class="agroup act-1" style="--act-accent:#8a909a">
+                <span class="alab">I</span>
+                <span class="tick past"></span>
+                <span class="tick past"></span>
+                <span class="tick past"></span>
+                <span class="tick past"></span>
+                <span class="tick past"></span>
+                <span class="tick past"></span>
+                <span class="tick cur"></span>
+                <span class="tick"></span>
+                <span class="tick"></span>
+                <span class="tick cap"></span>
+              </div>
+              <div class="agroup act-2" style="--act-accent:#a8364a">
+                <span class="alab">II</span>
+                <span class="tick"></span>
+                <span class="tick"></span>
+                <span class="tick"></span>
+                <span class="tick"></span>
+                <span class="tick"></span>
+                <span class="tick"></span>
+                <span class="tick"></span>
+                <span class="tick"></span>
+                <span class="tick"></span>
+                <span class="tick cap"></span>
+              </div>
+            </div>
+          </div>
+
+          <div class="resources">
+            <div class="res">
+              <div class="lab">Gold</div>
+              <div class="val">3</div>
+            </div>
+            <div class="res">
+              <div class="lab">Morale</div>
+              <div class="val">22</div>
+            </div>
+            <div class="debt-chip" data-tier="dangerous">
+              <div class="swatch"></div>
+              <div class="body">
+                <div class="top">
+                  <span class="lab">Debt</span>
+                  <span class="val">14</span>
+                </div>
+                <div class="tier">Dangerous</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="row2">
+          <div class="relics-strip">
+            <span class="label">Relics</span>
+            <span class="relic"><span class="glyph">★</span>Guild Dividend</span>
+          </div>
+          <div class="runline">
+            <span style="color:var(--sev-dangerous)">⚠ Debt at 14 / 20 to bankruptcy</span>
+            <span style="color:var(--rule-strong)">·</span>
+            <span>Next capstone · R10</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ──────────────────────────────────────────────────────────── -->
+    <div class="variant">
+      <div class="variant-label">
+        <span class="tag">State C</span>
+        <span class="name">Act 2 · late run · Critical debt · 4 relics (overflow case)</span>
+        <span class="note">Theme swap is one accent change. Relic line shows the cap-and-+N rule.</span>
+      </div>
+
+      <div class="header act-2" style="--act-accent:#a8364a">
+        <div class="row1">
+          <div class="act-seal lg act-2">
+            <div class="num">II</div>
+            <div class="meta">
+              <div class="lab">Act 2 / 2</div>
+              <div class="theme">Demonic</div>
+            </div>
+          </div>
+
+          <div class="vr"></div>
+
+          <div class="roundpos">
+            <div class="within">08<span class="of">/10</span></div>
+            <div class="total">Round<br><b>18 / 20</b></div>
+            <div class="contract">Contract<br><b>Predatory</b></div>
+          </div>
+
+          <div class="vr"></div>
+
+          <div class="runbar">
+            <div class="acts">
+              <div class="agroup act-1" style="--act-accent:#8a909a">
+                <span class="alab">I</span>
+                <span class="tick past"></span>
+                <span class="tick past"></span>
+                <span class="tick past"></span>
+                <span class="tick past"></span>
+                <span class="tick past"></span>
+                <span class="tick past"></span>
+                <span class="tick past"></span>
+                <span class="tick past"></span>
+                <span class="tick past"></span>
+                <span class="tick cap past"></span>
+              </div>
+              <div class="agroup act-2" style="--act-accent:#a8364a">
+                <span class="alab">II</span>
+                <span class="tick past"></span>
+                <span class="tick past"></span>
+                <span class="tick past"></span>
+                <span class="tick past"></span>
+                <span class="tick past"></span>
+                <span class="tick past"></span>
+                <span class="tick past"></span>
+                <span class="tick cur"></span>
+                <span class="tick"></span>
+                <span class="tick cap"></span>
+              </div>
+            </div>
+          </div>
+
+          <div class="resources">
+            <div class="res">
+              <div class="lab">Gold</div>
+              <div class="val">2</div>
+            </div>
+            <div class="res">
+              <div class="lab">Morale</div>
+              <div class="val">8</div>
+            </div>
+            <div class="debt-chip" data-tier="critical">
+              <div class="swatch"></div>
+              <div class="body">
+                <div class="top">
+                  <span class="lab">Debt</span>
+                  <span class="val">22</span>
+                </div>
+                <div class="tier">Critical</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="row2">
+          <div class="relics-strip">
+            <span class="label">Relics</span>
+            <span class="relic"><span class="glyph">★</span>Guild Dividend</span>
+            <span class="relic"><span class="glyph">★</span>Shield Clause</span>
+            <span class="relic"><span class="glyph">★</span>Red Ink Brand</span>
+            <span class="relic more">+1 more</span>
+          </div>
+          <div class="runline">
+            <span style="color:var(--sev-critical)">⚠ Bankruptcy at debt 20 · over by 2</span>
+            <span style="color:var(--rule-strong)">·</span>
+            <span>Final capstone · R20</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ──────────────────────────────────────────────────────────── -->
+    <!-- System reference: severity swatches + act table -->
+    <div class="variant">
+      <div class="variant-label">
+        <span class="tag">Tokens</span>
+        <span class="name">Shared severity ramp + Act data table</span>
+        <span class="note">All views reuse this. Acts 3–5 = three more rows.</span>
+      </div>
+
+      <div style="display:flex; gap:48px; align-items:flex-start; flex-wrap:wrap;">
+        <div>
+          <div class="page-kicker" style="margin-bottom:10px">Debt severity (one ramp)</div>
+          <div class="swatch-row">
+            <div class="sw" style="background:var(--sev-stable)">STABLE 0–5</div>
+            <div class="sw" style="background:var(--sev-strained)">STRAINED 6–11</div>
+            <div class="sw" style="background:var(--sev-dangerous)">DANGEROUS 12–19</div>
+            <div class="sw" style="background:var(--sev-critical)">CRITICAL 20+</div>
+          </div>
+          <p class="page-sub" style="margin-top:10px; max-width:520px;">
+            Same four colors are reused anywhere a "this is getting worse" cue is needed
+            (Reward debt-change row, End screen final-debt readout, Combat ally HP at low).
+          </p>
+        </div>
+
+        <div>
+          <div class="page-kicker" style="margin-bottom:10px">Act identity table (data-driven)</div>
+          <table style="border-collapse:collapse; font-family:var(--f-mono); font-size:13px; color:var(--ink-dim);">
+            <thead>
+              <tr style="text-align:left; color:var(--ink-mute); font-size:11px; letter-spacing:0.16em;">
+                <th style="padding:6px 16px 6px 0">SEAL</th>
+                <th style="padding:6px 16px 6px 0">N</th>
+                <th style="padding:6px 16px 6px 0">THEME</th>
+                <th style="padding:6px 16px 6px 0">ACCENT</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td style="padding:6px 16px 6px 0"><span class="act-seal act-1"><span class="num">I</span><span class="meta"><span class="lab">Act</span><span class="theme">Dungeon</span></span></span></td><td>1</td><td>Dungeon</td><td>#8A909A</td></tr>
+              <tr><td style="padding:6px 16px 6px 0"><span class="act-seal act-2"><span class="num">II</span><span class="meta"><span class="lab">Act</span><span class="theme">Demonic</span></span></span></td><td>2</td><td>Demonic</td><td>#A8364A</td></tr>
+              <tr><td style="padding:6px 16px 6px 0"><span class="act-seal act-3"><span class="num">III</span><span class="meta"><span class="lab">Act</span><span class="theme">Verdant*</span></span></span></td><td>3</td><td>(TBD — placeholder)</td><td>#4F9089</td></tr>
+              <tr><td style="padding:6px 16px 6px 0"><span class="act-seal act-4"><span class="num">IV</span><span class="meta"><span class="lab">Act</span><span class="theme">Golden*</span></span></span></td><td>4</td><td>(TBD — placeholder)</td><td>#C9A04A</td></tr>
+              <tr><td style="padding:6px 16px 6px 0"><span class="act-seal act-5"><span class="num">V</span><span class="meta"><span class="lab">Act</span><span class="theme">Void*</span></span></span></td><td>5</td><td>(TBD — placeholder)</td><td>#8C6AA8</td></tr>
+            </tbody>
+          </table>
+          <p class="page-sub" style="margin-top:14px; max-width:520px;">
+            *Acts 3–5 themes are placeholders to prove scaling. New acts only need: numeral, theme word, accent hex.
+            No layout changes required.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <p class="page-sub" style="margin-top:48px; font-size:13px;">
+      <a href="index.html" style="color:var(--gold); text-decoration:none;">← back to index</a>
+    </p>
+  </div>
+</body>
+</html>

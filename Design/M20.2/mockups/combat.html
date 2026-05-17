@@ -1,0 +1,567 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Dungeon Debt — Combat (re-skin)</title>
+<link rel="stylesheet" href="system.css" />
+<style>
+  .frame{ width:1920px; height:1080px; }
+
+  .miniheader{
+    height:88px;
+    background:var(--bg-strip);
+    border-bottom:1px solid var(--rule);
+    display:flex; align-items:center;
+    padding:0 28px;
+    gap:22px;
+  }
+  .miniheader .res-row{ display:flex; gap:24px; margin-left:auto; }
+
+  /* Combat panel structure (KEEPING the existing 4-row layout) */
+  .combat{
+    height:calc(1080px - 88px);
+    display:grid;
+    grid-template-rows: 60px 1fr 156px;
+    grid-template-areas:
+      "context"
+      "board"
+      "log";
+    box-sizing:border-box;
+  }
+
+  /* Context strip — replaces bare "Combat" title */
+  .context{
+    grid-area: context;
+    display:flex; align-items:center;
+    padding: 0 32px;
+    gap:14px;
+    border-bottom:1px solid var(--rule-faint);
+    background:var(--bg-strip);
+  }
+  .context .label{
+    font-family:var(--f-mono);
+    font-size:11px;
+    letter-spacing:0.24em;
+    text-transform:uppercase;
+    color:var(--ink-mute);
+    padding-right:8px;
+    border-right:1px solid var(--rule-faint);
+  }
+  .context .name{
+    font-family:var(--f-serif);
+    font-size:24px;
+    font-weight:600;
+    color:var(--ink);
+    line-height:1;
+    padding-right:16px;
+  }
+  .context .turn{
+    font-family:var(--f-mono);
+    font-size:13px;
+    letter-spacing:0.16em;
+    text-transform:uppercase;
+    color:var(--ink-mute);
+    margin-left:auto;
+  }
+  .context .turn b{ color:var(--ink); }
+
+  /* The board itself */
+  .board{
+    grid-area: board;
+    display:grid;
+    grid-template-rows: 1fr 1fr 4px 1fr 1fr;
+    grid-template-columns: 160px 1fr 220px;
+    grid-template-areas:
+      "ebLab eb  fx"
+      "efLab ef  fx"
+      "line  line line"
+      "hfLab hf  fx2"
+      "hbLab hb  fx2";
+    background:var(--bg-panel);
+  }
+  .row{
+    display:flex; align-items:center; justify-content:center;
+    gap:14px;
+    padding: 10px 24px;
+    border-bottom:1px solid var(--rule-faint);
+  }
+  .row.eb{ grid-area: eb;  background:linear-gradient(180deg, #1a131500 0%, #1c151700 100%); }
+  .row.ef{ grid-area: ef;  background:#1d1517; border-bottom:none; }
+  .row.hf{ grid-area: hf;  background:#13192a; border-bottom:none; }
+  .row.hb{ grid-area: hb;  background:#13192a; border-top:1px solid var(--rule-faint); }
+  /* Flat-fallback note: rows use solid tinted fills (no gradient required to read). */
+  .row.eb{ background:#1d1517; }
+
+  .rowlab{
+    display:flex; flex-direction:column; justify-content:center;
+    padding: 0 16px 0 32px;
+    border-right:1px solid var(--rule-faint);
+    gap:6px;
+  }
+  .rowlab.eb-l{ grid-area: ebLab; background:#1d1517; }
+  .rowlab.ef-l{ grid-area: efLab; background:#1d1517; border-bottom:none; }
+  .rowlab.hf-l{ grid-area: hfLab; background:#13192a; border-bottom:none; }
+  .rowlab.hb-l{ grid-area: hbLab; background:#13192a; }
+  .rowlab .side{
+    font-family:var(--f-mono);
+    font-size:10px;
+    letter-spacing:0.24em;
+    text-transform:uppercase;
+    color:var(--ink-mute);
+  }
+  .rowlab.eb-l .side, .rowlab.ef-l .side{ color:var(--enemy); }
+  .rowlab.hf-l .side, .rowlab.hb-l .side{ color:var(--hero); }
+  .rowlab .name{
+    font-family:var(--f-sans);
+    font-weight:600;
+    font-size:16px;
+    color:var(--ink);
+    line-height:1;
+  }
+  .rowlab .sub{
+    font-family:var(--f-mono);
+    font-size:11px;
+    color:var(--ink-mute);
+    letter-spacing:0.08em;
+  }
+
+  /* Battle line — the clash divider */
+  .battleline{
+    grid-area: line;
+    background:
+      repeating-linear-gradient(
+        90deg,
+        var(--rule) 0 12px,
+        transparent 12px 18px
+      ),
+      linear-gradient(180deg, #1d1517 0%, #13192a 100%);
+    border-top:1px solid var(--enemy);
+    border-bottom:1px solid var(--hero);
+    position:relative;
+  }
+  .battleline::before, .battleline::after{
+    content:'';
+    position:absolute; top:50%; transform:translateY(-50%);
+    width:24px; height:3px;
+  }
+  .battleline::before{ left:160px; background:var(--enemy); }
+  .battleline::after { right:220px; background:var(--hero); }
+  /* Flat-fallback: replace the repeating gradient with a 1px hairline. */
+
+  /* Right-side fx column (single shared traveling effect sprite, shown static) */
+  .fx{
+    grid-area: fx;
+    border-left:1px solid var(--rule-faint);
+    background:var(--bg-strip);
+    padding:14px 18px;
+    display:flex; flex-direction:column; gap:10px;
+  }
+  .fx2{
+    grid-area: fx2;
+    border-left:1px solid var(--rule-faint);
+    background:var(--bg-strip);
+    padding:14px 18px;
+    display:flex; flex-direction:column; gap:10px;
+  }
+  .fx h5, .fx2 h5{
+    margin:0 0 6px;
+    font-family:var(--f-mono);
+    font-size:10px;
+    letter-spacing:0.24em;
+    text-transform:uppercase;
+    color:var(--ink-mute);
+    padding-bottom:6px;
+    border-bottom:1px solid var(--rule-faint);
+  }
+  .effect-sample{
+    display:flex; align-items:center; gap:10px;
+    font-family:var(--f-mono);
+    font-size:12px;
+    color:var(--ink-dim);
+  }
+  .effect-sample .glyph{
+    width:24px; height:24px;
+    display:inline-flex; align-items:center; justify-content:center;
+    border:1px solid var(--rule);
+    background:var(--bg-card);
+    font-size:14px;
+  }
+  .turn-indicator{
+    margin-top:auto;
+    padding-top:10px;
+    border-top:1px solid var(--rule-faint);
+    font-family:var(--f-mono);
+    font-size:11px;
+    color:var(--ink-mute);
+    letter-spacing:0.16em;
+    text-transform:uppercase;
+  }
+  .turn-indicator b{ color:var(--ink); display:block; font-size:18px; letter-spacing:0.04em; font-family:var(--f-mono); font-weight:600; }
+
+  /* Combat log */
+  .log{
+    grid-area:log;
+    background:var(--bg-strip);
+    border-top:1px solid var(--rule);
+    display:grid;
+    grid-template-columns: 160px 1fr 220px;
+  }
+  .log .head{
+    padding:14px 24px 14px 32px;
+    border-right:1px solid var(--rule-faint);
+    font-family:var(--f-mono);
+    font-size:10px;
+    letter-spacing:0.24em;
+    text-transform:uppercase;
+    color:var(--ink-mute);
+  }
+  .log .head b{
+    display:block;
+    color:var(--ink-dim);
+    font-size:14px;
+    letter-spacing:0.06em;
+    text-transform:none;
+    margin-top:4px;
+    font-family:var(--f-sans);
+    font-weight:500;
+  }
+  .log .stream{
+    padding:14px 24px;
+    overflow:hidden;
+    font-family:var(--f-mono);
+    font-size:13px;
+    line-height:1.6;
+    color:var(--ink-dim);
+  }
+  .log .stream .line{ display:flex; gap:10px; }
+  .log .stream .line .t{ color:var(--ink-mute); }
+  .log .stream .line.crit .body{ color:var(--sev-critical); }
+  .log .stream .line.heal .body{ color:var(--sev-stable); }
+  .log .stream .speed{
+    border-left:1px solid var(--rule-faint);
+    padding:14px 24px;
+    display:flex; flex-direction:column; gap:8px;
+    font-family:var(--f-mono);
+    font-size:11px; letter-spacing:0.16em; text-transform:uppercase;
+    color:var(--ink-mute);
+  }
+  .log .speed .opts{ display:flex; gap:6px; }
+  .log .speed .opts span{
+    padding:4px 8px;
+    border:1px solid var(--rule); color:var(--ink-dim);
+    font-size:11px;
+  }
+  .log .speed .opts span.on{ background:var(--ink); color:var(--ink-invert); border-color:var(--ink); }
+
+  /* Unit-card overrides for combat (state markers + smaller in board) */
+  .unit.acting{ outline:2px solid var(--gold); outline-offset:-2px; }
+  .unit.acting .name{ background:var(--gold); color:var(--ink-invert); }
+  .unit.acting .name .role{ color:var(--ink-invert); }
+  .unit.hit  { outline:2px solid var(--sev-critical); outline-offset:-2px; }
+  .unit.dead { opacity:0.45; }
+  .unit.dead .name{ text-decoration:line-through; color:var(--ink-mute); }
+  .unit .hp .fill.hi{ background:var(--sev-stable); }
+  .unit .hp .fill.mid{ background:var(--sev-strained); }
+  .unit .hp .fill.lo { background:var(--sev-critical); }
+
+  /* Targeting reticle on effect demo */
+  .reticle{
+    width:64px; height:64px;
+    border:1px dashed var(--gold);
+    display:flex; align-items:center; justify-content:center;
+    color:var(--gold);
+    font-family:var(--f-mono);
+    font-size:11px;
+    letter-spacing:0.12em;
+  }
+</style>
+</head>
+<body>
+  <div class="page">
+    <p class="page-kicker">M20.2 · View 5 of 5 · RE-SKIN ONLY</p>
+    <h1 class="page-title">Combat</h1>
+    <p class="page-sub">
+      Structure is unchanged: four rows (Enemy Back · Enemy Front · Hero Front · Hero Back), the same
+      unit cards, the same single traveling effect sprite, the same external log. The re-skin replaces
+      the bare <i>“Combat”</i> title with the shared context strip (act + round + fight kind), tints the
+      two sides so front/back hierarchy reads at a glance, and standardizes the six status chips against
+      the new palette. Card footprint and effect budget are preserved.
+    </p>
+
+    <!-- ──────────────────────────────────────────────────────────── -->
+    <div class="variant">
+      <div class="variant-label">
+        <span class="tag">State A</span>
+        <span class="name">Act 1 dungeon · round 3 (baseline re-skin)</span>
+        <span class="note">Same data as the current screenshot; new chrome, same card sizes.</span>
+      </div>
+      <div class="frame">
+        <div class="miniheader">
+          <div class="act-seal lg act-1"><div class="num">I</div><div class="meta"><div class="lab">Act 1 / 2</div><div class="theme">Dungeon</div></div></div>
+          <div class="res-row">
+            <div class="res"><div class="lab">Gold</div><div class="val">3</div></div>
+            <div class="res"><div class="lab">Morale</div><div class="val">30</div></div>
+            <div class="debt-chip" data-tier="stable">
+              <div class="swatch"></div>
+              <div class="body"><div class="top"><span class="lab">Debt</span><span class="val">0</span></div><div class="tier">Stable</div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="combat">
+          <div class="context">
+            <span class="label">In fight</span>
+            <span class="name">Greedy Tank &amp; Pack</span>
+            <div class="kind dungeon"><span class="dot"></span>Dungeon · Round 03 / 10 · Run 03 / 20</div>
+            <span class="turn">Turn <b>04</b> · Combat running…</span>
+          </div>
+
+          <div class="board">
+            <div class="rowlab eb-l"><span class="side">Enemy</span><span class="name">Back</span><span class="sub">3 slots</span></div>
+            <div class="row eb">
+              <div class="unit enemy">
+                <div class="name">Greedy <span class="role">Caster</span></div>
+                <div class="portrait">[ caster ]</div>
+                <div class="stats"><span>ATK <b>2</b></span><span>HP <b>0/4</b></span></div>
+                <div class="hp"><div class="fill lo" style="width:0%"></div><div class="lab">0 / 4</div></div>
+                <div class="statuses"><span class="status" data-s="M">M</span></div>
+              </div>
+              <div class="unit enemy dead">
+                <div class="name">Greedy <span class="role">Caster</span></div>
+                <div class="portrait">[ caster ]</div>
+                <div class="stats"><span>ATK <b>2</b></span><span>HP <b>0/4</b></span></div>
+                <div class="hp"><div class="fill" style="width:0%; background:var(--ink-faint);"></div><div class="lab">— dead —</div></div>
+                <div class="statuses"></div>
+              </div>
+            </div>
+
+            <div class="rowlab ef-l"><span class="side">Enemy</span><span class="name">Front</span><span class="sub">2 slots</span></div>
+            <div class="row ef">
+              <div class="unit enemy dead">
+                <div class="name">Greedy Tank <span class="role">Front</span></div>
+                <div class="portrait">[ heavy ]</div>
+                <div class="stats"><span>ATK <b>3</b></span><span>HP <b>0/8</b></span></div>
+                <div class="hp"><div class="fill" style="width:0%; background:var(--ink-faint);"></div><div class="lab">— dead —</div></div>
+                <div class="statuses"></div>
+              </div>
+              <div class="unit enemy hit">
+                <div class="name">Greedy Tank <span class="role">Front</span></div>
+                <div class="portrait">[ heavy ]</div>
+                <div class="stats"><span>ATK <b>3</b></span><span>HP <b>5/8</b></span></div>
+                <div class="hp"><div class="fill mid" style="width:62%"></div><div class="lab">5 / 8</div></div>
+                <div class="statuses"><span class="status" data-s="W">W</span></div>
+              </div>
+            </div>
+
+            <div class="battleline"></div>
+
+            <div class="rowlab hf-l"><span class="side">Hero</span><span class="name">Front</span><span class="sub">2 slots</span></div>
+            <div class="row hf">
+              <div class="unit hero">
+                <div class="name">Warrior <span class="role">Tank</span></div>
+                <div class="portrait">[ warrior ]</div>
+                <div class="stats"><span>ATK <b>3</b></span><span>HP <b>3/9</b></span></div>
+                <div class="hp"><div class="fill lo" style="width:33%"></div><div class="lab">3 / 9</div></div>
+                <div class="statuses"><span class="status" data-s="G">G</span></div>
+              </div>
+            </div>
+
+            <div class="rowlab hb-l"><span class="side">Hero</span><span class="name">Back</span><span class="sub">3 slots</span></div>
+            <div class="row hb">
+              <div class="unit hero acting">
+                <div class="name">Ninja <span class="role">Damage</span></div>
+                <div class="portrait">[ ninja ]</div>
+                <div class="stats"><span>ATK <b>4</b></span><span>HP <b>3/3</b></span></div>
+                <div class="hp"><div class="fill hi" style="width:100%"></div><div class="lab">3 / 3</div></div>
+                <div class="statuses"><span class="status" data-s="I">I</span></div>
+              </div>
+              <div class="unit hero">
+                <div class="name">Ranger <span class="role">Damage</span></div>
+                <div class="portrait">[ ranger ]</div>
+                <div class="stats"><span>ATK <b>6</b></span><span>HP <b>6/6</b></span></div>
+                <div class="hp"><div class="fill hi" style="width:100%"></div><div class="lab">6 / 6</div></div>
+                <div class="statuses"></div>
+              </div>
+            </div>
+
+            <div class="fx">
+              <h5>Active effect</h5>
+              <div class="effect-sample"><span class="glyph">⮕</span> Ninja → Greedy Tank</div>
+              <div class="effect-sample"><span class="glyph" style="color:var(--sev-critical);">✕</span> melee_stab · 3 dmg</div>
+              <div class="reticle">TARGET</div>
+              <div class="turn-indicator">Turn<b>04 / —</b></div>
+            </div>
+            <div class="fx2">
+              <h5>Status legend</h5>
+              <div class="effect-sample"><span class="status" data-s="G">G</span> Guarded</div>
+              <div class="effect-sample"><span class="status" data-s="B">B</span> Burned</div>
+              <div class="effect-sample"><span class="status" data-s="P">P</span> Poisoned</div>
+              <div class="effect-sample"><span class="status" data-s="M">M</span> Marked</div>
+              <div class="effect-sample"><span class="status" data-s="W">W</span> Weakened</div>
+              <div class="effect-sample"><span class="status" data-s="I">I</span> Inspired</div>
+            </div>
+          </div>
+
+          <div class="log">
+            <div class="head">Combat log<b>existing component</b></div>
+            <div class="stream">
+              <div class="line"><span class="t">T4.3</span><span class="body">Ninja → Greedy Tank · melee_stab · 3 dmg.</span></div>
+              <div class="line crit"><span class="t">T4.2</span><span class="body">Greedy Caster dies.</span></div>
+              <div class="line"><span class="t">T4.1</span><span class="body">Ranger → Greedy Caster · arrow · 4 dmg.</span></div>
+              <div class="line"><span class="t">T3.4</span><span class="body">Greedy Tank → Warrior · 4 dmg (Guarded -1 = 3).</span></div>
+            </div>
+            <div class="speed">
+              <span>Speed</span>
+              <div class="opts"><span>1×</span><span class="on">2×</span><span>4×</span></div>
+              <span style="margin-top:auto;">log not re-skinned · out of scope</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ──────────────────────────────────────────────────────────── -->
+    <div class="variant">
+      <div class="variant-label">
+        <span class="tag">State B</span>
+        <span class="name">Act 2 capstone · round 20 · full status density</span>
+        <span class="note">Verifies the chrome holds up under demonic enemies, 6 active statuses, and capstone framing.</span>
+      </div>
+      <div class="frame">
+        <div class="miniheader">
+          <div class="act-seal lg act-2"><div class="num">II</div><div class="meta"><div class="lab">Act 2 / 2</div><div class="theme">Demonic</div></div></div>
+          <div class="res-row">
+            <div class="res"><div class="lab">Gold</div><div class="val">6</div></div>
+            <div class="res"><div class="lab">Morale</div><div class="val">11</div></div>
+            <div class="debt-chip" data-tier="dangerous">
+              <div class="swatch"></div>
+              <div class="body"><div class="top"><span class="lab">Debt</span><span class="val">16</span></div><div class="tier">Dangerous</div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="combat">
+          <div class="context">
+            <span class="label">In fight</span>
+            <span class="name" style="color:var(--gold);">The Underwriter</span>
+            <div class="kind capstone"><span class="dot"></span>Capstone · Round 10 / 10 · Run 20 / 20</div>
+            <span class="turn" style="color:var(--gold);">Turn <b>06</b> · ★ Final fight of the run</span>
+          </div>
+
+          <div class="board">
+            <div class="rowlab eb-l"><span class="side">Enemy</span><span class="name">Back</span><span class="sub">3 slots</span></div>
+            <div class="row eb">
+              <div class="unit enemy">
+                <div class="name">Soulclerk <span class="role">Back</span></div>
+                <div class="portrait">[ caster ]</div>
+                <div class="stats"><span>ATK <b>4</b></span><span>HP <b>5/9</b></span></div>
+                <div class="hp"><div class="fill mid" style="width:55%"></div><div class="lab">5 / 9</div></div>
+                <div class="statuses"><span class="status" data-s="W">W</span><span class="status" data-s="P">P</span></div>
+              </div>
+              <div class="unit enemy">
+                <div class="name">Soulclerk <span class="role">Back</span></div>
+                <div class="portrait">[ caster ]</div>
+                <div class="stats"><span>ATK <b>4</b></span><span>HP <b>9/9</b></span></div>
+                <div class="hp"><div class="fill hi" style="width:100%"></div><div class="lab">9 / 9</div></div>
+                <div class="statuses"><span class="status" data-s="I">I</span></div>
+              </div>
+            </div>
+
+            <div class="rowlab ef-l"><span class="side">Enemy</span><span class="name">Front · Boss</span><span class="sub">2 slots</span></div>
+            <div class="row ef">
+              <div class="unit enemy hit" style="width:180px; border-top-color:var(--gold);">
+                <div class="name" style="color:var(--gold)">The Underwriter <span class="role">Boss</span></div>
+                <div class="portrait" style="height:120px;">[ boss ]</div>
+                <div class="stats"><span>ATK <b>7</b></span><span>HP <b>22/40</b></span></div>
+                <div class="hp"><div class="fill mid" style="width:55%"></div><div class="lab">22 / 40</div></div>
+                <div class="statuses"><span class="status" data-s="M">M</span><span class="status" data-s="B">B</span><span class="status" data-s="W">W</span></div>
+              </div>
+            </div>
+
+            <div class="battleline"></div>
+
+            <div class="rowlab hf-l"><span class="side">Hero</span><span class="name">Front</span><span class="sub">2 slots</span></div>
+            <div class="row hf">
+              <div class="unit hero">
+                <div class="name">Warrior <span class="role">Tank · V2</span></div>
+                <div class="portrait">[ warrior ]</div>
+                <div class="stats"><span>ATK <b>4</b></span><span>HP <b>6/11</b></span></div>
+                <div class="hp"><div class="fill mid" style="width:54%"></div><div class="lab">6 / 11</div></div>
+                <div class="statuses"><span class="status" data-s="G">G</span><span class="status" data-s="B">B</span></div>
+              </div>
+              <div class="unit hero">
+                <div class="name">Paladin <span class="role">Tank</span></div>
+                <div class="portrait">[ paladin ]</div>
+                <div class="stats"><span>ATK <b>3</b></span><span>HP <b>9/10</b></span></div>
+                <div class="hp"><div class="fill hi" style="width:90%"></div><div class="lab">9 / 10</div></div>
+                <div class="statuses"><span class="status" data-s="G">G</span><span class="status" data-s="I">I</span></div>
+              </div>
+            </div>
+
+            <div class="rowlab hb-l"><span class="side">Hero</span><span class="name">Back</span><span class="sub">3 slots</span></div>
+            <div class="row hb">
+              <div class="unit hero">
+                <div class="name">Wizard <span class="role">Caster</span></div>
+                <div class="portrait">[ wizard ]</div>
+                <div class="stats"><span>ATK <b>5</b></span><span>HP <b>4/6</b></span></div>
+                <div class="hp"><div class="fill mid" style="width:66%"></div><div class="lab">4 / 6</div></div>
+                <div class="statuses"><span class="status" data-s="P">P</span></div>
+              </div>
+              <div class="unit hero acting">
+                <div class="name">Ranger <span class="role">Damage · V3</span></div>
+                <div class="portrait">[ ranger ]</div>
+                <div class="stats"><span>ATK <b>7</b></span><span>HP <b>5/6</b></span></div>
+                <div class="hp"><div class="fill hi" style="width:83%"></div><div class="lab">5 / 6</div></div>
+                <div class="statuses"><span class="status" data-s="I">I</span><span class="status" data-s="M">M</span></div>
+              </div>
+              <div class="unit hero">
+                <div class="name">Ninja <span class="role">Damage</span></div>
+                <div class="portrait">[ ninja ]</div>
+                <div class="stats"><span>ATK <b>4</b></span><span>HP <b>2/3</b></span></div>
+                <div class="hp"><div class="fill lo" style="width:66%"></div><div class="lab">2 / 3</div></div>
+                <div class="statuses"><span class="status" data-s="W">W</span></div>
+              </div>
+            </div>
+
+            <div class="fx">
+              <h5>Active effect</h5>
+              <div class="effect-sample"><span class="glyph">⮕</span> Ranger → Underwriter</div>
+              <div class="effect-sample"><span class="glyph" style="color:var(--sev-critical);">✕</span> arrow · 8 dmg (Marked +1)</div>
+              <div class="reticle">TARGET</div>
+              <div class="turn-indicator" style="color:var(--gold);">Capstone Turn<b>06 / —</b></div>
+            </div>
+            <div class="fx2">
+              <h5>Status legend · 6 active</h5>
+              <div class="effect-sample"><span class="status" data-s="G">G</span> Guarded · 2 allies</div>
+              <div class="effect-sample"><span class="status" data-s="B">B</span> Burned · 2 units</div>
+              <div class="effect-sample"><span class="status" data-s="P">P</span> Poisoned · 2 units</div>
+              <div class="effect-sample"><span class="status" data-s="M">M</span> Marked · 2 units</div>
+              <div class="effect-sample"><span class="status" data-s="W">W</span> Weakened · 3 units</div>
+              <div class="effect-sample"><span class="status" data-s="I">I</span> Inspired · 2 units</div>
+            </div>
+          </div>
+
+          <div class="log">
+            <div class="head">Combat log<b>existing component</b></div>
+            <div class="stream">
+              <div class="line crit"><span class="t">T6.3</span><span class="body">Ranger → The Underwriter · arrow · 8 dmg (Marked).</span></div>
+              <div class="line"><span class="t">T6.2</span><span class="body">Soulclerk → Wizard · enchant · applies Poisoned.</span></div>
+              <div class="line heal"><span class="t">T6.1</span><span class="body">Paladin → Warrior · heal · 3 hp restored.</span></div>
+              <div class="line"><span class="t">T5.4</span><span class="body">Underwriter → Warrior · 5 dmg (Guarded -1 = 4).</span></div>
+            </div>
+            <div class="speed">
+              <span>Speed</span>
+              <div class="opts"><span>1×</span><span class="on">2×</span><span>4×</span></div>
+              <span style="margin-top:auto;">log not re-skinned · out of scope</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <p class="page-sub" style="margin-top:48px; font-size:13px;">
+      <a href="index.html" style="color:var(--gold); text-decoration:none;">← back to index</a>
+    </p>
+  </div>
+</body>
+</html>

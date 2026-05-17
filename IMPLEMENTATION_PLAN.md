@@ -1645,6 +1645,49 @@ The four **NEEDS proposal** views are a prerequisite gate before the bulk Act 2 
 
 ---
 
+### M20.2 major-view readability proposal outcome (completed 2026-05-17, documentation/design-only)
+
+No runtime C# / scene / prefab / art changed. M20.2 produced a **Claude-design handoff package** (the user's chosen workflow): rather than prose-only proposals embedded here, the readability design is delegated to a separate Claude design session that returns **HTML/JSX reference mockups**, hand-translated back to uGUI in later slices.
+
+**Artifacts produced (repo-root `Design/` folder — user-ratified; consolidated with the pre-existing `Design/Inputs/` screenshots, parallel to `TestPlans/`, not under `Assets/`):**
+
+- `Design/M20.2/DESIGN_BRIEF.md` — self-contained brief: project one-pager, hard tech/scope constraints encoded as MUST/MUST NOT, and per-view sections for **five** views (Run Header/Run Contract, Scout, End/Act Transition, Reward Summary, Combat), each with current data, the 20-round/multi-act problem, what stays the same, and 2–5 implementation acceptance criteria. Asks for one shared visual system expressed as per-view mockups.
+- `Design/M20.2/SCREENSHOT_MANIFEST.md` — current-state capture list pointing at the existing `Design/Inputs/` folder: `scout.PNG`/`combat.PNG` are the Act 1 baseline; the manifest enumerates the still-needed multi-act / capstone / high-debt / End-screen variants.
+- `TestPlans/TP_M20.2.md` — planning-document review checklist (no Unity runtime steps).
+
+**User decisions captured this session (locked):**
+
+- **[locked]** Workflow = handoff brief out → Claude design returns HTML/JSX → ingested in M20.3+. M20.2 itself produces only the brief + manifest, no mockups.
+- **[locked]** **One shared visual system** across all views, expressed as per-view mockups.
+- **[locked]** **Combat is escalated from MONITOR to a full design-brief section**, scoped as a **re-skin to the shared system, not a rebuild** (no new combat layout/mechanics, no >5 effect sprites). This over-satisfies its M20.0 MONITOR re-check.
+- **[locked]** M20.3 implements the **highest-priority view group only** (Run Header + Scout); the remaining views follow in M20.4+.
+- **[locked]** Screenshots captured via Windows Snipping Tool (variable crop); mockups target the 1920×1080 reference regardless.
+- **[locked]** Claude design delivered the full mockup set into `Design/M20.2/mockups/` (shared system "Guild Ledger" = `system.css`; per-view `run-header/scout/end-transition/reward-summary/combat.html`; `index.html`; `RATIONALE.md`). Reviewed and verified complete + brief-§2-compliant (no forbidden motion, no box-shadow; two decorative `repeating-linear-gradient` hatches with flat fallback).
+- **[locked]** Run Header height **80px → 120px accepted** (88px primary + 32px relic strip, fixed-height thin chrome). M20.3 must reclaim ~40px from the panel region below the header so it does not overlap panel content. The 80px-locked variant was explicitly not requested.
+
+**MONITOR re-check note — Rival Leaderboard / Update (`RivalLeaderboardView.cs`):** Re-checked for 20-round / multi-act legibility. The view renders a fixed-column monospace-style text table (`You` + the 3 rival guilds) sorted by morale, with a `compact` font-size mode. Row count is bounded (1 player + 3 guilds) and **does not grow with rounds or acts**, so the table itself stays legible across a 20-round run. **One latent readability gap, not a blocker:** the `Status` column shows `rival.StatusLabel` and the player row is hardcoded `"Stable"` (a literal, unrelated to the player's actual debt tier); as guilds evolve per act (M20.x guild-evolution), per-act guild power changes are not conveyed here beyond morale/debt/pay numbers, and the hardcoded player `"Stable"` will read inconsistently with the new shared debt-severity color language landing in the Run Header. **Recommendation:** fold a Rival Leaderboard pass into a later M20.x view slice (after the shared system exists) — surface the player's real debt status and apply the shared severity colors; no defect filed (functionally correct, no overflow at 20 rounds).
+
+#### M20.3 — first readability implementation slice (left ready)
+
+- **ID:** M20.3
+- **One-sentence goal:** Using the Claude-design HTML/JSX reference mockups returned into `Design/M20.2/mockups/`, implement the shared visual system for the **two highest-priority views — Run Header / Run Contract and Scout** — in Unity uGUI, so both read correctly across a 20-round, multi-act, per-act-identity run, without changing any game logic.
+- **Precondition (satisfied):** Claude design has delivered mockups + rationale into `Design/M20.2/mockups/` (`system.css`, `index.html`, `run-header.html`, `scout.html`, `end-transition.html`, `reward-summary.html`, `combat.html`, `RATIONALE.md`, `_review/*.png`), reviewed in the M20.2 session. M20.3 step 1 is to read them (start at `index.html`, then `system.css` + the Run Header / Scout view files + `RATIONALE.md`); do not invent or deviate from the delivered system. Run Header is the locked 120px design.
+- **Files to modify (anticipated):**
+  - `DungeonDebt/Assets/Scripts/UI/RunHeaderView.cs` — re-skin to the shared system: run + act position, dominant debt-status tier with shared severity color, theme-swappable per-act identity treatment, defined relic-overflow behavior.
+  - `DungeonDebt/Assets/Scripts/UI/ScoutPanelView.cs` — re-skin: fight classification (dungeon vs. which guild vs. capstone), encounter position, tactical-problem primacy, capstone/relic emphasis, shared act-theme treatment.
+  - `DungeonDebt/Assets/Scripts/Core/GameRules.cs` — only if shared palette/severity-color/theme constants belong there (tuning surface; no logic change).
+  - `DungeonDebt/Assets/Scripts/UI/MainMenuPanel.cs` — only if view construction/wiring requires it (keep within existing screen-region split; no new state).
+  - `TestPlans/TP_M20.3.md` — manual Unity Editor test plan (new file).
+- **Explicitly NOT in M20.3:** End/Act Transition, Reward Summary, Combat re-skins (M20.4+); any game-logic / encounter / economy / combat-math change; new systems; tweens/animation/particles/audio; new folders or art beyond placeholder.
+- **Acceptance criteria:**
+  1. `RunHeaderView` communicates both whole-run and act position, makes debt-status tier the dominant element with a shared severity color language, uses a data-driven theme-swappable per-act identity treatment, and has defined relic behavior that never overflows the fixed-height bar at end of a 20-round run.
+  2. `ScoutPanelView` lets the player classify the fight at a glance (dungeon vs. specific rival guild vs. act capstone), shows encounter/act position, gives the tactical problem visual primacy over reward, and emphasizes the relic moment on capstone scouts.
+  3. Both views use the same shared visual system (type scale, palette, severity colors, act-theme treatment) consistent with the M20.2 mockups, and the per-act treatment is parameterized so Acts 3–5 need only data, no relayout.
+  4. No game logic, encounter, economy, combat, or state-routing behavior changes; a full 20-round run plays identically except for the re-skinned Run Header and Scout; project compiles 0/0.
+  5. `TestPlans/TP_M20.3.md` exists with happy-path, multi-act/edge (Act 1 vs Act 2, dungeon vs guild vs capstone, Stable→Critical debt, many-relics), and the targeted regression checks for the touched views.
+
+---
+
 ## Appendix: Milestone-to-Section Map
 
 When prompting Codex for a single milestone, attach this plan and reference:

@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Dungeon Debt — M20.2 Mockups</title>
+<link rel="stylesheet" href="system.css" />
+<style>
+  .grid{
+    display:grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap:28px;
+    margin-top:36px;
+  }
+  .card{
+    border:1px solid var(--rule);
+    background:var(--bg-card);
+    padding:28px 32px;
+    display:flex; flex-direction:column; gap:14px;
+    text-decoration:none;
+    color:var(--ink);
+    min-height:180px;
+  }
+  .card .num{
+    font-family:var(--f-mono);
+    font-size:11px;
+    letter-spacing:0.24em;
+    text-transform:uppercase;
+    color:var(--ink-mute);
+  }
+  .card .ttl{
+    font-family:var(--f-serif);
+    font-weight:600;
+    font-size:32px;
+    line-height:1;
+    color:var(--ink);
+  }
+  .card .desc{
+    font-family:var(--f-sans);
+    font-size:14px;
+    color:var(--ink-dim);
+    line-height:1.5;
+  }
+  .card .states{
+    font-family:var(--f-mono);
+    font-size:11px;
+    letter-spacing:0.16em;
+    text-transform:uppercase;
+    color:var(--ink-mute);
+    border-top:1px solid var(--rule-faint);
+    padding-top:10px;
+    margin-top:auto;
+  }
+  .card.priority{ border-color:var(--gold); }
+  .card.priority .num{ color:var(--gold); }
+
+  .system-summary{
+    margin-top:60px;
+    border:1px solid var(--rule);
+    background:var(--bg-card);
+    padding:32px 36px;
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap:36px;
+  }
+  .system-summary h2{
+    font-family:var(--f-serif);
+    font-weight:600;
+    font-size:24px;
+    color:var(--ink);
+    margin:0 0 16px;
+  }
+  .system-summary p{
+    font-family:var(--f-sans);
+    font-size:14px;
+    color:var(--ink-dim);
+    line-height:1.55;
+    margin:0 0 10px;
+  }
+  .system-summary code{
+    font-family:var(--f-mono);
+    font-size:12px;
+    color:var(--ink);
+    background:var(--bg-strip);
+    padding:2px 6px;
+    border:1px solid var(--rule-faint);
+  }
+</style>
+</head>
+<body>
+  <div class="page">
+    <p class="page-kicker">M20.2 · Dungeon Debt · Visual reference</p>
+    <h1 class="page-title">Mockups — Guild Ledger system</h1>
+    <p class="page-sub">
+      Five views, one shared visual system. Designed strictly inside the brief's constraint box:
+      flat uGUI-renderable, no motion, placeholder art only, no new game features. Each file shows
+      the multi-state variants listed in <code>SCREENSHOT_MANIFEST.md</code>.
+    </p>
+
+    <div class="grid">
+      <a class="card priority" href="run-header.html">
+        <span class="num">View 1 / 5 · ⭐ Highest priority</span>
+        <span class="ttl">Run Header</span>
+        <span class="desc">Persistent top chrome. Carries act identity, run/act position, run-progress meter, resources, and the debt-severity chip. Cap-and-+N for relics.</span>
+        <span class="states">3 states · Stable · Dangerous · Critical+Act 2</span>
+      </a>
+
+      <a class="card priority" href="scout.html">
+        <span class="num">View 2 / 5 · ⭐ Highest priority</span>
+        <span class="ttl">Scout</span>
+        <span class="desc">Pre-fight briefing. Encounter classification (dungeon / rival guild / capstone) reads first. Scout text dominates over reward gold. Capstone surfaces the relic.</span>
+        <span class="states">3 states · Dungeon · Rival Greedy · Act 2 capstone</span>
+      </a>
+
+      <a class="card" href="end-transition.html">
+        <span class="num">View 3 / 5</span>
+        <span class="ttl">End / Act Transition</span>
+        <span class="desc">One layout family, three emotional beats. Act-clear handoff previews the upcoming act's seal and theme generically — no Act-1-specific copy.</span>
+        <span class="states">3 modes · Act clear · Final victory · Defeat</span>
+      </a>
+
+      <a class="card" href="reward-summary.html">
+        <span class="num">View 4 / 5</span>
+        <span class="ttl">Reward Summary</span>
+        <span class="desc">Four-cell headline strip resolves the round (win / net gold / morale / debt-tier). Ledger keeps every existing line. Capstone adds a brass relic banner.</span>
+        <span class="states">3 states · Normal · Busy (loan+veterancy) · Capstone</span>
+      </a>
+
+      <a class="card" href="combat.html">
+        <span class="num">View 5 / 5 · RE-SKIN ONLY</span>
+        <span class="ttl">Combat</span>
+        <span class="desc">Same 4-row structure, same cards, same 5 effect sprites. Bare "Combat" title replaced with fight context. Side &amp; row separation strengthened via tinted bands.</span>
+        <span class="states">2 states · Act 1 baseline · Act 2 capstone (status-dense)</span>
+      </a>
+
+      <a class="card" href="../RATIONALE.md" style="border-style:dashed;">
+        <span class="num">Rationale</span>
+        <span class="ttl">RATIONALE.md</span>
+        <span class="desc">Per-view problem → solution + constraint tradeoffs. What I intentionally left for the Unity implementation slice.</span>
+        <span class="states">Markdown · drop next to brief</span>
+      </a>
+    </div>
+
+    <div class="system-summary">
+      <div>
+        <h2>Shared system summary</h2>
+        <p><b>Type:</b> Newsreader (serif headlines, ledger feel) · IBM Plex Sans (UI) · IBM Plex Mono (numbers, statuses). All swappable for a generic sans per brief §2.</p>
+        <p><b>Palette:</b> warm vellum text on near-black panels. No saturated chroma. Accents are muted "ink" colors.</p>
+        <p><b>Severity ramp:</b> one four-step ramp <code>stable → strained → dangerous → critical</code> reused everywhere a "this is getting worse" signal is needed.</p>
+        <p><b>Per-act identity:</b> a data row of <code>{ numeral, theme word, accent hex }</code>. Acts 3–5 ship as three more rows; no relayout.</p>
+      </div>
+      <div>
+        <h2>What this <em>isn't</em></h2>
+        <p>Not a rebuild. Combat keeps its structure. No new states, no new mechanics, no map / equipment / meta-progression / leaderboards.</p>
+        <p>Not painted art. All theme is conveyed with color + label + glyph + layout. Placeholders use striped fills and bracketed text.</p>
+        <p>Not motion. Color flashes and state changes only. The two background gradients in End / Reward fall back to a flat fill identically.</p>
+        <p>Not finished copy. Encounter names, danger lines, and the demonic-theme statements are example fills; final copy comes from the game-data layer.</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
