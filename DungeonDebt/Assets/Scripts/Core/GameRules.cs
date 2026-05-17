@@ -134,7 +134,7 @@ public static class GameRules
     // is the round count for act (i+1). The model supports N acts; the
     // Act1/Act2 named members are derived so existing references keep working.
     // To add an act, append its round count here and author its encounters.
-    private static readonly int[] ActRoundCounts = { 10, 3 };
+    private static readonly int[] ActRoundCounts = { 10, 10 };
 
     public static int TotalActs { get { return ActRoundCounts.Length; } }
     public static int FinalAct { get { return ActRoundCounts.Length; } }
