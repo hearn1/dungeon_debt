@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 public class EncounterManager : MonoBehaviour
@@ -11,31 +12,43 @@ public class EncounterManager : MonoBehaviour
 
     public EncounterDefinition LoadEncounter(int round)
     {
-        EncounterDefinition encounter = FindEncounterForRound(round);
+        RunState runState = _runManager != null ? _runManager.CurrentRunState : null;
 
-        if (_runManager != null)
+        int act = runState != null && runState.Act > 0
+            ? runState.Act
+            : GameRules.GetActForRound(round);
+        int slot = GameRules.GetRoundWithinAct(act, round);
+
+        EncounterDefinition encounter = SelectFromPool(DataRepository.GetEncounterPool(act, slot));
+
+        if (runState != null)
         {
-            RunState runState = _runManager.CurrentRunState;
-            if (runState != null)
-            {
-                runState.CurrentEncounter = encounter;
-            }
+            runState.CurrentEncounter = encounter;
         }
 
         return encounter;
     }
 
-    private static EncounterDefinition FindEncounterForRound(int round)
+    // One slot can hold several candidate encounters. Combat stays
+    // deterministic; only which encounter the slot serves is randomized,
+    // and only through RunManager's single System.Random.
+    private EncounterDefinition SelectFromPool(List<EncounterDefinition> pool)
     {
-        for (int i = 0; i < DataRepository.Encounters.Count; i++)
+        if (pool == null || pool.Count == 0)
         {
-            EncounterDefinition encounter = DataRepository.Encounters[i];
-            if (encounter.Round == round)
-            {
-                return encounter;
-            }
+            return null;
         }
 
-        return null;
+        if (pool.Count == 1)
+        {
+            return pool[0];
+        }
+
+        if (_runManager != null && _runManager.Random != null)
+        {
+            return pool[_runManager.Random.Next(pool.Count)];
+        }
+
+        return pool[0];
     }
 }

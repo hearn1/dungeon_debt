@@ -467,34 +467,16 @@ public static class DataRepository
             GameRules.ToxicCollateralRelicDescription)
     };
 
-    private static readonly EncounterDefinition SandboxEncounterDefinition = new EncounterDefinition(
-        1,
-        EncounterType.Dungeon,
-        "Sandbox Slimes",
-        "Simple enemies. Win by having enough basic stats.",
-        "Basic stat check",
-        new List<EnemyDefinition>
-        {
-            Slime,
-            Slime,
-            CaveBat
-        },
-        GameRules.WinReward,
-        EncounterEffectId.None,
-        null);
-
     public static readonly IReadOnlyList<HeroDefinition> AllHeroes =
         new ReadOnlyCollection<HeroDefinition>(HeroDefinitions);
 
     public static readonly IReadOnlyList<EnemyDefinition> AllEnemies =
         new ReadOnlyCollection<EnemyDefinition>(EnemyDefinitions);
 
-    public static readonly EncounterDefinition SandboxEncounter = SandboxEncounterDefinition;
-
     private static readonly List<EncounterDefinition> EncounterDefinitions = new List<EncounterDefinition>
     {
         new EncounterDefinition(
-            1,
+            1, 1,
             EncounterType.Dungeon,
             "Slimes",
             "Simple enemies. Win by having enough basic stats.",
@@ -502,10 +484,10 @@ public static class DataRepository
             new List<EnemyDefinition> { Slime, Slime, Slime },
             GameRules.WinReward,
             EncounterEffectId.None,
-            null),
+            RivalGuild.None),
 
         new EncounterDefinition(
-            2,
+            1, 2,
             EncounterType.Dungeon,
             "Goblin Thieves",
             "If a Goblin Thief survives past combat round 3, lose 3 gold.",
@@ -513,10 +495,10 @@ public static class DataRepository
             new List<EnemyDefinition> { GoblinThief, GoblinThief },
             GameRules.WinReward,
             EncounterEffectId.None,
-            null),
+            RivalGuild.None),
 
         new EncounterDefinition(
-            3,
+            1, 3,
             EncounterType.RivalGhost,
             "Greedy Guild Ghost",
             "A reckless rival guild with expensive heroes. Strong now, but drowning in debt.",
@@ -524,10 +506,10 @@ public static class DataRepository
             new List<EnemyDefinition> { GreedyTank, GreedyTank, GreedyCarry },
             GameRules.WinReward,
             EncounterEffectId.None,
-            "greedy"),
+            RivalGuild.Greedy),
 
         new EncounterDefinition(
-            4,
+            1, 4,
             EncounterType.Dungeon,
             "Tax Collector",
             "Your total upkeep is increased by 2 this round.",
@@ -535,10 +517,10 @@ public static class DataRepository
             new List<EnemyDefinition> { TaxCollector },
             GameRules.WinReward,
             EncounterEffectId.TaxCollectorUpkeep,
-            null),
+            RivalGuild.None),
 
         new EncounterDefinition(
-            5,
+            1, 5,
             EncounterType.Dungeon,
             "Backline Bat",
             "Attacks your lowest-health backline hero on turn 2.",
@@ -546,10 +528,10 @@ public static class DataRepository
             new List<EnemyDefinition> { BacklineBat, Slime },
             GameRules.WinReward,
             EncounterEffectId.None,
-            null),
+            RivalGuild.None),
 
         new EncounterDefinition(
-            6,
+            1, 6,
             EncounterType.RivalGhost,
             "Carry Guild Ghost",
             "This rival protects a high-damage carry. Kill it quickly or survive the burst.",
@@ -557,10 +539,10 @@ public static class DataRepository
             new List<EnemyDefinition> { CarryProtector, CarryProtector, CarryCarry },
             GameRules.WinReward,
             EncounterEffectId.None,
-            "carry"),
+            RivalGuild.Carry),
 
         new EncounterDefinition(
-            7,
+            1, 7,
             EncounterType.Dungeon,
             "Debt Wraith",
             "Gains attack based on your current debt.",
@@ -568,10 +550,10 @@ public static class DataRepository
             new List<EnemyDefinition> { DebtWraith },
             GameRules.WinReward,
             EncounterEffectId.None,
-            null),
+            RivalGuild.None),
 
         new EncounterDefinition(
-            8,
+            1, 8,
             EncounterType.Dungeon,
             "Treasure Leech",
             "If Treasure Leech survives, your reward is reduced by 4 gold.",
@@ -579,10 +561,10 @@ public static class DataRepository
             new List<EnemyDefinition> { TreasureLeech, Slime },
             GameRules.WinReward,
             EncounterEffectId.None,
-            null),
+            RivalGuild.None),
 
         new EncounterDefinition(
-            9,
+            1, 9,
             EncounterType.RivalGhost,
             "Frugal Guild Ghost",
             "A stable rival guild with cheap heroes and strong morale.",
@@ -590,10 +572,10 @@ public static class DataRepository
             new List<EnemyDefinition> { FrugalGuard, FrugalGuard, FrugalArcher, FrugalHealer },
             GameRules.WinReward,
             EncounterEffectId.None,
-            "frugal"),
+            RivalGuild.Frugal),
 
         new EncounterDefinition(
-            10,
+            1, 10,
             EncounterType.FinalBoss,
             "Dungeon Auditor",
             "Final boss. Damages your party and adds debt pressure.",
@@ -601,10 +583,10 @@ public static class DataRepository
             new List<EnemyDefinition> { DungeonAuditor },
             GameRules.WinReward,
             EncounterEffectId.FinalBossDamage,
-            null),
+            RivalGuild.None),
 
         new EncounterDefinition(
-            11,
+            2, 1,
             EncounterType.RivalGhost,
             "Greedy Guild Rematch",
             "The Greedy Guild returns for Act 2, richer and meaner. Bigger tanks, a deadlier carry.",
@@ -612,10 +594,10 @@ public static class DataRepository
             new List<EnemyDefinition> { Act2GreedyTank, Act2GreedyTank, Act2GreedyCarry },
             GameRules.WinReward,
             EncounterEffectId.None,
-            "greedy"),
+            RivalGuild.Greedy),
 
         new EncounterDefinition(
-            12,
+            2, 2,
             EncounterType.RivalGhost,
             "Carry Guild Rematch",
             "The Carry Guild doubles down: a fortified front line shielding an even stronger champion.",
@@ -623,10 +605,10 @@ public static class DataRepository
             new List<EnemyDefinition> { Act2CarryProtector, Act2CarryProtector, Act2CarryChampion, Act2CarrySupport },
             GameRules.WinReward,
             EncounterEffectId.None,
-            "carry"),
+            RivalGuild.Carry),
 
         new EncounterDefinition(
-            13,
+            2, 3,
             EncounterType.RivalGhost,
             "Frugal Guild Rematch",
             "Act 2 capstone. The Frugal Guild fields a disciplined team with a healer that keeps it standing.",
@@ -634,11 +616,51 @@ public static class DataRepository
             new List<EnemyDefinition> { Act2FrugalGuard, Act2FrugalGuard, Act2FrugalArcher, Act2FrugalHealer },
             GameRules.WinReward,
             EncounterEffectId.None,
-            "frugal")
+            RivalGuild.Frugal)
     };
 
     public static readonly IReadOnlyList<EncounterDefinition> Encounters =
         new ReadOnlyCollection<EncounterDefinition>(EncounterDefinitions);
+
+    // Encounters are keyed by act + 1-based slot, not absolute round. A slot
+    // can hold more than one candidate so M20 act pools can vary which fight
+    // appears; EncounterManager picks from the returned pool.
+    public static List<EncounterDefinition> GetEncounterPool(int act, int slot)
+    {
+        List<EncounterDefinition> pool = new List<EncounterDefinition>();
+        for (int i = 0; i < EncounterDefinitions.Count; i++)
+        {
+            EncounterDefinition encounter = EncounterDefinitions[i];
+            if (encounter.Act == act && encounter.Slot == slot)
+            {
+                pool.Add(encounter);
+            }
+        }
+
+        return pool;
+    }
+
+    // Per-act rival roster seam: the typed link from an act to the encounter
+    // each guild fields that act. Returns null if the guild has no fight in
+    // the act. M20 act content uses this to evolve guilds per act.
+    public static EncounterDefinition GetRivalEncounter(int act, RivalGuild guild)
+    {
+        if (guild == RivalGuild.None)
+        {
+            return null;
+        }
+
+        for (int i = 0; i < EncounterDefinitions.Count; i++)
+        {
+            EncounterDefinition encounter = EncounterDefinitions[i];
+            if (encounter.Act == act && encounter.RivalGuild == guild)
+            {
+                return encounter;
+            }
+        }
+
+        return null;
+    }
 
     public static readonly IReadOnlyList<PayrollActionDefinition> AllPayrollActions =
         new ReadOnlyCollection<PayrollActionDefinition>(PayrollActionDefinitions);
@@ -722,7 +744,7 @@ public static class DataRepository
         return new List<RivalGuildState>
         {
             new RivalGuildState(
-                "greedy",
+                RivalGuild.Greedy,
                 "Greedy Guild",
                 GameRules.StartingMorale,
                 GameRules.StartingDebt,
@@ -731,7 +753,7 @@ public static class DataRepository
                 GameRules.GreedyRivalPayrollGrowth),
 
             new RivalGuildState(
-                "frugal",
+                RivalGuild.Frugal,
                 "Frugal Guild",
                 GameRules.StartingMorale,
                 GameRules.StartingDebt,
@@ -740,7 +762,7 @@ public static class DataRepository
                 GameRules.FrugalRivalPayrollGrowth),
 
             new RivalGuildState(
-                "carry",
+                RivalGuild.Carry,
                 "Carry Guild",
                 GameRules.StartingMorale,
                 GameRules.StartingDebt,
@@ -748,31 +770,5 @@ public static class DataRepository
                 "Scaling",
                 GameRules.CarryRivalOddRoundPayrollGrowth)
         };
-    }
-
-    public static RunState CreateSandboxRun()
-    {
-        DifficultyPreset standard = GetDifficultyPreset(DifficultyPresetId.StandardContract);
-
-        RunState run = new RunState();
-        run.Act = 1;
-        run.Round = 1;
-        run.SelectedDifficulty = standard.Id;
-        run.DifficultyDisplayName = standard.DisplayName;
-        run.Gold = standard.StartingGold;
-        run.Debt = standard.StartingDebt;
-        run.Morale = standard.StartingMorale;
-        run.InterestDivisor = standard.InterestDivisor;
-        run.DebtLimit = standard.DebtLimit;
-        run.HeroHealthMultiplier = standard.HeroHealthMult;
-        run.HeroDamageMultiplier = standard.HeroDamageMult;
-        run.EnemyHealthMultiplier = standard.EnemyHealthMult;
-        run.EnemyDamageMultiplier = standard.EnemyDamageMult;
-        run.Party.Add(new HeroInstance(Warrior, 0));
-        run.Party.Add(new HeroInstance(Squire, 1));
-        run.Party.Add(new HeroInstance(Wizard, 2));
-        run.Party.Add(new HeroInstance(Ranger, 3));
-
-        return run;
     }
 }

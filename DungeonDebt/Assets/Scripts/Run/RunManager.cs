@@ -89,26 +89,6 @@ public class RunManager : MonoBehaviour
         return _currentRunState;
     }
 
-    public RunState PrepareSandboxRun()
-    {
-        if (_currentRunState == null)
-        {
-            InitializeRun();
-        }
-
-        RunState sandboxRun = DataRepository.CreateSandboxRun();
-        _currentRunState.Party.Clear();
-
-        for (int i = 0; i < sandboxRun.Party.Count; i++)
-        {
-            _currentRunState.Party.Add(sandboxRun.Party[i]);
-            HeroEffects.ApplyTierStatSeed(_currentRunState.Party[i]);
-            _currentRunState.Party[i].CurrentHealth = GetScaledHeroMaxHealth(_currentRunState.Party[i], _currentRunState);
-        }
-
-        return _currentRunState;
-    }
-
     public void ApplyPostCombatResult(CombatResult combatResult, EncounterDefinition encounter)
     {
         if (_currentRunState == null || combatResult == null)
@@ -362,29 +342,16 @@ public class RunManager : MonoBehaviour
             return GameState.Defeat;
         }
 
-        if (_currentRunState.Act >= GameRules.FinalAct)
+        if (_currentRunState.Round >= GameRules.GetActFinalRound(_currentRunState.Act))
         {
-            if (_currentRunState.Round >= GameRules.Act2FinalRound)
-            {
-                if (_currentRunState.LatestCombatWon)
-                {
-                    _currentRunState.LatestEndReason = "Act 2 cleared.";
-                    return GameState.Victory;
-                }
-
-                _currentRunState.LatestEndReason = "Act 2 final round failed.";
-                return GameState.Defeat;
-            }
-        }
-        else if (_currentRunState.Round >= GameRules.Act1FinalRound)
-        {
+            string actLabel = GameRules.GetActLabel(_currentRunState.Act);
             if (_currentRunState.LatestCombatWon)
             {
-                _currentRunState.LatestEndReason = "Act 1 cleared.";
+                _currentRunState.LatestEndReason = actLabel + " cleared.";
                 return GameState.Victory;
             }
 
-            _currentRunState.LatestEndReason = "Act 1 final round failed.";
+            _currentRunState.LatestEndReason = actLabel + " final round failed.";
             return GameState.Defeat;
         }
 
@@ -475,15 +442,20 @@ public class RunManager : MonoBehaviour
         ResetPartyTierStats(_currentRunState);
     }
 
-    public void AdvanceToAct2()
+    public void AdvanceToNextAct()
     {
         if (_currentRunState == null)
         {
             return;
         }
 
-        _currentRunState.Act = GameRules.FinalAct;
-        _currentRunState.Round = GameRules.Act1FinalRound + 1;
+        if (_currentRunState.Act >= GameRules.TotalActs)
+        {
+            return;
+        }
+
+        _currentRunState.Act += 1;
+        _currentRunState.Round = GameRules.GetActStartRound(_currentRunState.Act);
         _currentRunState.HasLatestRewardSummary = false;
         _currentRunState.LatestEndReason = null;
         _currentRunState.LatestVeterancySummary = string.Empty;
@@ -524,13 +496,10 @@ public class RunManager : MonoBehaviour
             return false;
         }
 
-        if (encounter.Type == EncounterType.RivalGhost)
-        {
-            return true;
-        }
-
-        return encounter.Round == GameRules.Act1FinalRound ||
-            encounter.Round == GameRules.Act2FinalRound;
+        // Rival benchmarks and act final bosses award a relic. This is
+        // act-count agnostic: every act's capstone boss is relic-eligible.
+        return encounter.Type == EncounterType.RivalGhost ||
+            encounter.Type == EncounterType.FinalBoss;
     }
 
     private bool IsPendingRelicChoice(RelicId relicId)
@@ -716,7 +685,6 @@ public class RunManager : MonoBehaviour
             return false;
         }
 
-        return encounter.Round == GameRules.Act1FinalRound ||
-            encounter.Round == GameRules.Act2FinalRound;
+        return encounter.Round == GameRules.GetActFinalRound(encounter.Act);
     }
 }

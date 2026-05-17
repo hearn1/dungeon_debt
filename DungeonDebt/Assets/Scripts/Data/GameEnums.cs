@@ -52,6 +52,14 @@ public enum EncounterEffectId
     FinalBossDamage
 }
 
+public enum RivalGuild
+{
+    None,
+    Greedy,
+    Frugal,
+    Carry
+}
+
 public enum PayrollActionId
 {
     StandardPay,

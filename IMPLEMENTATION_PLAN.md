@@ -1222,7 +1222,9 @@ Use this order unless a later planning session changes it:
 | 4 | M15 | Difficulty modifiers | Simple run contracts/difficulty presets built from existing constants |
 | 5 | M16 | Relic/policy rewards | Loot-like run modifiers without hero equipment or inventory |
 | 6 | M17 | Tiered veterancy | Run-local hero XP with automatic stat tiers, if still needed after economy is stable |
-| 7 | M18+ | One status keyword vertical | Add at most one readable status keyword in a contained slice |
+| 7 | M18 | Compact combat-status vertical | Add a small, readable six-status set using contained enemy, relic, and Silver-upgrade access |
+| 8 | M19 | Prototype assessment and review | Documentation-only feature and code review to decide the next expansion/fix package |
+| 9 | M20 | Act expansion foundation | Expand Act 2 and create reusable act/content scaffolding for Acts 3/4/5 |
 
 ### Phase 3 scope rules
 
@@ -1331,13 +1333,181 @@ Use this order unless a later planning session changes it:
 
 **Out of scope:** XP spending, branching choices, skill trees, class evolution, new abilities, unlocks, save/load, meta progression, persistent account progress, hero classes, equipment, or any non-stat reward. Veterancy stacks with Silver tier, relics, and difficulty modifiers, but M17 should keep the implementation deterministic and readable.
 
-### Milestone 18+: One status keyword vertical
+### Milestone 18: Compact combat-status vertical
 
-**Goal.** Add one readable combat keyword only after the combat UI and balance can support it.
+**Goal.** Add a compact status vocabulary only after the combat UI and balance can support it.
 
-**In scope:** one keyword, one timing rule, one or two enemies/heroes using it, and a targeted test plan.
+**Completed direction.** M18.0 reviewed the older "one keyword" placeholder and, with user approval, expanded it into a small six-status set because the combat card UI could support compact indicators and the existing enemies/relics/Silver upgrades had natural hooks.
 
-**Out of scope:** damage types, resistances, status stacks, large debuff libraries, or full combat-type systems.
+**Implemented statuses:**
+
+| Status | Readable role |
+|---|---|
+| Guarded | Reduces the next incoming hit, then is consumed. |
+| Burned | Lowers the afflicted unit's attack and deals self-damage after it attacks. |
+| Poisoned | Deals growing self-damage after the afflicted unit attacks. |
+| Marked | Increases the next incoming hit, then is consumed. |
+| Weakened | Lowers the afflicted unit's attack. |
+| Inspired | Increases the next outgoing hit, then is consumed. |
+
+**Completed sub-slicing:**
+
+- **M18.0 - Status keyword planning + first-slice definition.**
+  - Documentation-only planning that approved the compact six-status direction.
+- **M18.1 - Multi-status combat keywords, enemy-side first pass.**
+  - Added shared status data/state, combat log/replay support, combat-card indicators, and enemy-side status touchpoints using existing enemies.
+- **M18.2 - Relic/upgrade variants for player-side status access.**
+  - Added narrow player access through existing relic rewards and selected Silver hero upgrades.
+
+**Still out of scope:** damage types, resistances, stack counts, durations, a large status library, a broad status-choice system, full combat-type systems, or new status mechanics outside explicit later milestones.
+
+### Milestone 19: Prototype assessment and review
+
+**Goal.** Pause new implementation and review the expanded prototype before choosing the next package of fixes or expansions.
+
+**Why now.** M12-M18 added debt readability, Act 2 shell/content, difficulty, relics, veterancy, and statuses. Functionality is assumed acceptable, but the prototype has not yet had a whole-game feature review or a major-systems code review. The next move should expand existing verticals only where they help the current game, not add a brand-new vertical by default.
+
+**M19 is documentation-only.** No runtime C# code, Unity scenes, prefabs, art assets, generated files, or gameplay behavior should change during M19. Review findings should be written into planning/test documents and used to define M20.
+
+**Initial M19.0 assessment outcome.**
+
+- Recommendation: do not add a new vertical yet. Use M19 to assess and document expansion opportunities inside existing verticals, then let M20 become the selected package of fixes and expansions.
+- Strongest systems: the debt/payroll hook, the Scout -> Shop -> Payroll -> Formation -> Combat loop, deterministic hero/enemy effect interactions, and the now-readable combat card/status/relic surfaces.
+- Likely expansion candidates: visuals and combat presentation, Act 2 and later act content, more enemies/encounters, possible carefully scoped hero roster growth, and deeper use of existing relic/status/veterancy systems.
+- Noisiest or riskiest systems: feature density in the run header/reward/combat UI, broad static data inside `DataRepository`, growing combat/status/relic coupling across `CombatManager`, `HeroEffects`, and `RunManager`, and review gaps from several late Phase 3 test plans that were drafted or visually accepted rather than fully checkbox-run.
+- Outside-tester readiness is important later, but not the immediate framing. First decide which existing verticals deserve expansion and which code seams should be cleaned before that expansion.
+
+**M19.1 vertical inventory outcome.**
+
+Dungeon Debt has enough vertical breadth for an auto-battler/economy-management prototype. The project should not add a brand-new independent system before M20. It should deepen the existing act/content structure and make the current systems easier to scale into later acts.
+
+| Vertical | Current implementation depth | M19.1 read |
+|---|---|---|
+| Core run loop | Mature for prototype | Fully wired Scout -> Shop -> Formation -> Payroll -> Combat -> Reward -> Relic/Rival/Act routing. Keep stable. |
+| Debt/economy | Mature and central | Gold, debt, morale, upkeep, interest, debt tiers, Pay Debt, and debt-scaling threats carry the game's identity. Expand only through act-aware pressure and payroll choices, not new currencies. |
+| Shop/party | Moderate to mature | Hire/fire/reroll, duplicate-to-Silver, Silver offers, and Pay Debt work. Needs later-act recruitment support so late hires are not strictly punished by missing XP and new upkeep. |
+| Formation | Moderate | Five slots, front/back targeting, and several effects care about position. Future encounters should ask more of formation rather than adding new formation rules first. |
+| Payroll | Moderate but under-expanded | Four actions are enough for the prototype, but payroll is thematically important and could support act-aware variants later. Keep M20 focused on acts before adding payroll breadth. |
+| Combat resolver | Mature for prototype | Deterministic combat, replay events, hero/enemy effects, statuses, and stat scaling are all implemented. Future act content should reuse this surface. |
+| Heroes | Mature count, moderate depth | The 12-hero roster is sufficient for now. Do not expand roster until encounters prove the current roster is strategically exhausted. |
+| Enemies/encounters | Moderate and highest expansion value | Act 1 plus a thin Act 2 exists, but encounters are fixed and repeatable. This is the best M20 expansion target. |
+| Rival guilds | Thin to moderate | Three guild identities and ghost fights exist, but rivals should evolve each act like the player does. Each act should include one fight against each guild. |
+| Acts | Thin vertical | Act 2 is currently a 3-fight rematch shell. M20 should turn Act 2 into the first scalable act-expansion pattern for Acts 3/4/5. |
+| Difficulty presets | Moderate | Three contracts are enough for replay and balance. Leave alone unless balance testing identifies a problem. |
+| Relics/policies | Moderate | Eight global relics work through existing reward flow. Avoid broad relic growth until UI density and act structure are reviewed. |
+| Veterancy | Moderate | Run-local XP and automatic tiers work, but late hires are disadvantaged. Add a simple act-aware catch-up rule only if M20 design approves it. |
+| Statuses | Moderate to high for prototype | Six statuses are enough. Treat as content hooks for enemies/relics, not a system to broaden now. |
+| Visual/combat presentation | Moderate | Combat is currently the cleanest view, though it carries the most information. Other major views need design proposals before large act/content growth. |
+| Randomness/replayability | Thin | Combat remains deterministic, but encounter order/content is fixed. M20 should introduce controlled non-combat randomness through act encounter pools using `RunManager.Random`. |
+
+**M19.1 expansion recommendation.**
+
+- Make **Act 2 expansion and act-content scaffolding** the M20 priority.
+- Build M20 so Acts 3/4/5 can later be mostly content authoring: add images, assign existing effect animation categories, create encounter/guild variants, and tune numbers rather than inventing new systems.
+- Each act should include one fight against each rival guild. Guilds should evolve alongside the player: Greedy stays high-power/high-debt, Carry protects escalating threats, and Frugal stays efficient/resilient.
+- Add controlled randomness outside combat, likely by choosing from act encounter pools or varying fight order within act constraints. Keep combat deterministic.
+- Address the late-hire problem in M20 design. Current incentives favor locking an early tank/damage core and then adding economy/support around it. A simple act-aware minimum XP or trained-hire rule should be considered so later recruitment can be viable without adding a new progression screen.
+- Add a Claude design proposal pass for major views before heavy content growth: Main Menu/Run Contract, Scout, Shop, Formation, Payroll, Combat, Reward Summary, Relic Reward, Rival Leaderboard/Update, and End/Act Transition. Combat can be the reference point because it was recently rebuilt, but it also has the densest information.
+
+**Expected sub-slicing:**
+
+- **M19.1 - Feature expansion review.**
+  - *Goal:* review the current feature surface and recommend which existing verticals should be expanded, pruned, retuned, or deferred before M20.
+  - *Files (anticipated):* `IMPLEMENTATION_PLAN.md`, `NEXT_SESSION.md`.
+  - *Acceptance target:* current systems are inventoried by implementation depth; act/encounter/guild expansion is recommended as the M20 direction; out-of-scope new verticals are rejected or deferred; M19.2 is left ready as the next documentation-only code review slice.
+- **M19.2 - Major systems code review.**
+  - *Goal:* review major runtime systems for maintainability and expansion risk without changing code.
+  - *Files (anticipated):* `IMPLEMENTATION_PLAN.md`, `NEXT_SESSION.md`; no runtime code edits.
+  - *Acceptance target:* code seams, coupling risks, data-growth risks, UI construction risks, and test gaps are documented; M19.3 is left ready as the next cleanup/seam-prep slice.
+
+**M19.2 code-review outcome.**
+
+System seam table (reviewed 2026-05-16):
+
+| System | Safe to extend directly? | Risk / note |
+|---|---|---|
+| `ShopManager` | ✅ Yes | Self-contained; no act coupling |
+| `PayrollManager` | ✅ Yes | Small switch-dispatch; no act coupling |
+| `CombatManager` | ✅ Yes | Deterministic; replay; status hooks work |
+| `HeroEffects` | ✅ Yes | Static dispatch by `HeroEffectId`; stale "M11 can replace" comment is cosmetic |
+| `GameRules` | ✅ Yes (constants) | Binary act helpers need extending but changes are additive |
+| `GameManager` | ⚠️ Soft | `EnsureManagers()` re-runs every transition; flat if-ladder; `ContinueToAct2()` is non-generalizable |
+| `RunManager` | ⚠️ Shape change | Hard-ceilinged at 2 acts: `EvaluateNextState`, `AdvanceToAct2`, and all act helpers branch binary (Act1 vs `FinalAct=2`); Acts 3/4/5 impossible without generalizing |
+| `DataRepository` | ⚠️ Shape change | Flat `EncounterDefinitions` list; all encounters hardcode absolute round numbers; duplicate enemy Ids (intentional for sprites, latent collision in `SurvivorFlags` if variants co-occur); dead `RunState.Encounters` field; stale sandbox methods |
+| `RivalManager` | ⚠️ Shape change | String-literal branching on `rival.Id`; `RivalGuildState` has no link to per-act combat roster |
+| `EncounterManager` | ❌ Blocker | `FindEncounterForRound` is a linear scan of absolute round numbers; no act pool; no `RunManager.Random` seam at all; entire lookup strategy must change for act pools |
+| `MainMenuPanel` | ❌ Cleanup | 981-line god-object: scene builder + visibility router + input hub + core-system bootstrapper; top refactor target before act-content or view growth |
+
+**M19.3 punch list (6 non-safe items):**
+
+1. **EncounterManager (blocker):** Replace `FindEncounterForRound` with an act-pool lookup. Encounters should be keyed by act+type (not absolute round). Add a `RunManager.Random` seam for pool selection.
+2. **RunManager (act model):** Generalize `EvaluateNextState` and `AdvanceToAct2` beyond the binary Act1-vs-FinalAct=2 ceiling. `GetRoundsInAct`/`GetActFinalRound` helpers in `GameRules` should extend to N acts.
+3. **DataRepository (shape):** Re-key encounter definitions by act + slot (not absolute round). Remove or document dead `RunState.Encounters` field. Remove or isolate stale sandbox methods (`PrepareSandboxRun`, `CreateSandboxRun`, `SandboxEncounter`).
+4. **RivalManager (shape):** Replace string-literal `rival.Id` branching with a data-driven dispatch (enum or typed field). Add a per-act roster reference to `RivalGuildState` or a companion data structure.
+5. **GameManager (soft):** Extract the `EnsureManagers()` guard to run only on first init, not every transition. Evaluate breaking `ContinueToAct2` into a generalizable act-advance path. Low urgency — do after blockers.
+6. **MainMenuPanel (cleanup):** Extract scene-building constants and layout code, visibility routing, and core-system bootstrapping into dedicated helpers or scripts. Target: no single method over ~80 lines.
+
+7. **Red Ink Brand behavior (confirm):** `_redInkBrandApplied` flag is set per-combat but `Marked` only applies when the triggering hit target *survives*. Kill-on-first-hit silently skips the Marked application that combat. Confirm this is intended; if not, fix the guard condition in `CombatManager`.
+8. **Act 2 capstone type (confirm + fix if needed):** Round 13 ("Frugal Guild Rematch") is typed `EncounterType.RivalGhost`, not `FinalBoss`. `IsRelicEligibleEncounter` treats all `RivalGhost` encounters as relic-eligible, so Act 2 gives relics on rounds 11, 12, and 13. Confirm whether this is the intended reward shape; if round 13 should be `FinalBoss` (no relic), update the encounter definition and verify relic-eligibility logic.
+
+**Dead seams to remove (covered by item 3 above):**
+- `RunState.Encounters` — initialized but never populated or read.
+- `DataRepository.PrepareSandboxRun`, `CreateSandboxRun`, `SandboxEncounter` — carried from M3.2, unused in live run flow.
+
+**Test-gap notes:**
+- No automated tests exist. Every M19.3 change will need a full manual 13-round regression covering act transition, encounter lookup, relic eligibility, rival fight detection, and payroll across all three difficulty presets.
+- The highest manual-verification risk is encounter lookup: a shape change to `DataRepository` + `EncounterManager` simultaneously affects all 13 rounds.
+
+- **M19.3 - Code seam cleanup / pre-M20 prep.**
+  - *Goal:* clean the six highest-risk code seams identified in M19.2 so act expansion work in M20 lands on a solid foundation.
+  - *Files (anticipated):* `EncounterManager.cs`, `RunManager.cs`, `DataRepository.cs`, `RivalManager.cs`, `GameManager.cs`, `MainMenuPanel.cs`, `GameRules.cs`, `RunState.cs`, `IMPLEMENTATION_PLAN.md`, `NEXT_SESSION.md`.
+  - *Acceptance target:* all eight punch-list items resolved or explicitly deferred with rationale; dead seams removed; M20.0 is left ready as the next documentation-only act expansion design brief.
+
+**M19.3 code-seam cleanup outcome (completed 2026-05-16).**
+
+All eight punch-list items resolved; build clean (0 warnings / 0 errors). No M20 act content added — the act model is generalized to N acts but still configured for the existing 2-act / 13-round content, so all current behavior is preserved.
+
+Behavior confirmations (before any related code change):
+- **Item 7 — Red Ink Brand:** Confirmed *intended, no code change*. `ApplyRelicAttackStatuses` is only invoked in the defender-survives branch (`CombatManager` damage path), so a kill-on-first-hit never reaches it and never consumes `_redInkBrandApplied`; the next surviving-target hit applies `Marked`. This exactly matches the relic text ("First hero-side attack each combat applies Marked if the target survives"). The punch-list concern that the flag is consumed on a kill was not borne out by the code.
+- **Item 8 — Act 2 capstone / relics:** Per user decision, final bosses *do* award a relic, and Act 2 will become a full 10-round act with the final boss on round 20 — but that content fill is **M20**, not M19.3 (it would add new encounters and break the 13-round regression / AC5). M19.3 instead generalized relic eligibility to `RivalGhost OR FinalBoss` (content-agnostic; behavior-identical for the current 13 rounds: round 10 stays relic-eligible as the Act 1 boss, rounds 3/6/9/11/12/13 as rival ghosts). The Act-2-to-10-rounds + round-20-boss expansion is captured in the M20.0 brief.
+
+Seam changes:
+1. **EncounterManager (blocker):** `FindEncounterForRound` (absolute-round linear scan) replaced with an act+slot pool lookup via `DataRepository.GetEncounterPool(act, slot)`; pool selection uses the `RunManager.Random` seam when a slot has >1 candidate (currently 1 each → deterministic, unchanged).
+2. **RunManager (act model):** `EvaluateNextState` generalized to a single per-act-final-round check; `AdvanceToAct2` → `AdvanceToNextAct` (increments act, jumps to next act's start round, guarded at the final act); `IsRelicEligibleEncounter`/`IsEndOfActEncounter` generalized to be act-count agnostic. Exact string/flow parity for the current 2 acts.
+3. **GameRules:** Act lengths are now data (`ActRoundCounts` table). `GetRoundsInAct`/`GetActFinalRound`/`GetRoundWithinAct`/`GetActLabel` generalized to N acts; added `TotalActs`, `GetActStartRound`, `GetAbsoluteRound`, `GetActForRound`. `Act1FinalRound`/`Act2FinalRound`/`Act1Rounds`/`Act2Rounds`/`FinalAct`/`FinalRound` kept as derived members for existing references (const → static property; no const-expression consumers).
+4. **DataRepository:** All 13 encounters re-keyed by `(act, slot)` instead of hardcoded absolute round; absolute `Round` is now derived. Added `GetEncounterPool(act, slot)` and the per-act rival-roster seam `GetRivalEncounter(act, guild)`. Dead `SandboxEncounter`/`SandboxEncounterDefinition`/`CreateSandboxRun` removed.
+5. **RivalManager / RivalGuildState:** String-literal `rival.Id` branching replaced with the typed `RivalGuild` enum (`Greedy`/`Frugal`/`Carry`/`None`); the loose `Id` string was removed (no other readers). `EncounterDefinition.RivalGuild` now carries the typed guild link.
+6. **GameManager:** `EnsureManagers()` gated by a `_managersReady` flag so the find/add/Initialize wiring runs once on first init instead of on every state transition; `Initialize(RunManager)` forces a single clean rewire with the bootstrapper's canonical RunManager. `ContinueToAct2` → `ContinueToNextAct`.
+7. **MainMenuPanel:** 981-line god-object decomposed. `HandleStateChanged` (~242 lines) → a dispatch over per-state `Show*State` helpers; `BuildUi` (~211 lines) → an ordered orchestrator over focused `Build*` helpers (sibling/draw order preserved). No method exceeds ~80 lines. No new files (per the slice's "create none" constraint).
+
+Dead seams removed: `RunState.Encounters`, `DataRepository.PrepareSandboxRun`/`CreateSandboxRun`/`SandboxEncounter` (and the now-dead `MainMenuPanel` sandbox-encounter fallback).
+
+### Milestone 20: Act expansion foundation
+
+**Goal.** Expand Act 2 while building the repeatable act/content scaffolding that lets Acts 3/4/5 become mostly content authoring instead of new feature work.
+
+**Why this direction.** M19.1 found that the game already has enough vertical systems. The next value is not a new layer; it is turning the current acts, encounters, rival guilds, and content surfaces into a scalable structure that can support longer runs and replayability.
+
+**Direction, pending M19.3 seam cleanup.**
+
+- Act 2 should become a fuller act using existing systems: dungeon/economy-pressure fights, one fight against each rival guild, and an act capstone.
+- Later Acts 3/4/5 should follow the same content pattern. The technical work should make those acts data/content additions where possible.
+- Rival guilds should evolve each act, with clear identities that scale alongside the player.
+- Encounter randomness should be controlled and non-combat only: choose from act encounter pools or vary order within constraints using `RunManager.Random`; combat itself stays deterministic.
+- Late hiring should become more viable in later acts, likely through a simple act-aware catch-up rule considered during M20.0.
+- Major view design proposals should happen before heavy act content expansion, so additional act information does not overwhelm the UI.
+
+**Expected sub-slicing:**
+
+- **M20.0 - Act expansion design brief.**
+  - *Goal:* define the reusable act format, Act 2 expansion target, future Acts 3/4/5 content pattern, guild evolution rules, encounter randomness approach, late-hire catch-up proposal, and view-design proposal checklist.
+  - *Files (anticipated):* `IMPLEMENTATION_PLAN.md`, `NEXT_SESSION.md`.
+  - *Acceptance target:* M20.1 is left ready with concrete implementation scope, file list, and 2-5 acceptance criteria.
+- **M20.1+ - Implementation slices.**
+  - *Goal:* implement the approved Act 2 expansion foundation in small, testable slices after M20.0.
+  - *Likely areas:* act encounter pools, randomized act encounter selection, expanded Act 2 content, guild evolution data, late-hire catch-up, and approved view/UI readability changes.
+
+**Out of scope until explicitly selected:** a new independent vertical unrelated to acts/content, save/load, online features, meta progression, full equipment/inventory, tutorial, audio polish, broad architecture rewrites, large hero roster expansion, or unchecked content expansion without a ready slice.
 
 ---
 

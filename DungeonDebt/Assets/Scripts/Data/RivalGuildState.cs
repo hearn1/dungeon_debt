@@ -1,7 +1,7 @@
 public class RivalGuildState
 {
     public RivalGuildState(
-        string id,
+        RivalGuild guild,
         string displayName,
         int morale,
         int debt,
@@ -9,7 +9,7 @@ public class RivalGuildState
         string statusLabel,
         int payrollGrowthPerRound)
     {
-        Id = id;
+        Guild = guild;
         DisplayName = displayName;
         Morale = morale;
         Debt = debt;
@@ -18,7 +18,7 @@ public class RivalGuildState
         PayrollGrowthPerRound = payrollGrowthPerRound;
     }
 
-    public string Id { get; set; }
+    public RivalGuild Guild { get; set; }
     public string DisplayName { get; set; }
     public int Morale { get; set; }
     public int Debt { get; set; }

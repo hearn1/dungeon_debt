@@ -86,7 +86,7 @@ public class MainMenuPanel : MonoBehaviour
         _rewardSummaryView.SetOnContinue(HandleContinueClicked);
         _relicRewardPanelView.SetOnSelect(HandleRelicSelected);
         _endScreenView.SetOnNewRun(HandleReturnToMainMenuClicked);
-        _endScreenView.SetOnContinueAct2(HandleContinueAct2Clicked);
+        _endScreenView.SetOnContinueAct2(HandleContinueNextActClicked);
         _shopPanelView.SetHandlers(HandleHireClicked, HandleFireClicked, HandleRerollClicked, HandlePayDebtClicked, HandleShopContinueClicked);
         _formationPanelView.SetHandlers(HandleFormationSwap, HandleFormationContinue);
         _payrollPanelView.SetActions(DataRepository.AllPayrollActions);
@@ -144,9 +144,9 @@ public class MainMenuPanel : MonoBehaviour
         _gameManager.ReturnToMainMenu();
     }
 
-    private void HandleContinueAct2Clicked()
+    private void HandleContinueNextActClicked()
     {
-        _gameManager.ContinueToAct2();
+        _gameManager.ContinueToNextAct();
     }
 
     private void HandleRelicSelected(RelicId relicId)
@@ -402,9 +402,12 @@ public class MainMenuPanel : MonoBehaviour
 
         RunState run = _gameManager.CurrentRunState;
         _runHeaderView.Refresh(run);
-        EncounterDefinition encounter = run != null && run.CurrentEncounter != null
-            ? run.CurrentEncounter
-            : DataRepository.SandboxEncounter;
+        EncounterDefinition encounter = run != null ? run.CurrentEncounter : null;
+        if (encounter == null)
+        {
+            return;
+        }
+
         CombatResult result = new CombatManager().StartCombat(run, encounter);
         _combatPanelView.Refresh(result.PlayerStartUnits, result.EnemyStartUnits);
 
@@ -433,241 +436,270 @@ public class MainMenuPanel : MonoBehaviour
         SetDifficultySelectorVisible(false);
         _relicRewardPanelView.Hide();
 
-        if (gameState == GameState.MainMenu)
+        switch (gameState)
         {
-            SetCombatChromeVisible(false);
-            _statusText.text = "Ready";
-            _resultText.text = string.Empty;
-            _combatLogView.Clear();
-            _combatPanelView.Clear();
-            _combatPanelView.Hide();
-            _rewardSummaryView.Clear();
-            _relicRewardPanelView.Hide();
-            _endScreenView.Hide();
-            _shopPanelView.Hide();
-            _formationPanelView.Hide();
-            _payrollPanelView.Hide();
-            _scoutPanelView.Hide();
-            _rivalLeaderboardView.Hide();
-            _rivalContinueButton.gameObject.SetActive(false);
-            _runHeaderView.Clear();
-            _startCombatButton.interactable = true;
-            _restartButton.interactable = false;
-            ShowMainMenuLayout();
-            return;
+            case GameState.MainMenu:
+                ShowMainMenuState();
+                break;
+            case GameState.StartRun:
+                ShowStartRunState();
+                break;
+            case GameState.Scout:
+                ShowScoutState();
+                break;
+            case GameState.Shop:
+                ShowShopState();
+                break;
+            case GameState.Formation:
+                ShowFormationState();
+                break;
+            case GameState.Payroll:
+                ShowPayrollState();
+                break;
+            case GameState.Combat:
+                ShowCombatState();
+                break;
+            case GameState.RelicReward:
+                ShowRelicRewardState();
+                break;
+            case GameState.RivalUpdate:
+                ShowRivalUpdateState();
+                break;
+            case GameState.Victory:
+            case GameState.Defeat:
+                ShowEndState(gameState);
+                break;
         }
+    }
 
-        if (gameState == GameState.StartRun)
-        {
-            SetCombatChromeVisible(false);
-            _runHeaderView.Refresh(_gameManager.CurrentRunState);
-            _combatLogView.Clear();
-            _combatPanelView.Clear();
-            _combatPanelView.Hide();
-            _rewardSummaryView.Clear();
-            _relicRewardPanelView.Hide();
-            _endScreenView.Hide();
-            _shopPanelView.Hide();
-            _formationPanelView.Hide();
-            _payrollPanelView.Hide();
-            _scoutPanelView.Hide();
-            _rivalLeaderboardView.Hide();
-            _rivalContinueButton.gameObject.SetActive(false);
-            _resultText.text = string.Empty;
-            return;
-        }
+    private void ShowMainMenuState()
+    {
+        SetCombatChromeVisible(false);
+        _statusText.text = "Ready";
+        _resultText.text = string.Empty;
+        _combatLogView.Clear();
+        _combatPanelView.Clear();
+        _combatPanelView.Hide();
+        _rewardSummaryView.Clear();
+        _relicRewardPanelView.Hide();
+        _endScreenView.Hide();
+        _shopPanelView.Hide();
+        _formationPanelView.Hide();
+        _payrollPanelView.Hide();
+        _scoutPanelView.Hide();
+        _rivalLeaderboardView.Hide();
+        _rivalContinueButton.gameObject.SetActive(false);
+        _runHeaderView.Clear();
+        _startCombatButton.interactable = true;
+        _restartButton.interactable = false;
+        ShowMainMenuLayout();
+    }
 
-        if (gameState == GameState.Scout)
-        {
-            SetCombatChromeVisible(false);
-            _statusText.text = CurrentActLabel(_gameManager.CurrentRunState) + " Scout. Review the encounter, then Continue.";
-            _resultText.text = string.Empty;
-            _combatLogView.Clear();
-            _combatPanelView.Clear();
-            _combatPanelView.Hide();
-            _rewardSummaryView.Clear();
-            _relicRewardPanelView.Hide();
-            _endScreenView.Hide();
-            _shopPanelView.Hide();
-            _formationPanelView.Hide();
-            _payrollPanelView.Hide();
-            _runHeaderView.Refresh(_gameManager.CurrentRunState);
-            _scoutPanelView.Refresh(_gameManager.CurrentRunState);
-            _scoutPanelView.Show();
-            _rivalLeaderboardView.Refresh(_gameManager.CurrentRunState, true);
-            _rivalLeaderboardView.Show();
-            _rivalContinueButton.gameObject.SetActive(false);
-            _startCombatButton.interactable = false;
-            _restartButton.interactable = true;
-            return;
-        }
+    private void ShowStartRunState()
+    {
+        SetCombatChromeVisible(false);
+        _runHeaderView.Refresh(_gameManager.CurrentRunState);
+        _combatLogView.Clear();
+        _combatPanelView.Clear();
+        _combatPanelView.Hide();
+        _rewardSummaryView.Clear();
+        _relicRewardPanelView.Hide();
+        _endScreenView.Hide();
+        _shopPanelView.Hide();
+        _formationPanelView.Hide();
+        _payrollPanelView.Hide();
+        _scoutPanelView.Hide();
+        _rivalLeaderboardView.Hide();
+        _rivalContinueButton.gameObject.SetActive(false);
+        _resultText.text = string.Empty;
+    }
 
-        if (gameState == GameState.Shop)
-        {
-            SetCombatChromeVisible(false);
-            _statusText.text = "Shop. Hire heroes, then Continue.";
-            _resultText.text = string.Empty;
-            _combatLogView.Clear();
-            _combatPanelView.Clear();
-            _combatPanelView.Hide();
-            _rewardSummaryView.Clear();
-            _relicRewardPanelView.Hide();
-            _endScreenView.Hide();
-            _formationPanelView.Hide();
-            _payrollPanelView.Hide();
-            _scoutPanelView.Hide();
-            _rivalLeaderboardView.Hide();
-            _rivalContinueButton.gameObject.SetActive(false);
-            _runHeaderView.Refresh(_gameManager.CurrentRunState);
-            _shopPanelView.Refresh(_gameManager.CurrentRunState, _gameManager.ShopManager.CurrentOffers);
-            _shopPanelView.Show();
-            _startCombatButton.interactable = false;
-            _restartButton.interactable = true;
-            return;
-        }
+    private void ShowScoutState()
+    {
+        SetCombatChromeVisible(false);
+        _statusText.text = CurrentActLabel(_gameManager.CurrentRunState) + " Scout. Review the encounter, then Continue.";
+        _resultText.text = string.Empty;
+        _combatLogView.Clear();
+        _combatPanelView.Clear();
+        _combatPanelView.Hide();
+        _rewardSummaryView.Clear();
+        _relicRewardPanelView.Hide();
+        _endScreenView.Hide();
+        _shopPanelView.Hide();
+        _formationPanelView.Hide();
+        _payrollPanelView.Hide();
+        _runHeaderView.Refresh(_gameManager.CurrentRunState);
+        _scoutPanelView.Refresh(_gameManager.CurrentRunState);
+        _scoutPanelView.Show();
+        _rivalLeaderboardView.Refresh(_gameManager.CurrentRunState, true);
+        _rivalLeaderboardView.Show();
+        _rivalContinueButton.gameObject.SetActive(false);
+        _startCombatButton.interactable = false;
+        _restartButton.interactable = true;
+    }
 
-        if (gameState == GameState.Formation)
-        {
-            SetCombatChromeVisible(false);
-            _statusText.text = "Formation. Click two slots to swap, then Continue.";
-            _resultText.text = string.Empty;
-            _combatLogView.Clear();
-            _combatPanelView.Clear();
-            _combatPanelView.Hide();
-            _rewardSummaryView.Clear();
-            _relicRewardPanelView.Hide();
-            _endScreenView.Hide();
-            _shopPanelView.Hide();
-            _payrollPanelView.Hide();
-            _scoutPanelView.Hide();
-            _rivalLeaderboardView.Hide();
-            _rivalContinueButton.gameObject.SetActive(false);
-            _runHeaderView.Refresh(_gameManager.CurrentRunState);
-            _formationPanelView.Refresh(_gameManager.CurrentRunState);
-            _formationPanelView.Show();
-            _startCombatButton.interactable = false;
-            _restartButton.interactable = true;
-            return;
-        }
+    private void ShowShopState()
+    {
+        SetCombatChromeVisible(false);
+        _statusText.text = "Shop. Hire heroes, then Continue.";
+        _resultText.text = string.Empty;
+        _combatLogView.Clear();
+        _combatPanelView.Clear();
+        _combatPanelView.Hide();
+        _rewardSummaryView.Clear();
+        _relicRewardPanelView.Hide();
+        _endScreenView.Hide();
+        _formationPanelView.Hide();
+        _payrollPanelView.Hide();
+        _scoutPanelView.Hide();
+        _rivalLeaderboardView.Hide();
+        _rivalContinueButton.gameObject.SetActive(false);
+        _runHeaderView.Refresh(_gameManager.CurrentRunState);
+        _shopPanelView.Refresh(_gameManager.CurrentRunState, _gameManager.ShopManager.CurrentOffers);
+        _shopPanelView.Show();
+        _startCombatButton.interactable = false;
+        _restartButton.interactable = true;
+    }
 
-        if (gameState == GameState.Payroll)
-        {
-            SetCombatChromeVisible(false);
-            _statusText.text = "Payroll. Choose one action, then Continue.";
-            _resultText.text = string.Empty;
-            _combatLogView.Clear();
-            _combatPanelView.Clear();
-            _combatPanelView.Hide();
-            _rewardSummaryView.Clear();
-            _relicRewardPanelView.Hide();
-            _endScreenView.Hide();
-            _shopPanelView.Hide();
-            _formationPanelView.Hide();
-            _scoutPanelView.Hide();
-            _rivalLeaderboardView.Hide();
-            _rivalContinueButton.gameObject.SetActive(false);
-            RunState payrollRun = _gameManager.CurrentRunState;
-            if (payrollRun != null)
-            {
-                payrollRun.SelectedPayrollAction = null;
-            }
-            _runHeaderView.Refresh(payrollRun);
-            _payrollPanelView.Refresh(payrollRun);
-            _payrollPanelView.Show();
-            _startCombatButton.interactable = false;
-            _restartButton.interactable = true;
-            return;
-        }
+    private void ShowFormationState()
+    {
+        SetCombatChromeVisible(false);
+        _statusText.text = "Formation. Click two slots to swap, then Continue.";
+        _resultText.text = string.Empty;
+        _combatLogView.Clear();
+        _combatPanelView.Clear();
+        _combatPanelView.Hide();
+        _rewardSummaryView.Clear();
+        _relicRewardPanelView.Hide();
+        _endScreenView.Hide();
+        _shopPanelView.Hide();
+        _payrollPanelView.Hide();
+        _scoutPanelView.Hide();
+        _rivalLeaderboardView.Hide();
+        _rivalContinueButton.gameObject.SetActive(false);
+        _runHeaderView.Refresh(_gameManager.CurrentRunState);
+        _formationPanelView.Refresh(_gameManager.CurrentRunState);
+        _formationPanelView.Show();
+        _startCombatButton.interactable = false;
+        _restartButton.interactable = true;
+    }
 
-        if (gameState == GameState.Combat)
+    private void ShowPayrollState()
+    {
+        SetCombatChromeVisible(false);
+        _statusText.text = "Payroll. Choose one action, then Continue.";
+        _resultText.text = string.Empty;
+        _combatLogView.Clear();
+        _combatPanelView.Clear();
+        _combatPanelView.Hide();
+        _rewardSummaryView.Clear();
+        _relicRewardPanelView.Hide();
+        _endScreenView.Hide();
+        _shopPanelView.Hide();
+        _formationPanelView.Hide();
+        _scoutPanelView.Hide();
+        _rivalLeaderboardView.Hide();
+        _rivalContinueButton.gameObject.SetActive(false);
+        RunState payrollRun = _gameManager.CurrentRunState;
+        if (payrollRun != null)
         {
-            SetCombatChromeVisible(true);
-            _shopPanelView.Hide();
-            _formationPanelView.Hide();
-            _payrollPanelView.Hide();
-            _scoutPanelView.Hide();
-            _rivalLeaderboardView.Hide();
-            _rivalContinueButton.gameObject.SetActive(false);
-            RunSandboxCombat();
-            return;
+            payrollRun.SelectedPayrollAction = null;
         }
+        _runHeaderView.Refresh(payrollRun);
+        _payrollPanelView.Refresh(payrollRun);
+        _payrollPanelView.Show();
+        _startCombatButton.interactable = false;
+        _restartButton.interactable = true;
+    }
 
-        if (gameState == GameState.RelicReward)
-        {
-            SetCleanLayout(true);
-            SetCombatChromeVisible(false);
-            _statusText.text = "Choose a relic.";
-            _resultText.text = string.Empty;
-            _combatLogView.Clear();
-            _combatPanelView.Clear();
-            _combatPanelView.Hide();
-            _rewardSummaryView.Clear();
-            _endScreenView.Hide();
-            _shopPanelView.Hide();
-            _formationPanelView.Hide();
-            _payrollPanelView.Hide();
-            _scoutPanelView.Hide();
-            _rivalLeaderboardView.Hide();
-            _rivalContinueButton.gameObject.SetActive(false);
-            _runHeaderView.Refresh(_gameManager.CurrentRunState);
-            _relicRewardPanelView.Refresh(_gameManager.CurrentRunState);
-            _startCombatButton.interactable = false;
-            _restartButton.interactable = true;
-            return;
-        }
+    private void ShowCombatState()
+    {
+        SetCombatChromeVisible(true);
+        _shopPanelView.Hide();
+        _formationPanelView.Hide();
+        _payrollPanelView.Hide();
+        _scoutPanelView.Hide();
+        _rivalLeaderboardView.Hide();
+        _rivalContinueButton.gameObject.SetActive(false);
+        RunSandboxCombat();
+    }
 
-        if (gameState == GameState.RivalUpdate)
-        {
-            SetCombatChromeVisible(false);
-            _statusText.text = "Rivals updated. Review the leaderboard, then Continue.";
-            _resultText.text = string.Empty;
-            _combatLogView.Clear();
-            _combatPanelView.Clear();
-            _combatPanelView.Hide();
-            _rewardSummaryView.Clear();
-            _relicRewardPanelView.Hide();
-            _endScreenView.Hide();
-            _shopPanelView.Hide();
-            _formationPanelView.Hide();
-            _payrollPanelView.Hide();
-            _scoutPanelView.Hide();
-            _runHeaderView.Refresh(_gameManager.CurrentRunState);
-            _rivalLeaderboardView.Refresh(_gameManager.CurrentRunState, false);
-            _rivalLeaderboardView.Show();
-            _rivalContinueButton.gameObject.SetActive(true);
-            _rivalContinueButton.interactable = true;
-            _startCombatButton.interactable = false;
-            _restartButton.interactable = true;
-            return;
-        }
+    private void ShowRelicRewardState()
+    {
+        SetCleanLayout(true);
+        SetCombatChromeVisible(false);
+        _statusText.text = "Choose a relic.";
+        _resultText.text = string.Empty;
+        _combatLogView.Clear();
+        _combatPanelView.Clear();
+        _combatPanelView.Hide();
+        _rewardSummaryView.Clear();
+        _endScreenView.Hide();
+        _shopPanelView.Hide();
+        _formationPanelView.Hide();
+        _payrollPanelView.Hide();
+        _scoutPanelView.Hide();
+        _rivalLeaderboardView.Hide();
+        _rivalContinueButton.gameObject.SetActive(false);
+        _runHeaderView.Refresh(_gameManager.CurrentRunState);
+        _relicRewardPanelView.Refresh(_gameManager.CurrentRunState);
+        _startCombatButton.interactable = false;
+        _restartButton.interactable = true;
+    }
 
-        if (gameState == GameState.Victory || gameState == GameState.Defeat)
+    private void ShowRivalUpdateState()
+    {
+        SetCombatChromeVisible(false);
+        _statusText.text = "Rivals updated. Review the leaderboard, then Continue.";
+        _resultText.text = string.Empty;
+        _combatLogView.Clear();
+        _combatPanelView.Clear();
+        _combatPanelView.Hide();
+        _rewardSummaryView.Clear();
+        _relicRewardPanelView.Hide();
+        _endScreenView.Hide();
+        _shopPanelView.Hide();
+        _formationPanelView.Hide();
+        _payrollPanelView.Hide();
+        _scoutPanelView.Hide();
+        _runHeaderView.Refresh(_gameManager.CurrentRunState);
+        _rivalLeaderboardView.Refresh(_gameManager.CurrentRunState, false);
+        _rivalLeaderboardView.Show();
+        _rivalContinueButton.gameObject.SetActive(true);
+        _rivalContinueButton.interactable = true;
+        _startCombatButton.interactable = false;
+        _restartButton.interactable = true;
+    }
+
+    private void ShowEndState(GameState gameState)
+    {
+        SetCombatChromeVisible(false);
+        if (gameState == GameState.Victory)
         {
-            SetCombatChromeVisible(false);
-            if (gameState == GameState.Victory)
-            {
-                RunState endRun = _gameManager.CurrentRunState;
-                bool isAct1Clear = endRun == null || endRun.Act < GameRules.FinalAct;
-                _statusText.text = isAct1Clear ? "Act 1 cleared. Continue to Act 2." : "Act 2 complete.";
-            }
-            else
-            {
-                _statusText.text = "Run lost.";
-            }
-            _rewardSummaryView.Clear();
-            _relicRewardPanelView.Hide();
-            _combatPanelView.Clear();
-            _combatPanelView.Hide();
-            _shopPanelView.Hide();
-            _formationPanelView.Hide();
-            _payrollPanelView.Hide();
-            _scoutPanelView.Hide();
-            _rivalLeaderboardView.Hide();
-            _rivalContinueButton.gameObject.SetActive(false);
-            _endScreenView.Show(_gameManager.CurrentRunState, gameState == GameState.Victory);
-            _restartButton.interactable = true;
-            SetCleanLayout(true);
+            RunState endRun = _gameManager.CurrentRunState;
+            int act = endRun != null ? endRun.Act : 1;
+            bool isIntermediateActClear = endRun == null || endRun.Act < GameRules.FinalAct;
+            _statusText.text = isIntermediateActClear
+                ? GameRules.GetActLabel(act) + " cleared. Continue to " + GameRules.GetActLabel(act + 1) + "."
+                : GameRules.GetActLabel(act) + " complete.";
         }
+        else
+        {
+            _statusText.text = "Run lost.";
+        }
+        _rewardSummaryView.Clear();
+        _relicRewardPanelView.Hide();
+        _combatPanelView.Clear();
+        _combatPanelView.Hide();
+        _shopPanelView.Hide();
+        _formationPanelView.Hide();
+        _payrollPanelView.Hide();
+        _scoutPanelView.Hide();
+        _rivalLeaderboardView.Hide();
+        _rivalContinueButton.gameObject.SetActive(false);
+        _endScreenView.Show(_gameManager.CurrentRunState, gameState == GameState.Victory);
+        _restartButton.interactable = true;
+        SetCleanLayout(true);
     }
 
     private void EnsureCoreSystems()
@@ -687,7 +719,24 @@ public class MainMenuPanel : MonoBehaviour
         _gameManager.Initialize(_runManager);
     }
 
+    // Scene is built in code, in sibling order (which is uGUI draw order).
+    // Each builder owns one region and assigns its serialized fields; the
+    // call order here is the on-screen z-order and must not be reordered.
     private void BuildUi()
+    {
+        RectTransform root = BuildRootBackground();
+        BuildHeaderAndTitle(root);
+        BuildButtonRow(root);
+        BuildCombatPanel(root);
+        BuildCombatHeader(root);
+        BuildCombatLog(root);
+        BuildRewardAndRelic(root);
+        BuildEndScreen(root);
+        BuildGameplayPanels(root);
+        BuildRivalLeaderboard(root);
+    }
+
+    private RectTransform BuildRootBackground()
     {
         RectTransform root = GetComponent<RectTransform>();
         if (root == null)
@@ -703,7 +752,11 @@ public class MainMenuPanel : MonoBehaviour
 
         background.color = new Color(0.09f, 0.1f, 0.12f, 1f);
         background.raycastTarget = false;
+        return root;
+    }
 
+    private void BuildHeaderAndTitle(RectTransform root)
+    {
         RectTransform headerRect = CreateRect("RunHeader", root);
         _runHeaderView = headerRect.gameObject.AddComponent<RunHeaderView>();
         _runHeaderView.Initialize(GetRuntimeFont());
@@ -713,7 +766,10 @@ public class MainMenuPanel : MonoBehaviour
 
         _statusText = CreateText("StatusText", root, "Ready", 26, FontStyle.Normal, TextAnchor.MiddleCenter);
         SetAnchoredRect(_statusText.rectTransform, 0.5f, 1f, 0.5f, 1f, 0f, -StatusTopOffset, 700f, 44f);
+    }
 
+    private void BuildButtonRow(RectTransform root)
+    {
         RectTransform buttonRow = CreateRect("ButtonRow", root);
         SetAnchoredRect(buttonRow, 0.5f, 1f, 0.5f, 1f, 0f, -ButtonRowTopOffset, (ButtonWidth * 2) + ButtonGap, ButtonHeight);
 
@@ -724,7 +780,10 @@ public class MainMenuPanel : MonoBehaviour
         SetAnchoredRect(_restartButton.GetComponent<RectTransform>(), 1f, 0.5f, 1f, 0.5f, -ButtonWidth * 0.5f, 0f, ButtonWidth, ButtonHeight);
 
         BuildDifficultySelector(root);
+    }
 
+    private void BuildCombatPanel(RectTransform root)
+    {
         RectTransform combatPanel = CreateRect("CombatPanel", root);
         SetAnchoredRect(
             combatPanel,
@@ -736,7 +795,10 @@ public class MainMenuPanel : MonoBehaviour
         _combatPanelView = combatPanel.gameObject.AddComponent<CombatPanelView>();
         _combatPanelView.Initialize(GetRuntimeFont(), _spriteCatalog);
         _combatPanelView.Hide();
+    }
 
+    private void BuildCombatHeader(RectTransform root)
+    {
         // Compact combat header. The enlarged combat panel is opaque and drawn
         // after the shared title/status/Start-Restart row, so during combat
         // those are occluded; this right-column strip restores a status readout
@@ -763,7 +825,10 @@ public class MainMenuPanel : MonoBehaviour
             CompactRestartHeight);
         _combatHeaderRestartButton.onClick.AddListener(RestartCombat);
         _combatHeaderRoot.gameObject.SetActive(false);
+    }
 
+    private void BuildCombatLog(RectTransform root)
+    {
         RectTransform logPanel = CreatePanel("CombatLogPanel", root, new Color(0.16f, 0.17f, 0.2f, 1f));
         _combatLogPanelRoot = logPanel;
         SetAnchoredRect(logPanel, 0f, 0f, 1f, 1f, HorizontalMargin, 100f, -HorizontalMargin - RewardSummaryWidth - ButtonGap, -CombatLogStreamingTopOffset);
@@ -831,7 +896,10 @@ public class MainMenuPanel : MonoBehaviour
 
         _combatLogView = logPanel.gameObject.AddComponent<CombatLogView>();
         _combatLogView.Initialize(logText, scrollRect);
+    }
 
+    private void BuildRewardAndRelic(RectTransform root)
+    {
         RectTransform rewardSummaryPanel = CreatePanel("RewardSummaryPanel", root, new Color(0.13f, 0.14f, 0.17f, 1f));
         _rewardSummaryPanelRoot = rewardSummaryPanel;
         SetAnchoredRect(rewardSummaryPanel, 1f, 0.5f, 1f, 0.5f, -HorizontalMargin - (RewardSummaryWidth * 0.5f), -45f, RewardSummaryWidth, RewardSummaryHeight);
@@ -846,12 +914,18 @@ public class MainMenuPanel : MonoBehaviour
 
         _resultText = CreateText("ResultText", root, string.Empty, 32, FontStyle.Bold, TextAnchor.MiddleCenter);
         SetAnchoredRect(_resultText.rectTransform, 0.5f, 0f, 0.5f, 0f, 0f, 45f, 800f, 52f);
+    }
 
+    private void BuildEndScreen(RectTransform root)
+    {
         RectTransform endScreenPanel = CreateRect("EndScreenPanel", root);
         SetAnchoredRect(endScreenPanel, 0.5f, 0.5f, 0.5f, 0.5f, 0f, 0f, EndScreenWidth, EndScreenHeight);
         _endScreenView = endScreenPanel.gameObject.AddComponent<EndScreenView>();
         _endScreenView.Initialize(GetRuntimeFont());
+    }
 
+    private void BuildGameplayPanels(RectTransform root)
+    {
         RectTransform shopPanel = CreateRect("ShopPanel", root);
         SetAnchoredRect(shopPanel, 0f, 0f, 1f, 1f, HorizontalMargin, 100f, -HorizontalMargin, -CombatLogTopOffset);
         _shopPanelView = shopPanel.gameObject.AddComponent<ShopPanelView>();
@@ -875,7 +949,10 @@ public class MainMenuPanel : MonoBehaviour
         _scoutPanelView = scoutPanel.gameObject.AddComponent<ScoutPanelView>();
         _scoutPanelView.Initialize(GetRuntimeFont());
         _scoutPanelView.Hide();
+    }
 
+    private void BuildRivalLeaderboard(RectTransform root)
+    {
         RectTransform rivalLeaderboardPanel = CreatePanel("RivalLeaderboardPanel", root, new Color(0.12f, 0.13f, 0.16f, 1f));
         SetAnchoredRect(
             rivalLeaderboardPanel,
