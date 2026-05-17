@@ -51,6 +51,48 @@ Copy this block when adding a new entry. Paste it at the top of the Session log 
 
 <!-- Newest entries at the top. -->
 
+## 2026-05-16 - M19.3: Code seam cleanup / pre-M20 prep
+
+**Milestone:** M19 - Prototype assessment and review
+**Status:** Complete
+
+**Files added:**
+- None.
+
+**Files modified:**
+- `DungeonDebt/Assets/Scripts/Data/RunState.cs` - removed dead `Encounters` field.
+- `DungeonDebt/Assets/Scripts/Data/EncounterDefinition.cs` - re-keyed by `Act`+`Slot`; derived `Round`; typed `RivalGuild`.
+- `DungeonDebt/Assets/Scripts/Data/GameEnums.cs` - added `RivalGuild` enum.
+- `DungeonDebt/Assets/Scripts/Data/RivalGuildState.cs` - replaced string `Id` with typed `Guild`.
+- `DungeonDebt/Assets/Scripts/Core/GameRules.cs` - data-driven `ActRoundCounts`; N-act helpers; legacy members derived.
+- `DungeonDebt/Assets/Scripts/Core/DataRepository.cs` - encounters keyed by (act,slot); `GetEncounterPool`/`GetRivalEncounter`; sandbox removed; enum guilds.
+- `DungeonDebt/Assets/Scripts/Core/GameManager.cs` - first-init `EnsureManagers` guard; `ContinueToNextAct`.
+- `DungeonDebt/Assets/Scripts/Run/EncounterManager.cs` - act+slot pool lookup with `RunManager.Random` seam.
+- `DungeonDebt/Assets/Scripts/Run/RunManager.cs` - generalized `EvaluateNextState`/`AdvanceToNextAct`/relic+end-of-act; removed `PrepareSandboxRun`.
+- `DungeonDebt/Assets/Scripts/Run/RivalManager.cs` - `RivalGuild` enum dispatch.
+- `DungeonDebt/Assets/Scripts/UI/MainMenuPanel.cs` - decomposed `HandleStateChanged`/`BuildUi` (no method >~80 lines); renamed Act-continue handler; removed dead sandbox fallback.
+- `IMPLEMENTATION_PLAN.md` - added M19.3 code-seam cleanup outcome.
+- `NEXT_SESSION.md` - rewritten for M20.0 act expansion design brief.
+
+**Acceptance criteria:**
+- [x] All 8 punch-list items resolved; dead seams removed.
+- [x] Red Ink Brand + Act 2 capstone behaviors confirmed in writing before related changes.
+- [x] Compiles clean (0/0); 13-round behavior preserved (user-tested in Play mode).
+- [x] `NEXT_SESSION.md` rewritten for M20.0.
+- [x] No M20 act content added.
+
+**Test plan:** None created (per NEXT_SESSION.md; not requested). `dotnet build DungeonDebt.sln` = 0 warnings / 0 errors; user manually verified a full run in Play mode.
+
+**Deviations from plan:**
+- Q2: Act-2-to-10-rounds + round-20 boss deferred to M20 (would violate AC5 / AC3 13-round scope); M19.3 generalized the relic rule (`RivalGhost OR FinalBoss`) and act model only.
+- `RivalGuildState.Id` removed entirely (no other readers).
+- `GameEnums.cs` modified (not in explicit list) to add `RivalGuild` enum, required by item 4.
+
+**Follow-up flagged:**
+- `EndScreenView.cs` literal "Act 1 Clear"/"Act 2 Complete" strings should be generalized in M20 when more acts land.
+
+**Next slice:** M20.0 - Act expansion design brief.
+
 ## 2026-05-16 - M18.2: Relic/upgrade variants for player-side status access
 
 **Milestone:** M18 - Combat status keywords
