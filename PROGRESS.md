@@ -51,6 +51,73 @@ Copy this block when adding a new entry. Paste it at the top of the Session log 
 
 <!-- Newest entries at the top. -->
 
+## 2026-05-17 - M20.2: Major-view readability proposal (Claude-design handoff package)
+
+**Milestone:** M20 - Act expansion foundation
+**Status:** Complete
+
+**Files added:**
+- `Design/M20.2/DESIGN_BRIEF.md`
+- `Design/M20.2/SCREENSHOT_MANIFEST.md`
+- `TestPlans/TP_M20.2.md`
+- `Design/M20.2/mockups/*` (returned by Claude design: `system.css`, `index.html`, `run-header.html`, `scout.html`, `end-transition.html`, `reward-summary.html`, `combat.html`, `RATIONALE.md`, `_review/*.png`).
+
+**Files modified:**
+- `IMPLEMENTATION_PLAN.md` - §16 M20.2 outcome subsection + ready M20.3 block; Rival Leaderboard/Update MONITOR re-check note.
+- `NEXT_SESSION.md` - rewritten for M20.3 (Run Header + Scout re-skin).
+
+**Acceptance criteria:**
+- [x] AC1 - 4 NEEDS-proposal views + Combat each have a concrete written proposal (problem / change / what-stays / 2-5 criteria).
+- [x] AC2 - Combat escalated to full brief section; Rival Leaderboard/Update MONITOR re-check note recorded (no defect; one gap deferred).
+- [x] AC3 - No runtime C# / scene / prefab / art changed.
+- [x] AC4 - §16 records the M20.2 outcome + ready M20.3; NEXT_SESSION.md rewritten.
+
+**Test plan:** `TestPlans/TP_M20.2.md` - planning-document review checklist (documentation slice; no Unity runtime steps). Pending user run of the checklist.
+
+**Deviations from plan:**
+- Slice reshaped (user direction) into a Claude-design handoff package; Combat added as a 5th view (re-skin, not rebuild).
+- Artifacts consolidated into the pre-existing repo-root `Design/` folder; screenshots reuse `Design/Inputs/` (originally planned as `DesignProposals/`).
+
+**Follow-up flagged:**
+- Claude design returned the full mockup set (`Design/M20.2/mockups/`); reviewed this session and verified complete + constraint-compliant (no forbidden motion, no box-shadow, gradients decorative-only with flat fallback).
+- **Decision locked:** Run Header grows 80px -> 120px (fixed-height, still thin chrome). M20.3 must reclaim ~40px from the panel region below the header; the 80px-locked variant was NOT requested.
+- Rival Leaderboard/Update player-debt-status + shared-color pass deferred to a later M20.x view slice.
+
+**Next slice:** M20.3 - Implement shared-system re-skin for Run Header + Scout.
+
+## 2026-05-17 - M20.1: Act 2 full 10-round demonic skeleton
+
+**Milestone:** M20 - Act expansion foundation
+**Status:** Complete
+
+**Files added:**
+- `TestPlans/TP_M20.1.md`
+
+**Files modified:**
+- `DungeonDebt/Assets/Scripts/Core/GameRules.cs` - ActRoundCounts {10,3} -> {10,10}; Act 2 is rounds 11-20.
+- `DungeonDebt/Assets/Scripts/Core/DataRepository.cs` - 6 new demonic enemy defs + separate retuned Act2DebtWraith; full 10-slot (2,1..10) Act 2 encounter map; guild fights re-slotted to 3/6/9 Frugal->Greedy->Carry; Infernal Auditor FinalBoss at round 20.
+- `DungeonDebt/Assets/Scripts/UI/EndScreenView.cs` - generalized act-clear/victory/handoff copy for N acts.
+- `DungeonDebt/Assets/Scripts/UI/SpriteCatalog.cs` - added 6 new enemy sprite ids (presentation only).
+
+**Acceptance criteria:**
+- [x] ActRoundCounts makes Act 2 a 10-round act (11-20); act helpers + Act 1->2 transition resolve for a 20-round run.
+- [x] 10 authored (2,slot) encounters; guild fights 3/6/9 Frugal->Greedy->Carry; round-20 FinalBoss awards a relic via existing rule.
+- [x] 6 new demonic enemy defs referenced only by Act 2; Debt Wraith reused (retuned) at slot 15; no Act 1 changes.
+- [x] End/act-transition copy generalized (no Act 1/Act 2 literals); 20-round run completable.
+- [x] All Act 2 pools single-candidate/deterministic; combat deterministic.
+
+**Test plan:** `TestPlans/TP_M20.1.md` - user tested in the Unity Editor; M20.1 passing. `dotnet build DungeonDebt.sln` = 0 warnings / 0 errors.
+
+**Deviations from plan:**
+- Added a separate Act2DebtWraith def (reuses debt_wraith sprite) instead of mutating shared DebtWraith, to satisfy "no Act 1 changes".
+- Sprite slots added via SpriteCatalog self-seeding; Main.unity not edited.
+
+**Follow-up flagged:**
+- Enemy/guild numbers are directional only; a dedicated M20.x balance slice sets finals.
+- The four M20.0 "NEEDS proposal" major views are a prerequisite gate before bulk Act 2 content.
+
+**Next slice:** M20.2 - Major-view readability proposal (Scout / Run Header / End-Act Transition / Reward Summary for 20 rounds + per-act identity).
+
 ## 2026-05-16 - M19.3: Code seam cleanup / pre-M20 prep
 
 **Milestone:** M19 - Prototype assessment and review

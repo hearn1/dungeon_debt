@@ -1,0 +1,584 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Dungeon Debt — Scout</title>
+<link rel="stylesheet" href="system.css" />
+<style>
+  /* Full 1920×1080 canvas. Top 120px is the persistent header chrome
+     (shown as context — same component as run-header.html). The 960px
+     below is the Scout panel itself. */
+  .frame{ width:1920px; height:1080px; }
+
+  /* Mini header strip (context-only here; full design in run-header.html) */
+  .miniheader{
+    height:88px;
+    background:var(--bg-strip);
+    border-bottom:1px solid var(--rule);
+    display:flex; align-items:center;
+    padding:0 28px;
+    gap:22px;
+  }
+  .miniheader .res-row{ display:flex; gap:24px; margin-left:auto; }
+
+  .scout{
+    height: calc(1080px - 88px);
+    padding: 36px 64px 32px;
+    box-sizing:border-box;
+    display:grid;
+    grid-template-columns: 1fr 600px;
+    grid-template-rows: auto 1fr auto;
+    grid-template-areas:
+      "crumb crumb"
+      "brief enemies"
+      "footer footer";
+    column-gap:48px;
+    row-gap:28px;
+  }
+
+  /* Crumb row — classification primary */
+  .crumb{
+    grid-area: crumb;
+    display:flex;
+    align-items:center;
+    gap:18px;
+  }
+  .crumb .round-pill{
+    font-family:var(--f-mono);
+    font-size:13px;
+    letter-spacing:0.18em;
+    text-transform:uppercase;
+    color:var(--ink-dim);
+    padding:8px 14px;
+    border:1px solid var(--rule);
+    background:var(--bg-card);
+  }
+  .crumb .round-pill b{
+    color:var(--ink);
+    font-weight:600;
+  }
+  .crumb .round-pill .within{ color:var(--ink); }
+  .crumb .round-pill .sep{ color:var(--ink-faint); padding:0 6px; }
+  .crumb .grow{ flex:1; height:1px; background:var(--rule-faint); }
+
+  /* Briefing column */
+  .briefing{ grid-area: brief; display:flex; flex-direction:column; gap:24px; }
+  .briefing .name{
+    font-family:var(--f-serif);
+    font-weight:600;
+    font-size:64px;
+    line-height:1.05;
+    color:var(--ink);
+    margin:0;
+    letter-spacing:-0.01em;
+    text-wrap:balance;
+  }
+  .briefing .kicker{
+    font-family:var(--f-mono);
+    font-size:13px;
+    letter-spacing:0.22em;
+    text-transform:uppercase;
+    color:var(--ink-mute);
+    margin-bottom:-12px;
+  }
+  .briefing .scout-text{
+    font-family:var(--f-serif);
+    font-size:22px;
+    line-height:1.5;
+    color:var(--ink-dim);
+    max-width:780px;
+    margin:0;
+    text-wrap:pretty;
+  }
+  .danger{
+    display:flex;
+    align-items:stretch;
+    border:1px solid var(--sev-dangerous);
+    background:var(--sev-dangerous-bg);
+    max-width:780px;
+  }
+  .danger .swatch{ width:6px; background:var(--sev-dangerous); }
+  .danger .body{
+    padding: 12px 18px;
+    display:flex; flex-direction:column; gap:4px;
+    flex:1;
+  }
+  .danger .lab{
+    font-family:var(--f-mono);
+    font-size:11px;
+    letter-spacing:0.22em;
+    text-transform:uppercase;
+    color:var(--sev-dangerous);
+    line-height:1;
+  }
+  .danger .val{
+    font-family:var(--f-sans);
+    font-size:20px;
+    font-weight:600;
+    color:var(--ink);
+  }
+
+  /* Enemy column */
+  .enemies{ grid-area: enemies; display:flex; flex-direction:column; gap:18px; }
+  .enemy-grid{
+    display:flex;
+    flex-wrap:wrap;
+    gap:12px;
+  }
+  /* Compact reward block */
+  .rewards{
+    border:1px solid var(--rule);
+    background:var(--bg-card);
+    padding:16px 18px;
+    display:flex;
+    align-items:center;
+    gap:24px;
+  }
+  .rewards.capstone{
+    border-color:var(--gold);
+    background:#1a1610;
+  }
+  .rewards .lab{
+    font-family:var(--f-mono);
+    font-size:11px;
+    letter-spacing:0.22em;
+    text-transform:uppercase;
+    color:var(--ink-mute);
+    line-height:1;
+    margin-bottom:6px;
+  }
+  .rewards .gold-val{
+    font-family:var(--f-mono);
+    font-size:30px;
+    font-weight:600;
+    color:var(--gold);
+    line-height:1;
+  }
+  .rewards .relic-cell{
+    border-left:1px solid var(--rule);
+    padding-left:24px;
+    flex:1;
+  }
+  .rewards .relic-line{
+    display:flex; align-items:center; gap:10px;
+  }
+  .rewards .relic-line .crest{
+    width:28px; height:28px;
+    background:var(--gold);
+    color:var(--ink-invert);
+    font-family:var(--f-serif);
+    font-weight:700;
+    font-size:18px;
+    display:inline-flex; align-items:center; justify-content:center;
+  }
+  .rewards .relic-line .name{
+    font-family:var(--f-serif);
+    font-weight:600;
+    font-size:20px;
+    color:var(--gold);
+  }
+  .rewards .relic-line .hint{
+    font-family:var(--f-sans);
+    font-size:13px;
+    color:var(--ink-dim);
+    margin-top:2px;
+  }
+
+  /* Footer with continue */
+  .footer{
+    grid-area: footer;
+    display:flex; align-items:center; justify-content:space-between;
+    border-top:1px solid var(--rule-faint);
+    padding-top:18px;
+  }
+  .footer .meta{
+    font-family:var(--f-mono);
+    font-size:12px;
+    letter-spacing:0.18em;
+    text-transform:uppercase;
+    color:var(--ink-mute);
+  }
+
+  /* Capstone treatment overrides — same panel, brass highlights */
+  .capstone-mode .briefing .name{ color:var(--gold); }
+  .capstone-mode{ background:linear-gradient(180deg, var(--bg-panel) 0%, #15110a 60%, var(--bg-panel) 100%); }
+  /* Note: gradient is decorative only; flat-fallback fill is var(--bg-panel) and reads identically. */
+
+</style>
+</head>
+<body>
+  <div class="page">
+    <p class="page-kicker">M20.2 · View 2 of 5</p>
+    <h1 class="page-title">Scout</h1>
+    <p class="page-sub">
+      Pre-fight briefing. Classification (dungeon vs which rival guild vs capstone) reads first via the kind chip.
+      Encounter name dominates. Scout/danger text outweighs the reward gold. Capstone is the same panel with
+      brass accent + relic preview — distinguishable at a glance, not a different layout.
+    </p>
+
+    <!-- ──────────────────────────────────────────────────────────── -->
+    <div class="variant">
+      <div class="variant-label">
+        <span class="tag">State A</span>
+        <span class="name">Act 1 dungeon — round 1 (Slimes, baseline)</span>
+        <span class="note">Lowest-stakes fight. Brief reads first; reward is a small line.</span>
+      </div>
+      <div class="frame act-1" style="--act-accent:#8a909a">
+        <div class="miniheader">
+          <div class="act-seal lg act-1">
+            <div class="num">I</div>
+            <div class="meta"><div class="lab">Act 1 / 2</div><div class="theme">Dungeon</div></div>
+          </div>
+          <div class="runbar">
+            <div class="acts">
+              <div class="agroup act-1" style="--act-accent:#8a909a">
+                <span class="alab">I</span>
+                <span class="tick cur"></span>
+                <span class="tick"></span><span class="tick"></span><span class="tick"></span>
+                <span class="tick"></span><span class="tick"></span><span class="tick"></span>
+                <span class="tick"></span><span class="tick"></span><span class="tick cap"></span>
+              </div>
+              <div class="agroup act-2" style="--act-accent:#a8364a">
+                <span class="alab">II</span>
+                <span class="tick"></span><span class="tick"></span><span class="tick"></span>
+                <span class="tick"></span><span class="tick"></span><span class="tick"></span>
+                <span class="tick"></span><span class="tick"></span><span class="tick"></span><span class="tick cap"></span>
+              </div>
+            </div>
+          </div>
+          <div class="res-row">
+            <div class="res"><div class="lab">Gold</div><div class="val">15</div></div>
+            <div class="res"><div class="lab">Morale</div><div class="val">30</div></div>
+            <div class="debt-chip" data-tier="stable">
+              <div class="swatch"></div>
+              <div class="body">
+                <div class="top"><span class="lab">Debt</span><span class="val">0</span></div>
+                <div class="tier">Stable</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="scout">
+          <div class="crumb">
+            <div class="round-pill"><span class="within">R 01<span class="sep">/</span>10</span><span class="sep">·</span><b>01 / 20</b></div>
+            <div class="kind dungeon"><span class="dot"></span>Dungeon · standard encounter</div>
+            <div class="grow"></div>
+            <div class="round-pill" style="border-style:dashed; color:var(--ink-mute);">Next capstone · R10</div>
+          </div>
+
+          <div class="briefing">
+            <div class="kicker">Briefing</div>
+            <h2 class="name">Slimes</h2>
+            <p class="scout-text">
+              A loose pack of stat-check slimes. They hit weakly and absorb hits without much variety —
+              win by fielding enough basic attack and HP. There is no positional trick here.
+            </p>
+            <div class="danger">
+              <div class="swatch"></div>
+              <div class="body">
+                <div class="lab">Danger</div>
+                <div class="val">Basic stat check</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="enemies">
+            <div class="sec"><span class="h">Enemy lineup · 3</span><span class="rule"></span></div>
+            <div class="enemy-grid">
+              <div class="unit enemy">
+                <div class="name">Slime <span class="role">Pack</span></div>
+                <div class="portrait">[ slime ]</div>
+                <div class="stats"><span>ATK <b>1</b></span><span>HP <b>4</b></span></div>
+                <div class="hp"><div class="fill" style="width:100%; background:var(--enemy)"></div><div class="lab">4 / 4</div></div>
+                <div class="statuses"></div>
+              </div>
+              <div class="unit enemy">
+                <div class="name">Slime <span class="role">Pack</span></div>
+                <div class="portrait">[ slime ]</div>
+                <div class="stats"><span>ATK <b>1</b></span><span>HP <b>4</b></span></div>
+                <div class="hp"><div class="fill" style="width:100%; background:var(--enemy)"></div><div class="lab">4 / 4</div></div>
+                <div class="statuses"></div>
+              </div>
+              <div class="unit enemy">
+                <div class="name">Slime <span class="role">Pack</span></div>
+                <div class="portrait">[ slime ]</div>
+                <div class="stats"><span>ATK <b>1</b></span><span>HP <b>4</b></span></div>
+                <div class="hp"><div class="fill" style="width:100%; background:var(--enemy)"></div><div class="lab">4 / 4</div></div>
+                <div class="statuses"></div>
+              </div>
+            </div>
+
+            <div class="rewards">
+              <div>
+                <div class="lab">Reward</div>
+                <div class="gold-val">+8<span style="font-size:18px; color:var(--ink-mute); font-weight:400">g</span></div>
+              </div>
+              <div class="relic-cell">
+                <div class="lab">Bonus</div>
+                <div class="relic-line">
+                  <span style="font-family:var(--f-sans); font-size:15px; color:var(--ink-mute); font-style:italic;">— no relic on standard rounds —</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="footer">
+            <div class="meta">Sequence · Scout → Shop → Payroll → Formation → Combat → Reward</div>
+            <button class="btn btn--primary btn--lg">Continue to Shop <span class="chev">›</span></button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ──────────────────────────────────────────────────────────── -->
+    <div class="variant">
+      <div class="variant-label">
+        <span class="tag">State B</span>
+        <span class="name">Rival guild fight — Act 2 round 13 (Greedy Guild)</span>
+        <span class="note">Guild identity carried by chip color + named guild + portrait borders. Same layout family.</span>
+      </div>
+      <div class="frame act-2" style="--act-accent:#a8364a">
+        <div class="miniheader">
+          <div class="act-seal lg act-2">
+            <div class="num">II</div>
+            <div class="meta"><div class="lab">Act 2 / 2</div><div class="theme">Demonic</div></div>
+          </div>
+          <div class="runbar">
+            <div class="acts">
+              <div class="agroup act-1" style="--act-accent:#8a909a">
+                <span class="alab">I</span>
+                <span class="tick past"></span><span class="tick past"></span><span class="tick past"></span>
+                <span class="tick past"></span><span class="tick past"></span><span class="tick past"></span>
+                <span class="tick past"></span><span class="tick past"></span><span class="tick past"></span>
+                <span class="tick cap past"></span>
+              </div>
+              <div class="agroup act-2" style="--act-accent:#a8364a">
+                <span class="alab">II</span>
+                <span class="tick past"></span><span class="tick past"></span>
+                <span class="tick cur"></span>
+                <span class="tick"></span><span class="tick"></span><span class="tick"></span>
+                <span class="tick"></span><span class="tick"></span><span class="tick"></span><span class="tick cap"></span>
+              </div>
+            </div>
+          </div>
+          <div class="res-row">
+            <div class="res"><div class="lab">Gold</div><div class="val">11</div></div>
+            <div class="res"><div class="lab">Morale</div><div class="val">18</div></div>
+            <div class="debt-chip" data-tier="strained">
+              <div class="swatch"></div>
+              <div class="body">
+                <div class="top"><span class="lab">Debt</span><span class="val">8</span></div>
+                <div class="tier">Strained</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="scout">
+          <div class="crumb">
+            <div class="round-pill"><span class="within">R 03<span class="sep">/</span>10</span><span class="sep">·</span><b>13 / 20</b></div>
+            <div class="kind rival greedy"><span class="dot"></span>Rival Guild · Greedy</div>
+            <div class="grow"></div>
+            <div class="round-pill" style="border-style:dashed; color:var(--ink-mute);">Next capstone · R20</div>
+          </div>
+
+          <div class="briefing">
+            <div class="kicker">Briefing · vs Greedy Guild</div>
+            <h2 class="name">The Vault Skinners</h2>
+            <p class="scout-text">
+              Greedy's mid-act roster opens with a marked thief who fires from the back row and
+              flees if hit; meanwhile their tank stalls in front. If you can't push past the front
+              line within four turns, you'll bleed gold faster than you can earn it.
+            </p>
+            <div class="danger">
+              <div class="swatch" style="background:var(--guild-greedy)"></div>
+              <div class="body">
+                <div class="lab" style="color:var(--guild-greedy)">Danger</div>
+                <div class="val">Backline pressure · Marked target evades</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="enemies">
+            <div class="sec"><span class="h">Enemy lineup · 4 · Greedy Guild colors</span><span class="rule"></span></div>
+            <div class="enemy-grid">
+              <div class="unit enemy" style="border-top-color:var(--guild-greedy)">
+                <div class="name">Vault Tank <span class="role">Front</span></div>
+                <div class="portrait">[ heavy ]</div>
+                <div class="stats"><span>ATK <b>3</b></span><span>HP <b>10</b></span></div>
+                <div class="hp"><div class="fill" style="width:100%; background:var(--enemy)"></div><div class="lab">10 / 10</div></div>
+                <div class="statuses"><span class="status" data-s="G">G</span></div>
+              </div>
+              <div class="unit enemy" style="border-top-color:var(--guild-greedy)">
+                <div class="name">Vault Tank <span class="role">Front</span></div>
+                <div class="portrait">[ heavy ]</div>
+                <div class="stats"><span>ATK <b>3</b></span><span>HP <b>10</b></span></div>
+                <div class="hp"><div class="fill" style="width:100%; background:var(--enemy)"></div><div class="lab">10 / 10</div></div>
+                <div class="statuses"></div>
+              </div>
+              <div class="unit enemy" style="border-top-color:var(--guild-greedy)">
+                <div class="name">Skinner <span class="role">Back</span></div>
+                <div class="portrait">[ rogue ]</div>
+                <div class="stats"><span>ATK <b>5</b></span><span>HP <b>4</b></span></div>
+                <div class="hp"><div class="fill" style="width:100%; background:var(--enemy)"></div><div class="lab">4 / 4</div></div>
+                <div class="statuses"><span class="status" data-s="M">M</span></div>
+              </div>
+              <div class="unit enemy" style="border-top-color:var(--guild-greedy)">
+                <div class="name">Skinner <span class="role">Back</span></div>
+                <div class="portrait">[ rogue ]</div>
+                <div class="stats"><span>ATK <b>5</b></span><span>HP <b>4</b></span></div>
+                <div class="hp"><div class="fill" style="width:100%; background:var(--enemy)"></div><div class="lab">4 / 4</div></div>
+                <div class="statuses"></div>
+              </div>
+            </div>
+
+            <div class="rewards">
+              <div>
+                <div class="lab">Reward</div>
+                <div class="gold-val">+14<span style="font-size:18px; color:var(--ink-mute); font-weight:400">g</span></div>
+              </div>
+              <div class="relic-cell">
+                <div class="lab">Bonus</div>
+                <div class="relic-line">
+                  <span style="font-family:var(--f-sans); font-size:14px; color:var(--ink-dim);">+2g rival-defeat bounty · pushes Greedy toward debt</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="footer">
+            <div class="meta">Rivals pursue debt too — beating Greedy here pushes their pay status toward Dangerous</div>
+            <button class="btn btn--primary btn--lg">Continue to Shop <span class="chev">›</span></button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ──────────────────────────────────────────────────────────── -->
+    <div class="variant">
+      <div class="variant-label">
+        <span class="tag">State C</span>
+        <span class="name">Capstone — Act 2 final boss · round 20 · relic awarded</span>
+        <span class="note">Brass accent, "Capstone" chip, relic cell promoted to a featured block.</span>
+      </div>
+      <div class="frame act-2 capstone-mode" style="--act-accent:#a8364a">
+        <div class="miniheader">
+          <div class="act-seal lg act-2">
+            <div class="num">II</div>
+            <div class="meta"><div class="lab">Act 2 / 2</div><div class="theme">Demonic</div></div>
+          </div>
+          <div class="runbar">
+            <div class="acts">
+              <div class="agroup act-1" style="--act-accent:#8a909a">
+                <span class="alab">I</span>
+                <span class="tick past"></span><span class="tick past"></span><span class="tick past"></span>
+                <span class="tick past"></span><span class="tick past"></span><span class="tick past"></span>
+                <span class="tick past"></span><span class="tick past"></span><span class="tick past"></span>
+                <span class="tick cap past"></span>
+              </div>
+              <div class="agroup act-2" style="--act-accent:#a8364a">
+                <span class="alab">II</span>
+                <span class="tick past"></span><span class="tick past"></span><span class="tick past"></span>
+                <span class="tick past"></span><span class="tick past"></span><span class="tick past"></span>
+                <span class="tick past"></span><span class="tick past"></span><span class="tick past"></span>
+                <span class="tick cap cur"></span>
+              </div>
+            </div>
+          </div>
+          <div class="res-row">
+            <div class="res"><div class="lab">Gold</div><div class="val">6</div></div>
+            <div class="res"><div class="lab">Morale</div><div class="val">14</div></div>
+            <div class="debt-chip" data-tier="dangerous">
+              <div class="swatch"></div>
+              <div class="body">
+                <div class="top"><span class="lab">Debt</span><span class="val">16</span></div>
+                <div class="tier">Dangerous</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="scout">
+          <div class="crumb">
+            <div class="round-pill" style="border-color:var(--gold); color:var(--gold);"><span class="within">R 10<span class="sep">/</span>10</span><span class="sep">·</span><b>20 / 20</b></div>
+            <div class="kind capstone"><span class="dot"></span>Final Capstone · Awards Relic</div>
+            <div class="grow" style="background:var(--gold); opacity:0.4;"></div>
+            <div class="round-pill" style="border-color:var(--gold); color:var(--gold); background:#1a1610;">Run ends after this fight</div>
+          </div>
+
+          <div class="briefing">
+            <div class="kicker" style="color:var(--gold);">Briefing · Final boss</div>
+            <h2 class="name">The Underwriter</h2>
+            <p class="scout-text">
+              The act's prime mover — a demonic accountant flanked by two soulclerks who siphon
+              morale on each hit. Pressure stacks fast; bring inspiration if you can. Survive and
+              the guild recovers one lasting <b style="color:var(--gold)">relic</b> from the wreckage.
+            </p>
+            <div class="danger" style="border-color:var(--sev-critical); background:var(--sev-critical-bg)">
+              <div class="swatch" style="background:var(--sev-critical)"></div>
+              <div class="body">
+                <div class="lab" style="color:var(--sev-critical)">Danger · severe</div>
+                <div class="val">Morale drain · 4 active statuses · two-phase boss</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="enemies">
+            <div class="sec"><span class="h">Enemy lineup · 3 · Act II boss</span><span class="rule"></span></div>
+            <div class="enemy-grid">
+              <div class="unit enemy" style="width:180px; border-top-color:var(--gold)">
+                <div class="name" style="color:var(--gold)">The Underwriter <span class="role">Boss</span></div>
+                <div class="portrait" style="height:120px;">[ boss ]</div>
+                <div class="stats"><span>ATK <b>7</b></span><span>HP <b>40</b></span></div>
+                <div class="hp"><div class="fill" style="width:100%; background:var(--enemy)"></div><div class="lab">40 / 40</div></div>
+                <div class="statuses"><span class="status" data-s="G">G</span><span class="status" data-s="I">I</span></div>
+              </div>
+              <div class="unit enemy">
+                <div class="name">Soulclerk <span class="role">Back</span></div>
+                <div class="portrait">[ caster ]</div>
+                <div class="stats"><span>ATK <b>4</b></span><span>HP <b>9</b></span></div>
+                <div class="hp"><div class="fill" style="width:100%; background:var(--enemy)"></div><div class="lab">9 / 9</div></div>
+                <div class="statuses"><span class="status" data-s="W">W</span></div>
+              </div>
+              <div class="unit enemy">
+                <div class="name">Soulclerk <span class="role">Back</span></div>
+                <div class="portrait">[ caster ]</div>
+                <div class="stats"><span>ATK <b>4</b></span><span>HP <b>9</b></span></div>
+                <div class="hp"><div class="fill" style="width:100%; background:var(--enemy)"></div><div class="lab">9 / 9</div></div>
+                <div class="statuses"><span class="status" data-s="W">W</span></div>
+              </div>
+            </div>
+
+            <div class="rewards capstone">
+              <div>
+                <div class="lab">Reward</div>
+                <div class="gold-val">+24<span style="font-size:18px; color:var(--ink-mute); font-weight:400">g</span></div>
+              </div>
+              <div class="relic-cell">
+                <div class="lab" style="color:var(--gold)">— Relic on victory —</div>
+                <div class="relic-line">
+                  <span class="crest">★</span>
+                  <div>
+                    <div class="name">Choose 1 of 3</div>
+                    <div class="hint">Permanent run modifier. Survives into Acts 3+.</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="footer">
+            <div class="meta" style="color:var(--gold);">★ Capstone victory clears the run · Relic select follows</div>
+            <button class="btn btn--primary btn--lg">Continue to Shop <span class="chev">›</span></button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <p class="page-sub" style="margin-top:48px; font-size:13px;">
+      <a href="index.html" style="color:var(--gold); text-decoration:none;">← back to index</a>
+    </p>
+  </div>
+</body>
+</html>
