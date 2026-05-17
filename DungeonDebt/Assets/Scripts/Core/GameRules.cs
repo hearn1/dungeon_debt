@@ -129,15 +129,20 @@ public static class GameRules
     public const float PredatoryEnemyHealthMult = 1.20f;
     public const float PredatoryEnemyDamageMult = 1.20f;
 
-    // Act structure. RunState.Round stays an absolute counter: Act 1 is
-    // rounds 1-10, Act 2 is rounds 11-13. FinalRound is the Act 1 boundary
-    // (kept for existing references); Act2FinalRound is the Act 2 boundary.
-    public const int FinalRound = 10;
-    public const int Act1FinalRound = 10;
-    public const int Act2FinalRound = 13;
-    public const int Act1Rounds = 10;
-    public const int Act2Rounds = 3;
-    public const int FinalAct = 2;
+    // Act structure. RunState.Round stays an absolute counter that runs
+    // continuously across every act. Act lengths are data: ActRoundCounts[i]
+    // is the round count for act (i+1). The model supports N acts; the
+    // Act1/Act2 named members are derived so existing references keep working.
+    // To add an act, append its round count here and author its encounters.
+    private static readonly int[] ActRoundCounts = { 10, 3 };
+
+    public static int TotalActs { get { return ActRoundCounts.Length; } }
+    public static int FinalAct { get { return ActRoundCounts.Length; } }
+    public static int FinalRound { get { return GetActFinalRound(1); } }
+    public static int Act1FinalRound { get { return GetActFinalRound(1); } }
+    public static int Act2FinalRound { get { return GetActFinalRound(2); } }
+    public static int Act1Rounds { get { return GetRoundsInAct(1); } }
+    public static int Act2Rounds { get { return GetRoundsInAct(2); } }
 
     public const int LoanGoldGain = 5;
     public const int LoanDebtCost = 6;
@@ -398,28 +403,74 @@ public static class GameRules
         return "V" + veteranTier + " XP " + xp + "/" + nextThreshold;
     }
 
+    private static int ClampAct(int act)
+    {
+        if (act < 1)
+        {
+            return 1;
+        }
+
+        if (act > ActRoundCounts.Length)
+        {
+            return ActRoundCounts.Length;
+        }
+
+        return act;
+    }
+
     public static int GetRoundsInAct(int act)
     {
-        return act >= FinalAct ? Act2Rounds : Act1Rounds;
+        return ActRoundCounts[ClampAct(act) - 1];
+    }
+
+    // Absolute round of the act's final round (cumulative sum of all prior
+    // acts plus this act's length).
+    public static int GetActFinalRound(int act)
+    {
+        int clamped = ClampAct(act);
+        int total = 0;
+        for (int i = 0; i < clamped; i++)
+        {
+            total += ActRoundCounts[i];
+        }
+
+        return total;
+    }
+
+    // Absolute round of the act's first round.
+    public static int GetActStartRound(int act)
+    {
+        return GetActFinalRound(act) - GetRoundsInAct(act) + 1;
+    }
+
+    // Absolute round for a 1-based slot inside an act.
+    public static int GetAbsoluteRound(int act, int slot)
+    {
+        return GetActStartRound(act) + slot - 1;
+    }
+
+    public static int GetActForRound(int absoluteRound)
+    {
+        int cumulative = 0;
+        for (int act = 1; act <= ActRoundCounts.Length; act++)
+        {
+            cumulative += ActRoundCounts[act - 1];
+            if (absoluteRound <= cumulative)
+            {
+                return act;
+            }
+        }
+
+        return ActRoundCounts.Length;
     }
 
     public static int GetRoundWithinAct(int act, int absoluteRound)
     {
-        if (act >= FinalAct)
-        {
-            return absoluteRound - Act1FinalRound;
-        }
-
-        return absoluteRound;
+        return absoluteRound - GetActStartRound(act) + 1;
     }
 
     public static string GetActLabel(int act)
     {
-        return "Act " + (act >= FinalAct ? FinalAct : 1);
-    }
-
-    public static int GetActFinalRound(int act)
-    {
-        return act >= FinalAct ? Act2FinalRound : Act1FinalRound;
+        return "Act " + ClampAct(act);
     }
 }

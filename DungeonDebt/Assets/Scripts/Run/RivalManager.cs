@@ -37,12 +37,12 @@ public class RivalManager : MonoBehaviour
                 rival.Debt += rival.Payroll - GameRules.RivalIncomePerRound;
             }
 
-            if (rival.Id == "greedy" && currentRound % 2 == 0)
+            if (rival.Guild == RivalGuild.Greedy && currentRound % 2 == 0)
             {
                 rival.Debt += GameRules.GreedyRivalDebtCreep;
             }
 
-            if (rival.Id == "frugal" && rival.Debt > 0)
+            if (rival.Guild == RivalGuild.Frugal && rival.Debt > 0)
             {
                 rival.Debt = Math.Max(0, rival.Debt - 1);
             }
@@ -56,7 +56,7 @@ public class RivalManager : MonoBehaviour
 
     private static int GetPayrollGrowth(RivalGuildState rival, int currentRound)
     {
-        if (rival.Id == "carry")
+        if (rival.Guild == RivalGuild.Carry)
         {
             return currentRound % 2 == 0
                 ? GameRules.CarryRivalEvenRoundPayrollGrowth

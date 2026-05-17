@@ -6,7 +6,6 @@ public class RunState
     {
         Party = new List<HeroInstance>();
         Rivals = new List<RivalGuildState>();
-        Encounters = new List<EncounterDefinition>();
         ActiveRelics = new List<RelicId>();
         PendingRelicChoices = new List<RelicId>();
     }
@@ -18,7 +17,6 @@ public class RunState
     public int Morale { get; set; }
     public List<HeroInstance> Party { get; }
     public List<RivalGuildState> Rivals { get; }
-    public List<EncounterDefinition> Encounters { get; }
     public PayrollActionId? SelectedPayrollAction { get; set; }
     public int RerollCount { get; set; }
     public bool HasLatestRewardSummary { get; set; }

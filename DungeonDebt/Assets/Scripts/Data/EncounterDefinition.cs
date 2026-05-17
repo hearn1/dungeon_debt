@@ -4,7 +4,8 @@ using System.Collections.ObjectModel;
 public class EncounterDefinition
 {
     public EncounterDefinition(
-        int round,
+        int act,
+        int slot,
         EncounterType type,
         string displayName,
         string scoutText,
@@ -12,9 +13,11 @@ public class EncounterDefinition
         IList<EnemyDefinition> enemies,
         int baseGoldReward,
         EncounterEffectId encounterEffectId,
-        string rivalGuildId)
+        RivalGuild rivalGuild)
     {
-        Round = round;
+        Act = act;
+        Slot = slot;
+        Round = GameRules.GetAbsoluteRound(act, slot);
         Type = type;
         DisplayName = displayName;
         ScoutText = scoutText;
@@ -22,9 +25,11 @@ public class EncounterDefinition
         Enemies = new ReadOnlyCollection<EnemyDefinition>(new List<EnemyDefinition>(enemies));
         BaseGoldReward = baseGoldReward;
         EncounterEffectId = encounterEffectId;
-        RivalGuildId = rivalGuildId;
+        RivalGuild = rivalGuild;
     }
 
+    public int Act { get; }
+    public int Slot { get; }
     public int Round { get; }
     public EncounterType Type { get; }
     public string DisplayName { get; }
@@ -33,5 +38,5 @@ public class EncounterDefinition
     public IReadOnlyList<EnemyDefinition> Enemies { get; }
     public int BaseGoldReward { get; }
     public EncounterEffectId EncounterEffectId { get; }
-    public string RivalGuildId { get; }
+    public RivalGuild RivalGuild { get; }
 }

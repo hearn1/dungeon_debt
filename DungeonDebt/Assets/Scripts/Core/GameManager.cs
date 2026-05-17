@@ -11,6 +11,7 @@ public class GameManager : MonoBehaviour
 
     private GameState _currentState = GameState.MainMenu;
     private DifficultyPresetId _pendingDifficulty = GameRules.DefaultDifficultyPreset;
+    private bool _managersReady;
 
     public event Action<GameState> OnStateChanged;
 
@@ -64,7 +65,10 @@ public class GameManager : MonoBehaviour
 
     public void Initialize(RunManager runManager)
     {
+        // The scene bootstrapper supplies the canonical RunManager. Force a
+        // single clean (re)wire with it, then later transitions skip the work.
         _runManager = runManager;
+        _managersReady = false;
         EnsureManagers();
     }
 
@@ -160,7 +164,7 @@ public class GameManager : MonoBehaviour
         ChangeState(nextState);
     }
 
-    public void ContinueToAct2()
+    public void ContinueToNextAct()
     {
         EnsureManagers();
         if (_runManager == null)
@@ -168,7 +172,7 @@ public class GameManager : MonoBehaviour
             return;
         }
 
-        _runManager.AdvanceToAct2();
+        _runManager.AdvanceToNextAct();
         ChangeState(GameState.Scout);
     }
 
@@ -219,6 +223,13 @@ public class GameManager : MonoBehaviour
 
     private void EnsureManagers()
     {
+        // First-init only. ChangeState and every Continue* path call this, but
+        // the find/add/Initialize wiring must happen once, not per transition.
+        if (_managersReady)
+        {
+            return;
+        }
+
         if (_runManager == null)
         {
             _runManager = GetComponent<RunManager>();
@@ -269,5 +280,6 @@ public class GameManager : MonoBehaviour
         }
 
         _runManager.Initialize(_payrollManager, _rivalManager);
+        _managersReady = true;
     }
 }
