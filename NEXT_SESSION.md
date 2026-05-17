@@ -4,57 +4,58 @@ This file always describes the **next** session's work. Rewrite it at the end of
 
 ---
 
-## Session: M20.0 - Act expansion design brief
+## Session: M20.1 - Act 2 full 10-round demonic skeleton
 
 **Milestone:** M20 - Act expansion foundation
-**Slice goal:** Define the reusable act format, the Act 2 expansion target, the Acts 3/4/5 content pattern, guild-evolution rules, encounter-randomness approach, late-hire catch-up proposal, and the major-view design-proposal checklist - then leave M20.1 ready as the first implementation slice.
+**Slice goal:** Extend Act 2 to a full 10-round act (rounds 11-20) with a demonic-themed encounter skeleton - Frugal/Greedy/Carry guild fights at slots 3/6/9 and a new demonic `FinalBoss` at round 20 - using deterministic single-candidate encounter pools (no encounter randomization yet).
 
 ### Why this slice exists
 
-M19.3 generalized the code seams so acts are now data-driven: act lengths live in `GameRules.ActRoundCounts`, encounters are keyed by `(act, slot)` with a pool/`RunManager.Random` selection seam, relic eligibility is `RivalGhost OR FinalBoss` (content-agnostic), rivals dispatch on the typed `RivalGuild` enum with a per-act roster seam (`DataRepository.GetRivalEncounter`), and the act-advance path is generalized (`AdvanceToNextAct`). The architecture can now express N acts of arbitrary length **without further feature work**. M20.0 decides the content shape that fills that architecture. **M20.0 is documentation-only** - no runtime C# changes.
+M19.3 generalized the code seams (data-driven `ActRoundCounts`, `(act, slot)` encounter keying with a `RunManager.Random` pool seam, typed `RivalGuild` dispatch, generalized `AdvanceToNextAct`, content-agnostic `RivalGhost OR FinalBoss` relic rule). M20.0 then locked the content shape: a reusable 10-slot act format, Act 2 as a demonic-themed act (rounds 11-20) with the round-20 final boss, the new demonic enemy asset list, the guild-evolution direction, the encounter-randomness rule, the late-hire catch-up proposal, and the major-view readability checklist. M20.1 is the **first implementation slice**: it fills the architecture with the Act 2 = rounds 11-20 demonic skeleton so a 20-round run is playable end-to-end. Full design rationale is in `IMPLEMENTATION_PLAN.md` section 16 "M20.0 act-format design outcome".
 
-### Confirmed design direction (from M19.3 user decisions)
+### Confirmed design direction (from M20.0, all user-locked)
 
-- **Act 2 becomes a full 10-round act**, structurally parallel to Act 1 (Act 1 = rounds 1-10; Act 2 = rounds 11-20).
-- **The Act 2 final boss is on round 20**, typed `EncounterType.FinalBoss`.
-- **Final bosses award a relic** (already true via the M19.3 `RivalGhost OR FinalBoss` rule).
-- Acts 3/4/5 (if pursued later) follow the same pattern and should be **mostly content authoring**: append a round count to `GameRules.ActRoundCounts`, add `(act, slot)` encounter definitions, assign existing enemy/effect/relic/status hooks, add per-act rival encounters via the existing `RivalGuild` seam, tune numbers.
-- Each act should include **one fight against each rival guild** (Greedy, Frugal, Carry), evolving alongside the player: Greedy stays high-power/high-debt, Carry protects an escalating threat, Frugal stays efficient/resilient.
-- Encounter randomness stays **non-combat only**: vary which encounter a slot serves from an act pool, or vary order within act constraints, using `RunManager.Random`. Combat itself stays deterministic.
+- Act 2 becomes a **full 10-round act** (`GameRules.ActRoundCounts` `{10, 3}` -> `{10, 10}`), rounds 11-20, with a **demonic theme** as its own identity.
+- Reusable 10-slot act template (see the M20.0 table in `IMPLEMENTATION_PLAN.md` section 16): slots 1-2 dungeon, slot 3 guild fight, slots 4-5 dungeon, slot 6 guild fight, slots 7-8 dungeon, slot 9 guild fight, slot 10 `FinalBoss` capstone.
+- Guild-fight order by rough difficulty: **Frugal (slot 3) -> Greedy (slot 6) -> Carry (slot 9)**.
+- Act 2 slot map and the 6 new demonic enemy assets are specified in `IMPLEMENTATION_PLAN.md` section 16 M20.0 ("New Act 2 enemy assets to author").
+- Encounter pools for M20.1 are **single-candidate / deterministic** - no `RunManager.Random` variation this slice. Pooled dungeon variants are a later M20.x slice.
+- Late-hire catch-up (act-aware minimum XP) is a proposal only - **not** implemented in M20.1.
 
 ### Scope
 
-**In scope for M20.0 (documentation only):**
-- Specify the reusable act format: how many dungeon vs rival vs boss slots, where the three guild fights sit, where the capstone sits, what scout/economy pressure beats recur.
-- Specify the Act 2 round-11-to-20 content target at the level of slot purposes and enemy-reuse strategy (M19.3 already added Act2 enemy definitions for the current 3 rematch fights; decide how rounds 14-19 are populated - reuse/retune existing enemies vs a small number of new Act 2 enemy definitions, staying within scope limits).
-- Decide the encounter-pool randomness rule for M20 (e.g. fixed order for guild/boss slots, optional pooled variants for dungeon slots).
-- Write the guild-evolution rule per act (numeric growth direction, not final numbers).
-- Write the late-hire catch-up proposal (e.g. act-aware minimum XP or trained-hire rule) - proposal only, no implementation, no new progression screen.
-- Produce the major-view design-proposal checklist (Main Menu/Run Contract, Scout, Shop, Formation, Payroll, Combat, Reward Summary, Relic Reward, Rival Leaderboard/Update, End/Act Transition) and flag which views need a readability proposal before heavy act content lands.
-- Leave M20.1 ready: concrete first implementation slice with ID, one-sentence goal, file list, and 2-5 acceptance criteria.
+**In scope for M20.1:**
+- `GameRules.ActRoundCounts` -> `{10, 10}`; add Act 2 enemy/boss numeric constants in `GameRules`.
+- Author the 6 new Act 2 demonic enemy definitions in `DataRepository` (Imp, Soul Broker, Gloom Bat, Hoard Fiend, Brimstone Brute, and the Act 2 final boss - user picks the boss name).
+- Author 10 `(2, slot)` encounter definitions per the M20.0 slot map; re-slot the existing Act 2 guild rematch encounters to `(2,3)/(2,6)/(2,9)` in Frugal->Greedy->Carry order; reuse Debt Wraith (retuned) at `(2,5)`.
+- Generalize the `EndScreenView` "Act 1 Clear"/"Act 2 Complete" literals for N acts (M19.3 follow-up).
+- Add `SpriteCatalog` / scene id->Sprite slots for the 6 new Act 2 enemies (presentation only, per `CLAUDE.md` M10.4 carve-out). Placeholder art is acceptable if final demonic art is not ready.
+- `TestPlans/TP_M20.1.md`.
 
-**Not in scope for M20.0:**
-- Any runtime C# / scene / prefab / art change (documentation-only slice).
-- Implementing Act 2 rounds 14-20, new enemies, new relics, or guild numbers.
-- New independent verticals, save/load, online, meta progression, equipment/inventory, tutorial, audio, architecture rewrites, large hero-roster expansion.
-- Starting M20.1 implementation in the same session.
+**Not in scope for M20.1:**
+- Encounter-pool randomization (`RunManager.Random` variant selection) - later M20.x.
+- Guild-evolution numeric tuning beyond the minimum needed to make Act 2 winnable - directional only this slice; a dedicated M20.x balance slice sets final numbers.
+- Late-hire catch-up implementation.
+- The Acts 3/4/5 structure decision (Option A environment-themed vs Option B guild-owned) - deferred design item.
+- Major-view readability proposals - separate slice(s) before the bulk content beyond this skeleton.
+- New heroes, new payroll actions, new relics/statuses, save/load, online, meta progression, equipment/inventory, tutorial, audio, architecture rewrites.
 
 ### Definition of ready
 
-- ID: M20.0.
+- ID: M20.1.
 - One-sentence goal: above.
 - Files: listed below.
-- Acceptance criteria: 4, below.
-- No open Blocker regressions in `REGRESSIONS.md` block this work.
+- Acceptance criteria: 5, below.
+- No open Blocker regressions in `REGRESSIONS.md` block this work (Open section currently empty).
 
 ### Relevant plan/design sections
 
 - `SESSION_PROTOCOL.md` seven-step session flow.
-- `CLAUDE.md` scope control (Phase 3 carve-outs), architectural rules, definition of ready.
-- `IMPLEMENTATION_PLAN.md` section 16: M19.1 expansion recommendation, M19.3 code-seam cleanup outcome, Milestone 20 direction and expected sub-slicing.
-- `PROGRESS.md` latest M19 entries.
+- `CLAUDE.md` scope control (Phase 3 carve-outs, M10.4 sprite carve-out), architectural rules (`GameRules` tuning surface, `DataRepository` read-only static, deterministic combat), definition of ready.
+- `IMPLEMENTATION_PLAN.md` section 16: Milestone 20 + the **"M20.0 act-format design outcome"** subsection (act format, Act 2 slot map, enemy asset list, encounter-randomness rule, the ready M20.1 definition).
+- `PROGRESS.md` latest M19/M20 entries.
 - `REGRESSIONS.md` Open section.
-- `GAME_DESIGN.md` core hook, core loop, strategic tension, MVP scope, design-warning sections.
+- `GAME_DESIGN.md` rival guild system, encounter list, MVP scope reconciliation note in M20.0.
 
 ### Files Claude Code Should Read
 
@@ -64,41 +65,50 @@ CLAUDE.md
 REGRESSIONS.md
 PROGRESS.md (latest M19/M20 entries)
 NEXT_SESSION.md
-IMPLEMENTATION_PLAN.md (section 16, M19.3 outcome + Milestone 20)
-GAME_DESIGN.md
+IMPLEMENTATION_PLAN.md (section 16, M20.0 act-format design outcome + M20.1)
+GAME_DESIGN.md (rival guilds, encounter list)
 DungeonDebt/Assets/Scripts/Core/GameRules.cs        (ActRoundCounts + act helpers)
-DungeonDebt/Assets/Scripts/Core/DataRepository.cs   (encounter (act,slot) keying, GetEncounterPool, GetRivalEncounter)
+DungeonDebt/Assets/Scripts/Core/DataRepository.cs   (EncounterDefinitions, Act2* enemy defs, GetEncounterPool, GetRivalEncounter)
+DungeonDebt/Assets/Scripts/Data/EncounterDefinition.cs
+DungeonDebt/Assets/Scripts/Data/EnemyDefinition.cs
 DungeonDebt/Assets/Scripts/Run/EncounterManager.cs  (pool lookup seam)
 DungeonDebt/Assets/Scripts/Run/RunManager.cs        (AdvanceToNextAct, relic/end-of-act)
-DungeonDebt/Assets/Scripts/Run/RivalManager.cs      (RivalGuild dispatch)
+DungeonDebt/Assets/Scripts/UI/EndScreenView.cs      (act-clear copy to generalize)
 ```
 
 ### Files Claude Code Should Create
 
 ```
-None.
+TestPlans/TP_M20.1.md
 ```
 
 ### Files Claude Code Should Modify
 
 ```
-IMPLEMENTATION_PLAN.md - add the M20.0 act-format design outcome and the ready M20.1 slice definition.
-NEXT_SESSION.md - rewrite for M20.1 as the first act-expansion implementation slice.
+DungeonDebt/Assets/Scripts/Core/GameRules.cs       - ActRoundCounts -> {10,10}; Act 2 enemy/boss constants.
+DungeonDebt/Assets/Scripts/Core/DataRepository.cs  - 6 new Act 2 demonic enemy defs; 10 (2,slot) encounters; re-slot guild rematches; reuse retuned Debt Wraith.
+DungeonDebt/Assets/Scripts/UI/EndScreenView.cs     - generalize Act 1/Act 2 literals for N acts.
+DungeonDebt/Assets/Scenes/Main.unity (or SpriteCatalog component) - id->Sprite slots for the 6 new Act 2 enemies (presentation only).
+IMPLEMENTATION_PLAN.md - mark M20.1 complete and leave the next M20.x slice ready (end-of-session).
+NEXT_SESSION.md - rewrite for the next M20.x slice (end-of-session).
 ```
 
 ### Files Claude Code Does NOT Touch
 
-- Any runtime C#, Unity scene, prefabs, art assets, project settings, generated Unity folders, or `.meta` files (documentation-only slice).
+- `RunManager.cs`, `EncounterManager.cs`, `RivalManager.cs`, `GameManager.cs`, `CombatManager.cs`, `HeroEffects.cs` logic - the M19.3 seams already support N acts; M20.1 is content + one UI copy generalization only. (Read them for understanding; do not change behavior.)
+- `MainMenuPanel.cs` beyond any unavoidable mechanical wiring - flag and ask before touching.
 - `PROGRESS.md` / `REGRESSIONS.md` directly unless the user explicitly asks for end-of-session doc updates.
+- `GAME_DESIGN.md`, `CLAUDE.md`, `SESSION_PROTOCOL.md`.
 - New top-level folders, `Resources/`, `StreamingAssets/`, `Tests/`, or `Editor/`.
-- `TestPlans/TP_M20.0.md` unless the user explicitly asks for a test-plan document.
+- Encounter-pool randomization, late-hire catch-up, guild numeric balance pass - out of M20.1 scope.
 
 ### Acceptance criteria
 
-1. The reusable act format is documented (slot roles, guild-fight placement, capstone placement, recurring pressure beats) and applied to the Act 2 = rounds 11-20 / round-20 FinalBoss target.
-2. Guild-evolution direction, the M20 encounter-randomness rule, and the late-hire catch-up proposal are written down (directional, not final numbers), all consistent with `CLAUDE.md` scope control.
-3. The major-view design-proposal checklist exists and flags which views need a readability proposal before heavy act content.
-4. M20.1 is left ready: ID, one-sentence goal, explicit file list, and 2-5 acceptance criteria - and no M20 runtime content was added during M20.0.
+1. `GameRules.ActRoundCounts` makes Act 2 a 10-round act (rounds 11-20); all act helpers and the Act 1->Act 2 transition resolve correctly for a 20-round run.
+2. Act 2 has 10 authored `(2, slot)` encounters matching the M20.0 slot map: demonic dungeon slots, guild fights at slots 3/6/9 in Frugal->Greedy->Carry order, and a `FinalBoss` at round 20 that awards a relic via the existing `RivalGhost OR FinalBoss` rule.
+3. The 6 new Act 2 demonic enemy definitions exist and are referenced only by Act 2 encounters; Debt Wraith is reused (retuned) at slot 15; no Act 1 encounter or enemy behavior changes.
+4. End/act-transition copy is generalized (no hardcoded "Act 1"/"Act 2" literals) and a full 20-round run is completable in the Unity Editor.
+5. All Act 2 encounter pools are single-candidate/deterministic (no `RunManager.Random` variation introduced this slice); combat remains deterministic.
 
 ### Start Prompt For The Next Session
 
