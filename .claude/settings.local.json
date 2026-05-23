@@ -7,7 +7,14 @@
       "Bash(ls *.sln)",
       "Bash(ls *.html)",
       "Bash(find . -maxdepth 2 -iname \"*.html\" -not -path \"./.git/*\")",
-      "Bash(powershell -Command \"\\(Get-Content 'C:\\\\Users\\\\Matt\\\\Desktop\\\\Code\\\\dungeon_debt\\\\PROGRESS.md'\\).Count\")"
+      "Bash(powershell -Command \"\\(Get-Content 'C:\\\\Users\\\\Matt\\\\Desktop\\\\Code\\\\dungeon_debt\\\\PROGRESS.md'\\).Count\")",
+      "Bash(ls \"C:/Users/Matt/Desktop/Code/\")",
+      "Bash(node src/test/headless.js)",
+      "PowerShell($p = @\\(\"$env:ProgramFiles\\\\nodejs\\\\node.exe\",\"${env:ProgramFiles\\(x86\\)}\\\\nodejs\\\\node.exe\",\"$env:LOCALAPPDATA\\\\Programs\\\\nodejs\\\\node.exe\",\"$env:APPDATA\\\\npm\\\\node.exe\"\\); foreach \\($x in $p\\) { if \\(Test-Path $x\\) { \"FOUND: $x\" } }; Get-Command npm -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Source; where.exe node 2>$null; \\(Get-Command nvm -ErrorAction SilentlyContinue\\).Source)",
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Program Files\",\"C:\\\\Program Files \\(x86\\)\",\"$env:LOCALAPPDATA\",\"$env:APPDATA\",\"$env:USERPROFILE\" -Filter \"node.exe\" -Recurse -ErrorAction SilentlyContinue -Depth 4 | Select-Object -First 10 -ExpandProperty FullName)",
+      "Bash(ls \"C:/Users/Matt/Desktop/Code/dungeon_debt/.claude/\" 2>/dev/null || mkdir -p \"C:/Users/Matt/Desktop/Code/dungeon_debt/.claude\"; ls \"C:/Users/Matt/Desktop/Code/dungeon_debt/.claude/\")",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(gh pr *)"
     ]
   }
 }

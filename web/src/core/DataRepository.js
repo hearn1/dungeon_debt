@@ -1,0 +1,180 @@
+// Ported from DungeonDebt/Assets/Scripts/Core/DataRepository.cs
+// Static, read-only data tables: heroes, enemies, encounters, payroll actions,
+// relics, difficulty presets, rival guilds.
+
+import { HeroDefinition } from "../data/HeroDefinition.js";
+import { EnemyDefinition } from "../data/EnemyDefinition.js";
+import { EncounterDefinition } from "../data/EncounterDefinition.js";
+import { PayrollActionDefinition } from "../data/PayrollActionDefinition.js";
+import { RelicDefinition } from "../data/RelicDefinition.js";
+import { DifficultyPreset } from "../data/DifficultyPreset.js";
+import { RivalGuildState } from "../data/RivalGuildState.js";
+import { GameRules } from "./GameRules.js";
+import {
+  HeroRole, HeroEffectId, EnemyEffectId, EncounterType, EncounterEffectId,
+  RivalGuild, PayrollActionId, DifficultyPresetId, RelicId, CombatStatusId,
+} from "../data/enums.js";
+
+const C = CombatStatusId;
+
+// ---- Heroes ----
+const Warrior = new HeroDefinition("warrior", "Warrior", HeroRole.Tank, 2, 8, 2, "No effect.", HeroEffectId.None);
+const Knight = new HeroDefinition("knight", "Knight", HeroRole.Tank, 1, 10, 4, "Redirects the first backline hit each combat to himself.", HeroEffectId.KnightRedirect);
+const Golem = new HeroDefinition("golem", "Golem", HeroRole.Tank, 1, 14, 6, "Reduces incoming damage by 1.", HeroEffectId.GolemArmor);
+const Wizard = new HeroDefinition("wizard", "Wizard", HeroRole.Damage, 3, 4, 5, "Gains +1 attack when full upkeep is paid.", HeroEffectId.WizardScaling);
+const Ninja = new HeroDefinition("ninja", "Ninja", HeroRole.Damage, 4, 3, 4, "Targets the lowest-HP enemy; +1 gold on each kill.", HeroEffectId.NinjaLowestTarget);
+const Ranger = new HeroDefinition("ranger", "Ranger", HeroRole.Damage, 3, 5, 3, "Can safely attack from the backline.", HeroEffectId.RangerBackline);
+const Priest = new HeroDefinition("priest", "Priest", HeroRole.Support, 1, 5, 4, "Heals frontmost ally for 2 each combat round.", HeroEffectId.PriestHeal);
+const Bard = new HeroDefinition("bard", "Bard", HeroRole.Support, 1, 4, 3, "+2 gold after each combat win.", HeroEffectId.BardGoldOnWin);
+const Enchanter = new HeroDefinition("enchanter", "Enchanter", HeroRole.Support, 1, 4, 3, "Adjacent Damage allies gain +1 attack this combat.", HeroEffectId.EnchanterAdjacent);
+const Squire = new HeroDefinition("squire", "Squire", HeroRole.Tank, 1, 4, 1, "No effect.", HeroEffectId.None);
+const Treasurer = new HeroDefinition("treasurer", "Treasurer", HeroRole.Economy, 0, 4, 2, "Reduces the highest-upkeep ally's upkeep by 2.", HeroEffectId.TreasurerUpkeepReduce);
+const Apprentice = new HeroDefinition("apprentice", "Apprentice", HeroRole.Economy, 1, 3, 1, "Reduces a Wizard ally's upkeep by 1.", HeroEffectId.ApprenticeWizardSupport);
+
+// ---- Enemies (Act 1) ----
+const Slime = new EnemyDefinition("slime", "Slime", 1, 4, EnemyEffectId.None, "No effect.");
+const TrainingDummy = new EnemyDefinition("training_dummy", "Training Dummy", 0, 10, EnemyEffectId.None, "No effect.");
+const CaveBat = new EnemyDefinition("cave_bat", "Cave Bat", 2, 3, EnemyEffectId.None, "Starts Marked. Applies Burned on attack.", [C.Marked], [C.Burned]);
+const GoblinThief = new EnemyDefinition("goblin_thief", "Goblin Thief", 2, 4, EnemyEffectId.GoblinStealGold, "Applies Weakened on attack; steals gold if alive past combat round 3.", null, [C.Weakened]);
+const TaxCollector = new EnemyDefinition("tax_collector", "Tax Collector", 1, 8, EnemyEffectId.None, "Applies Weakened on attack. Encounter raises upkeep this round.", null, [C.Weakened]);
+const BacklineBat = new EnemyDefinition("backline_bat", "Backline Bat", 3, 4, EnemyEffectId.BackBatBackline, "Starts Marked. Applies Burned on attack; attacks lowest-HP backline hero on combat round 2.", [C.Marked], [C.Burned]);
+const DebtWraith = new EnemyDefinition("debt_wraith", "Debt Wraith", 1, 10, EnemyEffectId.DebtWraithScales, "Applies Poisoned on attack. Attack scales with player debt at combat start.", null, [C.Poisoned]);
+const TreasureLeech = new EnemyDefinition("treasure_leech", "Treasure Leech", 1, 12, EnemyEffectId.TreasureLeechRewardDrain, "Applies Poisoned on attack. Reduces reward if alive at combat end.", null, [C.Poisoned]);
+const DungeonAuditor = new EnemyDefinition("dungeon_auditor", "Dungeon Auditor", 3, 20, EnemyEffectId.DungeonAuditorBoss, "Starts Inspired and applies Burned on attack. Raises upkeep and deals periodic damage.", [C.Inspired], [C.Burned]);
+const GreedyTank = new EnemyDefinition("greedy_tank", "Greedy Tank", 3, 8, EnemyEffectId.None, "No effect.");
+const GreedyCarry = new EnemyDefinition("greedy_carry", "Greedy Carry", 4, 4, EnemyEffectId.None, "Starts Inspired and Marked.", [C.Inspired], [C.Marked]);
+const CarryProtector = new EnemyDefinition("carry_protector", "Carry Protector", 1, 10, EnemyEffectId.None, "Starts Guarded.", [C.Guarded]);
+const CarryCarry = new EnemyDefinition("carry_carry", "Carry Champion", 6, 6, EnemyEffectId.None, "Starts Inspired.", [C.Inspired]);
+const FrugalGuard = new EnemyDefinition("frugal_guard", "Frugal Guard", 2, 6, EnemyEffectId.None, "Starts Guarded.", [C.Guarded]);
+const FrugalArcher = new EnemyDefinition("frugal_archer", "Frugal Archer", 3, 4, EnemyEffectId.None, "Applies Weakened on attack.", null, [C.Weakened]);
+const FrugalHealer = new EnemyDefinition("frugal_healer", "Frugal Healer", 1, 5, EnemyEffectId.FrugalGhostHeal, "Heals leftmost living ally each combat round.");
+
+// ---- Enemies (Act 2 rival rematches) ----
+const Act2GreedyTank = new EnemyDefinition("greedy_tank", "Greedy Tank", 4, 12, EnemyEffectId.None, "No effect.");
+const Act2GreedyCarry = new EnemyDefinition("greedy_carry", "Greedy Carry", 6, 7, EnemyEffectId.None, "Starts Inspired and Marked.", [C.Inspired], [C.Marked]);
+const Act2CarryProtector = new EnemyDefinition("carry_protector", "Carry Protector", 2, 14, EnemyEffectId.None, "Starts Guarded.", [C.Guarded]);
+const Act2CarryChampion = new EnemyDefinition("carry_carry", "Carry Champion", 8, 9, EnemyEffectId.None, "Starts Inspired.", [C.Inspired]);
+const Act2CarrySupport = new EnemyDefinition("carry_protector", "Carry Vanguard", 2, 10, EnemyEffectId.None, "Starts Guarded.", [C.Guarded]);
+const Act2FrugalGuard = new EnemyDefinition("frugal_guard", "Frugal Guard", 3, 9, EnemyEffectId.None, "Starts Guarded.", [C.Guarded]);
+const Act2FrugalArcher = new EnemyDefinition("frugal_archer", "Frugal Archer", 4, 6, EnemyEffectId.None, "Applies Weakened on attack.", null, [C.Weakened]);
+const Act2FrugalHealer = new EnemyDefinition("frugal_healer", "Frugal Healer", 2, 8, EnemyEffectId.FrugalGhostHeal, "Applies Poisoned on attack. Heals leftmost living ally each combat round.", null, [C.Poisoned]);
+
+// ---- Enemies (Act 2 demonic dungeon) ----
+const Imp = new EnemyDefinition("imp", "Imp", 2, 5, EnemyEffectId.None, "No effect.");
+const SoulBroker = new EnemyDefinition("soul_broker", "Soul Broker", 2, 7, EnemyEffectId.GoblinStealGold, "Applies Weakened on attack; steals gold if alive past combat round 3.", null, [C.Weakened]);
+const GloomBat = new EnemyDefinition("gloom_bat", "Gloom Bat", 4, 6, EnemyEffectId.BackBatBackline, "Starts Marked. Applies Burned on attack; attacks lowest-HP backline hero on combat round 2.", [C.Marked], [C.Burned]);
+const Act2DebtWraith = new EnemyDefinition("debt_wraith", "Debt Wraith", 2, 16, EnemyEffectId.DebtWraithScales, "Applies Poisoned on attack. Attack scales with player debt at combat start.", null, [C.Poisoned]);
+const HoardFiend = new EnemyDefinition("hoard_fiend", "Hoard Fiend", 2, 16, EnemyEffectId.TreasureLeechRewardDrain, "Applies Poisoned on attack. Reduces reward if alive at combat end.", null, [C.Poisoned]);
+const BrimstoneBrute = new EnemyDefinition("brimstone_brute", "Brimstone Brute", 6, 22, EnemyEffectId.None, "No effect.");
+const InfernalAuditor = new EnemyDefinition("infernal_auditor", "Infernal Auditor", 5, 30, EnemyEffectId.DungeonAuditorBoss, "Starts Inspired and applies Burned on attack. Raises upkeep and deals periodic damage.", [C.Inspired], [C.Burned]);
+
+const HeroDefinitions = [Warrior, Knight, Golem, Wizard, Ninja, Ranger, Priest, Bard, Enchanter, Squire, Treasurer, Apprentice];
+
+const EnemyDefinitions = [
+  Slime, TrainingDummy, CaveBat, GoblinThief, TaxCollector, BacklineBat, DebtWraith, TreasureLeech, DungeonAuditor,
+  GreedyTank, GreedyCarry, CarryProtector, CarryCarry, FrugalGuard, FrugalArcher, FrugalHealer,
+  Act2GreedyTank, Act2GreedyCarry, Act2CarryProtector, Act2CarryChampion, Act2CarrySupport, Act2FrugalGuard, Act2FrugalArcher, Act2FrugalHealer,
+  Imp, SoulBroker, GloomBat, Act2DebtWraith, HoardFiend, BrimstoneBrute, InfernalAuditor,
+];
+
+const PayrollActionDefinitions = [
+  new PayrollActionDefinition(PayrollActionId.TakeLoan, "Take Loan",
+    `Gain ${GameRules.LoanGoldGain} gold immediately. Adds ${GameRules.LoanDebtCost} debt.`),
+  new PayrollActionDefinition(PayrollActionId.CutWages, "Cut Wages",
+    `Total upkeep this round drops by ${GameRules.CutWagesUpkeepReduction} (min 0). Each hero's attack drops by ${GameRules.CutWagesAttackPenalty} (min 0).`),
+  new PayrollActionDefinition(PayrollActionId.PromiseVictoryBonus, "Promise Victory Bonus",
+    `Pay ${GameRules.VictoryBonusGoldCost} gold now. Each hero gains +${GameRules.VictoryBonusAttackBuff} attack this fight.`),
+  new PayrollActionDefinition(PayrollActionId.StandardPay, "Skip Payroll", "No effect this round."),
+];
+
+const RelicDefinitions = [
+  new RelicDefinition(RelicId.BladeCharter, "Blade Charter", "Damage-role heroes get +1 attack in combat."),
+  new RelicDefinition(RelicId.IronOath, "Iron Oath", "Tank-role heroes get +1 max health in combat."),
+  new RelicDefinition(RelicId.CampRations, "Camp Rations", "All heroes get +1 max health in combat."),
+  new RelicDefinition(RelicId.GuildDividend, "Guild Dividend", "Gain +1 extra gold in each reward phase."),
+  new RelicDefinition(RelicId.ShieldClause, GameRules.ShieldClauseRelicName, GameRules.ShieldClauseRelicDescription),
+  new RelicDefinition(RelicId.RedInkBrand, GameRules.RedInkBrandRelicName, GameRules.RedInkBrandRelicDescription),
+  new RelicDefinition(RelicId.CausticWrit, GameRules.CausticWritRelicName, GameRules.CausticWritRelicDescription),
+  new RelicDefinition(RelicId.ToxicCollateral, GameRules.ToxicCollateralRelicName, GameRules.ToxicCollateralRelicDescription),
+];
+
+const EncounterDefinitions = [
+  new EncounterDefinition(1, 1, EncounterType.Dungeon, "Slimes", "Simple enemies. Win by having enough basic stats.", "Basic stat check", [Slime, Slime, Slime], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None),
+  new EncounterDefinition(1, 2, EncounterType.Dungeon, "Goblin Thieves", "If a Goblin Thief survives past combat round 3, lose 3 gold.", "Economy pressure", [GoblinThief, GoblinThief], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None),
+  new EncounterDefinition(1, 3, EncounterType.RivalGhost, "Greedy Guild Ghost", "A reckless rival guild with expensive heroes. Strong now, but drowning in debt.", "Rival benchmark", [GreedyTank, GreedyTank, GreedyCarry], GameRules.WinReward, EncounterEffectId.None, RivalGuild.Greedy),
+  new EncounterDefinition(1, 4, EncounterType.Dungeon, "Tax Collector", "Your total upkeep is increased by 2 this round.", "Payroll pressure", [TaxCollector], GameRules.WinReward, EncounterEffectId.TaxCollectorUpkeep, RivalGuild.None),
+  new EncounterDefinition(1, 5, EncounterType.Dungeon, "Backline Bat", "Attacks your lowest-health backline hero on turn 2.", "Backline pressure", [BacklineBat, Slime], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None),
+  new EncounterDefinition(1, 6, EncounterType.RivalGhost, "Carry Guild Ghost", "This rival protects a high-damage carry. Kill it quickly or survive the burst.", "Rival benchmark", [CarryProtector, CarryProtector, CarryCarry], GameRules.WinReward, EncounterEffectId.None, RivalGuild.Carry),
+  new EncounterDefinition(1, 7, EncounterType.Dungeon, "Debt Wraith", "Gains attack based on your current debt.", "Debt punishment", [DebtWraith], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None),
+  new EncounterDefinition(1, 8, EncounterType.Dungeon, "Treasure Leech", "If Treasure Leech survives, your reward is reduced by 4 gold.", "Reward pressure", [TreasureLeech, Slime], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None),
+  new EncounterDefinition(1, 9, EncounterType.RivalGhost, "Frugal Guild Ghost", "A stable rival guild with cheap heroes and strong morale.", "Rival benchmark", [FrugalGuard, FrugalGuard, FrugalArcher, FrugalHealer], GameRules.WinReward, EncounterEffectId.None, RivalGuild.Frugal),
+  new EncounterDefinition(1, 10, EncounterType.FinalBoss, "Dungeon Auditor", "Final boss. Damages your party and adds debt pressure.", "Final boss", [DungeonAuditor], GameRules.WinReward, EncounterEffectId.FinalBossDamage, RivalGuild.None),
+
+  new EncounterDefinition(2, 1, EncounterType.Dungeon, "Imp Swarm", "The descent begins. A pack of imps boils up from the pit.", "Basic stat check", [Imp, Imp, Imp], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None),
+  new EncounterDefinition(2, 2, EncounterType.Dungeon, "Soul Broker", "If a Soul Broker survives past combat round 3, lose 3 gold.", "Economy pressure", [SoulBroker, Imp], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None),
+  new EncounterDefinition(2, 3, EncounterType.RivalGhost, "Frugal Guild Rematch", "The Frugal Guild returns, disciplined and resilient, its healer keeping it standing.", "Rival benchmark", [Act2FrugalGuard, Act2FrugalGuard, Act2FrugalArcher, Act2FrugalHealer], GameRules.WinReward, EncounterEffectId.None, RivalGuild.Frugal),
+  new EncounterDefinition(2, 4, EncounterType.Dungeon, "Gloom Bat", "Attacks your lowest-health backline hero on turn 2.", "Backline pressure", [GloomBat, Imp], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None),
+  new EncounterDefinition(2, 5, EncounterType.Dungeon, "Debt Wraith", "Gains attack based on your current debt. Hardened for the descent.", "Debt punishment", [Act2DebtWraith], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None),
+  new EncounterDefinition(2, 6, EncounterType.RivalGhost, "Greedy Guild Rematch", "The Greedy Guild returns for Act 2, richer and meaner. Bigger tanks, a deadlier carry.", "Rival benchmark", [Act2GreedyTank, Act2GreedyTank, Act2GreedyCarry], GameRules.WinReward, EncounterEffectId.None, RivalGuild.Greedy),
+  new EncounterDefinition(2, 7, EncounterType.Dungeon, "Hoard Fiend", "If the Hoard Fiend survives, your reward is reduced by 4 gold.", "Reward pressure", [HoardFiend, Imp], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None),
+  new EncounterDefinition(2, 8, EncounterType.Dungeon, "Brimstone Brute", "A towering demon. Heavy stress test before the final guild fight.", "Heavy dungeon", [BrimstoneBrute, Imp, Imp], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None),
+  new EncounterDefinition(2, 9, EncounterType.RivalGhost, "Carry Guild Rematch", "The Carry Guild doubles down: a fortified front line shielding an even stronger champion.", "Rival benchmark", [Act2CarryProtector, Act2CarryProtector, Act2CarryChampion, Act2CarrySupport], GameRules.WinReward, EncounterEffectId.None, RivalGuild.Carry),
+  new EncounterDefinition(2, 10, EncounterType.FinalBoss, "Infernal Auditor", "Act 2 capstone. The Infernal Auditor tallies your debts in fire.", "Final boss", [InfernalAuditor], GameRules.WinReward, EncounterEffectId.FinalBossDamage, RivalGuild.None),
+];
+
+const DifficultyPresetDefinitions = [
+  new DifficultyPreset(DifficultyPresetId.ApprenticeLedger, "Apprentice Ledger", GameRules.ApprenticeStartingGold, GameRules.StartingDebt, GameRules.ApprenticeStartingMorale, GameRules.ApprenticeInterestDivisor, GameRules.ApprenticeDebtLimit, GameRules.ApprenticeHeroHealthMult, GameRules.NoCombatMultiplier, GameRules.NoCombatMultiplier, GameRules.ApprenticeEnemyDamageMult),
+  new DifficultyPreset(DifficultyPresetId.StandardContract, "Standard Contract", GameRules.StartingGold, GameRules.StartingDebt, GameRules.StartingMorale, GameRules.InterestDebtDivisor, GameRules.DebtLimit, GameRules.NoCombatMultiplier, GameRules.NoCombatMultiplier, GameRules.NoCombatMultiplier, GameRules.NoCombatMultiplier),
+  new DifficultyPreset(DifficultyPresetId.PredatoryInterest, "Predatory Interest", GameRules.PredatoryStartingGold, GameRules.StartingDebt, GameRules.StartingMorale, GameRules.PredatoryInterestDivisor, GameRules.PredatoryDebtLimit, GameRules.NoCombatMultiplier, GameRules.NoCombatMultiplier, GameRules.PredatoryEnemyHealthMult, GameRules.PredatoryEnemyDamageMult),
+];
+
+export const DataRepository = {
+  allHeroes: Object.freeze([...HeroDefinitions]),
+  allEnemies: Object.freeze([...EnemyDefinitions]),
+  encounters: Object.freeze([...EncounterDefinitions]),
+  allPayrollActions: Object.freeze([...PayrollActionDefinitions]),
+  allRelics: Object.freeze([...RelicDefinitions]),
+  allDifficultyPresets: Object.freeze([...DifficultyPresetDefinitions]),
+
+  getEncounterPool(act, slot) {
+    const pool = [];
+    for (const encounter of EncounterDefinitions) {
+      if (encounter.act === act && encounter.slot === slot) pool.push(encounter);
+    }
+    return pool;
+  },
+
+  getRivalEncounter(act, guild) {
+    if (guild === RivalGuild.None) return null;
+    for (const encounter of EncounterDefinitions) {
+      if (encounter.act === act && encounter.rivalGuild === guild) return encounter;
+    }
+    return null;
+  },
+
+  getDifficultyPreset(id) {
+    for (const preset of DifficultyPresetDefinitions) {
+      if (preset.id === id) return preset;
+    }
+    // Fallback to the default preset (Standard Contract).
+    for (const preset of DifficultyPresetDefinitions) {
+      if (preset.id === GameRules.DefaultDifficultyPreset) return preset;
+    }
+    return DifficultyPresetDefinitions[0];
+  },
+
+  getRelic(id) {
+    for (const relic of RelicDefinitions) {
+      if (relic.id === id) return relic;
+    }
+    return RelicDefinitions[0];
+  },
+
+  createRivalGuilds() {
+    return [
+      new RivalGuildState(RivalGuild.Greedy, "Greedy Guild", GameRules.StartingMorale, GameRules.StartingDebt, GameRules.GreedyRivalStartingPayroll, "Dangerous", GameRules.GreedyRivalPayrollGrowth),
+      new RivalGuildState(RivalGuild.Frugal, "Frugal Guild", GameRules.StartingMorale, GameRules.StartingDebt, GameRules.FrugalRivalStartingPayroll, "Safe", GameRules.FrugalRivalPayrollGrowth),
+      new RivalGuildState(RivalGuild.Carry, "Carry Guild", GameRules.StartingMorale, GameRules.StartingDebt, GameRules.CarryRivalStartingPayroll, "Scaling", GameRules.CarryRivalOddRoundPayrollGrowth),
+    ];
+  },
+};

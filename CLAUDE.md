@@ -1,9 +1,9 @@
 # CLAUDE.md
 
-This file gives Claude Code the context it needs to work on **Dungeon Debt** — a small Unity prototype. Read it fully before making changes. The two source-of-truth documents are:
+This file gives Claude Code the context it needs to work on **Dungeon Debt**. Read it fully before making changes. The two source-of-truth documents are:
 
 - `GAME_DESIGN.md` — the design intent. Do not contradict it.
-- `IMPLEMENTATION_PLAN.md` — the technical plan. Do not deviate without asking.
+- `IMPLEMENTATION_PLAN.md` — the current technical state and the active follow-up list. Do not deviate without asking.
 
 If those two documents conflict, ask before resolving.
 
@@ -11,19 +11,19 @@ If those two documents conflict, ask before resolving.
 
 ## What this project is
 
-**Dungeon Debt** is a single-player 2D fantasy auto-battler economy roguelite prototype built in Unity. The player recruits heroes, positions them in a 5-slot formation, picks payroll risks, fights through a 10-round dungeon, and tries to avoid debt bankruptcy.
+**Dungeon Debt** is a single-player 2D fantasy auto-battler economy roguelite. The player recruits heroes, positions them in a 5-slot formation, picks payroll risks, fights through a 20-round dungeon across two acts, and tries to avoid debt bankruptcy.
 
-The core loop per round: **Scout → Shop → Payroll Choice → Formation → Auto-Combat → Reward → Upkeep → Rival Update**.
+The core loop per round: **Scout → Shop → Formation → Payroll → Auto-Combat → Reward → Rival Update**.
 
-It is intentionally small. Target: a playable prototype in 2–4 weeks.
+It is intentionally small. The codebase is ~6,000 lines of vanilla JavaScript + ~400 lines of CSS.
 
 ---
 
 ## Project status
 
-M1–M7 are complete. The project now has a playable end-to-end prototype with run flow, shop, formation, payroll, scout, 10 encounters, hero/enemy effects, rival ghosts, and leaderboard.
+The game was originally built in Unity (M1–M20 in `IMPLEMENTATION_PLAN.md` history) and then ported to an Electron + vanilla JS stack in five phases (A–E). The Unity project has been retired; the live code is in `web/`.
 
-Current phase: **Phase 3** — vertical expansion after the playable Phase 2 prototype. This file documents repository rules and setup; the active slice is tracked in `NEXT_SESSION.md` and scoped by `IMPLEMENTATION_PLAN.md` §16.
+The game is playable end-to-end: full 20-round runs through Acts 1 and 2, all 12 heroes, 31 enemy definitions, 20 encounters, Bronze→Silver tiering, payroll choices, relic rewards, rival ghosts. Open follow-ups live in `REGRESSIONS.md` and the next session brief is in `NEXT_SESSION.md`.
 
 ---
 
@@ -31,87 +31,104 @@ Current phase: **Phase 3** — vertical expansion after the playable Phase 2 pro
 
 These are not up for debate. If you think one is wrong, raise it as a question — do not silently change it.
 
-- **Unity 6.4 (`6000.4.x`)**, Universal 2D template
-- **Single scene** (`Assets/Scenes/Main.unity`) with panels toggled by `UIManager`
-- **uGUI** (Canvas + RectTransform + TextMeshPro), **not** UI Toolkit
-- **Mouse-only** input via uGUI buttons. No new Input System, no keyboard shortcuts
-- **1920×1080** reference resolution, 16:9 only
-- **Windows Standalone** + Editor Play mode. No WebGL, no mobile
-- **Hardcoded C# static data** in `DataRepository` for MVP. **No ScriptableObjects**, no JSON, no Resources/ in the first prototype. (Unchanged by M10: the M10.4 `SpriteCatalog` is a scene **MonoBehaviour** with serialized id→Sprite slots, not a ScriptableObject, and holds presentation art only — no gameplay data. See `IMPLEMENTATION_PLAN.md` §15 M10.4.)
-- **No save/load**, no persistence, no accounts
-- **One `System.Random` instance** owned by `RunManager`. Never use `UnityEngine.Random`
-- **Placeholder art only** for MVP (M1–M7): white sprites, TMP text, solid color blocks. Phase 2 (see §Scope control) allows trivial shapes, role-icon glyphs, and a small placeholder sprite set under `Assets/Art/`. M10 additionally allows one static base sprite per hero/enemy and a **small shared** combat-effect sprite set (5 sprites), plus generic coded source→target motion — see §Scope control Phase 2 carve-out 3 and `IMPLEMENTATION_PLAN.md` §15 M10.4/M10.5
+- **Electron + vanilla JavaScript** — plain ES modules under `web/src/`. No bundler, no framework (React/Vue/Svelte), no transpiler. Iteration = save → reload.
+- **DOM + CSS** for all UI — no canvas, no WebGL, no Three.js. The game is turn-based cards; DOM is the right tool.
+- **Python `http.server`** for browser dev (`web/serve.py`). Electron for the packaged window. Either works; pick whichever you have installed.
+- **One seeded RNG** (`mulberry32`, in `web/src/core/Rng.js`) owned by `RunManager`. Never use `Math.random()` directly.
+- **Combat is deterministic** — no RNG inside the combat resolver. Tie-breaking is leftmost-slot, not random.
+- **Hardcoded JS data tables** in `DataRepository` for heroes / enemies / encounters / relics / payroll actions / difficulty presets. No JSON loading, no remote data, no save/load.
+- **Definitions are immutable, instances are mutable.** `HeroDefinition` is a frozen template; `HeroInstance` is mutable party state. Same pattern for `EnemyDefinition`, `EncounterDefinition`, etc.
+- **1280×720 minimum, no mobile.** The Electron window opens at 1280×720; the CSS is desktop-first.
 
 ---
 
-## Folder structure (target)
+## Folder structure
 
 Create files in these locations. Do not invent new top-level folders.
 
 ```
-Assets/
-├── Scenes/Main.unity
-├── Scripts/
-│   ├── Core/        — GameManager, GameState, DataRepository, GameRules
-│   ├── Data/        — all plain C# data classes (HeroDefinition, RunState, etc.)
-│   ├── Run/         — RunManager, ShopManager, PayrollManager, EncounterManager, RivalManager
-│   ├── Combat/      — CombatManager, CombatLogger, HeroEffects
-│   └── UI/          — UIManager + all panel/view scripts
-├── Prefabs/         — HeroCard, FormationSlot, ShopOffer, EnemyCard, CombatLogLine
-└── Art/             — empty in MVP
+web/
+├── index.html
+├── electron/main.cjs       ← Electron shell
+├── serve.py                ← Python dev server (port 5173)
+├── package.json            ← npm start, npm run test:headless
+├── styles/main.css         ← design tokens + component styles
+└── src/
+    ├── main.js             ← renderer entry
+    ├── core/               ← GameManager, GameState, DataRepository, GameRules, Rng
+    ├── data/               ← plain data classes (HeroDefinition, HeroInstance, RunState, …)
+    ├── run/                ← RunManager, ShopManager, PayrollManager, EncounterManager, RivalManager, heroStats, BalanceRunLogger
+    ├── combat/             ← CombatManager, CombatLogger, HeroEffects
+    ├── ui/                 ← UIManager, RunHeader, dom.js, components.js
+    │   └── panels/         ← one file per panel (MainMenuPanel, ScoutPanel, ShopPanel, …)
+    └── test/               ← headless test suites (headless.js, combat.js, run.js)
 ```
 
-No `Resources/`, no `StreamingAssets/`, no `Tests/`, no `Editor/`.
+No build artifacts, no `node_modules` checked in, no `dist/` checked in.
 
-Repo root also contains workflow files (not inside `Assets/`):
+Repo root also contains workflow files (not inside `web/`):
 
-- `GAME_DESIGN.md`           — design intent (source of truth)
-- `IMPLEMENTATION_PLAN.md`   — technical plan (source of truth)
-- `CLAUDE.md`                — project rules (this file)
-- `SESSION_PROTOCOL.md`      — the per-session workflow
-- `NEXT_SESSION.md`          — the brief for the next session
-- `PROGRESS.md`              — append-only session log
-- `REGRESSIONS.md`           — open and closed bug log
-- `TestPlans/TP_<slice>.md`  — manual test plans, one per slice
+- `README.md`              — top-level entry point
+- `GAME_DESIGN.md`         — design intent (source of truth)
+- `IMPLEMENTATION_PLAN.md` — current technical state + open work (source of truth)
+- `CLAUDE.md`              — project rules (this file)
+- `AGENTS.md`              — parallel doc for Codex Code (mostly identical)
+- `SESSION_PROTOCOL.md`    — per-session workflow
+- `NEXT_SESSION.md`        — brief for the next session
+- `PROGRESS.md`            — append-only session log
+- `REGRESSIONS.md`         — open and closed bug log
+- `TestPlans/`             — Unity-era manual test plans (kept for history)
+- `Design/`                — design references and mockups
 
 ---
 
 ## Coding conventions
 
-- **C# naming:** PascalCase for types/methods/properties, camelCase for locals/parameters, `_camelCase` for private fields. Constants are `PascalCase`.
-- **No `var`** for primitive types; OK for obvious types (`var list = new List<HeroInstance>()`).
-- **No LINQ in combat hot paths.** Combat is small enough that allocation-free `for` loops are clearer anyway. LINQ is fine in UI / setup code.
-- **No async/await.** Combat resolves synchronously into a `CombatResult`; the log is replayed to UI with simple coroutines if delay is needed.
-- **No exceptions for control flow.** Use return values and explicit checks.
-- **`[SerializeField] private`** for inspector fields, not `public`.
-- **One class per file.** File name == class name.
-- **Tabs vs spaces:** 4 spaces, no tabs. Unix line endings.
-- **Comments:** explain *why*, not *what*. Skip obvious comments.
-- **`Debug.Log` is fine** for development. Don't leave noisy logs in committed code; gate verbose logs behind a `const bool VerboseLogging = false`.
+- **ES module syntax** — `import`/`export`. One class per file. File name = primary class name.
+- **2 spaces** indentation, no tabs. LF line endings.
+- **Naming:** `PascalCase` for classes, `camelCase` for everything else (variables, methods, properties, function params). Private fields prefixed with `_` (e.g. `_currentRunState`).
+- **`const` by default**, `let` when reassigning, never `var`.
+- **Enums are frozen string-keyed maps** (`Object.freeze({ Foo: "Foo", Bar: "Bar" })`), defined in `web/src/data/enums.js`. The value === the key so logs read naturally.
+- **No third-party runtime dependencies.** Devs only: `electron`, `electron-builder`. Don't add Lodash, jQuery, Three.js, or anything else without asking.
+- **No async/await in combat.** Combat resolves synchronously into a `CombatResult`; the log is replayed to the UI with `setInterval` if delay is needed.
+- **No exceptions for control flow.** Return values + explicit checks.
+- **`console.log` is fine** for development. Don't leave noisy logs in committed code; gate verbose logs behind `const VERBOSE = false`.
+- **Inline `// comments`** should explain *why*, not *what*. Skip obvious comments.
 
 ---
 
 ## Architectural rules
 
-- **`GameManager` owns `GameState`.** All state transitions go through `GameManager.ChangeState(GameState)`. No script changes state directly except via this method.
-- **`UIManager` listens to state changes** and toggles panels. Panels do not show/hide themselves.
-- **Managers reference each other directly** via `GameManager`. No event bus, no service locator, no DI container, no Zenject.
-- **`DataRepository` is read-only** and static. It holds all `HeroDefinition`, `EnemyDefinition`, `EncounterDefinition`, `PayrollActionDefinition`, and rival profile data.
-- **`GameRules` holds all numeric constants.** When tuning, edit `GameRules.cs`, not magic numbers scattered through logic.
-- **`HeroEffects` is a static class** with one method per `HeroEffectId`. `CombatManager` and `RunManager` call into it at named hook points (`OnCombatStart`, `OnAttack`, `OnKill`, `OnEndOfCombatRound`, `OnCombatEnd`, `OnUpkeepCalculated`).
-- **Definitions are immutable; instances are mutable.** `HeroDefinition` is a template; `HeroInstance` is what's in the party.
-- **Combat is deterministic.** Avoid randomness in combat resolution. Tie-breaking uses leftmost-slot, not random selection.
+- **`GameManager` owns `GameState`.** All state transitions go through `GameManager.changeState(state)`. No script changes state directly.
+- **`UIManager` listens to state changes** and swaps panels. Panels do not show/hide themselves.
+- **Managers reference each other directly** via `GameManager`. No event bus, no service locator, no DI container.
+- **`DataRepository` is read-only** and static. It holds all hero / enemy / encounter / payroll / relic / difficulty / rival data.
+- **`GameRules` holds all numeric constants and presentational tokens** (colors as CSS `rgba()` strings). When tuning, edit `GameRules.js`, not magic numbers scattered through logic.
+- **`HeroEffects` is a static-style object** with one method per `HeroEffectId`. `CombatManager` and `RunManager` call into it at named hook points (`onCombatStart`, `onAttack`, `onKill`, `onEndOfCombatRound`, `onCombatEnd`, `applyPreUpkeep`).
+- **Definitions are immutable; instances are mutable.** `HeroDefinition` is `Object.freeze`d in its constructor; `HeroInstance` is plain.
+- **Combat is deterministic.** No RNG, no `Date.now()`, no `setTimeout` *inside* combat resolution. UI replay timing is separate.
+- **`heroStats.js` holds the relic/health helpers shared between `CombatManager` and `RunManager`** (`hasRelic`, `getRelicAttackBonus`, `getRelicMaxHealthBonus`, `getScaledHeroMaxHealth`). Don't duplicate them.
+
+---
+
+## UI architecture
+
+- **Each panel is one ES module** under `web/src/ui/panels/` with a `root` element and a `render()` method.
+- **Panels mutate state via `GameManager`** and call `this.onDirty?.()` to ask `UIManager` to refresh the persistent header.
+- **No framework.** Use the tiny `el()`/`clear()` helpers in `web/src/ui/dom.js`.
+- **CSS classes drive styling, inline `style` is for dynamic values only** (e.g. role accent colors that come from `GameRules`).
+- **Design tokens (palette, debt severity, role colors, act accents) live in `GameRules.js` as CSS `rgba()` strings** and are applied either via inline styles (when computed) or via CSS custom properties in `styles/main.css` (when static). Don't hardcode hex colors in component code.
 
 ---
 
 ## Workflow for any new task
 
-1. **Identify the milestone.** What milestone (M1–M7 in §11 of the plan) does this work belong to? If it spans multiple, stop and ask.
-2. **Re-read the relevant sections** of `IMPLEMENTATION_PLAN.md`. The Appendix at the end of the plan maps milestones to sections.
-3. **List files to be created or changed** before writing code. Confirm the list matches the milestone's "Files/scripts" section.
-4. **Implement.** Stay inside the milestone scope. If you discover a needed change outside the milestone, note it and ask.
-5. **Run the milestone's manual test steps** mentally or in the Unity Editor. Report results.
-6. **Do not start the next milestone** without explicit confirmation.
+1. **Identify the slice.** What `IMPLEMENTATION_PLAN.md` follow-up or `REGRESSIONS.md` entry does this work belong to? If neither, stop and ask.
+2. **Re-read the relevant section** of `IMPLEMENTATION_PLAN.md`.
+3. **List files to be created or changed** before writing code.
+4. **Implement.** Stay inside the slice scope. If you discover a needed change outside scope, note it and ask.
+5. **Verify** — run `npm run test:headless` for logic changes, reload the browser/Electron for UI changes.
+6. **Do not start the next slice** without explicit confirmation.
 
 ---
 
@@ -119,52 +136,52 @@ Repo root also contains workflow files (not inside `Assets/`):
 
 A slice is not ready to start until **all** of these are true:
 
-1. It has a slice ID (e.g. `M1.2`)
+1. It has an ID (e.g. `R004`, `F1.2`, or a milestone code)
 2. It has a one-sentence goal
-3. Files to create or modify are listed in writing (in `NEXT_SESSION.md` or in chat)
+3. Files to create or modify are listed in writing
 4. 2–5 acceptance criteria are written
 5. No open 🔴 Blocker regressions in `REGRESSIONS.md` would be invalidated by this work
 
 If any of these are missing, the first task of the session is to define them with the user — not to start coding.
 
-For the full per-session flow, including the two confirmation checkpoints (after Orient and after Plan), see `SESSION_PROTOCOL.md`.
+See `SESSION_PROTOCOL.md` for the full per-session flow.
 
 ---
 
-## Scope control (read this every session)
+## Scope control
 
-From `IMPLEMENTATION_PLAN.md` §14. These are hard limits.
+These are hard limits for the prototype:
 
-**Phase 2 carve-outs (post-M7, see `IMPLEMENTATION_PLAN.md` §15):** Three rules below are amended for Phase 2.
+- **No new top-level folders** in `web/src/` without discussion. The five subfolders (`core`, `data`, `run`, `combat`, `ui`) cover everything.
+- **No build step.** Plain ES modules + CSS. If you reach for Vite, Webpack, esbuild, or TypeScript, stop and ask.
+- **No third-party libraries** without explicit approval. The whole point of porting off Unity was to keep the surface small.
+- **No save/load**, no persistence, no accounts.
+- **No procedural maps** or branching paths.
+- **No real multiplayer**, online ghosts, leaderboards, accounts.
+- **No meta progression**, unlocks, persistent currency.
+- **No equipment, traits, factions, or synergies** beyond the existing role labels.
+- **No expanding combat** with crit, dodge, types, statuses, or buffs beyond what's already in `CombatStatusId`.
+- **No tutorial**, no localization (English only), no audio polish.
+- **Animations are now in-scope** (per R005) but stay declarative — CSS keyframes, CSS transforms, sprite atlases as PNGs. No tween libraries (GSAP, anime.js), no Lottie, no WebGL.
 
-- Trivial shapes, role-icon glyphs, and a small placeholder sprite set under `Assets/Art/` are allowed for UI work. No tweens, no animation frames, no rigged characters.
-- Bronze→Silver hero tiering is in scope (M9 only). No Gold tier. Tiering does **not** introduce equipment, traits, factions, or synergies.
-- **M10 sprite + effects pipeline (M10.4/M10.5 only, see `IMPLEMENTATION_PLAN.md` §15):** allowed — (a) exactly one static base sprite per hero (12) and per enemy (16); (b) a **small shared** combat-effect sprite set, capped at 5 sprites (`melee_stab`, `arrow`, `fireball`, `heal`, `enchant`), reused by all units by category; (c) a presentation-only `SpriteCatalog` MonoBehaviour with serialized id→Sprite slots; (d) generic coded combat motion that moves a shared effect sprite source→target via RectTransform offsets, synced to the existing replay. Still **not** allowed: per-hero / per-enemy / per-effect unique attack art, more than the 5 shared effect sprites, multi-frame or rigged animation, any tween library (DOTween/LeanTween), Unity `Animator`, particles, VFX, screen shake, or audio. Per-unit-unique art is deferred post-M10 and out of MVP unless re-ratified.
+If a request seems to violate one of these, respond with: *"Out of scope per CLAUDE.md §Scope control. Skip it, or update the plan first."*
 
-All other rules below remain in force for Phase 2.
+---
 
-**Phase 3 carve-outs (post-M11, see `IMPLEMENTATION_PLAN.md` §16):** Only the explicitly selected Phase 3 milestone is in scope. For M12, debt rework/readability is approved: debt thresholds, interest divisor, debt-status labels, existing UI summaries, and the M12.1 Shop Pay Debt recovery control may change. Acts, loot/relics, XP/veterancy, difficulty modes, and combat status keywords remain out of scope until their own milestones are selected.
+## Common pitfalls to avoid
 
-All other rules below remain in force for Phase 2 and Phase 3.
-
-- **Do not add extra heroes** beyond the 12 in §7 of the plan
-- **Do not add equipment, items, or inventory**
-- **Do not add traits, factions, or synergies** beyond the listed role labels
-- **Do not add animations** beyond simple UI feedback (color flashes, button hovers) — *except* the M10.5 generic source→target effect-sprite motion permitted by Phase 2 carve-out 3 above
-- **Do not add tweens** (no DOTween, no LeanTween) — the M10.5 carve-out is hand-coded RectTransform interpolation only; no tween library, no `Animator`
-- **Do not add save/load**
-- **Do not add procedural maps** or branching paths
-- **Do not add real multiplayer, online ghosts, leaderboards, or accounts**
-- **Do not add meta progression**, unlocks, persistent currency
-- **Do not refactor into a larger architecture** (no ECS, no DI, no event bus) prematurely
-- **Do not add audio polish** (music, voice, ambient SFX)
-- **Do not add localization** — English only
-- **Do not expand combat** with crit, dodge, types, statuses, or buffs beyond what's listed
-- **Do not add a tutorial**
-- **Do not add screen shake, particles, or VFX** beyond color flashes
-- **Do not add features** "while you're at it." If you finish a milestone early, polish UI, fix bugs, replay full runs
-
-If a request seems to violate one of these, respond with: *"Out of scope for MVP per IMPLEMENTATION_PLAN.md §14. Skip it, or update the plan first."*
+- **Don't use `Math.random()`.** Use `this._rng` on `RunManager` (or pass it through).
+- **Don't make panels show/hide themselves.** That's `UIManager`'s job.
+- **Don't put game logic in panel scripts.** Panels are presentation only — they read state and call manager methods.
+- **Don't put magic numbers in logic files.** Add a constant to `GameRules.js`.
+- **Don't make hero effects subclasses.** Use the `HeroEffects` object keyed by `HeroEffectId`.
+- **Don't use async/await for combat simulation.** Combat is synchronous; only the UI replay is timed.
+- **Don't make `HeroDefinition` mutable.** Mutate `HeroInstance` instead.
+- **Don't permadeath heroes.** Dead-in-combat heroes are restored for the next round (`CombatManager._finishResult` resets `currentHealth`).
+- **Don't add a bundler or TypeScript** without asking. The whole stack runs as plain ES modules under both Node and the browser.
+- **Don't import from `web/electron/`** in renderer code. The Electron main process and the renderer are separate worlds — the renderer is sandboxed.
+- **Don't update `PROGRESS.md` or `REGRESSIONS.md` mid-session.** Both are updated only at the end of a session.
+- **Don't start a new slice in the same session as a completed one.** One slice per session. Stop, hand off, let the user verify.
 
 ---
 
@@ -172,72 +189,33 @@ If a request seems to violate one of these, respond with: *"Out of scope for MVP
 
 Prefer to ask before doing when:
 
-- The design doc and plan disagree
-- A milestone's scope is ambiguous
-- A "small improvement" would touch files outside the current milestone
-- A required Unity asset (sprite, font, prefab) doesn't exist yet
-- A hero or enemy effect could be implemented multiple reasonable ways
+- The design doc and plan disagree.
+- A slice's scope is ambiguous.
+- A "small improvement" would touch files outside the current slice.
+- A required asset (sprite, font) doesn't exist yet.
+- An effect or rule could be implemented multiple reasonable ways.
 
 Don't ask before doing when:
 
-- The plan clearly specifies the implementation
-- It's a typo, naming, or formatting fix
-- It's an obviously correct bug fix inside the current milestone's files
+- The plan clearly specifies the implementation.
+- It's a typo, naming, or formatting fix.
+- It's an obviously correct bug fix inside the current slice's files.
 
 ---
 
-## Milestone shortcut reference
+## What "done" looks like for a slice
 
-When the user asks for "the next milestone" or names one by number, here's what's in scope. Full details in `IMPLEMENTATION_PLAN.md` §11.
+A slice is done when:
 
-| # | Name              | Output |
-|---|-------------------|--------|
-| 1 | Combat Sandbox    | One hardcoded combat resolves with a streaming log, win/loss result |
-| 2 | Run State         | Gold/debt/morale/round, reward/upkeep/interest math, loss conditions |
-| 3 | Shop & Party      | 12 heroes in DataRepository, shop UI with hire/fire/reroll |
-| 4 | Formation         | 5-slot drag/click formation, frontline targeting |
-| 5 | Payroll Actions   | 4 payroll cards with pre/post-combat effects |
-| 6 | Full 10-Round Run | All encounters + all hero effects + scout panel + end screens |
-| 7 | Rival Ghosts      | 3 rivals, leaderboard, ghost fights on rounds 3/6/9 |
-| 8 | Card readability pass | Hero/enemy card layouts with role color, stats, blurb, reserved tier slot |
-| 9 | Bronze→Silver tiering | Duplicate-hire merges to Silver; Silver offers in shop; per-hero Silver bonus |
-| 10 | Combat view rebuild | Unit-card combat panel with HP bars and turn highlighting |
-| 11 | Economy & balance pass | Tune resource curves and Silver tier probability |
-| 12 | Debt rework/readability | Debt-status tiers, Shop repayment, clearer interest/debt warnings |
+1. All files in the plan's "create" / "modify" list exist and parse (no syntax errors, no unused imports).
+2. All acceptance criteria pass.
+3. `npm run test:headless` passes (if logic was touched).
+4. The browser preview shows the expected behavior (if UI was touched), with zero console errors.
+5. No out-of-scope features were added.
+6. The user has confirmed they're ready to move on.
 
-Each milestone must pass its acceptance criteria before the next begins.
+Report a short summary at the end of each slice:
 
----
-
-## Common pitfalls to avoid
-
-- **Don't use `UnityEngine.Random`.** Use the `System.Random` owned by `RunManager`.
-- **Don't make panels show/hide themselves.** That's `UIManager`'s job.
-- **Don't put game logic in panel scripts.** Panels are presentation only — they read state and raise events.
-- **Don't put magic numbers in logic files.** Add a constant to `GameRules.cs`.
-- **Don't make hero effects subclasses or virtual methods.** Use the static `HeroEffects` class keyed by `HeroEffectId` enum.
-- **Don't use coroutines for combat simulation.** Combat is synchronous; only the log replay to UI is timed.
-- **Don't make `HeroDefinition` mutable.** Mutate `HeroInstance` instead.
-- **Don't permadeath heroes.** Dead-in-combat heroes are restored for the next round in MVP.
-- **Don't create `Assets/Tests/` or any NUnit / PlayMode test folder.** Tests for this project are manual test plans in markdown under `TestPlans/`, one per slice. Unity Test Framework is out of scope for the MVP. This explicitly overrides the optional EditMode test note in `IMPLEMENTATION_PLAN.md` §13 — skip it.
-- **Don't update `PROGRESS.md` or `REGRESSIONS.md` mid-session.** Both are updated only at the end of a session as part of the summary step, so the in-flight state of a session doesn't pollute the history.
-- **Don't start a new slice in the same session as a completed one.** One slice per session. Stop, hand off, let the user verify before continuing.
-- **Don't create Input System Action assets or `.inputactions` files.** UI input is uGUI button `onClick` only. Unity 6 ships the new Input System enabled by default and an auto-created `EventSystem` uses `InputSystemUIInputModule` to route uGUI events — that is expected and fine. The rule is only about not authoring Action assets for the project's own input.
-
----
-
-## What "done" looks like for a milestone
-
-A milestone is done when:
-
-1. All files listed in its "Files/scripts" section exist and compile
-2. All acceptance criteria pass
-3. All manual test steps pass in the Unity Editor
-4. No out-of-scope features were added
-5. No unrelated files outside the milestone were modified
-6. The user has confirmed they're ready to move on
-
-Report a short summary at the end of each milestone:
 - Files added/changed
 - Acceptance criteria results
 - Any deviations from the plan (and why)

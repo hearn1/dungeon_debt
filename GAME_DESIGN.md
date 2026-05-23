@@ -8,7 +8,7 @@ This is not intended to be a full commercial game yet. The goal is to build a pl
 
 > Building the strongest affordable dungeon party while recurring hero upkeep threatens to bankrupt the run.
 
-The game should be friendly to LLM-assisted Unity development through Claude/Codex. The design should favor simple UI, data-driven content, readable rules, and minimal custom assets.
+The game should be friendly to LLM-assisted development through Claude/Codex. The design should favor simple UI, data-driven content, readable rules, and minimal custom assets. The original prototype was built in Unity; the live implementation is an Electron + vanilla-JavaScript app under `web/`. See `IMPLEMENTATION_PLAN.md` for the current technical state.
 
 ---
 
@@ -1484,17 +1484,17 @@ The core should stay:
 
 This document is the design source of truth.
 
-Before starting Codex implementation, create a separate `IMPLEMENTATION_PLAN.md` that defines:
+`IMPLEMENTATION_PLAN.md` describes the live technical state:
 
-- Unity version
-- Target platform
-- Scene structure
-- Game state machine
-- Data structures
-- Script list
-- UI panels
-- Milestone order
-- Acceptance tests
+- Runtime stack (Electron + vanilla JS, no build step)
+- Target platform (Windows desktop via Electron; any modern browser via `web/serve.py`)
+- Folder layout (`web/src/{core,data,run,combat,ui,test}/`)
+- Game state machine (owned by `GameManager`)
+- Data structures (immutable definitions vs. mutable instances)
+- Script list (per-folder module summary)
+- UI panels (one ES module per panel under `web/src/ui/panels/`)
+- Test approach (three headless Node suites + manual browser verification)
+- Open follow-up list
 
 Recommended first milestone:
 

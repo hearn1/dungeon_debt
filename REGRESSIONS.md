@@ -44,6 +44,40 @@ Copy this block when filing a new regression. New regressions go at the top of t
 
 <!-- Newest at the top. -->
 
+### R005 — Hero / enemy / attack animations missing
+
+**Reported:** 2026-05-23
+**Found in slice:** Phase D (web port, detected) — Phase D (introduced)
+**Severity:** 🟠 Major
+**Status:** Open
+
+**Repro steps:**
+1. Start any run, get to Combat.
+2. Watch the combat board during replay.
+
+**Expected:** Heroes and enemies have visible attack / hit / death animations, ideally upgraded now that we're out of Unity and on the web stack (CSS keyframes, sprite atlases, even GIFs).
+**Actual:** Replay is text-driven. Acting unit gets a gold outline; hit/heal events trigger a 380ms color flash on the target card (added in Phase E). No portraits, no projectile motion, no per-effect art.
+
+**Suspected cause:** Phase D shipped placeholder-only visuals (text cards + flash) to land the playable web loop quickly. The Unity build had a SpriteCatalog + generic source→target effect motion (M10.4 / M10.5 carve-out); none of it was ported.
+**Notes:** Web stack opens this up: per-hero portrait images, CSS transforms for projectile motion, real keyframe animations, even Lottie if we want. Worth a design pass — animation quality should leapfrog Unity, not just match it.
+
+### R004 — Formation no longer shows frontline / backline split
+
+**Reported:** 2026-05-23
+**Found in slice:** Phase D (web port, detected) — Phase D (introduced)
+**Severity:** 🟡 Minor
+**Status:** Open
+
+**Repro steps:**
+1. Start a run, hire a party, advance to Formation.
+2. Look at the slot layout.
+
+**Expected:** Slots 0–1 are visually grouped as Frontline and slots 2–4 as Backline (matching the Unity build's two-zone layout and the targeting rule that frontline takes hits first).
+**Actual:** All 5 slots render as a single flat row of cards. The zone labels exist but the visual separation is gone — slots 0–4 sit side by side under one "FRONTLINE" / "BACKLINE" pair of labels with no real gap.
+
+**Suspected cause:** `FormationPanel.render` puts both `.slot-row` rows inside a single `.formation` flexbox. The `.slot-row` rows themselves render, but the wider stage and small slots mean the two rows visually merge into one. Likely a CSS layout regression — `.formation` should stack the two zones vertically with a clear separator, or each `.slot-row` should be wider than the available column.
+**Notes:** Easy CSS-only fix in `web/styles/main.css` + small change in `FormationPanel.js`. Confirm against the Unity FormationPanelView for intended layout.
+
 ---
 
 ## Closed

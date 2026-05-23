@@ -4,25 +4,24 @@ Read this file at the start of **every** Claude Code session before doing anythi
 
 - `CLAUDE.md` — project rules
 - `GAME_DESIGN.md` — design intent (source of truth)
-- `IMPLEMENTATION_PLAN.md` — technical plan (source of truth)
-- `NEXT_SESSION.md` — the brief for the slice about to be picked up
+- `IMPLEMENTATION_PLAN.md` — current technical state + open work (source of truth)
+- `NEXT_SESSION.md` — brief for the slice about to be picked up
 - `PROGRESS.md` — append-only log of completed slices
 - `REGRESSIONS.md` — open and closed bug log
-- `TestPlans/TP_<slice-id>.md` — manual test plans, one per slice
 
 ---
 
 ## The unit of work: a "slice"
 
-The milestones M1–M7 in `IMPLEMENTATION_PLAN.md` §11 are too big for one session. Each milestone is broken into **slices**: 2–4 hours of work that end in something **visible, compilable, and testable**. Each milestone is expected to be 3–5 slices.
+A slice is **2–4 hours** of work that ends in something **visible, runnable, and testable**.
 
 A slice has:
 
-- A slice ID (e.g. `M1.2`)
+- A slice ID (e.g. `R004`, `F1.2`)
 - A one-sentence goal
-- A short list of files to create or modify
+- A list of files to create or modify
 - 2–5 acceptance criteria
-- A manual test plan written at the end of the session
+- A verification path: `npm run test:headless` for logic changes, browser reload + console check for UI changes
 
 **One slice per session.** Do not start the next slice in the same session, even if there is time left.
 
@@ -40,13 +39,13 @@ Before touching any code, read in this order:
 2. `PROGRESS.md` — last 2–3 entries to see where the previous session ended
 3. `REGRESSIONS.md` — the Open section, in full
 4. `NEXT_SESSION.md` — the brief for the slice about to be picked up
-5. The relevant section of `IMPLEMENTATION_PLAN.md` for the current milestone (use the Appendix at the bottom of that plan to find the right sections)
+5. The relevant section of `IMPLEMENTATION_PLAN.md` for the current slice
 6. The relevant section of `GAME_DESIGN.md` only if the slice touches design intent (combat math, hero effects, payroll, rivals, run flow)
 7. Any source files that will be read or modified in this slice
 
 Then summarize back to the user in 4–6 lines:
 
-- Current milestone and slice name
+- Current slice ID and name
 - What the previous session completed
 - What files exist that are relevant to this slice
 - Any open regressions that might block or interact with this work
@@ -60,11 +59,11 @@ The user will indicate one of:
 
 - **(a)** A regression from `REGRESSIONS.md` to fix
 - **(b)** The slice described in `NEXT_SESSION.md`
-- **(c)** A specific named slice (e.g. "do M2.3")
+- **(c)** A specific named slice
 
 If none is clear, ask. Do not guess.
 
-If the chosen slice fails the **Definition of ready** below, stop and work with the user to bring it to ready. Do not start implementing an under-specified slice.
+If the chosen slice fails the **Definition of ready** (see `CLAUDE.md`), stop and work with the user to bring it to ready. Do not start implementing an under-specified slice.
 
 ### Step 3 — Plan
 
@@ -73,148 +72,72 @@ Before writing any code, output a plan with these sections:
 - **Files to create** — full paths
 - **Files to modify** — full paths plus a one-line description of the change
 - **Files explicitly NOT touched** — anything the user might reasonably expect to be touched but should not be (forces an explicit scope check)
-- **Rules from `CLAUDE.md` that apply** — name the specific sections (e.g. "§Architectural rules: combat is deterministic, no `UnityEngine.Random`")
-- **Scope check** — does anything in this plan touch files outside the current milestone, or violate any item in `CLAUDE.md` §Scope control? If yes, stop and ask.
-- **Open questions** — anything ambiguous in the design or plan. List them as numbered questions so the user can answer in line.
+- **Rules from `CLAUDE.md` that apply** — name the specific sections (e.g. "§Architectural rules: combat is deterministic, no `Math.random()`")
+- **Scope check** — does anything in this plan touch files outside the current slice, or violate any item in `CLAUDE.md` §Scope control? If yes, stop and ask.
+- **Open questions** — anything ambiguous. List them as numbered questions so the user can answer in line.
 
 **Stop here and wait for the user to confirm the plan.** Do not start implementing until they do.
 
 ### Step 4 — Implement
 
-Stay inside the plan. Rules:
+Write the code. Stay inside the plan. If you discover you need to change a file that wasn't in the plan, stop and ask before doing it.
 
-- If you discover a needed change mid-implementation, **finish the unit you're on**, then surface the question before continuing. Do not silently expand scope.
-- If you hit a contradiction between `GAME_DESIGN.md` and `IMPLEMENTATION_PLAN.md`, stop and ask.
-- Follow `CLAUDE.md` §Coding conventions and §Architectural rules strictly.
-- One class per file. File name == class name.
-- Do not edit `PROGRESS.md` or `REGRESSIONS.md` mid-session — both are touched only in the summary step.
+Conventions live in `CLAUDE.md` §Coding conventions. The big ones:
 
-### Step 5 — Self-verify
+- ES module syntax, 2-space indent, `PascalCase` classes / `camelCase` everything else, `_` prefix for private fields.
+- One class per file, file name = class name.
+- No `Math.random()` — use `runManager.rng`.
+- No async/await in combat.
+- No third-party libraries.
 
-Before declaring done, walk through each acceptance criterion and explain — pointing at specific files, methods, or behaviors — how the code satisfies it. Format:
+### Step 5 — Verify
 
-```
-Acceptance criterion 1: <text>
-Satisfied by: <file>:<method> — <one sentence explaining how>
+For **logic** slices (anything under `web/src/core/`, `web/src/data/`, `web/src/run/`, `web/src/combat/`):
 
-Acceptance criterion 2: ...
-```
-
-If a criterion is not fully satisfied, say so explicitly. Do not paper over gaps.
-
-Also verify in writing:
-
-- Project compiles cleanly (no new warnings introduced)
-- No `UnityEngine.Random` usage anywhere this slice touches
-- No magic numbers in logic files (constants live in `GameRules.cs` once that file exists)
-- No out-of-scope features (cross-check `CLAUDE.md` §Scope control)
-- No files outside the slice plan were modified
-
-### Step 6 — Produce a manual test plan
-
-Create `TestPlans/TP_<slice-id>.md` with manual Unity Editor test steps. Every step is a checkbox with three fields:
-
-```
-- [ ] Step N. <Action — what the user clicks or does>
-      Expected: <Specific observable result, including UI or Console state>
-      Actual:   <Left blank for the user to fill in>
+```sh
+cd web
+npm run test:headless
 ```
 
-When a step asks the tester to observe internal run state that the Unity Inspector cannot show (plain C# classes like `RunState`, `HeroInstance` fields, `System.Random`, anything not `[SerializeField]` or `[System.Serializable]`), do not rely on Inspector Debug mode — it only surfaces Unity-serializable fields. Instead, add a short "Temporary diagnostic scaffold" subsection at the top of the affected scenario that:
+Should report `ALL PASS` for all three suites (57 checks total). If a test fails because the *test* was wrong, fix the test; if a test fails because the *code* is wrong, fix the code.
 
-1. Specifies the exact file, method, and lines to add (typically a `UnityEngine.Debug.Log` PRE/POST pair around the operation being tested).
-2. Tells the tester what to look for in the Unity Console.
-3. **Ends with an explicit revert step before the next scenario or before the slice is marked complete.** The revert step is a checkbox like any other.
+For **UI** slices (anything under `web/src/ui/` or `web/styles/`):
 
-Diagnostic scaffolds (Debug.Log, throwaway probe components, temporary `GameRules` edits) are test-only and must not be committed. The session is not done until all such scaffolds are reverted.
+- Reload the browser preview (or relaunch Electron).
+- Click through the affected screens.
+- Open the dev console — there should be zero errors and zero warnings.
 
-The test plan must contain these sections (omit Happy path / Edge cases / Observable invariants only if a section genuinely does not apply, and say why):
+For **both** kinds of slice, drive a quick end-to-end run via the autopilot in `web/src/test/run.js` (or in the browser console) to confirm nothing else broke.
 
-- **Happy path** — the slice working as intended, end-to-end
-- **Edge cases** — empty inputs, max values, leftmost-slot tiebreaks, turn-limit conditions, and similar
-- **Observable invariants** — 3–6 things that should always be true at runtime in this slice (e.g. "no hero card displays negative HP", "combat log lines are in monotonically increasing order")
+### Step 6 — Wrap
 
-Do **not** add a "Rule checks" section that re-verifies `CLAUDE.md` constraints (no `UnityEngine.Random`, `[SerializeField] private`, no forbidden folders, etc.). Those belong to step 5 self-verification, not to a manual test plan a human runs in the Editor.
+At the end of the session, in **this order**:
 
-Add a **Regression checks** section *only* when the slice's diff plausibly changes prior behavior (e.g. it touches `CombatManager`, `RunManager`, shared data flow, or a UI layout previous slices depended on). When you do include it, name the specific prior behavior at risk and the exact file/seam in the diff that puts it at risk — do not include broad "play a full run end-to-end" sweeps as a precaution. The default for a UI-only or additive slice is to omit the section entirely.
+1. Summarize: files added/changed, acceptance criteria results, deviations.
+2. Update `PROGRESS.md` — append a new entry for this slice at the top of the active section. Keep it short (3–8 lines).
+3. Update `REGRESSIONS.md` — if you fixed a regression, move it to Closed with today's date and the slice ID; if you discovered a new one, add it to Open.
+4. Rewrite `NEXT_SESSION.md` for the slice the user wants to pick up next. If unclear, ask.
+5. If the slice changed architecture or added/removed a major piece, update `IMPLEMENTATION_PLAN.md` §3 (folder layout) or §4 (architectural contracts).
 
-### Step 7 — Session summary
+### Step 7 — Hand off
 
-End the session with a structured summary in the chat:
-
-```
-## Session summary — <slice id>
-
-Files added:
-- <path>
-
-Files modified:
-- <path> — <one-line reason>
-
-Acceptance criteria:
-- [x] Criterion 1
-- [x] Criterion 2
-- [ ] Criterion 3 — <reason not met>
-
-Deviations from plan:
-- <description and why, or "none">
-
-Flagged for follow-up:
-- <items to consider for later slices, or "none">
-
-Suggested next slice:
-- <slice id and one-line description>
-
-Append the following block to PROGRESS.md (use the template at the top of that file):
-<formatted entry>
-
-Update NEXT_SESSION.md so it describes the next slice.
-```
-
-The user — not Claude Code — actually pastes the block into `PROGRESS.md`, files any new regressions into `REGRESSIONS.md`, and rewrites `NEXT_SESSION.md`. Claude Code drafts the text; the user commits it.
+Tell the user the session is complete and the wrap docs are updated. Do not start the next slice.
 
 ---
 
-## When to stop and ask
+## Tooling shortcuts
 
-Per `CLAUDE.md` §"How to ask good questions" — ask before doing when:
-
-- The design doc and the implementation plan disagree
-- The slice scope is ambiguous
-- A "small improvement" would touch files outside the slice
-- A hero or enemy effect could reasonably be implemented multiple ways
-- The user's request would violate a `CLAUDE.md` §Scope control rule
-
-The correct response to a scope violation is:
-
-> *"Out of scope for MVP per `CLAUDE.md` §Scope control. Skip it, or update the plan first."*
+- **Browser dev (no Node):** `python web/serve.py` → <http://localhost:5173>. Iteration = save → reload.
+- **Native window:** `cd web && npm start` (after `npm install`).
+- **Tests:** `cd web && npm run test:headless`.
+- **DevTools alongside Electron:** `DUNGEONDEBT_DEVTOOLS=1 npm start`.
+- **Debugging from the page:** `dd.gm` (the live GameManager) and `dd.ui` (the live UIManager) are exposed on `globalThis` by `web/src/main.js`.
 
 ---
 
-## Definition of ready (before starting a slice)
+## When in doubt
 
-A slice is ready to start when **all** of these are true:
-
-1. It has a slice ID (e.g. `M1.2`)
-2. It has a one-sentence goal
-3. Files to create or modify are listed in writing (in `NEXT_SESSION.md` or the chat)
-4. 2–5 acceptance criteria are written
-5. No open 🔴 Blocker regressions in `REGRESSIONS.md` would be invalidated by this work
-
-If any of these are missing, the first task of the session is to define them with the user — not to start coding.
-
----
-
-## Definition of done (before ending a slice)
-
-A slice is done when **all** of these are true:
-
-1. All files listed in the plan exist and the project compiles cleanly in the Unity Editor
-2. All acceptance criteria pass self-verification (step 5)
-3. `TestPlans/TP_<slice-id>.md` exists with happy path, edge cases, rule checks, regression checks, and invariants
-4. The user has run the test plan and reported results (this may happen in the next session — that is fine, but it must happen before the slice is marked complete in `PROGRESS.md`)
-5. The session summary has been drafted, including the `PROGRESS.md` entry and a rewrite of `NEXT_SESSION.md` for the next slice
-6. No out-of-scope features were added
-7. No files outside the slice plan were modified
-
-**Do not start the next slice in the same session.** Stop, hand off, let the user verify.
+- If `CLAUDE.md` and `IMPLEMENTATION_PLAN.md` agree, follow them.
+- If they disagree, stop and ask.
+- If the user gives an instruction that contradicts either, double-check by quoting the conflicting rule before proceeding.
+- If a request feels out-of-scope, quote `CLAUDE.md` §Scope control and ask for explicit override.
