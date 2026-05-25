@@ -140,6 +140,17 @@ export class CombatPanel {
         const name = target.node.querySelector(".cu-head span")?.textContent
           || evt.logText;
         this._paintUnit(target.node, name, evt.targetHealthAfter, evt.targetMaxHealth || target.max, evt.targetStatuses, target.unit);
+        // One-shot death animation: target crossed to 0 HP → fade out.
+        if (evt.targetHealthAfter <= 0 && target.node.dataset.died !== "1") {
+          target.node.dataset.died = "1";
+          target.node.classList.remove("dead");
+          target.node.classList.add("dying");
+          const n = target.node;
+          setTimeout(() => {
+            n.classList.remove("dying");
+            n.classList.add("dead");
+          }, 440);
+        }
         // Flash on damage (attack with non-zero amount or status damage tick).
         const isDamage = (evt.kind === CombatReplayEventKind.Attack && evt.amount > 0)
           || evt.kind === CombatReplayEventKind.StatusDamage;
