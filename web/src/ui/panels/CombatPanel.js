@@ -1,5 +1,5 @@
 import { el, clear } from "../dom.js";
-import { GameRulesFns } from "../../core/GameRules.js";
+import { GameRules, GameRulesFns } from "../../core/GameRules.js";
 import { CombatReplayEventKind } from "../../data/CombatReplayEvent.js";
 import { statusPills, hpBar } from "../components.js";
 
@@ -29,13 +29,24 @@ export class CombatPanel {
       el("div", { class: "panel-sub", text: encounter ? encounter.displayName : "" }),
     ]));
 
-    // Build the board from start snapshots.
+    // Build the board: trapezoidal vertical stack facing the opposing side.
+    //   enemy backline → enemy frontline → divider → player frontline → player backline
     this._units = new Map();
-    const playerCol = el("div", {}, [el("div", { class: "combat-side-lbl", text: "YOUR GUILD" })]);
-    const enemyCol = el("div", {}, [el("div", { class: "combat-side-lbl", text: "ENEMIES" })]);
-    playerCol.appendChild(this._buildUnits(this._result.playerStartUnits, true));
-    enemyCol.appendChild(this._buildUnits(this._result.enemyStartUnits, false));
-    this.root.appendChild(el("div", { class: "combat-board" }, [playerCol, enemyCol]));
+    const enemyBlock = el("div", { class: "combat-side enemy" }, [
+      el("div", { class: "combat-side-lbl", text: "ENEMIES" }),
+      this._buildRow(this._result.enemyStartUnits, false, false),
+      this._buildRow(this._result.enemyStartUnits, false, true),
+    ]);
+    const playerBlock = el("div", { class: "combat-side player" }, [
+      this._buildRow(this._result.playerStartUnits, true, true),
+      this._buildRow(this._result.playerStartUnits, true, false),
+      el("div", { class: "combat-side-lbl", text: "YOUR GUILD" }),
+    ]);
+    this.root.appendChild(el("div", { class: "combat-board" }, [
+      enemyBlock,
+      el("div", { class: "combat-divider" }),
+      playerBlock,
+    ]));
 
     this._log = el("div", { class: "combat-log" });
     this.root.appendChild(this._log);
@@ -50,15 +61,19 @@ export class CombatPanel {
     this._timer = setInterval(() => this._tick(), STEP_MS);
   }
 
-  _buildUnits(units, isPlayer) {
-    const col = el("div", { class: "combat-units" });
-    for (const u of units) {
+  _buildRow(units, isPlayer, isFrontline) {
+    const row = el("div", { class: `combat-row ${isFrontline ? "front" : "back"}` });
+    const filtered = units.filter(u => isFrontline
+      ? u.slot < GameRules.FrontlineSlots
+      : u.slot >= GameRules.FrontlineSlots);
+    filtered.sort((a, b) => a.slot - b.slot);
+    for (const u of filtered) {
       const node = el("div", { class: "combat-unit" });
       this._units.set(this._key(isPlayer, u.slot), { node, max: u.maxHealth });
       this._paintUnit(node, u.displayName, u.currentHealth, u.maxHealth, u.statuses.activeStatuses);
-      col.appendChild(node);
+      row.appendChild(node);
     }
-    return col;
+    return row;
   }
 
   _paintUnit(node, name, hp, max, statuses) {
