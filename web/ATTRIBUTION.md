@@ -39,6 +39,14 @@ The icons below are © their respective authors and licensed CC BY 3.0.
 - `assets/effects/role-tank.png` — *sword-clash*
 - `assets/effects/enemy-generic.png` — *sword-clash*
 - `assets/effects/role-damage.png` — *sparkling-sabre*
+- `assets/effects/warrior.png` — *battle-axe*
+- `assets/effects/wizard.png` — *star-swirl*
+- `assets/effects/ninja.png` — *shuriken*
+- `assets/effects/ranger.png` — *arrow-cluster*
+- `assets/effects/priest.png` — *holy-symbol*
+- `assets/effects/enchanter.png` — *magic-palm*
+- `assets/effects/squire.png` — *pointy-sword*
+- `assets/effects/apprentice.png` — *book-cover*
 
 ### Delapouite — <https://delapouite.com/>
 
@@ -59,6 +67,16 @@ The icons below are © their respective authors and licensed CC BY 3.0.
 - `assets/enemies/frugal_healer.png` — *healing*
 - `assets/effects/role-support.png`, `assets/effects/role-economy.png`, `assets/effects/effect-default.png` — *sparkles*
 - `assets/effects/heal.png` — *healing*
+- `assets/effects/knight.png` — *shield-bash*
+- `assets/effects/golem.png` — *stone-pile*
+
+### Skoll — <https://game-icons.net/>
+
+- `assets/effects/bard.png` — *sound-waves*
+
+### Willdabeast — <https://wbsthemes.com/>
+
+- `assets/effects/treasurer.png` — *gold-bar*
 
 ## Future additions
 
