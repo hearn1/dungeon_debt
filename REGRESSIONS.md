@@ -61,23 +61,6 @@ Copy this block when filing a new regression. New regressions go at the top of t
 **Suspected cause:** Phase D shipped placeholder-only visuals (text cards + flash) to land the playable web loop quickly. The Unity build had a SpriteCatalog + generic source→target effect motion (M10.4 / M10.5 carve-out); none of it was ported.
 **Notes:** Web stack opens this up: per-hero portrait images, CSS transforms for projectile motion, real keyframe animations, even Lottie if we want. Worth a design pass — animation quality should leapfrog Unity, not just match it.
 
-### R004 — Formation no longer shows frontline / backline split
-
-**Reported:** 2026-05-23
-**Found in slice:** Phase D (web port, detected) — Phase D (introduced)
-**Severity:** 🟡 Minor
-**Status:** Open
-
-**Repro steps:**
-1. Start a run, hire a party, advance to Formation.
-2. Look at the slot layout.
-
-**Expected:** Slots 0–1 are visually grouped as Frontline and slots 2–4 as Backline (matching the Unity build's two-zone layout and the targeting rule that frontline takes hits first).
-**Actual:** All 5 slots render as a single flat row of cards. The zone labels exist but the visual separation is gone — slots 0–4 sit side by side under one "FRONTLINE" / "BACKLINE" pair of labels with no real gap.
-
-**Suspected cause:** `FormationPanel.render` puts both `.slot-row` rows inside a single `.formation` flexbox. The `.slot-row` rows themselves render, but the wider stage and small slots mean the two rows visually merge into one. Likely a CSS layout regression — `.formation` should stack the two zones vertically with a clear separator, or each `.slot-row` should be wider than the available column.
-**Notes:** Easy CSS-only fix in `web/styles/main.css` + small change in `FormationPanel.js`. Confirm against the Unity FormationPanelView for intended layout.
-
 ---
 
 ## Closed
@@ -91,6 +74,28 @@ Copy this block when filing a new regression. New regressions go at the top of t
 **Fixed in slice:** <slice id>
 **Original entry:** <preserve the original body for history>
 ```
+
+### R004 — Formation no longer shows frontline / backline split  ✅ Closed
+
+**Closed:** 2026-05-25
+**Fixed in slice:** R004
+
+**Original entry:**
+
+**Reported:** 2026-05-23
+**Found in slice:** Phase D (web port, detected) — Phase D (introduced)
+**Severity:** 🟡 Minor
+**Status:** Closed
+
+**Repro steps:**
+1. Start a run, hire a party, advance to Formation.
+2. Look at the slot layout.
+
+**Expected:** Slots 0–1 are visually grouped as Frontline and slots 2–4 as Backline (matching the Unity build's two-zone layout and the targeting rule that frontline takes hits first).
+**Actual:** All 5 slots render as a single flat row of cards. The zone labels exist but the visual separation is gone — slots 0–4 sit side by side under one "FRONTLINE" / "BACKLINE" pair of labels with no real gap.
+
+**Suspected cause:** `FormationPanel.render` puts both `.slot-row` rows inside a single `.formation` flexbox. The `.slot-row` rows themselves render, but the wider stage and small slots mean the two rows visually merge into one.
+**Notes:** Fixed by `.formation { flex-direction: column; align-items: center; gap: 20px; }` — true trapezoid (frontline centered above backline). User extended the slice to also restructure the combat board into the same vertical-trapezoidal stack (enemy back/front above player front/back, with a dashed divider).
 
 ### R003 - Hiring after formation movement can stack heroes in one slot  Closed
 

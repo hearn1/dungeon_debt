@@ -51,6 +51,37 @@ Copy this block when adding a new entry. Paste it at the top of the Session log 
 
 <!-- Newest entries at the top. -->
 
+## 2026-05-25 - R004: Trapezoidal Formation + Combat board layout
+
+**Milestone:** Web-port follow-up (post Phase E)
+**Status:** Complete (pending user run of `npm run test:headless`)
+
+**Files added:**
+- None.
+
+**Files modified:**
+- `web/styles/main.css` - `.formation` switched from horizontal flex to vertical flex with `align-items: center` and 20px gap; combat section restructured from 2-column grid to vertical 4-row layout (`.combat-board` column-flex, new `.combat-row` / `.combat-side` / `.combat-divider`, fixed 160px `.combat-unit`).
+- `web/src/ui/panels/CombatPanel.js` - replaced single-column `_buildUnits(units, isPlayer)` with `_buildRow(units, isPlayer, isFrontline)`; render order is enemy backline -> enemy frontline -> dashed divider -> player frontline -> player backline, with persistent ENEMIES/YOUR GUILD labels framing the block. Replay state-keying, acting outline, hit/heal flash, dead opacity unchanged. Imported `GameRules` (for `FrontlineSlots`) alongside `GameRulesFns`.
+
+**Acceptance criteria:**
+- [x] Formation panel: slots 0-1 render above slots 2-4 with 20px visible vertical gap and persistent FRONTLINE / BACKLINE labels; rows centered horizontally so frontline (2 slots) sits offset between the backline (3 slots) - true trapezoid.
+- [x] Empty slots still dashed placeholders; filled slots render hero card.
+- [x] Click-select then click-second-slot still swaps heroes across zones (verified Priest slot 2 <-> Treasurer slot 0).
+- [ ] `npm run test:headless` passes 57/57 - **not run locally** (no node/npm in session env); logic files untouched, so no regression expected.
+- [x] **Added per user override:** combat board renders as a 4-row trapezoidal stack (enemy back -> enemy front -> divider -> player front -> player back), each row horizontally centered on the same axis (verified all 4 row centers align at x=333 in preview).
+
+**Test plan:** None created. Visual + DOM verification via the preview server; click-swap exercised directly in the renderer; combat replay (acting outline, hit flash, HP bars, combat log) confirmed unchanged.
+
+**Deviations from plan:**
+- Scope expanded mid-session at the user's explicit override of `NEXT_SESSION.md` R004's "Not in scope: Touching any other panel" rule, to also restructure the combat board layout. Logged here per `SESSION_PROTOCOL.md` Step 6.
+- Headless test suite not executed in this session (node/npm unavailable in the environment); CSS-only + presentation-only JS change.
+
+**Follow-up flagged:**
+- R005 (hero/enemy/attack animations missing) remains open and is the obvious next slice. The new vertical combat layout is a better canvas for source -> target motion than the old left/right columns, so R005 planning should account for it.
+- Sparse player parties (e.g. 1 hero in frontline + 1 in backline) stack as 1-card rows. Each row centers independently, which keeps the centerline aligned but means the visual "trapezoid" only reads when both rows have multiple units. Expected; matches Formation panel behavior.
+
+**Next slice:** R005 - animation upgrade (planning + first implementation slice).
+
 ## 2026-05-17 - M20.2: Major-view readability proposal (Claude-design handoff package)
 
 **Milestone:** M20 - Act expansion foundation
