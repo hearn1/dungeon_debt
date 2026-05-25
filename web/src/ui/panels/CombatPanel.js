@@ -6,7 +6,7 @@ import { statusPills, hpBar } from "../components.js";
 import { unitPortrait, attackEffect, healEffect } from "../SpriteCatalog.js";
 
 const STEP_MS = 280;
-const PROJECTILE_MS = 240;
+const PROJ_DURATION = { arc: 300, snap: 170, jab: 140, generic: 240 };
 
 export class CombatPanel {
   constructor(gm) {
@@ -186,31 +186,32 @@ export class CombatPanel {
     const dx = endX - startX;
     const dy = endY - startY;
 
+    const style = isHeal ? "arc" : this._projectileStyle(attacker.unit);
+    const duration = PROJ_DURATION[style] || PROJ_DURATION.generic;
+
     const src = isHeal ? healEffect() : attackEffect(attacker.unit);
     const sprite = el("img", {
-      class: `projectile${isHeal ? " heal" : ""}`,
+      class: `projectile proj-${style}${isHeal ? " heal" : ""}`,
       src,
       alt: "",
-      style: { left: `${startX}px`, top: `${startY}px`, transform: "translate(0, 0)", opacity: "1" },
+      style: { left: `${startX}px`, top: `${startY}px` },
     });
+    sprite.style.setProperty("--dx", `${dx}px`);
+    sprite.style.setProperty("--dy", `${dy}px`);
+    if (style === "arc") sprite.style.setProperty("--arc-h", "40px");
+    if (style === "snap") sprite.style.setProperty("--proj-angle", `${Math.atan2(dy, dx)}rad`);
     layer.appendChild(sprite);
 
-    // Next frame: start the transition.
-    requestAnimationFrame(() => {
-      sprite.style.transform = `translate(${dx}px, ${dy}px)`;
-      sprite.style.opacity = "0.85";
-    });
-
-    // Cleanup. Use transitionend if it fires, else a fallback timer.
+    // Cleanup. Use animationend if it fires, else a fallback timer.
     let cleaned = false;
     const cleanup = () => {
       if (cleaned) return;
       cleaned = true;
-      sprite.removeEventListener("transitionend", cleanup);
+      sprite.removeEventListener("animationend", cleanup);
       if (sprite.parentNode === layer) layer.removeChild(sprite);
     };
-    sprite.addEventListener("transitionend", cleanup);
-    setTimeout(cleanup, PROJECTILE_MS + 80);
+    sprite.addEventListener("animationend", cleanup);
+    setTimeout(cleanup, duration + 80);
   }
 
   _appendLog(text) {
@@ -279,6 +280,17 @@ export class CombatPanel {
       return true;
     }
     return false;
+  }
+
+  _projectileStyle(unit) {
+    const h = unit?.sourceHero;
+    if (h) {
+      if (h.id === "wizard" || h.id === "enchanter") return "arc";
+      if (h.id === "ranger") return "snap";
+      if (h.role === HeroRole.Tank || h.id === "ninja") return "jab";
+      return "arc";
+    }
+    return "generic";
   }
 
   _clearActing() {
