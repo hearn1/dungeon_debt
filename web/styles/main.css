@@ -285,3 +285,10 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 }
 .combat-unit.lunging.player { animation: lunge-up 280ms 1; }
 .combat-unit.lunging.enemy  { animation: lunge-down 280ms 1; }
+
+/* Death fade-out on a unit that reached 0 HP during replay. */
+@keyframes death-fade {
+  0%   { opacity: 1; transform: scale(1) translateY(0); }
+  100% { opacity: 0.35; transform: scale(0.92) translateY(4px); }
+}
+.combat-unit.dying { animation: death-fade 400ms ease-out forwards; }
