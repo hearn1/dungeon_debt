@@ -276,6 +276,7 @@ export class CombatPanel {
     const e = unit.sourceEnemy;
     if (e) {
       if (e.effectId === EnemyEffectId.BackBatBackline) return false; // flying ranged backline
+      if (e.effectId === EnemyEffectId.FrugalGhostHeal) return false; // support unit, not front-line attacker
       if (e.id === "frugal_archer") return false;
       return true;
     }
