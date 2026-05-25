@@ -15,6 +15,13 @@
       "Bash(ls \"C:/Users/Matt/Desktop/Code/dungeon_debt/.claude/\" 2>/dev/null || mkdir -p \"C:/Users/Matt/Desktop/Code/dungeon_debt/.claude\"; ls \"C:/Users/Matt/Desktop/Code/dungeon_debt/.claude/\")",
       "mcp__Claude_Preview__preview_start",
       "Bash(gh pr *)",
+      "Bash(npm run *)",
+      "PowerShell(npm --prefix web run test:headless)",
+      "PowerShell(Get-Command node, npm -ErrorAction SilentlyContinue | Select-Object Name, Source; Get-ChildItem \"$env:APPDATA\\\\npm\" -ErrorAction SilentlyContinue | Select-Object -First 5 Name; Get-ChildItem \"C:\\\\Program Files\\\\nodejs\" -ErrorAction SilentlyContinue | Select-Object -First 5 Name)",
+      "Bash(git checkout *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "WebFetch(domain:game-icons.net)",
       "Bash(git branch *)",
       "Bash(git log *)"
     ]
