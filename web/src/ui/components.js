@@ -1,6 +1,7 @@
 // Shared presentational builders used across panels.
 import { el } from "./dom.js";
 import { GameRulesFns } from "../core/GameRules.js";
+import { heroPortrait } from "./SpriteCatalog.js";
 
 export function hpBar(current, max) {
   const ratio = max > 0 ? Math.max(0, Math.min(1, current / max)) : 0;
@@ -31,7 +32,10 @@ export function heroCard(def, instance, opts = {}) {
   const attack = instance ? instance.attack : def.baseAttack;
   const card = el("div", { class: `unit-card role-${role}` }, [
     el("div", { class: "uc-head" }, [
-      el("div", { class: "uc-name", text: def.displayName }),
+      el("div", { class: "uc-name-wrap" }, [
+        el("img", { class: "uc-portrait", src: heroPortrait(def), alt: def.displayName }),
+        el("div", { class: "uc-name", text: def.displayName }),
+      ]),
       el("div", { class: `uc-tier ${tier}`, text: tier.toUpperCase() }),
     ]),
     el("div", { class: "uc-role", text: role }),

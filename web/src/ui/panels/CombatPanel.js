@@ -1,9 +1,12 @@
 import { el, clear } from "../dom.js";
 import { GameRules, GameRulesFns } from "../../core/GameRules.js";
 import { CombatReplayEventKind } from "../../data/CombatReplayEvent.js";
+import { HeroRole, EnemyEffectId } from "../../data/enums.js";
 import { statusPills, hpBar } from "../components.js";
+import { unitPortrait, attackEffect, healEffect } from "../SpriteCatalog.js";
 
 const STEP_MS = 280;
+const PROJECTILE_MS = 240;
 
 export class CombatPanel {
   constructor(gm) {
@@ -42,11 +45,14 @@ export class CombatPanel {
       this._buildRow(this._result.playerStartUnits, true, false),
       el("div", { class: "combat-side-lbl", text: "YOUR GUILD" }),
     ]);
-    this.root.appendChild(el("div", { class: "combat-board" }, [
+    this._projectileLayer = el("div", { class: "projectile-layer" });
+    this._board = el("div", { class: "combat-board" }, [
       enemyBlock,
       el("div", { class: "combat-divider" }),
       playerBlock,
-    ]));
+      this._projectileLayer,
+    ]);
+    this.root.appendChild(this._board);
 
     this._log = el("div", { class: "combat-log" });
     this.root.appendChild(this._log);
@@ -69,16 +75,24 @@ export class CombatPanel {
     filtered.sort((a, b) => a.slot - b.slot);
     for (const u of filtered) {
       const node = el("div", { class: "combat-unit" });
-      this._units.set(this._key(isPlayer, u.slot), { node, max: u.maxHealth });
-      this._paintUnit(node, u.displayName, u.currentHealth, u.maxHealth, u.statuses.activeStatuses);
+      // Remember the unit so projectile lookup can resolve its sprite.
+      this._units.set(this._key(isPlayer, u.slot), { node, max: u.maxHealth, unit: u });
+      this._paintUnit(node, u.displayName, u.currentHealth, u.maxHealth, u.statuses.activeStatuses, u);
       row.appendChild(node);
     }
     return row;
   }
 
-  _paintUnit(node, name, hp, max, statuses) {
+  _paintUnit(node, name, hp, max, statuses, unit) {
     clear(node);
     node.classList.toggle("dead", hp <= 0);
+    if (unit) {
+      node.appendChild(el("img", {
+        class: "cu-portrait",
+        src: unitPortrait(unit),
+        alt: name,
+      }));
+    }
     node.appendChild(el("div", { class: "cu-head" }, [
       el("span", { text: name }),
       el("span", { class: "cu-hp", text: `${hp}/${max}` }),
@@ -100,9 +114,23 @@ export class CombatPanel {
   _applyEvent(evt) {
     // Highlight the attacker briefly.
     this._clearActing();
+    let attacker = null;
     if (evt.kind === CombatReplayEventKind.Attack || evt.kind === CombatReplayEventKind.Heal) {
-      const attacker = this._units.get(this._key(evt.attackerIsPlayerSide, evt.attackerSlot));
+      attacker = this._units.get(this._key(evt.attackerIsPlayerSide, evt.attackerSlot));
       if (attacker) attacker.node.classList.add("acting");
+    }
+
+    // Melee-only attack lunge. Skip on Heal / StatusDamage / Message and on
+    // ranged/magic attackers — see _shouldLunge for the classification.
+    if (attacker && evt.kind === CombatReplayEventKind.Attack && this._shouldLunge(attacker.unit)) {
+      const sideCls = evt.attackerIsPlayerSide ? "player" : "enemy";
+      attacker.node.classList.remove("lunging", "player", "enemy");
+      void attacker.node.offsetWidth; // reflow → restart for back-to-back attacks
+      attacker.node.classList.add("lunging", sideCls);
+      const node = attacker.node;
+      setTimeout(() => {
+        node.classList.remove("lunging", "player", "enemy");
+      }, STEP_MS);
     }
 
     // Update the affected target unit from the event snapshot.
@@ -111,7 +139,7 @@ export class CombatPanel {
       if (target) {
         const name = target.node.querySelector(".cu-head span")?.textContent
           || evt.logText;
-        this._paintUnit(target.node, name, evt.targetHealthAfter, evt.targetMaxHealth || target.max, evt.targetStatuses);
+        this._paintUnit(target.node, name, evt.targetHealthAfter, evt.targetMaxHealth || target.max, evt.targetStatuses, target.unit);
         // Flash on damage (attack with non-zero amount or status damage tick).
         const isDamage = (evt.kind === CombatReplayEventKind.Attack && evt.amount > 0)
           || evt.kind === CombatReplayEventKind.StatusDamage;
@@ -123,10 +151,55 @@ export class CombatPanel {
           void target.node.offsetWidth;
           target.node.classList.add(cls);
         }
+        // Fire a projectile from attacker → target for Attack / Heal events.
+        if (attacker && (evt.kind === CombatReplayEventKind.Attack || isHeal)) {
+          this._fireProjectile(attacker, target, isHeal);
+        }
       }
     }
 
     this._appendLog(evt.logText);
+  }
+
+  _fireProjectile(attacker, target, isHeal) {
+    const layer = this._projectileLayer;
+    const board = this._board;
+    if (!layer || !board) return;
+    const boardRect = board.getBoundingClientRect();
+    const a = attacker.node.getBoundingClientRect();
+    const t = target.node.getBoundingClientRect();
+    const startX = a.left - boardRect.left + a.width / 2;
+    const startY = a.top - boardRect.top + a.height / 2;
+    const endX = t.left - boardRect.left + t.width / 2;
+    const endY = t.top - boardRect.top + t.height / 2;
+    const dx = endX - startX;
+    const dy = endY - startY;
+
+    const src = isHeal ? healEffect() : attackEffect(attacker.unit);
+    const sprite = el("img", {
+      class: `projectile${isHeal ? " heal" : ""}`,
+      src,
+      alt: "",
+      style: { left: `${startX}px`, top: `${startY}px`, transform: "translate(0, 0)", opacity: "1" },
+    });
+    layer.appendChild(sprite);
+
+    // Next frame: start the transition.
+    requestAnimationFrame(() => {
+      sprite.style.transform = `translate(${dx}px, ${dy}px)`;
+      sprite.style.opacity = "0.85";
+    });
+
+    // Cleanup. Use transitionend if it fires, else a fallback timer.
+    let cleaned = false;
+    const cleanup = () => {
+      if (cleaned) return;
+      cleaned = true;
+      sprite.removeEventListener("transitionend", cleanup);
+      if (sprite.parentNode === layer) layer.removeChild(sprite);
+    };
+    sprite.addEventListener("transitionend", cleanup);
+    setTimeout(cleanup, PROJECTILE_MS + 80);
   }
 
   _appendLog(text) {
@@ -143,6 +216,8 @@ export class CombatPanel {
       this._applyEvent(events[this._eventIndex++]);
     }
     this._clearActing();
+    // Drop any in-flight projectiles so they don't outlive the summary screen.
+    if (this._projectileLayer) clear(this._projectileLayer);
     this._renderSummary();
   }
 
@@ -176,6 +251,23 @@ export class CombatPanel {
       class: "btn primary", text: "Continue →",
       onClick: () => { this.onDirty?.(); this.gm.continueAfterReward(); },
     }));
+  }
+
+  _shouldLunge(unit) {
+    if (!unit) return false;
+    const h = unit.sourceHero;
+    if (h) {
+      if (h.role === HeroRole.Tank) return true;
+      if (h.id === "ninja") return true; // only melee Damage hero
+      return false;
+    }
+    const e = unit.sourceEnemy;
+    if (e) {
+      if (e.effectId === EnemyEffectId.BackBatBackline) return false; // flying ranged backline
+      if (e.id === "frugal_archer") return false;
+      return true;
+    }
+    return false;
   }
 
   _clearActing() {

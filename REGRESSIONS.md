@@ -48,18 +48,23 @@ Copy this block when filing a new regression. New regressions go at the top of t
 
 **Reported:** 2026-05-23
 **Found in slice:** Phase D (web port, detected) — Phase D (introduced)
-**Severity:** 🟠 Major
-**Status:** Open
+**Severity:** 🟠 Major → 🟡 Minor (after R005-1)
+**Status:** In progress — R005-1 landed portraits + attack-projectile motion 2026-05-25; R005-2 landed melee attack-lunge on the acting card 2026-05-25; death animation + per-role choreography + per-character sprites still missing.
 
 **Repro steps:**
 1. Start any run, get to Combat.
 2. Watch the combat board during replay.
 
 **Expected:** Heroes and enemies have visible attack / hit / death animations, ideally upgraded now that we're out of Unity and on the web stack (CSS keyframes, sprite atlases, even GIFs).
-**Actual:** Replay is text-driven. Acting unit gets a gold outline; hit/heal events trigger a 380ms color flash on the target card (added in Phase E). No portraits, no projectile motion, no per-effect art.
+**Actual (after R005-1):** Combat now shows 64×64 portraits on every unit and a per-role projectile sprite flying from attacker → target on every Attack/Heal event (240ms CSS transform). Still missing: death animation (units just go to `opacity: 0.35`), per-character attack art (catalog has a per-id slot but no per-id PNGs ship yet), and per-attack-card motion (no lunge / recoil).
 
 **Suspected cause:** Phase D shipped placeholder-only visuals (text cards + flash) to land the playable web loop quickly. The Unity build had a SpriteCatalog + generic source→target effect motion (M10.4 / M10.5 carve-out); none of it was ported.
-**Notes:** Web stack opens this up: per-hero portrait images, CSS transforms for projectile motion, real keyframe animations, even Lottie if we want. Worth a design pass — animation quality should leapfrog Unity, not just match it.
+**Notes:** Remaining work is intentionally pre-split into follow-up slices (see `NEXT_SESSION.md`):
+
+- **R005-2** — shared CSS-keyframe lunge on the acting card (uses the vertical trapezoid axis from R004). ✅ Landed 2026-05-25 (melee-only: Tank + Ninja heroes; all enemies except `BackBatBackline`-effect and `frugal_archer`).
+- **R005-3** — death fade-out replacing the bare `.dead` opacity drop.
+- **R005-4** — per-role projectile choreography (different flight arcs / mid-flight flashes per attacker role).
+- **R005-5** — per-character attack sprites (drop PNGs into `web/assets/effects/<id>.png` and register the id in `SpriteCatalog.KNOWN_ATTACK_OVERRIDE_IDS`; no other code change).
 
 ---
 

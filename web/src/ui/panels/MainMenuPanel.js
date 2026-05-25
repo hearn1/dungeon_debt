@@ -29,5 +29,13 @@ export class MainMenuPanel {
       ]));
     }
     this.root.appendChild(choices);
+
+    this.root.appendChild(el("a", {
+      class: "credits-link",
+      href: "ATTRIBUTION.md",
+      target: "_blank",
+      rel: "noopener",
+      text: "Art credits",
+    }));
   }
 }

@@ -127,6 +127,11 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 .unit-card.role-Support { border-top-color: var(--role-support); }
 .unit-card.role-Economy { border-top-color: var(--role-economy); }
 .uc-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.uc-portrait {
+  width: 32px; height: 32px; display: block; flex-shrink: 0;
+  filter: drop-shadow(0 1px 1px rgba(0,0,0,0.4));
+}
+.uc-name-wrap { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1; }
 .uc-name { font-weight: 700; font-size: 16px; }
 .uc-tier { font-size: 10px; font-weight: 700; letter-spacing: 1px; padding: 2px 7px; border-radius: 9px; }
 .uc-tier.Bronze { background: rgba(184, 115, 51, 0.22); color: rgb(204, 150, 95); }
@@ -164,16 +169,33 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 .slot.selected { border-color: var(--gold); box-shadow: 0 0 0 1px var(--gold); }
 
 /* ---- Combat ---- */
-.combat-board { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.combat-board { display: flex; flex-direction: column; align-items: center; gap: 10px; position: relative; }
 .combat-side { display: flex; flex-direction: column; align-items: center; gap: 6px; width: 100%; }
 .combat-side-lbl { font-size: 12px; letter-spacing: 2px; color: var(--ink-mute); }
 .combat-row { display: flex; gap: 8px; justify-content: center; }
 .combat-divider { width: 60%; max-width: 520px; border-top: 1px dashed var(--rule); margin: 4px 0; }
-.combat-unit { width: 160px; background: var(--bg-card); border: 1px solid var(--rule); border-radius: 8px; padding: 8px 12px; display: flex; flex-direction: column; gap: 5px; }
+.combat-unit { width: 160px; background: var(--bg-card); border: 1px solid var(--rule); border-radius: 8px; padding: 8px 12px; display: flex; flex-direction: column; align-items: center; gap: 5px; }
 .combat-unit.dead { opacity: 0.35; }
 .combat-unit.acting { border-color: var(--gold); box-shadow: 0 0 0 1px var(--gold); }
-.cu-head { display: flex; justify-content: space-between; font-size: 14px; }
+.cu-portrait {
+  width: 64px; height: 64px; display: block;
+  image-rendering: -webkit-optimize-contrast;
+  filter: drop-shadow(0 1px 1px rgba(0,0,0,0.4));
+}
+.cu-head { display: flex; justify-content: space-between; align-items: center; font-size: 14px; width: 100%; gap: 8px; }
 .cu-hp { font-variant-numeric: tabular-nums; color: var(--ink-dim); }
+
+/* Projectile overlay (Attack / Heal events). Positioned inside .combat-board. */
+.projectile-layer { position: absolute; inset: 0; pointer-events: none; overflow: visible; }
+.projectile {
+  position: absolute; width: 36px; height: 36px;
+  margin-left: -18px; margin-top: -18px; /* anchor center */
+  pointer-events: none;
+  will-change: transform, opacity;
+  transition: transform 240ms cubic-bezier(0.45, 0.05, 0.55, 0.95), opacity 240ms ease-in;
+  filter: drop-shadow(0 0 4px rgba(201, 160, 74, 0.55));
+}
+.projectile.heal { filter: drop-shadow(0 0 4px rgba(107, 155, 107, 0.7)); }
 .combat-log {
   background: var(--bg-strip); border: 1px solid var(--rule); border-radius: 8px;
   padding: 12px; height: 220px; overflow-y: auto; font-size: 13px; line-height: 1.7;
@@ -197,6 +219,11 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   background: linear-gradient(90deg, var(--gold), rgb(204, 122, 58));
   -webkit-background-clip: text; background-clip: text; color: transparent; }
 .subtitle { color: var(--ink-dim); letter-spacing: 3px; text-transform: uppercase; font-size: 14px; }
+.credits-link {
+  margin-top: 16px; font-size: 11px; letter-spacing: 2px; text-transform: uppercase;
+  color: var(--ink-mute); text-decoration: none; border-bottom: 1px dotted var(--rule-strong);
+}
+.credits-link:hover { color: var(--ink-dim); }
 .menu-choices { display: flex; flex-direction: column; gap: 12px; min-width: 320px; }
 .difficulty-card { text-align: left; padding: 14px 18px; }
 .difficulty-card .d-name { font-weight: 700; font-size: 16px; }
@@ -242,3 +269,19 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 }
 .combat-unit.flash-hit { animation: flash-hit 380ms ease-out 1; }
 .combat-unit.flash-heal { animation: flash-heal 380ms ease-out 1; }
+
+/* Melee attack lunge on the acting combat-unit card. Direction is by side
+   (player rows lunge up, enemy rows lunge down); only ~64% of the cycle is
+   spent pushing out so the snap-back lands inside STEP_MS. */
+@keyframes lunge-up {
+  0%   { transform: translateY(0);     animation-timing-function: ease-out; }
+  64%  { transform: translateY(-14px); animation-timing-function: ease-in; }
+  100% { transform: translateY(0); }
+}
+@keyframes lunge-down {
+  0%   { transform: translateY(0);     animation-timing-function: ease-out; }
+  64%  { transform: translateY(14px);  animation-timing-function: ease-in; }
+  100% { transform: translateY(0); }
+}
+.combat-unit.lunging.player { animation: lunge-up 280ms 1; }
+.combat-unit.lunging.enemy  { animation: lunge-down 280ms 1; }
