@@ -15,6 +15,26 @@ Then read the rest of the orientation set listed in [`SESSION_PROTOCOL.md`](./SE
 
 If those two ever conflict, ask before resolving.
 
+## ## Environment setup
+
+Node.js is installed at `C:\Program Files\nodejs\` but the directory may not be on `PATH` in all shells. Before running any node/npm command, ensure:
+
+```powershell
+$env:PATH = "C:\Program Files\nodejs;$env:PATH"
+```
+
+Use `npm.cmd` (not `npm`) because PowerShell execution policy blocks `npm.ps1`:
+
+```powershell
+& "C:\Program Files\nodejs\npm.cmd" run test:headless
+```
+
+Or after adding to `$env:PATH`:
+
+```powershell
+npm.cmd run test:headless
+```
+
 ## Where to start
 
 - The brief for the next slice is in [`NEXT_SESSION.md`](./NEXT_SESSION.md).
