@@ -4,88 +4,99 @@ This file always describes the **next** session's work. Rewrite it at the end of
 
 ---
 
-## Session: R005 — Animation upgrade, planning + first implementation slice
+## Session: R005-3 — Death fade-out animation
 
-**Slice ID:** R005 (planning + first implementation slice)
-**Type:** Regression fix (combat presentation) — **planning-heavy**
-**Severity:** 🟠 Major (from `REGRESSIONS.md` Open section)
+**Slice ID:** R005-3 (combat animation polish — third of five planned R005 follow-ups)
+**Type:** Regression follow-on (R005 in `REGRESSIONS.md`)
+**Severity:** 🟡 Minor
 
 ### One-sentence goal
 
-Decide on an animation approach (CSS keyframes vs sprite atlases vs short GIF/MP4 loops) and land the first visible piece — hero / enemy attack motion, hit reaction, or death — on top of the new vertical trapezoidal combat board.
+When a combat unit reaches 0 HP, its `.combat-unit` card runs a one-shot ~400ms fade-out (opacity 1 → 0.35) combined with a slight `scale(0.92)` and a small downward drift, replacing the current "snap to `opacity: 0.35` the instant `hp <= 0`" so deaths read as deaths instead of dimming.
 
 ### Why this slice exists
 
-The combat replay is currently text-driven with a gold "acting" outline on the attacker card and a 380ms color flash on damage / heal targets. R004 reshaped the combat board into a vertical trapezoid (enemy back / front above player front / back), which is a much better canvas for **directional** source → target motion than the old left/right columns. R005 is the regression that asks us to actually use that canvas.
+R005-1 added portraits + projectiles. R005-2 added a melee lunge on attack. The third missing beat from the R005 regression is a *death* moment. Today the card just changes `opacity` from `1` to `0.35` the instant `_paintUnit` re-renders with `hp <= 0`, which reads as "the card got a little dimmer," not "this hero died." A short keyframe gives the death event the same kind of tactile read the attack/hit/heal beats already have.
 
-### Open questions to resolve in this session (before any implementation)
+The slice stays intentionally tiny: one keyframe, one extra class (`.dying`), one transition rule for the `.dead` resting state, and a single new conditional in `CombatPanel._applyEvent` that fires when the target crosses from alive → dead.
 
-1. **Art budget.** Do we have, or are we OK generating, per-hero / per-enemy portrait PNGs? Or do we stay placeholder-card and animate the existing cards (translate, rotate, flash) without per-unit art?
-2. **Animation style.** Three plausible tracks, listed cheapest → richest:
-   - **CSS-only.** Card-level keyframes — translate toward target on attack, shake on hit, scale-down + fade on death. No new assets. Probably 1–2 days.
-   - **Sprite atlases.** Per-unit PNG sheet (idle / attack / hit / death), `background-position` stepped via CSS animation or `requestAnimationFrame`. Few-week art pass but real game feel.
-   - **Short loops (GIF / MP4 / Lottie).** One file per state. Highest fidelity, biggest authoring lift.
-3. **Scope of first slice.** Even after picking a track, R005 is too big for one session. The first implementation slice should be **one** of: attacker translate-to-target, hit-shake on damage, death-fade, or projectile fly-across.
-4. **Determinism.** Animation timing must not block or alter combat resolution — replay still drives off `CombatReplayEvent`s. The existing `STEP_MS = 280` cadence in [CombatPanel.js](web/src/ui/panels/CombatPanel.js) is a hard ceiling for any per-event animation.
-5. **Constraints from `CLAUDE.md` §Scope control.** "Animations are now in-scope (per R005) but stay declarative — CSS keyframes, CSS transforms, sprite atlases as PNGs. No tween libraries (GSAP, anime.js), no Lottie, no WebGL." So Lottie/MP4 are actually already ruled out by the project rules — that narrows the decision to CSS-only vs sprite-atlas vs short GIF.
+### Open questions to resolve (small — answer inline)
+
+1. **Duration.** ~400ms feels long enough to read as a death without stalling the replay. `STEP_MS` is 280ms so the fade will overlap the next event (which is fine — by then the unit is already at its `.dead` resting state). Confirm 400ms, or pick a tighter timing.
+2. **Resting opacity.** Today `.dead` is `opacity: 0.35`. Confirm or adjust (lower = more "gone", higher = more visible silhouette).
+3. **Scale + drift?** Recommend `scale(0.92) translateY(4px)` at end of keyframe for "the card slumps slightly," but pure opacity fade also reads. Confirm or drop the transform.
+4. **Re-render guard.** `_paintUnit` is called on every target event and `clear`s + rebuilds the unit's inner children. The `.dying` class lives on the *unit node itself*, so it survives `clear` — but we need to make sure the `dead`/`dying` class toggle only fires *once*, not on every subsequent attack against an already-dead unit (chain attacks or status ticks). Plan to set `node.dataset.died = "1"` as a one-shot guard. Confirm or suggest a different guard.
 
 ### Scope
 
 **In scope (this session):**
 
-- A short planning conversation with the user that picks (a) one animation track, and (b) one specific first-slice deliverable.
-- If time remains and the choice is CSS-only with no new assets needed, implement the first deliverable. Otherwise stop at planning and rewrite this file again.
+1. Add `@keyframes death-fade` to `web/styles/main.css` (opacity 1 → 0.35 with optional `transform: scale + translateY`).
+2. Add `.combat-unit.dying { animation: death-fade 400ms ease-out forwards; }` and keep `.combat-unit.dead { opacity: 0.35; }` as the resting state.
+3. In `CombatPanel._applyEvent`, after the existing `_paintUnit(target, …)` call, detect alive→dead transition for the target unit (`evt.targetHealthAfter <= 0` and `target.node.dataset.died !== "1"`); set `dataset.died = "1"`, add `dying` class, schedule a `setTimeout` (~440ms) to swap `dying` → `dead`.
 
 **Not in scope:**
 
-- Wholesale rewrite of the combat replay engine.
-- Adding a tween / animation library.
-- Per-hero / per-enemy bespoke choreography. First slice is one **shared** effect across all units.
-- Any change to combat math, hero effects, or run flow.
-- Sound / audio.
+- Per-role / per-character death sprites (deferred to R005-4 / R005-5).
+- Touching combat math, replay event shape, or any file under `web/src/core/`, `web/src/data/`, `web/src/run/`, `web/src/combat/`.
+- Reviving heroes between rounds — that's already done by `CombatManager._finishResult` and works fine. We only need to make sure the next `render()` call clears `dataset.died` (`_buildRow` builds fresh nodes, so this is automatic).
+- Tween libraries (CSS keyframes only).
+- Sound.
 
 ### Definition of ready
 
-- ID: R005 ✅
+- ID: R005-3 ✅
 - One-sentence goal: above ✅
-- Files: TBD this session — depends on the picked track ⚠️
-- Acceptance criteria: TBD this session ⚠️
-- No open 🔴 Blocker regressions ✅ (only R005 remains open)
+- Files to modify: listed below ✅
+- Acceptance criteria: 4 below ✅
+- No open 🔴 Blocker regressions ✅ (R005 still Open + In progress, dropped to Minor)
 
 ### Files Claude Code should read
 
 ```
-CLAUDE.md (§Scope control, §Architectural rules, §UI architecture)
+CLAUDE.md (§Architectural rules, §UI architecture, §Scope control, §Coding conventions)
 SESSION_PROTOCOL.md
-REGRESSIONS.md (R005 entry)
-PROGRESS.md (last 2-3 entries, especially R004)
-web/src/ui/panels/CombatPanel.js   (the new 4-row trapezoid layout, STEP_MS replay cadence)
-web/styles/main.css                (.combat-board, .combat-row, .combat-unit, flash-hit, flash-heal keyframes)
-web/src/data/CombatReplayEvent.js  (event kinds and payload shape)
-web/src/combat/CombatLogger.js     (where events are emitted; do not change)
+REGRESSIONS.md (R005 entry — note R005-1 + R005-2 already landed)
+PROGRESS.md (R005-2 + R005-1 entries — context for the lunge / projectile / portrait pipeline)
+web/src/ui/panels/CombatPanel.js  (_applyEvent — the seam; _paintUnit's classList.toggle("dead", hp <= 0); _buildRow builds the units fresh per render)
+web/styles/main.css                (.combat-unit.dead at line 178; lunge / flash-hit / flash-heal keyframes for co-location)
 ```
 
 ### Files Claude Code should modify
 
-To be determined this session, after the animation track is picked.
+- **Modify:** `web/styles/main.css` — add `@keyframes death-fade` and `.combat-unit.dying` rule. Co-locate near the lunge / flash-hit / flash-heal block (bottom of file). Leave `.combat-unit.dead` as-is (resting state).
+- **Modify:** `web/src/ui/panels/CombatPanel.js` → in `_applyEvent`, after `_paintUnit` (which already toggles `.dead` via `classList.toggle`), detect alive→dead transition on the target and run the one-shot animation. Also: in `_paintUnit`, change `node.classList.toggle("dead", hp <= 0)` to *not* preemptively add `.dead` on the death-tick — let the timeout add it after the animation completes. Initial render (hp <= 0 at combat start, e.g. ghost encounters) should still apply `.dead` immediately.
 
 ### Files Claude Code does NOT touch
 
-- Anything under `web/src/core/`, `web/src/data/`, `web/src/run/`, `web/src/combat/` — combat resolution stays deterministic and untouched.
-- Any panel outside `CombatPanel.js` (unless the animation lib needs a shared component, which it shouldn't for a first slice).
+- `web/src/ui/SpriteCatalog.js` — no change needed.
+- Anything under `web/src/core/`, `web/src/data/`, `web/src/run/`, `web/src/combat/`.
 - `package.json`, `electron/`, `serve.py`.
 - `PROGRESS.md`, `REGRESSIONS.md` — wrap-step only.
 
 ### Acceptance criteria
 
-To be defined this session.
+1. When a unit dies during combat replay, its card runs a ~400ms fade animation (opacity → 0.35, optionally with a small scale/translate). Replay timing (`STEP_MS = 280`) is unchanged.
+2. The animation fires **once** per death — chain attacks, status ticks, or `_paintUnit` re-renders on an already-dead unit do not restart the animation.
+3. Units that start a combat at 0 HP (edge case — shouldn't happen in normal play, but plausible for status-only encounters) are rendered in their `.dead` resting state with no animation, not mid-fade.
+4. `npm run test:headless` 57/57 (logic files untouched).
+5. Zero console errors / warnings during a full Scout → Combat round where multiple deaths occur.
 
 ### Start prompt for the next session
 
-> Read `SESSION_PROTOCOL.md` and follow it. The current slice is described in `NEXT_SESSION.md` (R005). Step 1 (Orient) then pause for me to pick the animation track before you draft a plan.
+> Read `SESSION_PROTOCOL.md` and follow it. The current slice is `R005-3` — death fade-out animation on the acting combat-unit card when HP crosses to 0, per the brief in `NEXT_SESSION.md`. Builds on R005-2's class-toggle + setTimeout pattern in `_applyEvent`. Pause for plan confirmation after Step 3 before implementing.
 
 ---
 
 ## Suggested follow-up (not this session)
 
-After R005's first deliverable, subsequent R005-N slices can add: hit-shake, death-fade, projectile motion, role-aware effects, per-unit portraits. Sequence them by user feedback after each visible piece lands.
+After R005-3 lands:
+
+- **R005-4:** per-role projectile choreography (different flight arcs / mid-flight flashes per attacker role — magic curves, arrows snap, melee is short and fast).
+- **R005-5:** per-character attack sprites. Pure asset-drop slice: add `web/assets/effects/<id>.png` for one or more heroes, register the id in `SpriteCatalog.KNOWN_ATTACK_OVERRIDE_IDS`. No code path changes required.
+
+Each is its own slice. Don't bundle.
+
+### Optional touch-up (if any time left after R005-3 — flag with user, do not bundle)
+
+- One-line addition to `_shouldLunge` if the user wants `cave_bat` and/or `FrugalGhostHeal`-effect enemies exempt from the melee lunge (see R005-2 follow-up flag in `PROGRESS.md`).

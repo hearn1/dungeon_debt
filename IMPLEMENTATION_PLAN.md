@@ -167,6 +167,16 @@ The next session brief is in `NEXT_SESSION.md`.
 
 ---
 
+## 6a · Art assets and licensing (locked R005-1, 2026-05-25)
+
+- **License floor:** CC0 and CC BY only. CC BY-SA (copyleft) and any Non-Commercial (NC) variant are rejected so the build stays free to ship as a paid commercial release. Any new art must be confirmed against this floor before it lands.
+- **Asset path layout:**
+  - `web/assets/heroes/<heroId>.png` — per-hero portrait. Falls back to `role-<role>.png` then `role-tank.png` when an id is missing.
+  - `web/assets/enemies/<enemyId>.png` — per-enemy portrait. Falls back to `enemy-default.png`.
+  - `web/assets/effects/<heroId|enemyId>.png` (future per-character) → `role-<role>.png` (hero-role fallback) → `enemy-generic.png` (any non-player) → `effect-default.png`. `heal.png` is shared by every Heal event.
+- **Sprite-catalog seam:** `web/src/ui/SpriteCatalog.js` resolves an id (or a `CombatUnit`) to a URL. `DataRepository` stays data-only; no portrait fields on `HeroDefinition` / `EnemyDefinition`.
+- **Attribution:** every CC BY asset is credited in `web/ATTRIBUTION.md`. A "Art credits" link surfaces it from the Main Menu.
+
 ## 7 · Things explicitly *not* in scope (carry-over from Unity-era scope control)
 
 - No save/load, no persistence, no accounts, no online anything.

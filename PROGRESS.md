@@ -51,6 +51,76 @@ Copy this block when adding a new entry. Paste it at the top of the Session log 
 
 <!-- Newest entries at the top. -->
 
+## 2026-05-25 - R005-2: Attack-lunge animation on the acting card
+
+**Milestone:** Web-port follow-up (post Phase E)
+**Status:** Complete (pending user run of `npm run test:headless`)
+
+**Files modified:**
+- `web/styles/main.css` — added `@keyframes lunge-up` / `lunge-down` (14px translate, 64% peak so 180ms-out + 100ms-back fits inside `STEP_MS = 280`, per-keyframe ease-out → ease-in for a punchy push + snap-back) and the matching `.combat-unit.lunging.player` / `.combat-unit.lunging.enemy` rules, co-located with the existing `flash-hit` / `flash-heal` block.
+- `web/src/ui/panels/CombatPanel.js` — imported `HeroRole` + `EnemyEffectId`; added `_shouldLunge(unit)` classifier (Tank role + Ninja for heroes; all enemies except `BackBatBackline`-effect and `frugal_archer`); in `_applyEvent`, gated on `evt.kind === Attack` (Heal/StatusDamage skipped), toggled the `lunging` + side class on the resolved attacker with a reflow-before-add restart guard and a `STEP_MS` self-clearing `setTimeout`.
+
+**Acceptance criteria:**
+- [x] Every Attack event runs the 280ms shared keyframe on the attacker; class is auto-removed inside `STEP_MS` so back-to-back attacks restart cleanly. Verified via MutationObserver — 45 lunge mutations recorded across a 3-slime combat, all bunched at ~280ms intervals (846, 1125, 1410, 1689, 2808, 3088, 3368, 4205, 4489, 4768, 5894, 6168, 7006, 7289 ms).
+- [x] Player → up, enemy → down. `getComputedStyle` on synthetic nodes confirmed `.lunging.player` → `lunge-up 0.28s`, `.lunging.enemy` → `lunge-down 0.28s`. Runtime confirmed all observed enemy lunges had `dir: "down"`. Direction is driven by `evt.attackerIsPlayerSide` alone, so backline rows behave identically.
+- [x] No interference with `.acting`, `flash-hit`, `flash-heal`, R005-1 projectile, or trapezoid alignment. Combat log resolved all 30 events normally; targets carried `flash-hit` / `flash-heal` alongside the attacker's lunge.
+- [ ] `npm run test:headless` 57/57 — **not run** (no node/npm on PATH in this session env, same as R005-1). Logic files (`web/src/core/`, `data/`, `run/`, `combat/`) untouched; no regression expected.
+- [x] Zero console errors / warnings across a full Scout → Shop → Formation → Payroll → Combat → Summary round.
+
+**Test plan:** None created. Verified via the Python preview server: (1) hero classification cross-checked against `DataRepository.allHeroes` (12/12 expected — 4 Tanks + Ninja lunge; Wizard, Ranger, Priest, Bard, Enchanter, Treasurer, Apprentice do not); (2) enemy classification cross-checked against `DataRepository.allEnemies` (31 entries — only `backline_bat`, `gloom_bat`, `frugal_archer` exempt, matching the plan); (3) live combat (party = Enchanter + Priest vs 3 Slimes) recorded 45 lunge events, all enemy/down, zero player/up (Supports correctly suppressed); (4) `getComputedStyle` confirmed both keyframes resolve to the intended `0.28s` animation.
+
+**Deviations from plan:**
+- None. Plan text described "Cave Bat / Backline Bat / Gloom Bat" as a group skipping lunge, but `cave_bat`'s `effectId` is `None` while only `backline_bat` and `gloom_bat` carry `BackBatBackline`. The implemented code follows the rule as written (effect-based + `frugal_archer` id), so Cave Bat currently lunges. User reviewed the discrepancy mid-session and approved wrapping as-is.
+- `npm run test:headless` not executed; same env constraint as R005-1 and R004.
+
+**Follow-up flagged:**
+- R005 stays Open in `REGRESSIONS.md` — lunge landed for R005-2 but R005-3 (death fade-out), R005-4 (per-role projectile choreography), and R005-5 (per-character attack sprites) remain.
+- If "all bats are flying = no lunge" was the spoken intent, a one-line `e.id === "cave_bat"` exemption in `_shouldLunge` would close the gap.
+- Frugal Healer's `effectId` is `FrugalGhostHeal`; Heal events already skip lunge via the kind gate, but Act-2 Frugal Healer's regular Attack events would lunge under the current rule. Add an `EnemyEffectId.FrugalGhostHeal` exemption if undesirable.
+
+**Next slice:** TBD with user. Suggested ordering from R005-1 follow-up still stands: R005-3 (death fade-out replacing the bare `.dead` opacity drop).
+
+## 2026-05-25 - R005-1: Combat art (portraits + projectile sprites)
+
+**Milestone:** Web-port follow-up (post Phase E)
+**Status:** Complete (pending user run of `npm run test:headless`)
+
+**Files added:**
+- `web/src/ui/SpriteCatalog.js` — id → URL resolver with documented lookup order (per-character → role fallback → generic → default). Data-only, no DOM.
+- `web/ATTRIBUTION.md` — credits all game-icons.net CC-BY 3.0 sources (Lorc + Delapouite). Locks license floor.
+- `web/assets/heroes/*.png` (16) — 12 per-hero portraits + 4 role fallbacks.
+- `web/assets/enemies/*.png` (23) — 22 distinct enemy ids + 1 fallback.
+- `web/assets/effects/*.png` (7) — 4 hero-role attack sprites + enemy-generic + heal + default. 46 PNGs total, ~370 KB.
+
+**Files modified:**
+- `web/src/ui/panels/CombatPanel.js` — `_paintUnit` accepts the source unit and prepends a 64×64 `.cu-portrait` `<img>`. New `_projectileLayer` div appended to the board; `_fireProjectile(attacker, target, isHeal)` reads source/target centers from `getBoundingClientRect`, spawns a `.projectile` `<img>` with inline `left`/`top`, kicks off a 240ms `transform: translate(dx, dy)` transition on the next animation frame, removes on `transitionend` (320ms fallback). `_finish` clears the layer.
+- `web/src/ui/components.js` — `heroCard` prepends a 32×32 `.uc-portrait` `<img>` in a new `.uc-name-wrap` so Shop/Formation/Reward party lists pick up portraits.
+- `web/styles/main.css` — `.combat-board { position: relative }`, `.projectile-layer`, `.projectile`/`.projectile.heal` with transform+opacity transition + drop-shadow filter, `.cu-portrait` 64×64 centered, `.uc-portrait` 32×32 inline, `.combat-unit { align-items: center }`, `.cu-head { width:100% }`, `.credits-link` rules.
+- `web/src/ui/panels/MainMenuPanel.js` — appends an "ART CREDITS" link under the difficulty cards pointing to `ATTRIBUTION.md`.
+- `IMPLEMENTATION_PLAN.md` — new §6a recording locked license floor (CC0 + CC BY only — Steam-paid-safe), asset path layout, sprite-catalog seam.
+
+**Acceptance criteria:**
+- [x] All 12 hero portraits + role fallbacks under `web/assets/heroes/`; 22 enemy + fallback under `web/assets/enemies/`; 7 effects under `web/assets/effects/`. All 200-OK in the dev server.
+- [x] `SpriteCatalog` resolves heroes/enemies/effects with per-character → role → generic → default lookup. Per-character override slot (`KNOWN_ATTACK_OVERRIDE_IDS`) wired and empty — future drop-in.
+- [x] Combat board renders portraits at 64×64; HP bar, status pills, acting outline, hit/heal flash, dead-opacity all intact (verified visually via screenshot — slimes show faded slime portrait when dead).
+- [x] Attack events fire a per-role projectile from attacker center → target center over 240ms. 9/9 attacks in the smoke run spawned the right sprite (`role-tank.png` for Knight, `role-damage.png` for Ranger/Wizard, `role-support.png` for Enchanter, `enemy-generic.png` for slimes). 8/9 cleaned up by sample time, 0 leaked after combat ended.
+- [x] Heal sprite (`heal.png`) reachable at 200; same code path as Attack — only the sprite resolver differs.
+- [x] Main menu shows "ART CREDITS" link pointing at `ATTRIBUTION.md` (200 OK).
+- [x] Zero console errors / warnings during a Scout → Shop → Formation → Payroll → Combat → Summary round.
+- [ ] `npm run test:headless` 57/57 — **not run** (no node/npm on PATH in this session env). Logic files (`web/src/core/`, `data/`, `run/`, `combat/`) untouched, so no regression expected.
+
+**Test plan:** None created. Verified via Python preview server (port 5173): drove a full StandardContract Round 1 combat via `dd.gm`/`dd.ui`, sampled the projectile layer with a MutationObserver, confirmed all asset URLs returned 200, took a combat screenshot showing 5 portraits + intact trapezoid.
+
+**Deviations from plan:**
+- None of substance. Per-character attack sprite SLOT was added at user request even though no per-character sprites ship — catalog has `KNOWN_ATTACK_OVERRIDE_IDS` set and `attackEffect(unit)` checks it first, so future per-hero/per-enemy art is a pure asset drop-in.
+- `npm run test:headless` not executed; same env constraint as R004.
+
+**Follow-up flagged:**
+- R005 remains Open in `REGRESSIONS.md` — portraits + attack-projectile motion landed, but the regression also wants death animation and per-hit motion choreography. Concrete next slices already enumerated in `NEXT_SESSION.md` follow-up: R005-2 lunge on acting card, R005-3 death fade-out, R005-4 projectile per-role-choreography, R005-5 per-character attack sprites.
+- Slime portrait (`delapouite/slime`) is shared by all 3 bat enemies' counterparts (cave_bat/backline_bat/gloom_bat reuse `delapouite/bat`). Visually fine, but per-variant art would help readability — file under R005-5.
+
+**Next slice:** TBD with user. Suggested ordering: R005-2 (attack lunge on `.acting` card) — small, builds on the now-known vertical direction.
+
 ## 2026-05-25 - R004: Trapezoidal Formation + Combat board layout
 
 **Milestone:** Web-port follow-up (post Phase E)
