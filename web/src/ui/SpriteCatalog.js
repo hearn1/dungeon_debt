@@ -42,9 +42,13 @@ const KNOWN_ENEMY_IDS = new Set([
   "brimstone_brute", "infernal_auditor",
 ]);
 
-// Per-character attack art slot. Empty today; populated in a future slice
-// without changing any consumer code.
-const KNOWN_ATTACK_OVERRIDE_IDS = new Set();
+// Per-character attack art slot. Populated 2026-05-25 (R005-5).
+const KNOWN_ATTACK_OVERRIDE_IDS = new Set([
+  "warrior", "knight", "golem",
+  "wizard", "ninja", "ranger",
+  "priest", "bard", "enchanter",
+  "squire", "treasurer", "apprentice",
+]);
 
 export function heroPortrait(heroDef) {
   if (!heroDef) return `${BASE}/heroes/role-tank.png`;
