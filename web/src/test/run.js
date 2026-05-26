@@ -6,6 +6,8 @@ import { GameManager } from "../core/GameManager.js";
 import { GameState } from "../core/GameState.js";
 import { GameRules, GameRulesFns } from "../core/GameRules.js";
 import { DataRepository } from "../core/DataRepository.js";
+import { RunManager } from "../run/RunManager.js";
+import { EncounterManager } from "../run/EncounterManager.js";
 import { ShopOffer } from "../data/ShopOffer.js";
 import { HeroInstance } from "../data/HeroInstance.js";
 import { HeroEffects } from "../combat/HeroEffects.js";
@@ -30,6 +32,25 @@ console.log("Run-flow test");
   check("init: 3 rivals created", run.rivals.length === 3);
   check("init: entered Scout state", gm.currentState === GameState.Scout);
   check("init: encounter loaded for round 1", run.currentEncounter && run.currentEncounter.round === 1);
+}
+
+// ---- Encounter variants: four Act 1 pools select from the run RNG ----
+{
+  const variantSlots = [4, 6, 8, 9];
+  for (const slot of variantSlots) {
+    const pool = DataRepository.getEncounterPool(1, slot);
+    check(`variants: act 1 slot ${slot} has base + variant`, pool.length === 2);
+  }
+
+  const first = collectVariantSequence(73);
+  const second = collectVariantSequence(73);
+  check("variants: same seed repeats sequence", JSON.stringify(first) === JSON.stringify(second));
+
+  const distinct = new Set();
+  for (let seed = 73; seed < 78; seed++) {
+    distinct.add(collectVariantSequence(seed).join("|"));
+  }
+  check("variants: five seeds produce at least two sequences", distinct.size >= 2);
 }
 
 // ---- Shop hire spends gold and adds to party; duplicate hire merges to Silver ----
@@ -333,6 +354,22 @@ function fieldKnownParty(gm, heroIds) {
     HeroEffects.applyTierStatSeed(hero);
     run.party.push(hero);
   });
+}
+
+function collectVariantSequence(seed) {
+  const runManager = new RunManager();
+  const encounterManager = new EncounterManager(runManager);
+  const run = runManager.initializeRun(DifficultyPresetId.StandardContract, seed);
+  const sequence = [];
+
+  for (const slot of [4, 6, 8, 9]) {
+    run.act = 1;
+    run.round = slot;
+    const encounter = encounterManager.loadEncounter(slot);
+    sequence.push(encounter ? encounter.variantId : "missing");
+  }
+
+  return sequence;
 }
 
 function buyStrongParty(gm) {

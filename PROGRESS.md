@@ -51,6 +51,38 @@ Copy this block when adding a new entry. Paste it at the top of the Session log 
 
 <!-- Newest entries at the top. -->
 
+## 2026-05-26 - #73: Encounter variants Bucket A
+
+**Milestone:** GitHub expansion issue wave
+**Status:** Complete
+
+**Files added:**
+- None.
+
+**Files modified:**
+- `web/src/data/EncounterDefinition.js` - added `variantId`, defaulting to `base`.
+- `web/src/core/DataRepository.js` - added four Act 1 variant encounters and supporting local enemy definitions.
+- `web/src/test/run.js` - added variant pool, same-seed repeatability, and multi-seed variety checks.
+
+**Acceptance criteria:**
+- [x] Act 1 slots 4, 6, 8, and 9 each have base + variant pools.
+- [x] Variant selection uses `RunManager.rng` through `EncounterManager`; no `Math.random()` added.
+- [x] Same seed produces identical variant sequence.
+- [x] Five different seeds produce at least two distinct variant sequences.
+- [x] Combat remains deterministic and `web/src/combat/*` was untouched.
+- [x] `npm.cmd run test:headless` passes.
+
+**Test plan:** No separate `TestPlans/` file. Verified with `npm.cmd run test:headless`; all suites passed.
+
+**Deviations from plan:**
+- The local Act 1 data does not match the GitHub prose names for rounds 6, 8, and 9. Per Matt's confirmed orchestration choice, implementation followed local slot numbers and documented substitutions.
+- Lazy Inspector applies `Weakened` on attack instead of assigning it to a random hero pre-combat. Matt confirmed accepting the deterministic on-attack interpretation for this slice because combat RNG and combat-file changes are out of scope.
+
+**Follow-up flagged:**
+- Bucket B shop events, Bucket C crits, Bucket D relic surprises, and Act 2 variants remain deferred.
+
+**Next slice:** `#66` - Gold hero tier.
+
 ## 2026-05-26 - #72: Balance harness Phase 1
 
 **Milestone:** GitHub expansion issue wave
