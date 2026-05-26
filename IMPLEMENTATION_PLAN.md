@@ -158,10 +158,30 @@ There is no Playwright / Puppeteer / Vitest. Adding them is out of scope per `CL
 
 ## 6 · Open follow-ups
 
-Active regressions live in `REGRESSIONS.md`. As of this writing:
+**Current priority (2026-05-26):** orchestrate the eight GitHub expansion issues `#66`-`#73` before resuming regression polish. The next session should follow `NEXT_SESSION.md` (`EXP-ORCH-1`) and start with issue-body fetches, a file-overlap/conflict matrix, proposed branch/order/subagent prompts, and Matt's confirmation before any code changes.
 
-- **R004 — Formation no longer shows frontline / backline split** (🟡 Minor). CSS layout regression in `web/src/ui/panels/FormationPanel.js` + `web/styles/main.css`. Two slots (0–1) should visually group separately from three slots (2–4).
-- **R005 — Hero / enemy / attack animations missing** (🟠 Major). Replay is text + a 380ms flash. The web stack opens the door to a real animation pass — portraits, projectile motion, CSS keyframe transforms, sprite atlases as PNGs. No tween libraries; declarative CSS only.
+GitHub is the source of truth for each issue's locked first-slice plan. Do not re-invent or broaden the scope locally; fetch the current issue body before planning implementation.
+
+- `#66` - Gold hero tier slice only. Add Gold; do not add Diamond.
+- `#67` - Act 3 enemy/encounter data only, behind a dev flag. Do not add Act 4.
+- `#68` - Rival Race mechanic with locked decisions D1-D6.
+- `#69` - Add exactly Paladin, Cleric, and Barbarian. Do not add other heroes.
+- `#70` - Difficulty levels 0-3 only. Levels 4-10 visible but disabled.
+- `#71` - Visual identity V1 only. Do not start later visual/animation slices.
+- `#72` - Balance harness Phase 1 only. No strategy flag or markdown aggregator.
+- `#73` - Encounter variants Bucket A only, four specified Act 1 slots.
+
+Implementation guidance for this wave:
+
+- Prefer one issue slice per branch/session. Do not run subagents in parallel when their listed files overlap.
+- If an implementation detail is not specified by the issue, stop and ask Matt rather than guessing.
+- Keep `CLAUDE.md` scope rules in force: no `Math.random()`, no combat RNG, no framework/bundler/TypeScript, no third-party runtime dependencies, no canvas/WebGL.
+- `R005-3` remains a valid paused polish slice, but it is not the default next session.
+
+Active regressions live in `REGRESSIONS.md`. Historical notes from the prior polish queue:
+
+- **R004 - Formation no longer shows frontline / backline split** is closed in `REGRESSIONS.md`.
+- **R005 - Hero / enemy / attack animations missing** remains open but paused while the GitHub expansion issue wave is orchestrated. R005-1 and R005-2 landed; R005-3 death fade-out can resume later if Matt chooses it.
 
 The next session brief is in `NEXT_SESSION.md`.
 

@@ -46,6 +46,8 @@ Copy this block when filing a new regression. New regressions go at the top of t
 
 ### R005 — Hero / enemy / attack animations missing
 
+**Priority note:** Paused as the default next slice as of 2026-05-26 while the GitHub expansion issue wave `#66`-`#73` is orchestrated. Resume R005-3 only if Matt explicitly chooses to pause the expansion work.
+
 **Reported:** 2026-05-23
 **Found in slice:** Phase D (web port, detected) — Phase D (introduced)
 **Severity:** 🟠 Major → 🟡 Minor (after R005-1)

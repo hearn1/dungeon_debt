@@ -51,6 +51,39 @@ Copy this block when adding a new entry. Paste it at the top of the Session log 
 
 <!-- Newest entries at the top. -->
 
+## 2026-05-26 - #72: Balance harness Phase 1
+
+**Milestone:** GitHub expansion issue wave
+**Status:** Complete
+
+**Files added:**
+- `web/src/test/balance.js`
+- `web/src/test/strategies/greedy.js`
+
+**Files modified:**
+- `.gitignore` - ignores generated `web/balance-reports/` TSV output.
+- `web/package.json` - adds `test:balance`.
+- `web/src/run/BalanceRunLogger.js` - adds deterministic TSV formatting with one row per seed plus `seed=SUMMARY` footer while preserving existing logger API.
+- `web/src/run/RunManager.js` - adds optional seed injection to `initializeRun(presetId, seed)`.
+
+**Acceptance criteria:**
+- [x] `npm.cmd run test:balance -- --seeds=100` finishes in <60s and emits a TSV file.
+- [x] TSV has required columns, seed rows `0..99`, and a `seed=SUMMARY` footer.
+- [x] Same seed set produces byte-identical TSV content; harness prints `DETERMINISM CHECK: PASS`.
+- [x] Pure Node harness; no browser or Electron dependency.
+- [x] No `Math.random()` added in #72 files.
+- [x] `npm.cmd run test:headless` passes.
+
+**Test plan:** No separate `TestPlans/` file. Verified with `npm.cmd run test:balance -- --seeds=100` and `npm.cmd run test:headless`; both passed.
+
+**Deviations from plan:**
+- None.
+
+**Follow-up flagged:**
+- `#72` follow-up phases remain deferred: multiple strategies, markdown aggregator, and balance-tuning recommendations.
+
+**Next slice:** `#73` - Encounter variants Bucket A.
+
 ## 2026-05-25 - R005-2: Attack-lunge animation on the acting card
 
 **Milestone:** Web-port follow-up (post Phase E)

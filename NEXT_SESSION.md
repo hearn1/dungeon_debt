@@ -4,99 +4,99 @@ This file always describes the **next** session's work. Rewrite it at the end of
 
 ---
 
-## Session: R005-3 — Death fade-out animation
+## Session: #73 - Encounter variants Bucket A
 
-**Slice ID:** R005-3 (combat animation polish — third of five planned R005 follow-ups)
-**Type:** Regression follow-on (R005 in `REGRESSIONS.md`)
-**Severity:** 🟡 Minor
+**Slice ID:** GitHub issue `#73` first slice  
+**Type:** GitHub expansion issue wave  
+**Severity:** Feature foundation  
 
 ### One-sentence goal
 
-When a combat unit reaches 0 HP, its `.combat-unit` card runs a one-shot ~400ms fade-out (opacity 1 → 0.35) combined with a slight `scale(0.92)` and a small downward drift, replacing the current "snap to `opacity: 0.35` the instant `hp <= 0`" so deaths read as deaths instead of dimming.
+Add seeded encounter variant selection for four specified Act 1 slots, using `RunManager._rng` at scout time and keeping combat deterministic.
 
-### Why this slice exists
+### Why this session exists
 
-R005-1 added portraits + projectiles. R005-2 added a melee lunge on attack. The third missing beat from the R005 regression is a *death* moment. Today the card just changes `opacity` from `1` to `0.35` the instant `_paintUnit` re-renders with `hp <= 0`, which reads as "the card got a little dimmer," not "this hero died." A short keyframe gives the death event the same kind of tactile read the attack/hit/heal beats already have.
+`#72` Balance harness Phase 1 landed first so later balance-sensitive slices have a seeded run-report tool available. The next conflict-aware slice is `#73`, which introduces low-risk run variety by adding encounter variants before broader tier, roster, difficulty, Act 3, rival, and visual work.
 
-The slice stays intentionally tiny: one keyframe, one extra class (`.dying`), one transition rule for the `.dead` resting state, and a single new conditional in `CombatPanel._applyEvent` that fires when the target crosses from alive → dead.
+### Confirmed choices from orchestration
 
-### Open questions to resolve (small — answer inline)
+Matt confirmed the recommended answers for the open planning questions:
 
-1. **Duration.** ~400ms feels long enough to read as a death without stalling the replay. `STEP_MS` is 280ms so the fade will overlap the next event (which is fine — by then the unit is already at its `.dead` resting state). Confirm 400ms, or pick a tighter timing.
-2. **Resting opacity.** Today `.dead` is `opacity: 0.35`. Confirm or adjust (lower = more "gone", higher = more visible silhouette).
-3. **Scale + drift?** Recommend `scale(0.92) translateY(4px)` at end of keyframe for "the card slumps slightly," but pure opacity fade also reads. Confirm or drop the transform.
-4. **Re-render guard.** `_paintUnit` is called on every target event and `clear`s + rebuilds the unit's inner children. The `.dying` class lives on the *unit node itself*, so it survives `clear` — but we need to make sure the `dead`/`dying` class toggle only fires *once*, not on every subsequent attack against an already-dead unit (chain attacks or status ticks). Plan to set `node.dataset.died = "1"` as a one-shot guard. Confirm or suggest a different guard.
+1. Follow the current local slot numbers for the four target Act 1 slots, preserving the issue's target slots even where local encounter names differ from the GitHub prose. The implementation agent must flag the exact local substitutions in its summary.
+2. `EncounterDefinition.js` may be added to the file list if needed so `variantId` can live on the encounter definition and surface cleanly as `RunState.currentEncounter.variantId`.
 
 ### Scope
 
-**In scope (this session):**
+**In scope:**
 
-1. Add `@keyframes death-fade` to `web/styles/main.css` (opacity 1 → 0.35 with optional `transform: scale + translateY`).
-2. Add `.combat-unit.dying { animation: death-fade 400ms ease-out forwards; }` and keep `.combat-unit.dead { opacity: 0.35; }` as the resting state.
-3. In `CombatPanel._applyEvent`, after the existing `_paintUnit(target, …)` call, detect alive→dead transition for the target unit (`evt.targetHealthAfter <= 0` and `target.node.dataset.died !== "1"`); set `dataset.died = "1"`, add `dying` class, schedule a `setTimeout` (~440ms) to swap `dying` → `dead`.
+- Bucket A encounter variants only.
+- Four Act 1 slots only: rounds 4, 6, 8, and 9.
+- `DataRepository.getEncounterPool(act, slot)` returns `[base]` for ordinary slots and `[base, variant]` for the four variant slots.
+- `EncounterManager` selects from the pool with `RunManager.rng` at scout/load time.
+- Selected encounter exposes `variantId` for deterministic tests.
+- Tests cover same-seed repeatability and different-seed variety.
 
 **Not in scope:**
 
-- Per-role / per-character death sprites (deferred to R005-4 / R005-5).
-- Touching combat math, replay event shape, or any file under `web/src/core/`, `web/src/data/`, `web/src/run/`, `web/src/combat/`.
-- Reviving heroes between rounds — that's already done by `CombatManager._finishResult` and works fine. We only need to make sure the next `render()` call clears `dataset.died` (`_buildRow` builds fresh nodes, so this is automatic).
-- Tween libraries (CSS keyframes only).
-- Sound.
+- Bucket B shop events.
+- Bucket C crits.
+- Bucket D cursed relics / skip-for-gold.
+- Act 2 variants.
+- Combat resolver changes or combat RNG.
+- New top-level folders, dependencies, frameworks, bundlers, TypeScript, canvas, or WebGL.
 
-### Definition of ready
-
-- ID: R005-3 ✅
-- One-sentence goal: above ✅
-- Files to modify: listed below ✅
-- Acceptance criteria: 4 below ✅
-- No open 🔴 Blocker regressions ✅ (R005 still Open + In progress, dropped to Minor)
-
-### Files Claude Code should read
+### Files to read
 
 ```
-CLAUDE.md (§Architectural rules, §UI architecture, §Scope control, §Coding conventions)
+AGENTS.md
+CLAUDE.md
 SESSION_PROTOCOL.md
-REGRESSIONS.md (R005 entry — note R005-1 + R005-2 already landed)
-PROGRESS.md (R005-2 + R005-1 entries — context for the lunge / projectile / portrait pipeline)
-web/src/ui/panels/CombatPanel.js  (_applyEvent — the seam; _paintUnit's classList.toggle("dead", hp <= 0); _buildRow builds the units fresh per render)
-web/styles/main.css                (.combat-unit.dead at line 178; lunge / flash-hit / flash-heal keyframes for co-location)
+PROGRESS.md (latest #72 entry)
+REGRESSIONS.md (Open section)
+IMPLEMENTATION_PLAN.md �6
+GAME_DESIGN.md only if needed for encounter design consistency
+web/src/core/DataRepository.js
+web/src/data/EncounterDefinition.js
+web/src/run/EncounterManager.js
+web/src/data/RunState.js
+web/src/test/run.js
 ```
 
-### Files Claude Code should modify
+### Files to modify
 
-- **Modify:** `web/styles/main.css` — add `@keyframes death-fade` and `.combat-unit.dying` rule. Co-locate near the lunge / flash-hit / flash-heal block (bottom of file). Leave `.combat-unit.dead` as-is (resting state).
-- **Modify:** `web/src/ui/panels/CombatPanel.js` → in `_applyEvent`, after `_paintUnit` (which already toggles `.dead` via `classList.toggle`), detect alive→dead transition on the target and run the one-shot animation. Also: in `_paintUnit`, change `node.classList.toggle("dead", hp <= 0)` to *not* preemptively add `.dead` on the death-tick — let the timeout add it after the animation completes. Initial render (hp <= 0 at combat start, e.g. ghost encounters) should still apply `.dead` immediately.
+- `web/src/core/DataRepository.js` - add four base+variant pools for Act 1 rounds 4, 6, 8, and 9.
+- `web/src/run/EncounterManager.js` - ensure selection uses `RunManager.rng` and selected variant id is surfaced.
+- `web/src/data/RunState.js` - only if needed to keep selected encounter assertability clean.
+- `web/src/data/EncounterDefinition.js` - allowed if needed to add `variantId` to encounter definitions.
+- `web/src/test/run.js` - add same-seed and multi-seed variant checks.
 
-### Files Claude Code does NOT touch
+### Files not to touch
 
-- `web/src/ui/SpriteCatalog.js` — no change needed.
-- Anything under `web/src/core/`, `web/src/data/`, `web/src/run/`, `web/src/combat/`.
-- `package.json`, `electron/`, `serve.py`.
-- `PROGRESS.md`, `REGRESSIONS.md` — wrap-step only.
+- `web/src/combat/*`
+- `web/src/run/RunManager.js` unless the implementation plan proves it is required and Matt confirms.
+- `web/src/data/enums.js` unless the implementation plan proves it is required and Matt confirms.
+- UI/CSS files.
+- `PROGRESS.md`, `REGRESSIONS.md`, `NEXT_SESSION.md`, `IMPLEMENTATION_PLAN.md` until wrap.
 
 ### Acceptance criteria
 
-1. When a unit dies during combat replay, its card runs a ~400ms fade animation (opacity → 0.35, optionally with a small scale/translate). Replay timing (`STEP_MS = 280`) is unchanged.
-2. The animation fires **once** per death — chain attacks, status ticks, or `_paintUnit` re-renders on an already-dead unit do not restart the animation.
-3. Units that start a combat at 0 HP (edge case — shouldn't happen in normal play, but plausible for status-only encounters) are rendered in their `.dead` resting state with no animation, not mid-fade.
-4. `npm run test:headless` 57/57 (logic files untouched).
-5. Zero console errors / warnings during a full Scout → Combat round where multiple deaths occur.
+1. The four specified Act 1 slots each have two variants: base plus new variant.
+2. Variant selection uses only the run RNG; no `Math.random()`.
+3. Same seed produces identical variant sequence across runs.
+4. Across five different seeds, at least two distinct variant sequences are observed.
+5. Combat remains deterministic and `CombatManager` is untouched.
+6. `npm.cmd run test:headless` passes.
+
+### Verification
+
+```powershell
+$env:PATH = "C:\Program Files\nodejs;$env:PATH"
+cd web
+npm.cmd run test:headless
+```
+
+Because this is logic/data only, browser preview is optional unless the implementation touches UI despite the file list.
 
 ### Start prompt for the next session
 
-> Read `SESSION_PROTOCOL.md` and follow it. The current slice is `R005-3` — death fade-out animation on the acting combat-unit card when HP crosses to 0, per the brief in `NEXT_SESSION.md`. Builds on R005-2's class-toggle + setTimeout pattern in `_applyEvent`. Pause for plan confirmation after Step 3 before implementing.
-
----
-
-## Suggested follow-up (not this session)
-
-After R005-3 lands:
-
-- **R005-4:** per-role projectile choreography (different flight arcs / mid-flight flashes per attacker role — magic curves, arrows snap, melee is short and fast).
-- **R005-5:** per-character attack sprites. Pure asset-drop slice: add `web/assets/effects/<id>.png` for one or more heroes, register the id in `SpriteCatalog.KNOWN_ATTACK_OVERRIDE_IDS`. No code path changes required.
-
-Each is its own slice. Don't bundle.
-
-### Optional touch-up (if any time left after R005-3 — flag with user, do not bundle)
-
-- One-line addition to `_shouldLunge` if the user wants `cave_bat` and/or `FrugalGhostHeal`-effect enemies exempt from the melee lunge (see R005-2 follow-up flag in `PROGRESS.md`).
+> Read `AGENTS.md`, `CLAUDE.md`, and `SESSION_PROTOCOL.md`, then follow `NEXT_SESSION.md`. The current slice is GitHub issue `#73` first slice: Encounter variants Bucket A. Use the confirmed orchestration choices in `NEXT_SESSION.md`, produce the Orient summary, stop for confirmation, then produce the Plan checkpoint before editing.
