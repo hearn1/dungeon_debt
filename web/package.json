@@ -9,6 +9,7 @@
     "start": "electron .",
     "dev": "electron .",
     "test:headless": "node src/test/headless.js && node src/test/combat.js && node src/test/run.js",
+    "test:balance": "node src/test/balance.js",
     "pack:win": "electron-builder --win dir",
     "dist:win": "electron-builder --win nsis"
   },

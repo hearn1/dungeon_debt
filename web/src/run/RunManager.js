@@ -40,8 +40,8 @@ export class RunManager {
   static getRelicMaxHealthBonus(runState, hero) { return getRelicMaxHealthBonus(runState, hero); }
   static getScaledHeroMaxHealth(hero, runState) { return getScaledHeroMaxHealth(hero, runState); }
 
-  initializeRun(presetId = GameRules.DefaultDifficultyPreset) {
-    this._rng = new Rng();
+  initializeRun(presetId = GameRules.DefaultDifficultyPreset, seed = null) {
+    this._rng = new Rng(seed);
 
     const preset = DataRepository.getDifficultyPreset(presetId);
 
