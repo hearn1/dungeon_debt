@@ -2,10 +2,11 @@
 import { GameRulesFns } from "../core/GameRules.js";
 
 export class EncounterDefinition {
-  constructor(act, slot, type, displayName, scoutText, dangerCategory, enemies, baseGoldReward, encounterEffectId, rivalGuild) {
+  constructor(act, slot, type, displayName, scoutText, dangerCategory, enemies, baseGoldReward, encounterEffectId, rivalGuild, variantId = "base") {
     this.act = act;
     this.slot = slot;
     this.round = GameRulesFns.getAbsoluteRound(act, slot);
+    this.variantId = variantId;
     this.type = type;
     this.displayName = displayName;
     this.scoutText = scoutText;
