@@ -24,6 +24,7 @@ export class RunManager {
     this._rivalManager = rivalManager;
     this._rng = null;
     this._currentRunState = null;
+    this._devEnableAct3ForNextRun = false;
   }
 
   initialize(payrollManager, rivalManager = null) {
@@ -33,6 +34,10 @@ export class RunManager {
 
   get currentRunState() { return this._currentRunState; }
   get rng() { return this._rng; }
+
+  setDevEnableAct3ForNextRun(enabled) {
+    this._devEnableAct3ForNextRun = enabled === true;
+  }
 
   // Static relic/health helpers (delegating to the shared module).
   static hasRelic(runState, relicId) { return hasRelic(runState, relicId); }
@@ -70,6 +75,7 @@ export class RunManager {
     runState.heroDamageMultiplier = difficultySettings.heroDamageMultiplier;
     runState.enemyHealthMultiplier = difficultySettings.enemyHealthMultiplier;
     runState.enemyDamageMultiplier = difficultySettings.enemyDamageMultiplier;
+    runState.devEnableAct3 = this._devEnableAct3ForNextRun;
     runState.rerollCount = 0;
     runState.selectedPayrollAction = null;
     runState.fullUpkeepPaidLastRound = false;
@@ -227,6 +233,10 @@ export class RunManager {
     if (run.round >= GameRulesFns.getActFinalRound(run.act)) {
       const actLabel = GameRulesFns.getActLabel(run.act);
       if (run.latestCombatWon) {
+        if (run.act === GameRulesFns.totalActs && this._canContinueToDevAct3(run)) {
+          run.latestEndReason = null;
+          return GameState.RivalUpdate;
+        }
         run.latestEndReason = actLabel + " cleared.";
         return GameState.Victory;
       }
@@ -263,6 +273,10 @@ export class RunManager {
     const run = this._currentRunState;
     if (!run) return;
     run.round += 1;
+    if (this._canContinueToDevAct3(run) && run.round > GameRulesFns.getActFinalRound(GameRulesFns.totalActs)) {
+      run.act = GameRulesFns.totalActs + 1;
+      run.round = GameRulesFns.getActStartRound(run.act);
+    }
     run.hasLatestRewardSummary = false;
     run.latestVeterancySummary = "";
     resetPartyTierStats(run);
@@ -271,7 +285,8 @@ export class RunManager {
   advanceToNextAct() {
     const run = this._currentRunState;
     if (!run) return;
-    if (run.act >= GameRulesFns.totalActs) return;
+    if (run.act >= GameRulesFns.totalActs && !this._canContinueToDevAct3(run)) return;
+    if (run.act >= GameRulesFns.devTotalActs) return;
 
     run.act += 1;
     run.round = GameRulesFns.getActStartRound(run.act);
@@ -293,6 +308,10 @@ export class RunManager {
     run.pendingRelicChoices.length = 0;
     run.hasPendingRelicReward = false;
     run.pendingRelicNextState = GameState.MainMenu;
+  }
+
+  _canContinueToDevAct3(run) {
+    return run && run.devEnableAct3 === true && run.act === GameRulesFns.totalActs && GameRulesFns.devTotalActs > GameRulesFns.totalActs;
   }
 }
 

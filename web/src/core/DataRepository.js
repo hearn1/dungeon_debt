@@ -9,7 +9,7 @@ import { PayrollActionDefinition } from "../data/PayrollActionDefinition.js";
 import { RelicDefinition } from "../data/RelicDefinition.js";
 import { MutatorDefinition } from "../data/MutatorDefinition.js";
 import { RivalGuildState } from "../data/RivalGuildState.js";
-import { GameRules } from "./GameRules.js";
+import { GameRules, GameRulesFns } from "./GameRules.js";
 import {
   HeroRole, HeroEffectId, EnemyEffectId, EncounterType, EncounterEffectId,
   RivalGuild, PayrollActionId, DifficultyLevel, RelicId, CombatStatusId,
@@ -58,23 +58,33 @@ const LieutenantFrugalArcher = new EnemyDefinition("lieutenant_frugal_archer", "
 const LieutenantFrugalHealer = new EnemyDefinition("lieutenant_frugal_healer", "Lieutenant Frugal Healer", 1, 4, EnemyEffectId.FrugalGhostHeal, "Applies Marked on attack. Heals leftmost living ally each combat round.", null, [C.Marked]);
 
 // ---- Enemies (Act 2 rival rematches) ----
-const Act2GreedyTank = new EnemyDefinition("greedy_tank", "Greedy Tank", 4, 12, EnemyEffectId.None, "No effect.");
-const Act2GreedyCarry = new EnemyDefinition("greedy_carry", "Greedy Carry", 6, 7, EnemyEffectId.None, "Starts Inspired and Marked.", [C.Inspired], [C.Marked]);
-const Act2CarryProtector = new EnemyDefinition("carry_protector", "Carry Protector", 2, 14, EnemyEffectId.None, "Starts Guarded.", [C.Guarded]);
-const Act2CarryChampion = new EnemyDefinition("carry_carry", "Carry Champion", 8, 9, EnemyEffectId.None, "Starts Inspired.", [C.Inspired]);
-const Act2CarrySupport = new EnemyDefinition("carry_protector", "Carry Vanguard", 2, 10, EnemyEffectId.None, "Starts Guarded.", [C.Guarded]);
-const Act2FrugalGuard = new EnemyDefinition("frugal_guard", "Frugal Guard", 3, 9, EnemyEffectId.None, "Starts Guarded.", [C.Guarded]);
-const Act2FrugalArcher = new EnemyDefinition("frugal_archer", "Frugal Archer", 4, 6, EnemyEffectId.None, "Applies Weakened on attack.", null, [C.Weakened]);
-const Act2FrugalHealer = new EnemyDefinition("frugal_healer", "Frugal Healer", 2, 8, EnemyEffectId.FrugalGhostHeal, "Applies Poisoned on attack. Heals leftmost living ally each combat round.", null, [C.Poisoned]);
+const Act2GreedyTank = createActEnemy(2, "greedy_tank", "Greedy Tank", 4, 12, EnemyEffectId.None, "No effect.");
+const Act2GreedyCarry = createActEnemy(2, "greedy_carry", "Greedy Carry", 6, 7, EnemyEffectId.None, "Starts Inspired and Marked.", [C.Inspired], [C.Marked]);
+const Act2CarryProtector = createActEnemy(2, "carry_protector", "Carry Protector", 2, 14, EnemyEffectId.None, "Starts Guarded.", [C.Guarded]);
+const Act2CarryChampion = createActEnemy(2, "carry_carry", "Carry Champion", 8, 9, EnemyEffectId.None, "Starts Inspired.", [C.Inspired]);
+const Act2CarrySupport = createActEnemy(2, "carry_protector", "Carry Vanguard", 2, 10, EnemyEffectId.None, "Starts Guarded.", [C.Guarded]);
+const Act2FrugalGuard = createActEnemy(2, "frugal_guard", "Frugal Guard", 3, 9, EnemyEffectId.None, "Starts Guarded.", [C.Guarded]);
+const Act2FrugalArcher = createActEnemy(2, "frugal_archer", "Frugal Archer", 4, 6, EnemyEffectId.None, "Applies Weakened on attack.", null, [C.Weakened]);
+const Act2FrugalHealer = createActEnemy(2, "frugal_healer", "Frugal Healer", 2, 8, EnemyEffectId.FrugalGhostHeal, "Applies Poisoned on attack. Heals leftmost living ally each combat round.", null, [C.Poisoned]);
 
 // ---- Enemies (Act 2 demonic dungeon) ----
-const Imp = new EnemyDefinition("imp", "Imp", 2, 5, EnemyEffectId.None, "No effect.");
-const SoulBroker = new EnemyDefinition("soul_broker", "Soul Broker", 2, 7, EnemyEffectId.GoblinStealGold, "Applies Weakened on attack; steals gold if alive past combat round 3.", null, [C.Weakened]);
-const GloomBat = new EnemyDefinition("gloom_bat", "Gloom Bat", 4, 6, EnemyEffectId.BackBatBackline, "Starts Marked. Applies Burned on attack; attacks lowest-HP backline hero on combat round 2.", [C.Marked], [C.Burned]);
-const Act2DebtWraith = new EnemyDefinition("debt_wraith", "Debt Wraith", 2, 16, EnemyEffectId.DebtWraithScales, "Applies Poisoned on attack. Attack scales with player debt at combat start.", null, [C.Poisoned]);
-const HoardFiend = new EnemyDefinition("hoard_fiend", "Hoard Fiend", 2, 16, EnemyEffectId.TreasureLeechRewardDrain, "Applies Poisoned on attack. Reduces reward if alive at combat end.", null, [C.Poisoned]);
-const BrimstoneBrute = new EnemyDefinition("brimstone_brute", "Brimstone Brute", 6, 22, EnemyEffectId.None, "No effect.");
-const InfernalAuditor = new EnemyDefinition("infernal_auditor", "Infernal Auditor", 5, 30, EnemyEffectId.DungeonAuditorBoss, "Starts Inspired and applies Burned on attack. Raises upkeep and deals periodic damage.", [C.Inspired], [C.Burned]);
+const Imp = createActEnemy(2, "imp", "Imp", 2, 5, EnemyEffectId.None, "No effect.");
+const SoulBroker = createActEnemy(2, "soul_broker", "Soul Broker", 2, 7, EnemyEffectId.GoblinStealGold, "Applies Weakened on attack; steals gold if alive past combat round 3.", null, [C.Weakened]);
+const GloomBat = createActEnemy(2, "gloom_bat", "Gloom Bat", 4, 6, EnemyEffectId.BackBatBackline, "Starts Marked. Applies Burned on attack; attacks lowest-HP backline hero on combat round 2.", [C.Marked], [C.Burned]);
+const Act2DebtWraith = createActEnemy(2, "debt_wraith", "Debt Wraith", 2, 16, EnemyEffectId.DebtWraithScales, "Applies Poisoned on attack. Attack scales with player debt at combat start.", null, [C.Poisoned]);
+const HoardFiend = createActEnemy(2, "hoard_fiend", "Hoard Fiend", 2, 16, EnemyEffectId.TreasureLeechRewardDrain, "Applies Poisoned on attack. Reduces reward if alive at combat end.", null, [C.Poisoned]);
+const BrimstoneBrute = createActEnemy(2, "brimstone_brute", "Brimstone Brute", 6, 22, EnemyEffectId.None, "No effect.");
+const InfernalAuditor = createActEnemy(2, "infernal_auditor", "Infernal Auditor", 5, 30, EnemyEffectId.DungeonAuditorBoss, "Starts Inspired and applies Burned on attack. Raises upkeep and deals periodic damage.", [C.Inspired], [C.Burned]);
+
+// ---- Enemies (Act 3: The Mint) ----
+const Act3SlimeMint = createActEnemy(3, "act3-slime-mint", "Mint Slime", 2, 5, EnemyEffectId.None, "No effect.");
+const Act3GoblinCoiner = createActEnemy(3, "act3-goblin-coiner", "Goblin Coiner", 2, 7, EnemyEffectId.GoblinStealGold, "Applies Weakened on attack; steals gold if alive past combat round 3.", null, [C.Weakened]);
+const Act3BatTariff = createActEnemy(3, "act3-bat-tariff", "Tariff Bat", 4, 6, EnemyEffectId.BackBatBackline, "Starts Marked. Applies Burned on attack; attacks lowest-HP backline hero on combat round 2.", [C.Marked], [C.Burned]);
+const Act3ImpMint = createActEnemy(3, "act3-imp-mint", "Mint Imp", 2, 5, EnemyEffectId.None, "No effect.");
+const Act3SoulBrokerMint = createActEnemy(3, "act3-soul-broker-mint", "Mint Soul Broker", 2, 16, EnemyEffectId.TreasureLeechRewardDrain, "Applies Poisoned on attack. Reduces reward if alive at combat end.", null, [C.Poisoned]);
+const Act3BrimstoneMint = createActEnemy(3, "act3-brimstone-mint", "Minted Brimstone Brute", 6, 22, EnemyEffectId.None, "No effect.");
+const Act3InfernalAuditorMint = createActEnemy(3, "act3-infernal-auditor-mint", "Mint Infernal Auditor", 2, 16, EnemyEffectId.DebtWraithScales, "Applies Poisoned on attack. Attack scales with player debt at combat start.", null, [C.Poisoned]);
+const Act3Mintmaster = createActEnemy(3, "act3-mintmaster", "MintMaster", 5, 30, EnemyEffectId.DungeonAuditorBoss, "Starts Inspired and applies Burned on attack. Raises upkeep and deals periodic damage.", [C.Inspired], [C.Burned]);
 
 const HeroDefinitions = [
   Warrior, Knight, Golem, Wizard, Ninja, Ranger, Priest, Bard, Enchanter, Squire, Treasurer, Apprentice,
@@ -87,6 +97,7 @@ const EnemyDefinitions = [
   LieutenantFrugalGuard, LieutenantFrugalArcher, LieutenantFrugalHealer,
   Act2GreedyTank, Act2GreedyCarry, Act2CarryProtector, Act2CarryChampion, Act2CarrySupport, Act2FrugalGuard, Act2FrugalArcher, Act2FrugalHealer,
   Imp, SoulBroker, GloomBat, Act2DebtWraith, HoardFiend, BrimstoneBrute, InfernalAuditor,
+  Act3SlimeMint, Act3GoblinCoiner, Act3BatTariff, Act3ImpMint, Act3SoulBrokerMint, Act3BrimstoneMint, Act3InfernalAuditorMint, Act3Mintmaster,
 ];
 
 const PayrollActionDefinitions = [
@@ -136,6 +147,17 @@ const EncounterDefinitions = [
   new EncounterDefinition(2, 8, EncounterType.Dungeon, "Brimstone Brute", "A towering demon. Heavy stress test before the final guild fight.", "Heavy dungeon", [BrimstoneBrute, Imp, Imp], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None),
   new EncounterDefinition(2, 9, EncounterType.RivalGhost, "Carry Guild Rematch", "The Carry Guild doubles down: a fortified front line shielding an even stronger champion.", "Rival benchmark", [Act2CarryProtector, Act2CarryProtector, Act2CarryChampion, Act2CarrySupport], GameRules.WinReward, EncounterEffectId.None, RivalGuild.Carry),
   new EncounterDefinition(2, 10, EncounterType.FinalBoss, "Infernal Auditor", "Act 2 capstone. The Infernal Auditor tallies your debts in fire.", "Final boss", [InfernalAuditor], GameRules.WinReward, EncounterEffectId.FinalBossDamage, RivalGuild.None),
+
+  new EncounterDefinition(3, 1, EncounterType.Dungeon, "Mint Slime Press", "The Mint stamps simple slimes into sharper coinage.", "Basic stat check", [Act3SlimeMint, Act3SlimeMint, Act3ImpMint], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None),
+  new EncounterDefinition(3, 2, EncounterType.Dungeon, "Goblin Coiners", "If a Goblin Coiner survives past combat round 3, lose 3 gold.", "Economy pressure", [Act3GoblinCoiner, Act3ImpMint], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None),
+  new EncounterDefinition(3, 3, EncounterType.RivalGhost, "Frugal Guild Mint Rematch", "The Frugal Guild returns under the cold lamps of The Mint.", "Rival benchmark", [Act3SlimeMint, Act3SlimeMint, Act3GoblinCoiner, Act3SoulBrokerMint], GameRules.WinReward, EncounterEffectId.None, RivalGuild.Frugal),
+  new EncounterDefinition(3, 4, EncounterType.Dungeon, "Tariff Bat", "Attacks your lowest-health backline hero on turn 2.", "Backline pressure", [Act3BatTariff, Act3ImpMint], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None),
+  new EncounterDefinition(3, 5, EncounterType.Dungeon, "Mint Infernal Auditor", "Gains attack based on your current debt. The Mint records every shortage.", "Debt punishment", [Act3InfernalAuditorMint], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None),
+  new EncounterDefinition(3, 6, EncounterType.RivalGhost, "Greedy Guild Mint Rematch", "The Greedy Guild returns plated in fresh coin and worse judgment.", "Rival benchmark", [Act3BrimstoneMint, Act3BrimstoneMint, Act3BatTariff], GameRules.WinReward, EncounterEffectId.None, RivalGuild.Greedy),
+  new EncounterDefinition(3, 7, EncounterType.Dungeon, "Mint Soul Broker", "If the Mint Soul Broker survives, your reward is reduced by 4 gold.", "Reward pressure", [Act3SoulBrokerMint, Act3ImpMint], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None),
+  new EncounterDefinition(3, 8, EncounterType.Dungeon, "Minted Brimstone Brute", "A towering press guard. Heavy stress test before the final guild fight.", "Heavy dungeon", [Act3BrimstoneMint, Act3ImpMint, Act3ImpMint], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None),
+  new EncounterDefinition(3, 9, EncounterType.RivalGhost, "Carry Guild Mint Rematch", "The Carry Guild shields a hardened champion among the counting engines.", "Rival benchmark", [Act3BrimstoneMint, Act3BrimstoneMint, Act3InfernalAuditorMint, Act3SoulBrokerMint], GameRules.WinReward, EncounterEffectId.None, RivalGuild.Carry),
+  new EncounterDefinition(3, 10, EncounterType.FinalBoss, "MintMaster", "Act 3 capstone. The MintMaster audits the run with stamped-fire precision.", "Final boss", [Act3Mintmaster], GameRules.WinReward, EncounterEffectId.FinalBossDamage, RivalGuild.None),
 ];
 
 const DifficultyMutatorDefinitions = [
@@ -245,4 +267,17 @@ function previewMutatorsForLevel(level) {
     mutators.push(DifficultyMutatorDefinitions[i]);
   }
   return Object.freeze(mutators);
+}
+
+function createActEnemy(act, id, displayName, baseAttack, baseHealth, effectId, effectDescription, startingStatuses = null, attackStatuses = null) {
+  return new EnemyDefinition(
+    id,
+    displayName,
+    GameRulesFns.scaleEnemyAttackForAct(baseAttack, act),
+    GameRulesFns.scaleEnemyHealthForAct(baseHealth, act),
+    effectId,
+    effectDescription,
+    startingStatuses,
+    attackStatuses,
+  );
 }

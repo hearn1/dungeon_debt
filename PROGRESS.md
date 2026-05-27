@@ -51,6 +51,41 @@ Copy this block when adding a new entry. Paste it at the top of the Session log 
 
 <!-- Newest entries at the top. -->
 
+## 2026-05-27 - #67: Act 3 dev-flag content
+
+**Milestone:** GitHub expansion issue wave
+**Status:** Complete
+
+**Files added:**
+- None
+
+**Files modified:**
+- `web/src/core/DataRepository.js` - added eight Act 3 enemy definitions and ten Act 3 encounters behind the existing data repository.
+- `web/src/core/GameRules.js` - added `ActStatScale`, Act 3 round/theme support, and Act 2 table-based scaling without Act 2 stat drift.
+- `web/src/data/RunState.js` - added the temporary `devEnableAct3` flag.
+- `web/src/run/RunManager.js` - gated Act 2 -> Act 3 continuation behind the dev flag.
+- `web/src/ui/panels/MainMenuPanel.js` - added the hidden `Ctrl+Shift+3` dev flag shortcut for new runs.
+- `web/src/test/run.js` - added Act 3 data, normal 20-round, and dev 30-round coverage.
+
+**Acceptance criteria:**
+- [x] `DataRepository` exposes eight Act 3 enemy definitions and ten Act 3 encounters.
+- [x] `GameRules.ActStatScale` is the single source for Act 2 and Act 3 stat scaling, with no Act 2 behavior drift.
+- [x] With `devEnableAct3 = true`, autopilot completes a 30-round run through Act 3 and reaches Victory.
+- [x] Normal runs still resolve to existing Act 2 victory by default.
+- [x] No new `HeroEffectId`, `EnemyEffectId`, or `EncounterEffectId` values were introduced.
+- [x] `npm.cmd run test:headless` passes.
+- [x] Browser preview loaded the Main Menu/start path with zero console warnings/errors.
+
+**Test plan:** `npm.cmd run test:headless`; `node src/test/verify.js`; browser preview via `python web/serve.py` - all pass.
+
+**Deviations from plan:**
+- None
+
+**Follow-up flagged:**
+- None
+
+**Next slice:** #68 - Rival Race mechanic
+
 ## 2026-05-27 - #70: Difficulty levels 0-3
 
 **Milestone:** GitHub expansion issue wave

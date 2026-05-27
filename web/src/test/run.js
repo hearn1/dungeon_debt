@@ -101,6 +101,27 @@ console.log("Run-flow test");
   check("variants: five seeds produce at least two sequences", distinct.size >= 2);
 }
 
+// ---- Act 3 dev data is present but normal act count remains 2 ----
+{
+  const act2Imp = DataRepository.allEnemies.find((enemy) => enemy.id === "imp");
+  const act3Enemies = DataRepository.allEnemies.filter((enemy) => enemy.id.startsWith("act3-"));
+  const act3Encounters = DataRepository.encounters.filter((encounter) => encounter.act === 3);
+  const act2Shape = DataRepository.encounters
+    .filter((encounter) => encounter.act === 2)
+    .map((encounter) => `${encounter.slot}:${encounter.type}:${encounter.rivalGuild}:${encounter.encounterEffectId}:${encounter.enemies.length}`)
+    .join("|");
+  const act3Shape = act3Encounters
+    .map((encounter) => `${encounter.slot}:${encounter.type}:${encounter.rivalGuild}:${encounter.encounterEffectId}:${encounter.enemies.length}`)
+    .join("|");
+
+  check("actscale: act 2 reads table without stat drift", act2Imp.attack === 2 && act2Imp.health === 5);
+  check("actscale: act 3 table locked", GameRules.ActStatScale[3].enemyHealth === 1.2 && GameRules.ActStatScale[3].enemyAttack === 1.15);
+  check("act3data: exactly eight act 3 enemies", act3Enemies.length === 8);
+  check("act3data: exactly ten act 3 encounters", act3Encounters.length === 10);
+  check("act3data: encounter structure mirrors act 2", act3Shape === act2Shape);
+  check("act3data: normal total acts remains 2", GameRulesFns.totalActs === 2 && GameRulesFns.devTotalActs === 3);
+}
+
 // ---- Shop hire spends gold and adds to party; direct offers stop at Silver ----
 {
   const gm = new GameManager();
@@ -446,6 +467,35 @@ console.log("Run-flow test");
     outcome.state === GameState.Victory || outcome.state === GameState.Defeat);
 }
 
+// ---- Normal strong run still resolves at Act 2 victory ----
+{
+  const gm = new GameManager();
+  gm.startRun(DifficultyLevel.Level0);
+  const outcome = autopilotWithParty(gm, ["paladin", "golem", "barbarian", "ranger", "cleric"], 1000, {
+    tier: HeroTier.Gold,
+    stabilizeEconomy: true,
+  });
+  const run = gm.currentRunState;
+  check("20run-normal: strong run reaches Victory", outcome.terminated && outcome.state === GameState.Victory);
+  check("20run-normal: ends on act 2 round 20", run.act === 2 && outcome.maxRound === GameRulesFns.act2FinalRound);
+}
+
+// ---- Dev-enabled Act 3 run reaches 30-round victory ----
+{
+  const gm = new GameManager();
+  gm.runManager.setDevEnableAct3ForNextRun(true);
+  gm.startRun(DifficultyLevel.Level0);
+  const run = gm.currentRunState;
+  check("30run-dev: flag copied into run state", run.devEnableAct3 === true);
+
+  const outcome = autopilotWithParty(gm, ["paladin", "golem", "barbarian", "ranger", "cleric"], 1400, {
+    tier: HeroTier.Gold,
+    stabilizeEconomy: true,
+  });
+  check("30run-dev: run terminated in Victory", outcome.terminated && outcome.state === GameState.Victory);
+  check("30run-dev: ends on act 3 round 30", run.act === 3 && outcome.maxRound === GameRulesFns.act3FinalRound);
+}
+
 console.log(failures === 0 ? "\nALL PASS" : `\n${failures} FAILURE(S)`);
 process.exit(failures === 0 ? 0 : 1);
 
@@ -454,13 +504,15 @@ process.exit(failures === 0 ? 0 : 1);
 // Bypass shop RNG entirely by inserting HeroInstances built from known
 // definitions. Tier-seed each one so attack/upkeep match the live values a
 // hired hero would have. Used for deterministic combat-outcome assertions.
-function fieldKnownParty(gm, heroIds) {
+function fieldKnownParty(gm, heroIds, tier = HeroTier.Bronze) {
   const run = gm.currentRunState;
   run.party.length = 0;
   heroIds.forEach((id, slot) => {
     const def = DataRepository.allHeroes.find((h) => h.id === id);
     const hero = new HeroInstance(def, slot);
+    hero.tier = tier;
     HeroEffects.applyTierStatSeed(hero);
+    hero.currentHealth = HeroEffects.getTierAdjustedMaxHealth(hero);
     run.party.push(hero);
   });
 }
@@ -493,7 +545,7 @@ function buyStrongParty(gm) {
   }
 }
 
-function autopilotWithParty(gm, heroIds, maxSteps) {
+function autopilotWithParty(gm, heroIds, maxSteps, options = {}) {
   // Like autopilot but fields the given party every round using fieldKnownParty.
   let steps = 0;
   let maxRound = 0;
@@ -505,7 +557,8 @@ function autopilotWithParty(gm, heroIds, maxSteps) {
         gm.continueFromScout();
         break;
       case GameState.Shop:
-        fieldKnownParty(gm, heroIds);
+        fieldKnownParty(gm, heroIds, options.tier || HeroTier.Bronze);
+        if (options.stabilizeEconomy) stabilizeRunEconomy(run);
         gm.continueFromShop();
         break;
       case GameState.Formation:
@@ -540,6 +593,13 @@ function autopilotWithParty(gm, heroIds, maxSteps) {
     }
   }
   return { terminated: false, state: gm.currentState, maxRound };
+}
+
+function stabilizeRunEconomy(run) {
+  if (!run) return;
+  if (run.gold < 200) run.gold = 200;
+  if (run.morale < GameRules.StartingMorale) run.morale = GameRules.StartingMorale;
+  run.debt = 0;
 }
 
 function autopilot(gm, maxSteps) {
