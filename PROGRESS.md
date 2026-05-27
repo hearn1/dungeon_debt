@@ -51,6 +51,44 @@ Copy this block when adding a new entry. Paste it at the top of the Session log 
 
 <!-- Newest entries at the top. -->
 
+## 2026-05-27 - #70: Difficulty levels 0-3
+
+**Milestone:** GitHub expansion issue wave
+**Status:** Complete
+
+**Files added:**
+- `web/src/data/MutatorDefinition.js`
+
+**Files modified:**
+- `web/src/data/enums.js` - replaced `DifficultyPresetId` with numeric `DifficultyLevel` values 0-10.
+- `web/src/data/DifficultyPreset.js` - removed obsolete preset data class.
+- `web/src/core/DataRepository.js` - added difficulty level scaffold, three mutators, and lookup helpers.
+- `web/src/core/GameRules.js` - added default and max implemented difficulty level constants.
+- `web/src/core/GameManager.js` - defaults new runs to level 0.
+- `web/src/run/RunManager.js` - initializes level 0 baseline and applies mutators 1-3 cumulatively; rejects unimplemented levels.
+- `web/src/ui/panels/MainMenuPanel.js` - replaced preset cards with a 0-10 selector, disabled 4-10, and active-mutator display.
+- `web/src/test/run.js` - added level 0 identity and levels 1-3 cumulative mutator checks.
+- `web/src/test/verify.js` - updated stale difficulty enum references.
+
+**Acceptance criteria:**
+- [x] Level 0 produces old Standard Contract difficulty-controlled fields.
+- [x] Levels 1, 2, and 3 apply exactly mutators 1..N.
+- [x] Main menu shows active mutators for selected implemented level.
+- [x] Levels 4-10 are visible but disabled and cannot be selected.
+- [x] Level >3 initialization throws a clear not-implemented error.
+- [x] `npm.cmd run test:headless` passes.
+- [x] Browser preview verified Main Menu difficulty selector with zero console warnings/errors.
+
+**Test plan:** No separate `TestPlans/` file. Verified with `npm.cmd run test:headless`, `node src/test/verify.js`, and browser preview at `http://localhost:5173`.
+
+**Deviations from plan:**
+- Kept `GameRules.DefaultDifficultyPreset` as a numeric compatibility alias to level 0 so existing local scripts such as the balance harness are not knowingly broken, while the preset enum/data/API was removed.
+
+**Follow-up flagged:**
+- Mutators 4-9, level 10 capstone, stat-multiplier mutators, and balance-tuning recommendations remain deferred.
+
+**Next slice:** `#67` - Act 3 enemy/encounter data behind dev flag.
+
 ## 2026-05-26 - #69: Paladin, Cleric, Barbarian
 
 **Milestone:** GitHub expansion issue wave

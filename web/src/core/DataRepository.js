@@ -1,18 +1,18 @@
 // Ported from DungeonDebt/Assets/Scripts/Core/DataRepository.cs
 // Static, read-only data tables: heroes, enemies, encounters, payroll actions,
-// relics, difficulty presets, rival guilds.
+// relics, difficulty levels, rival guilds.
 
 import { HeroDefinition } from "../data/HeroDefinition.js";
 import { EnemyDefinition } from "../data/EnemyDefinition.js";
 import { EncounterDefinition } from "../data/EncounterDefinition.js";
 import { PayrollActionDefinition } from "../data/PayrollActionDefinition.js";
 import { RelicDefinition } from "../data/RelicDefinition.js";
-import { DifficultyPreset } from "../data/DifficultyPreset.js";
+import { MutatorDefinition } from "../data/MutatorDefinition.js";
 import { RivalGuildState } from "../data/RivalGuildState.js";
 import { GameRules } from "./GameRules.js";
 import {
   HeroRole, HeroEffectId, EnemyEffectId, EncounterType, EncounterEffectId,
-  RivalGuild, PayrollActionId, DifficultyPresetId, RelicId, CombatStatusId,
+  RivalGuild, PayrollActionId, DifficultyLevel, RelicId, CombatStatusId,
 } from "../data/enums.js";
 
 const C = CombatStatusId;
@@ -138,11 +138,40 @@ const EncounterDefinitions = [
   new EncounterDefinition(2, 10, EncounterType.FinalBoss, "Infernal Auditor", "Act 2 capstone. The Infernal Auditor tallies your debts in fire.", "Final boss", [InfernalAuditor], GameRules.WinReward, EncounterEffectId.FinalBossDamage, RivalGuild.None),
 ];
 
-const DifficultyPresetDefinitions = [
-  new DifficultyPreset(DifficultyPresetId.ApprenticeLedger, "Apprentice Ledger", GameRules.ApprenticeStartingGold, GameRules.StartingDebt, GameRules.ApprenticeStartingMorale, GameRules.ApprenticeInterestDivisor, GameRules.ApprenticeDebtLimit, GameRules.ApprenticeHeroHealthMult, GameRules.NoCombatMultiplier, GameRules.NoCombatMultiplier, GameRules.ApprenticeEnemyDamageMult),
-  new DifficultyPreset(DifficultyPresetId.StandardContract, "Standard Contract", GameRules.StartingGold, GameRules.StartingDebt, GameRules.StartingMorale, GameRules.InterestDebtDivisor, GameRules.DebtLimit, GameRules.NoCombatMultiplier, GameRules.NoCombatMultiplier, GameRules.NoCombatMultiplier, GameRules.NoCombatMultiplier),
-  new DifficultyPreset(DifficultyPresetId.PredatoryInterest, "Predatory Interest", GameRules.PredatoryStartingGold, GameRules.StartingDebt, GameRules.StartingMorale, GameRules.PredatoryInterestDivisor, GameRules.PredatoryDebtLimit, GameRules.NoCombatMultiplier, GameRules.NoCombatMultiplier, GameRules.PredatoryEnemyHealthMult, GameRules.PredatoryEnemyDamageMult),
+const DifficultyMutatorDefinitions = [
+  new MutatorDefinition(
+    "LessStartingGold",
+    "Less Starting Gold",
+    "-3 starting gold.",
+    (settings) => { settings.startingGold -= 3; },
+  ),
+  new MutatorDefinition(
+    "HigherInterest",
+    "Higher Interest",
+    "Interest divisor becomes 4.",
+    (settings) => { settings.interestDivisor = 4; },
+  ),
+  new MutatorDefinition(
+    "LowerDebtLimit",
+    "Lower Debt Limit",
+    "-5 debt limit.",
+    (settings) => { settings.debtLimit -= 5; },
+  ),
 ];
+
+const DifficultyLevelDefinitions = Object.freeze([
+  createDifficultyLevel(DifficultyLevel.Level0),
+  createDifficultyLevel(DifficultyLevel.Level1),
+  createDifficultyLevel(DifficultyLevel.Level2),
+  createDifficultyLevel(DifficultyLevel.Level3),
+  createDifficultyLevel(DifficultyLevel.Level4),
+  createDifficultyLevel(DifficultyLevel.Level5),
+  createDifficultyLevel(DifficultyLevel.Level6),
+  createDifficultyLevel(DifficultyLevel.Level7),
+  createDifficultyLevel(DifficultyLevel.Level8),
+  createDifficultyLevel(DifficultyLevel.Level9),
+  createDifficultyLevel(DifficultyLevel.Level10),
+]);
 
 export const DataRepository = {
   allHeroes: Object.freeze([...HeroDefinitions]),
@@ -150,7 +179,8 @@ export const DataRepository = {
   encounters: Object.freeze([...EncounterDefinitions]),
   allPayrollActions: Object.freeze([...PayrollActionDefinitions]),
   allRelics: Object.freeze([...RelicDefinitions]),
-  allDifficultyPresets: Object.freeze([...DifficultyPresetDefinitions]),
+  allDifficultyLevels: DifficultyLevelDefinitions,
+  allDifficultyMutators: Object.freeze([...DifficultyMutatorDefinitions]),
 
   getEncounterPool(act, slot) {
     const pool = [];
@@ -168,15 +198,19 @@ export const DataRepository = {
     return null;
   },
 
-  getDifficultyPreset(id) {
-    for (const preset of DifficultyPresetDefinitions) {
-      if (preset.id === id) return preset;
+  getDifficultyLevel(level) {
+    for (const definition of DifficultyLevelDefinitions) {
+      if (definition.level === level) return definition;
     }
-    // Fallback to the default preset (Standard Contract).
-    for (const preset of DifficultyPresetDefinitions) {
-      if (preset.id === GameRules.DefaultDifficultyPreset) return preset;
+    return null;
+  },
+
+  getDifficultyMutatorsForLevel(level) {
+    const applied = [];
+    for (let i = 0; i < level && i < DifficultyMutatorDefinitions.length; i++) {
+      applied.push(DifficultyMutatorDefinitions[i]);
     }
-    return DifficultyPresetDefinitions[0];
+    return applied;
   },
 
   getRelic(id) {
@@ -194,3 +228,21 @@ export const DataRepository = {
     ];
   },
 };
+
+function createDifficultyLevel(level) {
+  const mutators = previewMutatorsForLevel(level);
+  return Object.freeze({
+    level,
+    displayName: "Level " + level,
+    isImplemented: level <= GameRules.MaxImplementedDifficultyLevel,
+    mutators,
+  });
+}
+
+function previewMutatorsForLevel(level) {
+  const mutators = [];
+  for (let i = 0; i < level && i < DifficultyMutatorDefinitions.length; i++) {
+    mutators.push(DifficultyMutatorDefinitions[i]);
+  }
+  return Object.freeze(mutators);
+}

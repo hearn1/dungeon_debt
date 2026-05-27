@@ -40,25 +40,36 @@ export class RunManager {
   static getRelicMaxHealthBonus(runState, hero) { return getRelicMaxHealthBonus(runState, hero); }
   static getScaledHeroMaxHealth(hero, runState) { return getScaledHeroMaxHealth(hero, runState); }
 
-  initializeRun(presetId = GameRules.DefaultDifficultyPreset, seed = null) {
+  initializeRun(difficultyLevel = GameRules.DefaultDifficultyLevel, seed = null) {
     this._rng = new Rng(seed);
 
-    const preset = DataRepository.getDifficultyPreset(presetId);
+    const difficulty = DataRepository.getDifficultyLevel(difficultyLevel);
+    if (!difficulty) {
+      throw new Error("Unknown difficulty level: " + difficultyLevel + ".");
+    }
+    if (!difficulty.isImplemented) {
+      throw new Error("Difficulty level " + difficultyLevel + " is not implemented yet.");
+    }
+
+    const difficultySettings = createBaselineDifficultySettings();
+    const mutators = DataRepository.getDifficultyMutatorsForLevel(difficulty.level);
+    for (const mutator of mutators) mutator.apply(difficultySettings);
 
     const runState = new RunState();
     runState.act = 1;
     runState.round = 1;
-    runState.selectedDifficulty = preset.id;
-    runState.difficultyDisplayName = preset.displayName;
-    runState.gold = preset.startingGold;
-    runState.debt = preset.startingDebt;
-    runState.morale = preset.startingMorale;
-    runState.interestDivisor = preset.interestDivisor;
-    runState.debtLimit = preset.debtLimit;
-    runState.heroHealthMultiplier = preset.heroHealthMult;
-    runState.heroDamageMultiplier = preset.heroDamageMult;
-    runState.enemyHealthMultiplier = preset.enemyHealthMult;
-    runState.enemyDamageMultiplier = preset.enemyDamageMult;
+    runState.selectedDifficulty = difficulty.level;
+    runState.difficultyDisplayName = difficulty.displayName;
+    runState.activeDifficultyMutators = mutators.map((mutator) => mutator.id);
+    runState.gold = difficultySettings.startingGold;
+    runState.debt = difficultySettings.startingDebt;
+    runState.morale = difficultySettings.startingMorale;
+    runState.interestDivisor = difficultySettings.interestDivisor;
+    runState.debtLimit = difficultySettings.debtLimit;
+    runState.heroHealthMultiplier = difficultySettings.heroHealthMultiplier;
+    runState.heroDamageMultiplier = difficultySettings.heroDamageMultiplier;
+    runState.enemyHealthMultiplier = difficultySettings.enemyHealthMultiplier;
+    runState.enemyDamageMultiplier = difficultySettings.enemyDamageMultiplier;
     runState.rerollCount = 0;
     runState.selectedPayrollAction = null;
     runState.fullUpkeepPaidLastRound = false;
@@ -283,6 +294,20 @@ export class RunManager {
     run.hasPendingRelicReward = false;
     run.pendingRelicNextState = GameState.MainMenu;
   }
+}
+
+function createBaselineDifficultySettings() {
+  return {
+    startingGold: GameRules.StartingGold,
+    startingDebt: GameRules.StartingDebt,
+    startingMorale: GameRules.StartingMorale,
+    interestDivisor: GameRules.InterestDebtDivisor,
+    debtLimit: GameRules.DebtLimit,
+    heroHealthMultiplier: GameRules.NoCombatMultiplier,
+    heroDamageMultiplier: GameRules.NoCombatMultiplier,
+    enemyHealthMultiplier: GameRules.NoCombatMultiplier,
+    enemyDamageMultiplier: GameRules.NoCombatMultiplier,
+  };
 }
 
 function compareHeroesBySlot(first, second) {

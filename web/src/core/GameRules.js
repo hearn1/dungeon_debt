@@ -3,7 +3,7 @@
 // Unity Color(r,g,b,a) floats are converted to CSS rgba() strings so the UI
 // phase can drop them straight into styles.
 
-import { HeroRole, CombatStatusId, RivalGuild, EncounterType } from "../data/enums.js";
+import { HeroRole, CombatStatusId, RivalGuild, EncounterType, DifficultyLevel } from "../data/enums.js";
 
 function rgba(r, g, b, a = 1) {
   const to255 = (v) => Math.round(v * 255);
@@ -129,8 +129,10 @@ export const GameRules = Object.freeze({
   WeakenedAttackPenalty: 1,
   InspiredAttackBonus: 1,
 
-  // ---- Difficulty presets ----
-  DefaultDifficultyPreset: "StandardContract",
+  // ---- Difficulty levels ----
+  DefaultDifficultyLevel: DifficultyLevel.Level0,
+  DefaultDifficultyPreset: DifficultyLevel.Level0,
+  MaxImplementedDifficultyLevel: DifficultyLevel.Level3,
   NoCombatMultiplier: 1,
 
   ApprenticeStartingGold: 20,
