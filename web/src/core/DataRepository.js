@@ -30,6 +30,9 @@ const Enchanter = new HeroDefinition("enchanter", "Enchanter", HeroRole.Support,
 const Squire = new HeroDefinition("squire", "Squire", HeroRole.Tank, 1, 4, 1, "No effect.", HeroEffectId.None);
 const Treasurer = new HeroDefinition("treasurer", "Treasurer", HeroRole.Economy, 0, 4, 2, "Reduces the highest-upkeep ally's upkeep by 2.", HeroEffectId.TreasurerUpkeepReduce);
 const Apprentice = new HeroDefinition("apprentice", "Apprentice", HeroRole.Economy, 1, 3, 1, "Reduces a Wizard ally's upkeep by 1.", HeroEffectId.ApprenticeWizardSupport);
+const Paladin = new HeroDefinition("paladin", "Paladin", HeroRole.Tank, 2, 14, 4, "Heals all living allies for 1 at the end of each combat round.", HeroEffectId.PaladinAuraHeal);
+const Cleric = new HeroDefinition("cleric", "Cleric", HeroRole.Support, 1, 8, 3, "Heals all living allies for 1 at the end of each combat round.", HeroEffectId.ClericGroupHeal);
+const Barbarian = new HeroDefinition("barbarian", "Barbarian", HeroRole.Damage, 2, 10, 3, "Gains +2 attack while at half health or below.", HeroEffectId.BarbarianRage);
 
 // ---- Enemies (Act 1) ----
 const Slime = new EnemyDefinition("slime", "Slime", 1, 4, EnemyEffectId.None, "No effect.");
@@ -73,7 +76,10 @@ const HoardFiend = new EnemyDefinition("hoard_fiend", "Hoard Fiend", 2, 16, Enem
 const BrimstoneBrute = new EnemyDefinition("brimstone_brute", "Brimstone Brute", 6, 22, EnemyEffectId.None, "No effect.");
 const InfernalAuditor = new EnemyDefinition("infernal_auditor", "Infernal Auditor", 5, 30, EnemyEffectId.DungeonAuditorBoss, "Starts Inspired and applies Burned on attack. Raises upkeep and deals periodic damage.", [C.Inspired], [C.Burned]);
 
-const HeroDefinitions = [Warrior, Knight, Golem, Wizard, Ninja, Ranger, Priest, Bard, Enchanter, Squire, Treasurer, Apprentice];
+const HeroDefinitions = [
+  Warrior, Knight, Golem, Wizard, Ninja, Ranger, Priest, Bard, Enchanter, Squire, Treasurer, Apprentice,
+  Paladin, Cleric, Barbarian,
+];
 
 const EnemyDefinitions = [
   Slime, TrainingDummy, CaveBat, GoblinThief, TaxCollector, LazyInspector, BacklineBat, DebtWraith, TreasureLeech, SplitTreasureLeech, DungeonAuditor,

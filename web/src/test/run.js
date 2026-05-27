@@ -8,10 +8,11 @@ import { GameRules, GameRulesFns } from "../core/GameRules.js";
 import { DataRepository } from "../core/DataRepository.js";
 import { RunManager } from "../run/RunManager.js";
 import { EncounterManager } from "../run/EncounterManager.js";
+import { ShopManager } from "../run/ShopManager.js";
 import { ShopOffer } from "../data/ShopOffer.js";
 import { HeroInstance } from "../data/HeroInstance.js";
 import { HeroEffects } from "../combat/HeroEffects.js";
-import { HeroTier, PayrollActionId, EncounterType, DifficultyPresetId } from "../data/enums.js";
+import { HeroRole, HeroTier, PayrollActionId, EncounterType, DifficultyPresetId } from "../data/enums.js";
 
 let failures = 0;
 function check(name, cond) {
@@ -79,6 +80,55 @@ console.log("Run-flow test");
   check("shop: hire succeeded", hired === true);
   check("shop: party grew to 1", run.party.length === 1);
   check("shop: gold decreased", run.gold < goldBefore);
+}
+
+// ---- New #69 heroes are hireable through the shop path ----
+{
+  const gm = new GameManager();
+  gm.startRun(DifficultyPresetId.ApprenticeLedger);
+  gm.continueFromScout();
+  const run = gm.currentRunState;
+  const shop = gm.shopManager;
+  const paladin = DataRepository.allHeroes.find((h) => h.id === "paladin");
+  const cleric = DataRepository.allHeroes.find((h) => h.id === "cleric");
+  const barbarian = DataRepository.allHeroes.find((h) => h.id === "barbarian");
+
+  shop.currentOffers.length = 0;
+  shop.currentOffers.push(new ShopOffer(paladin, paladin.baseUpkeep + GameRules.HireCostBonus, HeroTier.Bronze));
+  shop.currentOffers.push(new ShopOffer(cleric, cleric.baseUpkeep + GameRules.HireCostBonus, HeroTier.Bronze));
+  shop.currentOffers.push(new ShopOffer(barbarian, barbarian.baseUpkeep + GameRules.HireCostBonus, HeroTier.Bronze));
+
+  const hiredAll = shop.hire(0) && shop.hire(1) && shop.hire(2);
+  const hiredIds = run.party.map((hero) => hero.definition.id).join(",");
+  check("newheroes-shop: all three controlled offers hire", hiredAll === true);
+  check("newheroes-shop: paladin cleric barbarian in party", hiredIds === "paladin,cleric,barbarian");
+}
+
+// ---- Shop role-balance spot check from a fixed seed ----
+{
+  const runManager = new RunManager();
+  runManager.initializeRun(DifficultyPresetId.StandardContract, 69);
+  const shop = new ShopManager(runManager);
+  const roleCounts = {
+    [HeroRole.Tank]: 0,
+    [HeroRole.Damage]: 0,
+    [HeroRole.Support]: 0,
+    [HeroRole.Economy]: 0,
+  };
+  let offerCount = 0;
+
+  for (let i = 0; i < 20; i++) {
+    shop.generateOffers();
+    for (const offer of shop.currentOffers) {
+      if (!offer || !offer.hero) continue;
+      roleCounts[offer.hero.role] += 1;
+      offerCount += 1;
+    }
+  }
+
+  const maxRoleOffers = Math.max(roleCounts.Tank, roleCounts.Damage, roleCounts.Support, roleCounts.Economy);
+  check("shoproles: fixed seed produced 20 full offer sets", offerCount === 20 * GameRules.ShopOfferCount);
+  check("shoproles: no role dominates >70%", maxRoleOffers <= offerCount * 0.7);
 }
 
 // ---- Duplicate hire merges Bronze -> Silver -> Gold (direct ShopOffer injection) ----

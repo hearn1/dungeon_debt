@@ -51,6 +51,38 @@ Copy this block when adding a new entry. Paste it at the top of the Session log 
 
 <!-- Newest entries at the top. -->
 
+## 2026-05-26 - #69: Paladin, Cleric, Barbarian
+
+**Milestone:** GitHub expansion issue wave
+**Status:** Complete
+
+**Files added:**
+- None.
+
+**Files modified:**
+- `web/src/data/enums.js` - added `PaladinAuraHeal`, `ClericGroupHeal`, and `BarbarianRage`.
+- `web/src/core/DataRepository.js` - added exactly Paladin, Cleric, and Barbarian to the hero pool with locked stats.
+- `web/src/combat/HeroEffects.js` - added Paladin/Cleric group heals and Barbarian attack-time rage.
+- `web/src/test/combat.js` - added deterministic effect tests and a three-new-hero combat smoke test.
+- `web/src/test/run.js` - added controlled shop hire coverage and fixed-seed shop role-balance spot check.
+
+**Acceptance criteria:**
+- [x] All three heroes are hireable from the shop and can complete combat without errors.
+- [x] Paladin and Cleric group heals fire at end-of-round and stack.
+- [x] Barbarian gains +2 attack while at <=50% HP and loses it again above half HP.
+- [x] Fixed-seed 20-offer shop role-balance spot check has no role >70%.
+- [x] `npm.cmd run test:headless` passes.
+
+**Test plan:** No separate `TestPlans/` file. Verified with `npm.cmd run test:headless`; all suites passed.
+
+**Deviations from plan:**
+- None.
+
+**Follow-up flagged:**
+- Rogue, Druid, Warlock, Sorcerer, Monk, Fighter, Artificer, custom sprites, and tier-scaled effect potency remain deferred.
+
+**Next slice:** `#70` - Difficulty levels 0-3.
+
 ## 2026-05-26 - #66: Gold hero tier
 
 **Milestone:** GitHub expansion issue wave

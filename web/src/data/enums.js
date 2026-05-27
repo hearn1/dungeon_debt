@@ -26,6 +26,9 @@ export const HeroEffectId = makeEnum(
   "EnchanterAdjacent",
   "TreasurerUpkeepReduce",
   "ApprenticeWizardSupport",
+  "PaladinAuraHeal",
+  "ClericGroupHeal",
+  "BarbarianRage",
 );
 
 export const EnemyEffectId = makeEnum(
