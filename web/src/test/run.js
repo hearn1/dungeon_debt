@@ -12,7 +12,7 @@ import { ShopManager } from "../run/ShopManager.js";
 import { ShopOffer } from "../data/ShopOffer.js";
 import { HeroInstance } from "../data/HeroInstance.js";
 import { HeroEffects } from "../combat/HeroEffects.js";
-import { HeroRole, HeroTier, PayrollActionId, EncounterType, DifficultyPresetId } from "../data/enums.js";
+import { HeroRole, HeroTier, PayrollActionId, EncounterType, DifficultyLevel } from "../data/enums.js";
 
 let failures = 0;
 function check(name, cond) {
@@ -30,17 +30,56 @@ console.log("Run-flow test");
   check("tier: Diamond absent", HeroTier.Diamond === undefined);
 }
 
-// ---- Run initialization applies the difficulty preset ----
+// ---- Run initialization applies difficulty levels ----
 {
   const gm = new GameManager();
-  gm.startRun(DifficultyPresetId.StandardContract);
+  gm.startRun(DifficultyLevel.Level0);
   const run = gm.currentRunState;
-  check("init: gold = StartingGold", run.gold === GameRules.StartingGold);
-  check("init: morale = StartingMorale", run.morale === GameRules.StartingMorale);
+  check("init: level 0 gold = old Standard Contract", run.gold === GameRules.StartingGold);
+  check("init: level 0 debt = old Standard Contract", run.debt === GameRules.StartingDebt);
+  check("init: level 0 morale = old Standard Contract", run.morale === GameRules.StartingMorale);
+  check("init: level 0 interest = old Standard Contract", run.interestDivisor === GameRules.InterestDebtDivisor);
+  check("init: level 0 debt limit = old Standard Contract", run.debtLimit === GameRules.DebtLimit);
+  check("init: level 0 hero health multiplier = old Standard Contract", run.heroHealthMultiplier === GameRules.NoCombatMultiplier);
+  check("init: level 0 hero damage multiplier = old Standard Contract", run.heroDamageMultiplier === GameRules.NoCombatMultiplier);
+  check("init: level 0 enemy health multiplier = old Standard Contract", run.enemyHealthMultiplier === GameRules.NoCombatMultiplier);
+  check("init: level 0 enemy damage multiplier = old Standard Contract", run.enemyDamageMultiplier === GameRules.NoCombatMultiplier);
   check("init: act 1 round 1", run.act === 1 && run.round === 1);
   check("init: 3 rivals created", run.rivals.length === 3);
   check("init: entered Scout state", gm.currentState === GameState.Scout);
   check("init: encounter loaded for round 1", run.currentEncounter && run.currentEncounter.round === 1);
+
+  const runManager = new RunManager();
+  const level1 = runManager.initializeRun(DifficultyLevel.Level1, 70);
+  check("difficulty: level 1 applies LessStartingGold", level1.gold === GameRules.StartingGold - 3);
+  check("difficulty: level 1 keeps baseline interest", level1.interestDivisor === GameRules.InterestDebtDivisor);
+  check("difficulty: level 1 keeps baseline debt limit", level1.debtLimit === GameRules.DebtLimit);
+
+  const level2 = runManager.initializeRun(DifficultyLevel.Level2, 70);
+  check("difficulty: level 2 keeps level 1 gold", level2.gold === GameRules.StartingGold - 3);
+  check("difficulty: level 2 applies HigherInterest", level2.interestDivisor === 4);
+  check("difficulty: level 2 keeps baseline debt limit", level2.debtLimit === GameRules.DebtLimit);
+
+  const level3 = runManager.initializeRun(DifficultyLevel.Level3, 70);
+  check("difficulty: level 3 keeps level 1 gold", level3.gold === GameRules.StartingGold - 3);
+  check("difficulty: level 3 keeps level 2 interest", level3.interestDivisor === 4);
+  check("difficulty: level 3 applies LowerDebtLimit", level3.debtLimit === GameRules.DebtLimit - 5);
+
+  let threw = false;
+  try {
+    runManager.initializeRun(DifficultyLevel.Level4, 70);
+  } catch (err) {
+    threw = err.message.includes("not implemented");
+  }
+  check("difficulty: level >3 throws clear error", threw);
+
+  const visibleLevels = DataRepository.allDifficultyLevels.map((difficulty) => difficulty.level).join(",");
+  const disabledLevels = DataRepository.allDifficultyLevels
+    .filter((difficulty) => !difficulty.isImplemented)
+    .map((difficulty) => difficulty.level)
+    .join(",");
+  check("difficulty: levels 0-10 visible in data", visibleLevels === "0,1,2,3,4,5,6,7,8,9,10");
+  check("difficulty: levels 4-10 disabled in data", disabledLevels === "4,5,6,7,8,9,10");
 }
 
 // ---- Encounter variants: four Act 1 pools select from the run RNG ----
@@ -65,7 +104,7 @@ console.log("Run-flow test");
 // ---- Shop hire spends gold and adds to party; direct offers stop at Silver ----
 {
   const gm = new GameManager();
-  gm.startRun(DifficultyPresetId.ApprenticeLedger); // more starting gold
+  gm.startRun(DifficultyLevel.Level0);
   gm.continueFromScout(); // -> Shop, offers generated
   const run = gm.currentRunState;
   const shop = gm.shopManager;
@@ -85,7 +124,7 @@ console.log("Run-flow test");
 // ---- New #69 heroes are hireable through the shop path ----
 {
   const gm = new GameManager();
-  gm.startRun(DifficultyPresetId.ApprenticeLedger);
+  gm.startRun(DifficultyLevel.Level0);
   gm.continueFromScout();
   const run = gm.currentRunState;
   const shop = gm.shopManager;
@@ -94,9 +133,9 @@ console.log("Run-flow test");
   const barbarian = DataRepository.allHeroes.find((h) => h.id === "barbarian");
 
   shop.currentOffers.length = 0;
-  shop.currentOffers.push(new ShopOffer(paladin, paladin.baseUpkeep + GameRules.HireCostBonus, HeroTier.Bronze));
-  shop.currentOffers.push(new ShopOffer(cleric, cleric.baseUpkeep + GameRules.HireCostBonus, HeroTier.Bronze));
-  shop.currentOffers.push(new ShopOffer(barbarian, barbarian.baseUpkeep + GameRules.HireCostBonus, HeroTier.Bronze));
+  shop.currentOffers.push(new ShopOffer(paladin, 0, HeroTier.Bronze));
+  shop.currentOffers.push(new ShopOffer(cleric, 0, HeroTier.Bronze));
+  shop.currentOffers.push(new ShopOffer(barbarian, 0, HeroTier.Bronze));
 
   const hiredAll = shop.hire(0) && shop.hire(1) && shop.hire(2);
   const hiredIds = run.party.map((hero) => hero.definition.id).join(",");
@@ -107,7 +146,7 @@ console.log("Run-flow test");
 // ---- Shop role-balance spot check from a fixed seed ----
 {
   const runManager = new RunManager();
-  runManager.initializeRun(DifficultyPresetId.StandardContract, 69);
+  runManager.initializeRun(DifficultyLevel.Level0, 69);
   const shop = new ShopManager(runManager);
   const roleCounts = {
     [HeroRole.Tank]: 0,
@@ -134,7 +173,7 @@ console.log("Run-flow test");
 // ---- Duplicate hire merges Bronze -> Silver -> Gold (direct ShopOffer injection) ----
 {
   const gm = new GameManager();
-  gm.startRun(DifficultyPresetId.ApprenticeLedger);
+  gm.startRun(DifficultyLevel.Level0);
   gm.continueFromScout();
   const run = gm.currentRunState;
   const shop = gm.shopManager;
@@ -171,7 +210,7 @@ console.log("Run-flow test");
 // ---- Payroll: Take Loan adds gold and debt ----
 {
   const gm = new GameManager();
-  gm.startRun(DifficultyPresetId.StandardContract);
+  gm.startRun(DifficultyLevel.Level0);
   gm.continueFromScout();
   gm.continueFromShop();
   gm.continueFromFormation(); // -> Payroll
@@ -188,7 +227,7 @@ console.log("Run-flow test");
 // ---- Dungeon win pays the standard reward ----
 {
   const gm = new GameManager();
-  gm.startRun(DifficultyPresetId.StandardContract);
+  gm.startRun(DifficultyLevel.Level0);
   // Bypass shop RNG: inject a known-strong party so the win path is deterministic.
   gm.continueFromScout();
   fieldKnownParty(gm, ["warrior", "golem", "wizard", "ranger", "priest"]);
@@ -207,7 +246,7 @@ console.log("Run-flow test");
 // ---- Rival advance changes payroll ----
 {
   const gm = new GameManager();
-  gm.startRun(DifficultyPresetId.StandardContract);
+  gm.startRun(DifficultyLevel.Level0);
   const run = gm.currentRunState;
   const payrollBefore = run.rivals.map((r) => r.payroll);
   gm.rivalManager.advanceRivals(run);
@@ -218,7 +257,7 @@ console.log("Run-flow test");
 // ---- Payroll: PromiseVictoryBonus costs gold, buffs attack, no debt on win ----
 {
   const gm = new GameManager();
-  gm.startRun(DifficultyPresetId.StandardContract);
+  gm.startRun(DifficultyLevel.Level0);
   gm.continueFromScout();
   gm.continueFromShop();
   gm.continueFromFormation();
@@ -239,7 +278,7 @@ console.log("Run-flow test");
 // ---- Payroll: CutWages reduces total upkeep ----
 {
   const gm = new GameManager();
-  gm.startRun(DifficultyPresetId.StandardContract);
+  gm.startRun(DifficultyLevel.Level0);
   gm.continueFromScout();
   gm.continueFromShop();
   gm.continueFromFormation();
@@ -261,7 +300,7 @@ console.log("Run-flow test");
 // ---- Run terminates on morale = 0 ----
 {
   const gm = new GameManager();
-  gm.startRun(DifficultyPresetId.StandardContract);
+  gm.startRun(DifficultyLevel.Level0);
   gm.continueFromScout();
   gm.continueFromShop();
   gm.continueFromFormation();
@@ -281,7 +320,7 @@ console.log("Run-flow test");
 // ---- Run terminates on debt limit reached ----
 {
   const gm = new GameManager();
-  gm.startRun(DifficultyPresetId.StandardContract);
+  gm.startRun(DifficultyLevel.Level0);
   gm.continueFromScout(); // → Shop
   const run = gm.currentRunState;
   // In Scout state, set debt to exactly the limit to trigger defeat
@@ -300,7 +339,7 @@ console.log("Run-flow test");
 // ---- Final boss loss ends the run ----
 {
   const gm = new GameManager();
-  gm.startRun(DifficultyPresetId.ApprenticeLedger); // easier preset
+  gm.startRun(DifficultyLevel.Level0);
   const outcome = autopilotWithParty(gm, ["squire", "squire"], 500);
   check("finalboss-lose: run terminated", outcome.terminated);
   check("finalboss-lose: reached victory or defeat",
@@ -310,7 +349,7 @@ console.log("Run-flow test");
 // ---- Act 1 victory leads to Act 2 (best-effort: skip if party loses) ----
 {
   const gm = new GameManager();
-  gm.startRun(DifficultyPresetId.ApprenticeLedger);
+  gm.startRun(DifficultyLevel.Level0);
   for (let round = 1; round <= 10; round++) {
     if (gm.currentState === GameState.Defeat) break;
     gm.continueFromScout();
@@ -343,7 +382,7 @@ console.log("Run-flow test");
 // ---- Shop: fire hero ----
 {
   const gm = new GameManager();
-  gm.startRun(DifficultyPresetId.ApprenticeLedger);
+  gm.startRun(DifficultyLevel.Level0);
   gm.continueFromScout();
   const shop = gm.shopManager;
   const run = gm.currentRunState;
@@ -363,7 +402,7 @@ console.log("Run-flow test");
 // ---- Shop: Pay Debt ----
 {
   const gm = new GameManager();
-  gm.startRun(DifficultyPresetId.ApprenticeLedger);
+  gm.startRun(DifficultyLevel.Level0);
   gm.continueFromScout();
   const shop = gm.shopManager;
   const run = gm.currentRunState;
@@ -383,7 +422,7 @@ console.log("Run-flow test");
 // ---- Shop: reroll costs gold ----
 {
   const gm = new GameManager();
-  gm.startRun(DifficultyPresetId.ApprenticeLedger);
+  gm.startRun(DifficultyLevel.Level0);
   gm.continueFromScout();
   const shop = gm.shopManager;
   const run = gm.currentRunState;
@@ -399,7 +438,7 @@ console.log("Run-flow test");
 // ---- Full 20-round autopilot on easier preset ----
 {
   const gm = new GameManager();
-  gm.startRun(DifficultyPresetId.ApprenticeLedger);
+  gm.startRun(DifficultyLevel.Level0);
   const outcome = autopilot(gm, 800);
   check("20run-autopilot: run terminated", outcome.terminated);
   check("20run-autopilot: rounds advanced past 3", outcome.maxRound > 3);
@@ -429,7 +468,7 @@ function fieldKnownParty(gm, heroIds) {
 function collectVariantSequence(seed) {
   const runManager = new RunManager();
   const encounterManager = new EncounterManager(runManager);
-  const run = runManager.initializeRun(DifficultyPresetId.StandardContract, seed);
+  const run = runManager.initializeRun(DifficultyLevel.Level0, seed);
   const sequence = [];
 
   for (const slot of [4, 6, 8, 9]) {

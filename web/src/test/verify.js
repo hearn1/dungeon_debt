@@ -19,7 +19,7 @@ import { DataRepository } from "../core/DataRepository.js";
 import { HeroInstance } from "../data/HeroInstance.js";
 import { HeroEffects } from "../combat/HeroEffects.js";
 import { CombatManager } from "../combat/CombatManager.js";
-import { PayrollActionId, DifficultyPresetId } from "../data/enums.js";
+import { PayrollActionId, DifficultyLevel } from "../data/enums.js";
 
 let failures = 0;
 function check(name, cond) {
@@ -43,7 +43,7 @@ console.log("Edge-case verification test");
 // ---- CutWages attack floor at 0 for Treasurer (base attack 0) ----
 {
   const gm = new GameManager();
-  gm.startRun(DifficultyPresetId.ApprenticeLedger);
+  gm.startRun(DifficultyLevel.Level0);
   gm.continueFromScout();
   gm.continueFromShop();
   gm.continueFromFormation();
@@ -60,7 +60,7 @@ console.log("Edge-case verification test");
 // ---- revertPerCombatHeroStats restores hero attack after CutWages ----
 {
   const gm = new GameManager();
-  gm.startRun(DifficultyPresetId.ApprenticeLedger);
+  gm.startRun(DifficultyLevel.Level0);
   gm.continueFromScout();
   gm.continueFromShop();
   gm.continueFromFormation();
@@ -82,7 +82,7 @@ console.log("Edge-case verification test");
 // ---- PromiseVictoryBonus loss path adds debt ----
 {
   const gm = new GameManager();
-  gm.startRun(DifficultyPresetId.StandardContract);
+  gm.startRun(DifficultyLevel.Level0);
   gm.continueFromScout();
   gm.continueFromShop();
   gm.continueFromFormation();
@@ -105,7 +105,7 @@ console.log("Edge-case verification test");
 // ---- PromiseVictoryBonus gold deduction on low gold ----
 {
   const gm = new GameManager();
-  gm.startRun(DifficultyPresetId.StandardContract);
+  gm.startRun(DifficultyLevel.Level0);
   gm.continueFromScout();
   gm.continueFromShop();
   gm.continueFromFormation();
@@ -120,7 +120,7 @@ console.log("Edge-case verification test");
 // ---- Rival payroll growth ----
 {
   const gm = new GameManager();
-  gm.startRun(DifficultyPresetId.StandardContract);
+  gm.startRun(DifficultyLevel.Level0);
   const run = gm.currentRunState;
   const greedy = run.rivals.find(r => r.guild === "Greedy");
   const frugal = run.rivals.find(r => r.guild === "Frugal");
@@ -145,7 +145,7 @@ console.log("Edge-case verification test");
 // Bards are weak, so pair them with a Warrior to ensure a win.
 {
   const gm = new GameManager();
-  gm.startRun(DifficultyPresetId.StandardContract);
+  gm.startRun(DifficultyLevel.Level0);
   gm.continueFromScout();
   gm.continueFromShop();
   gm.continueFromFormation();
@@ -174,7 +174,7 @@ console.log("Edge-case verification test");
 // ---- Shop fire re-assigns formation slots ----
 {
   const gm = new GameManager();
-  gm.startRun(DifficultyPresetId.ApprenticeLedger);
+  gm.startRun(DifficultyLevel.Level0);
   gm.continueFromScout();
   const shop = gm.shopManager;
   const run = gm.currentRunState;
@@ -196,7 +196,7 @@ console.log("Edge-case verification test");
 // ---- Act 2 loss ends run ----
 {
   const gm = new GameManager();
-  gm.startRun(DifficultyPresetId.ApprenticeLedger);
+  gm.startRun(DifficultyLevel.Level0);
   // Fast-forward to round 20 with weak party, then lose
   for (let r = 1; r <= 10; r++) {
     if (gm.currentState === GameState.Defeat) break;
@@ -255,7 +255,7 @@ console.log("Edge-case verification test");
 // Slot 1 (last frontline) and slot 2 (first backline) are adjacent.
 {
   const gm = new GameManager();
-  gm.startRun(DifficultyPresetId.StandardContract);
+  gm.startRun(DifficultyLevel.Level0);
   const run = gm.currentRunState;
   const enchanterDef = DataRepository.allHeroes.find(h => h.id === "enchanter");
   const wizardDef = DataRepository.allHeroes.find(h => h.id === "wizard");

@@ -1,16 +1,12 @@
 import { el, clear } from "../dom.js";
 import { DataRepository } from "../../core/DataRepository.js";
-
-const DESCRIPTIONS = {
-  ApprenticeLedger: "Forgiving. More starting gold and morale, gentler interest, tougher heroes.",
-  StandardContract: "The baseline guild contract. The intended challenge.",
-  PredatoryInterest: "Brutal. Less gold, harsher interest, a lower debt limit, deadlier enemies.",
-};
+import { GameRules } from "../../core/GameRules.js";
 
 export class MainMenuPanel {
   constructor(gm) {
     this.gm = gm;
     this.root = el("div", { class: "overlay" });
+    this._selectedLevel = GameRules.DefaultDifficultyLevel;
   }
 
   render() {
@@ -18,17 +14,47 @@ export class MainMenuPanel {
     this.root.appendChild(el("h1", { class: "title", text: "DUNGEON DEBT" }));
     this.root.appendChild(el("div", { class: "subtitle", text: "An auto-battler economy roguelite" }));
 
-    const choices = el("div", { class: "menu-choices" });
-    for (const preset of DataRepository.allDifficultyPresets) {
+    const choices = el("div", {
+      class: "menu-choices",
+      style: {
+        display: "grid",
+        gridTemplateColumns: "repeat(3, minmax(190px, 1fr))",
+        minWidth: "740px",
+        gap: "8px",
+      },
+    });
+    for (const difficulty of DataRepository.allDifficultyLevels) {
+      const isSelected = difficulty.level === this._selectedLevel;
+      const isImplemented = difficulty.isImplemented;
       choices.appendChild(el("button", {
-        class: "btn difficulty-card",
-        onClick: () => this.gm.startRun(preset.id),
+        class: `btn difficulty-card${isSelected ? " primary" : ""}`,
+        disabled: isImplemented ? null : "",
+        title: isImplemented ? "" : "Coming soon.",
+        onClick: () => this._selectLevel(difficulty.level),
       }, [
-        el("div", { class: "d-name", text: preset.displayName }),
-        el("div", { class: "d-desc", text: DESCRIPTIONS[preset.id] || "" }),
+        el("div", { class: "d-name", text: difficulty.displayName }),
+        el("div", { class: "d-desc", text: this._getDifficultySummary(difficulty) }),
       ]));
     }
     this.root.appendChild(choices);
+
+    const selectedDifficulty = DataRepository.getDifficultyLevel(this._selectedLevel);
+    const mutatorText = selectedDifficulty && selectedDifficulty.mutators.length > 0
+      ? selectedDifficulty.mutators.map((mutator) => mutator.displayName).join(", ")
+      : "No mutators.";
+
+    this.root.appendChild(el("div", {
+      class: "subtitle",
+      style: { maxWidth: "560px", letterSpacing: "1px", textTransform: "none" },
+      text: `Active mutators: ${mutatorText}`,
+    }));
+
+    this.root.appendChild(el("button", {
+      class: "btn primary",
+      onClick: () => this.gm.startRun(this._selectedLevel),
+    }, [
+      el("div", { class: "d-name", text: `Start ${selectedDifficulty.displayName}` }),
+    ]));
 
     this.root.appendChild(el("a", {
       class: "credits-link",
@@ -37,5 +63,18 @@ export class MainMenuPanel {
       rel: "noopener",
       text: "Art credits",
     }));
+  }
+
+  _selectLevel(level) {
+    const difficulty = DataRepository.getDifficultyLevel(level);
+    if (!difficulty || !difficulty.isImplemented) return;
+    this._selectedLevel = level;
+    this.render();
+  }
+
+  _getDifficultySummary(difficulty) {
+    if (!difficulty.isImplemented) return "Coming soon.";
+    if (difficulty.mutators.length <= 0) return "Baseline contract.";
+    return difficulty.mutators.map((mutator) => mutator.displayName).join(", ");
   }
 }

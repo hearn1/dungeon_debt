@@ -18,7 +18,7 @@ import { BalanceRunLogger } from "../run/BalanceRunLogger.js";
 export class GameManager {
   constructor() {
     this._currentState = GameState.MainMenu;
-    this._pendingDifficulty = GameRules.DefaultDifficultyPreset;
+    this._pendingDifficulty = GameRules.DefaultDifficultyLevel;
     this._stateListeners = [];
 
     this._payrollManager = new PayrollManager();
@@ -46,8 +46,8 @@ export class GameManager {
     };
   }
 
-  startRun(presetId = this._pendingDifficulty) {
-    this._pendingDifficulty = presetId;
+  startRun(difficultyLevel = this._pendingDifficulty) {
+    this._pendingDifficulty = difficultyLevel;
     this.changeState(GameState.StartRun);
     this.changeState(GameState.Scout);
   }
