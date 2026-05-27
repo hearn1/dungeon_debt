@@ -74,6 +74,15 @@ function buildRunSlotted(entries) {
   return run;
 }
 
+function buildCombatUnitsFromRun(run) {
+  const units = [];
+  for (const hero of run.party) {
+    const maxHealth = HeroEffects.getTierAdjustedMaxHealth(hero);
+    units.push(new CU(hero.definition.displayName, hero.attack, maxHealth, maxHealth, true, hero.formationSlot, hero, null));
+  }
+  return units;
+}
+
 
 
 console.log("Combat engine test");
@@ -150,6 +159,76 @@ console.log("Combat engine test");
   const result = new CombatManager().startCombat(run, encounter(1, 1));
   check("priest: heal logged", result.logLines.some(l => l.includes("heals") && l.includes("for 2")));
   check("priest: player wins", result.playerWon === true);
+}
+
+// Paladin heals all living allies, including self, at end of combat round.
+{
+  const run = buildRunSlotted([{ id: "paladin", slot: 0 }, { id: "barbarian", slot: 1 }]);
+  const units = buildCombatUnitsFromRun(run);
+  units[0].currentHealth = 12;
+  units[1].currentHealth = 8;
+  const heals = [];
+  const logger = { logHeal: (healer, target, amount) => heals.push(`${healer.displayName}->${target.displayName}:${amount}`) };
+  HeroEffects.onEndOfCombatRound(1, run, null, units, [], {}, logger);
+  check("paladin: heals self for 1", units[0].currentHealth === 13);
+  check("paladin: heals ally for 1", units[1].currentHealth === 9);
+  check("paladin: group heal logged twice", heals.length === 2);
+}
+
+// Cleric heals all living allies, including self, at end of combat round.
+{
+  const run = buildRunSlotted([{ id: "cleric", slot: 0 }, { id: "barbarian", slot: 1 }]);
+  const units = buildCombatUnitsFromRun(run);
+  units[0].currentHealth = 6;
+  units[1].currentHealth = 8;
+  const heals = [];
+  const logger = { logHeal: (healer, target, amount) => heals.push(`${healer.displayName}->${target.displayName}:${amount}`) };
+  HeroEffects.onEndOfCombatRound(1, run, null, units, [], {}, logger);
+  check("cleric: heals self for 1", units[0].currentHealth === 7);
+  check("cleric: heals ally for 1", units[1].currentHealth === 9);
+  check("cleric: group heal logged twice", heals.length === 2);
+}
+
+// Paladin and Cleric group heals stack.
+{
+  const run = buildRunSlotted([{ id: "paladin", slot: 0 }, { id: "cleric", slot: 1 }, { id: "barbarian", slot: 2 }]);
+  const units = buildCombatUnitsFromRun(run);
+  units[0].currentHealth = 12;
+  units[1].currentHealth = 6;
+  units[2].currentHealth = 8;
+  const heals = [];
+  const logger = { logHeal: (healer, target, amount) => heals.push(`${healer.displayName}->${target.displayName}:${amount}`) };
+  HeroEffects.onEndOfCombatRound(1, run, null, units, [], {}, logger);
+  check("groupheal: paladin healed by both effects", units[0].currentHealth === 14);
+  check("groupheal: cleric healed by both effects", units[1].currentHealth === 8);
+  check("groupheal: barbarian healed by both effects", units[2].currentHealth === 10);
+  check("groupheal: six stacked heal events logged", heals.length === 6);
+}
+
+// Barbarian gains +2 attack while at half HP or below, recalculated at attack time.
+{
+  const run = buildRunSlotted([{ id: "barbarian", slot: 0 }]);
+  const barbarian = buildCombatUnitsFromRun(run)[0];
+  const dummy = new CU("Training Dummy", 0, 20, 20, false, 0, null, null);
+  const logger = { logMessage: () => {} };
+  barbarian.currentHealth = 6;
+  HeroEffects.onAttack(barbarian, dummy, logger);
+  check("barbarian: no rage above half health", barbarian.attack === 2);
+  barbarian.currentHealth = 5;
+  HeroEffects.onAttack(barbarian, dummy, logger);
+  check("barbarian: rage attack at half health", barbarian.attack === 4);
+  barbarian.currentHealth = 6;
+  HeroEffects.onAttack(barbarian, dummy, logger);
+  check("barbarian: rage removed after healing above half", barbarian.attack === 2);
+}
+
+// The three new heroes can complete a full combat together without errors.
+{
+  const run = buildRun(["paladin", "cleric", "barbarian"]);
+  const result = new CombatManager().startCombat(run, encounter(1, 1));
+  check("newheroes: full combat resolved", result.logLines.length > 0);
+  check("newheroes: no combat error and final line present",
+    result.logLines[result.logLines.length - 1] === "Player wins!" || result.logLines[result.logLines.length - 1] === "Player loses.");
 }
 
 // Enchanter gives +1 attack to adjacent Damage allies.

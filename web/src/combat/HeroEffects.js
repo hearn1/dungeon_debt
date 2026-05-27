@@ -165,8 +165,20 @@ export const HeroEffects = {
     return 0;
   },
 
-  onAttack(_attacker, _defender, _logger) {
-    // No-op in the current roster (kept as a named hook point).
+  onAttack(attacker, _defender, logger) {
+    if (!attacker || !attacker.isPlayerSide || !attacker.sourceHero || !attacker.sourceHero.definition) return;
+    if (attacker.sourceHero.definition.effectId !== HeroEffectId.BarbarianRage) return;
+
+    if (attacker._barbarianBaseAttack === undefined) {
+      attacker._barbarianBaseAttack = attacker.attack;
+    }
+
+    const rageActive = attacker.currentHealth * 2 <= attacker.maxHealth;
+    const nextAttack = attacker._barbarianBaseAttack + (rageActive ? 2 : 0);
+    if (attacker.attack === nextAttack) return;
+
+    attacker.attack = nextAttack;
+    if (logger && rageActive) logger.logMessage(`${attacker.displayName} rages (+2 attack).`);
   },
 
   onSurvivingAttack(attacker, defender, logger) {
@@ -207,6 +219,14 @@ export const HeroEffects = {
         ? GameRules.SilverPriestHealAmount
         : GameRules.FrontlineHealAmount;
       healLeftmostFrontlineAlly(priest, playerUnits, amount, logger);
+    }
+
+    // Paladin and Cleric group heals stack independently.
+    for (const healer of playerUnits) {
+      if (!healer.isAlive || !healer.sourceHero || !healer.sourceHero.definition) continue;
+      const effectId = healer.sourceHero.definition.effectId;
+      if (effectId !== HeroEffectId.PaladinAuraHeal && effectId !== HeroEffectId.ClericGroupHeal) continue;
+      healAllLivingAllies(healer, playerUnits, 1, logger);
     }
 
     // Frugal Healer reuses the Priest-style frontline heal for its ghost team.
@@ -374,6 +394,18 @@ function healLeftmostFrontlineAlly(healer, allies, healAmount, logger) {
   let healTarget = findLeftmostLivingInSlotRange(allies, 0, GameRules.FrontlineSlots - 1);
   if (!healTarget) healTarget = healer;
 
+  healUnit(healer, healTarget, healAmount, logger);
+}
+
+function healAllLivingAllies(healer, allies, healAmount, logger) {
+  if (!healer || !healer.isAlive || !allies) return;
+  for (const ally of allies) {
+    if (!ally.isAlive) continue;
+    healUnit(healer, ally, healAmount, logger);
+  }
+}
+
+function healUnit(healer, healTarget, healAmount, logger) {
   let healed = healAmount;
   let newHealth = healTarget.currentHealth + healed;
   if (newHealth > healTarget.maxHealth) {
