@@ -136,6 +136,7 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 .uc-tier { font-size: 10px; font-weight: 700; letter-spacing: 1px; padding: 2px 7px; border-radius: 9px; }
 .uc-tier.Bronze { background: rgba(184, 115, 51, 0.22); color: rgb(204, 150, 95); }
 .uc-tier.Silver { background: rgba(209, 214, 224, 0.22); color: rgb(214, 218, 226); }
+.uc-tier.Gold { background: rgba(212, 175, 55, 0.24); color: rgb(236, 198, 78); box-shadow: 0 0 0 1px rgba(212, 175, 55, 0.34) inset; }
 .uc-role { font-size: 11px; letter-spacing: 1.5px; color: var(--ink-mute); text-transform: uppercase; }
 .uc-stats { display: flex; gap: 14px; }
 .uc-stat { display: flex; flex-direction: column; }

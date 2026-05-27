@@ -21,6 +21,14 @@ function check(name, cond) {
 
 console.log("Run-flow test");
 
+// ---- Gold tier enum is present and Diamond is deferred ----
+{
+  check("tier: Bronze exists", HeroTier.Bronze === "Bronze");
+  check("tier: Silver exists", HeroTier.Silver === "Silver");
+  check("tier: Gold exists", HeroTier.Gold === "Gold");
+  check("tier: Diamond absent", HeroTier.Diamond === undefined);
+}
+
 // ---- Run initialization applies the difficulty preset ----
 {
   const gm = new GameManager();
@@ -53,7 +61,7 @@ console.log("Run-flow test");
   check("variants: five seeds produce at least two sequences", distinct.size >= 2);
 }
 
-// ---- Shop hire spends gold and adds to party; duplicate hire merges to Silver ----
+// ---- Shop hire spends gold and adds to party; direct offers stop at Silver ----
 {
   const gm = new GameManager();
   gm.startRun(DifficultyPresetId.ApprenticeLedger); // more starting gold
@@ -63,6 +71,7 @@ console.log("Run-flow test");
 
   const someHero = shop.currentOffers.find((o) => o && o.tier === HeroTier.Bronze);
   check("shop: at least one bronze offer", !!someHero);
+  check("shop: no direct Gold offers", shop.currentOffers.every((o) => !o || o.tier !== HeroTier.Gold));
 
   const goldBefore = run.gold;
   const idx = shop.currentOffers.findIndex((o) => o && !o.purchased && o.hireCost <= run.gold);
@@ -72,7 +81,7 @@ console.log("Run-flow test");
   check("shop: gold decreased", run.gold < goldBefore);
 }
 
-// ---- Duplicate hire merges Bronze -> Silver (direct ShopOffer injection) ----
+// ---- Duplicate hire merges Bronze -> Silver -> Gold (direct ShopOffer injection) ----
 {
   const gm = new GameManager();
   gm.startRun(DifficultyPresetId.ApprenticeLedger);
@@ -87,12 +96,23 @@ console.log("Run-flow test");
     shop.currentOffers.length = 0;
     shop.currentOffers.push(new ShopOffer(def, 0, HeroTier.Bronze));
     shop.currentOffers.push(new ShopOffer(def, 0, HeroTier.Bronze));
+    shop.currentOffers.push(new ShopOffer(def, 0, HeroTier.Bronze));
 
     shop.hire(0);
     check("merge: first hire is Bronze", run.party[0].tier === HeroTier.Bronze);
     shop.hire(1);
     check("merge: duplicate hire upgraded to Silver", run.party[0].tier === HeroTier.Silver);
+    shop.hire(2);
+    const hero = run.party[0];
+    check("merge: duplicate Silver upgraded to Gold", hero.tier === HeroTier.Gold);
     check("merge: still one party member", run.party.length === 1);
+    check("merge: Gold attack is 1.8x Bronze", hero.attack === GameRulesFns.scaleCombatStat(def.baseAttack, GameRules.GoldStatMultiplier));
+    check("merge: Gold health is 1.8x Bronze", HeroEffects.getTierAdjustedMaxHealth(hero) === GameRulesFns.scaleCombatStat(def.baseHealth, GameRules.GoldStatMultiplier));
+    check("merge: Gold current health reseeded", hero.currentHealth === HeroEffects.getTierAdjustedMaxHealth(hero));
+    check("merge: Gold upkeep is Bronze + 2", hero.upkeepThisRound === def.baseUpkeep + GameRules.GoldUpkeepIncrease);
+    shop.currentOffers.push(new ShopOffer(def, 0, HeroTier.Bronze));
+    const blocked = shop.hire(3);
+    check("merge: Gold cannot promote further", blocked === false && hero.tier === HeroTier.Gold);
   } else {
     check("merge: had a definition to test", false);
   }

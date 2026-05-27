@@ -51,6 +51,40 @@ Copy this block when adding a new entry. Paste it at the top of the Session log 
 
 <!-- Newest entries at the top. -->
 
+## 2026-05-26 - #66: Gold hero tier
+
+**Milestone:** GitHub expansion issue wave
+**Status:** Complete
+
+**Files added:**
+- None.
+
+**Files modified:**
+- `web/src/data/enums.js` - added `HeroTier.Gold`; no Diamond.
+- `web/src/core/GameRules.js` - added Gold badge color and Gold stat/upkeep constants.
+- `web/src/run/ShopManager.js` - extended duplicate merges from Bronze -> Silver -> Gold; Gold is terminal and not offered directly.
+- `web/src/combat/HeroEffects.js` - added Gold 1.8x HP/attack and +2 upkeep handling while keeping Gold at existing Silver effect potency.
+- `web/styles/main.css` - added Gold tier badge styling.
+- `web/src/test/run.js` - added HeroTier and Bronze -> Silver -> Gold promotion checks.
+
+**Acceptance criteria:**
+- [x] `HeroTier` has Bronze, Silver, Gold and no Diamond.
+- [x] Hiring a duplicate Silver promotes that hero to Gold.
+- [x] Gold HP, attack, and upkeep update according to locked rules.
+- [x] Gold heroes never appear as direct shop offers.
+- [x] `npm.cmd run test:headless` includes and passes Bronze -> Silver -> Gold promotion checks.
+- [x] Combat remains deterministic; no `Math.random()` added.
+
+**Test plan:** No separate `TestPlans/` file. Verified with `npm.cmd run test:headless`; all suites passed.
+
+**Deviations from plan:**
+- None. `HeroEffects.js` was included per Matt's confirmed orchestration choice because the live tier stat seed path is there.
+
+**Follow-up flagged:**
+- Diamond tier, tier-2 effect potency, rare late-act Gold shop offers, and multi-tier jump promotions remain deferred.
+
+**Next slice:** `#69` - Paladin, Cleric, Barbarian.
+
 ## 2026-05-26 - #73: Encounter variants Bucket A
 
 **Milestone:** GitHub expansion issue wave
