@@ -18,6 +18,7 @@ export const GameRules = Object.freeze({
   EconomyRoleColor: rgba(0.78, 0.62, 0.2),
   BronzeBadgeColor: rgba(0.72, 0.45, 0.2),
   SilverBadgeColor: rgba(0.82, 0.84, 0.88),
+  GoldBadgeColor: rgba(0.831, 0.686, 0.216),
   ReservedTierSlotOutlineColor: rgba(0.45, 0.45, 0.5, 0.6),
   GuardedStatusColor: rgba(0.24, 0.52, 0.88),
   BurnedStatusColor: rgba(0.92, 0.42, 0.12),
@@ -169,6 +170,8 @@ export const GameRules = Object.freeze({
   SilverStatAttackBonus: 2,
   SilverStatHealthBonus: 4,
   SilverUpkeepReduction: 2,
+  GoldStatMultiplier: 1.8,
+  GoldUpkeepIncrease: 2,
 
   BronzeKnightRedirectCount: 1,
   SilverKnightRedirectCount: 2,

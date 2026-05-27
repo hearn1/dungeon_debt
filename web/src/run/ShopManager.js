@@ -54,10 +54,9 @@ export class ShopManager {
 
     const existing = findExistingPartyMember(run, offer.hero);
     if (existing) {
-      // Silver-owned heroes are excluded from the offer pool; guard anyway.
-      if (existing.tier === HeroTier.Silver) return false;
+      if (existing.tier === HeroTier.Gold) return false;
       run.gold -= offer.hireCost;
-      existing.tier = HeroTier.Silver;
+      existing.tier = getNextMergeTier(existing.tier);
       HeroEffects.applyTierStatSeed(existing);
       existing.currentHealth = HeroEffects.getTierAdjustedMaxHealth(existing);
       offer.purchased = true;
@@ -100,24 +99,24 @@ export class ShopManager {
     if (!rng) return;
 
     const run = this._getRunState();
-    const silverOwned = new Set();
+    const goldOwned = new Set();
     const anyOwned = new Set();
     if (run) {
       for (const member of run.party) {
         if (!member || !member.definition) continue;
         anyOwned.add(member.definition.id);
-        if (member.tier === HeroTier.Silver) silverOwned.add(member.definition.id);
+        if (member.tier === HeroTier.Gold) goldOwned.add(member.definition.id);
       }
     }
 
     const allHeroes = DataRepository.allHeroes;
 
-    // Bronze pool: heroes whose Silver upgrade is not already owned.
+    // Bronze pool: owned Bronze/Silver heroes can merge; Gold is terminal.
     const bronzePool = [];
     // Silver pool: only heroes the player does not own at all.
     const silverPool = [];
     for (const hero of allHeroes) {
-      if (!silverOwned.has(hero.id)) bronzePool.push(hero);
+      if (!goldOwned.has(hero.id)) bronzePool.push(hero);
       if (!anyOwned.has(hero.id)) silverPool.push(hero);
     }
 
@@ -151,6 +150,12 @@ export class ShopManager {
     if (!this._runManager) return null;
     return this._runManager.currentRunState;
   }
+}
+
+function getNextMergeTier(tier) {
+  if (tier === HeroTier.Bronze) return HeroTier.Silver;
+  if (tier === HeroTier.Silver) return HeroTier.Gold;
+  return tier;
 }
 
 function findExistingPartyMember(run, hero) {

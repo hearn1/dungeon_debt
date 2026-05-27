@@ -12,7 +12,7 @@ function makeEnum(...names) {
 
 export const HeroRole = makeEnum("Tank", "Damage", "Support", "Economy");
 
-export const HeroTier = makeEnum("Bronze", "Silver");
+export const HeroTier = makeEnum("Bronze", "Silver", "Gold");
 
 export const HeroEffectId = makeEnum(
   "None",

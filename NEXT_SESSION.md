@@ -4,48 +4,43 @@ This file always describes the **next** session's work. Rewrite it at the end of
 
 ---
 
-## Session: #66 - Gold hero tier
+## Session: #69 - Paladin, Cleric, Barbarian
 
-**Slice ID:** GitHub issue `#66` first slice  
+**Slice ID:** GitHub issue `#69` first slice  
 **Type:** GitHub expansion issue wave  
 **Severity:** Feature foundation  
 
 ### One-sentence goal
 
-Add the Gold hero tier as an earned merge tier above Silver, with 1.8x HP/attack scaling, +2 upkeep over Bronze, no direct Gold shop offers, and no Diamond tier.
+Add exactly three new Bronze shop heroes - Paladin, Cleric, and Barbarian - with their locked combat effects and deterministic tests.
 
 ### Why this session exists
 
-`#72` balance harness and `#73` encounter variants are complete. The next conflict-aware slice is `#66`, which expands the existing Bronze -> Silver merge progression to Bronze -> Silver -> Gold before adding new heroes or difficulty scaffolding.
-
-### Confirmed choices from orchestration
-
-Matt confirmed the recommended answers for the open planning questions:
-
-1. `web/src/combat/HeroEffects.js` may be added to the file list if needed, because current tier stat seeding lives there.
-2. Preserve Silver behavior as "unchanged" and add Gold in the same local style unless tests prove the issue's 1.4x wording requires centralization.
+`#72`, `#73`, and `#66` are complete. The next conflict-aware slice is `#69`, which grows the hero roster by exactly three locked archetypes before difficulty, Act 3, Rival Race, and Visual V1 work.
 
 ### Scope
 
 **In scope:**
 
-- Add `HeroTier.Gold = "Gold"` only.
-- Add Gold HP/attack scaling target: 1.8x vs Bronze.
-- Add Gold upkeep target: Bronze upkeep + 2.
-- Extend duplicate-hire merge from Bronze -> Silver to Silver -> Gold.
-- Gold heroes cannot promote further in this slice.
-- Gold heroes never appear directly in shop offers.
-- Add Gold tier color/style.
-- Add targeted run-flow tests for Bronze -> Silver -> Gold.
+- Add exactly three `HeroEffectId` values:
+  - `PaladinAuraHeal`
+  - `ClericGroupHeal`
+  - `BarbarianRage`
+- Add exactly three `HeroDefinition` entries to the Bronze hero/shop pool:
+  - Paladin: Tank, upkeep 4, HP 14, attack 2, `PaladinAuraHeal`; end of each combat round, heal 1 to all living allies including self.
+  - Cleric: Support, upkeep 3, HP 8, attack 1, `ClericGroupHeal`; end of each combat round, heal 1 to all living allies including self. Stacks with Paladin.
+  - Barbarian: Damage, upkeep 3, HP 10, attack 2, `BarbarianRage`; while at <=50% HP, +2 attack. Recompute on damage/heal or at attack time if simpler.
+- Add deterministic combat tests for all three effects.
+- Spot-check shop role balance with fixed seed: across 20 offer sets, no single role dominates >70%.
 
 **Not in scope:**
 
-- Diamond tier.
-- Tier-2 or Gold effect potency changes.
-- Rare late-act Gold shop offers.
-- Multi-tier jump promotions.
-- New heroes.
-- Combat RNG, new dependencies, framework/bundler/TypeScript, canvas, or WebGL.
+- Rogue, Druid, Warlock, Sorcerer, Monk, Fighter, Artificer, or any other hero.
+- Custom sprites or asset work.
+- Tier-scaled effect potency.
+- Out-of-combat hero abilities.
+- New roles beyond Tank/Damage/Support/Economy.
+- New dependencies, framework/bundler/TypeScript, canvas, or WebGL.
 
 ### Files to read
 
@@ -53,43 +48,39 @@ Matt confirmed the recommended answers for the open planning questions:
 AGENTS.md
 CLAUDE.md
 SESSION_PROTOCOL.md
-PROGRESS.md (latest #73 and #72 entries)
+PROGRESS.md (latest #66, #73, #72 entries)
 REGRESSIONS.md (Open section)
 IMPLEMENTATION_PLAN.md §6
 web/src/data/enums.js
-web/src/core/GameRules.js
-web/src/run/heroStats.js
-web/src/run/ShopManager.js
+web/src/core/DataRepository.js
 web/src/combat/HeroEffects.js
-web/styles/main.css
-web/src/test/run.js
+web/src/test/combat.js
+web/src/test/run.js only if needed for shop-balance helper context
 ```
 
 ### Files to modify
 
-- `web/src/data/enums.js` - add `Gold` to `HeroTier`; do not add Diamond.
-- `web/src/core/GameRules.js` - add Gold tier multiplier/color constants or table entries.
-- `web/src/run/heroStats.js` - audit hardcoded Silver-only branches; modify only if needed.
-- `web/src/run/ShopManager.js` - extend duplicate-hire promotion to Silver -> Gold and block further Gold promotion.
-- `web/src/combat/HeroEffects.js` - allowed if required for current tier stat seed path.
-- `web/styles/main.css` - add Gold tier badge/card style matching existing markup.
-- `web/src/test/run.js` - add Bronze -> Silver -> Gold promotion checks for stats/upkeep and no direct Gold offers.
+- `web/src/data/enums.js` - add the three new `HeroEffectId` values only.
+- `web/src/combat/HeroEffects.js` - implement Paladin/Cleric group heals and Barbarian rage deterministically.
+- `web/src/core/DataRepository.js` - add exactly Paladin, Cleric, Barbarian to the hero definitions/Bronze shop pool.
+- `web/src/test/combat.js` - add one deterministic effect test per hero plus stacking/role-balance coverage as appropriate.
 
 ### Files not to touch
 
-- `web/src/core/DataRepository.js` unless a plan checkpoint proves it is required and Matt confirms.
-- `web/src/test/combat.js` unless a plan checkpoint proves it is required and Matt confirms.
-- UI panels.
+- UI/CSS files.
+- Sprite/assets files.
+- `web/package.json` and dependencies.
+- Any files for other heroes.
 - `PROGRESS.md`, `REGRESSIONS.md`, `NEXT_SESSION.md`, `IMPLEMENTATION_PLAN.md` until wrap.
 
 ### Acceptance criteria
 
-1. `HeroTier` has Bronze, Silver, Gold and no Diamond.
-2. Hiring a duplicate Silver in the active party promotes that hero to Gold.
-3. Gold HP, attack, and upkeep update according to the locked rules.
-4. Gold heroes never appear as direct shop offers.
-5. `npm.cmd run test:headless` includes and passes a Bronze -> Silver -> Gold promotion test.
-6. Combat remains deterministic; no `Math.random()` added.
+1. All three heroes are hireable from the shop and can complete a full combat without errors.
+2. Each effect fires at the specified hook and is verifiable in deterministic tests.
+3. Paladin and Cleric group heals stack.
+4. Barbarian gains +2 attack while at <=50% HP without introducing combat RNG.
+5. Shop offers remain role-balanced in the fixed-seed 20-offer-set spot check.
+6. `npm.cmd run test:headless` passes.
 
 ### Verification
 
@@ -101,4 +92,4 @@ npm.cmd run test:headless
 
 ### Start prompt for the next session
 
-> Read `AGENTS.md`, `CLAUDE.md`, and `SESSION_PROTOCOL.md`, then follow `NEXT_SESSION.md`. The current slice is GitHub issue `#66` first slice: Gold hero tier only. Use the confirmed orchestration choices in `NEXT_SESSION.md`, produce the Orient summary, stop for confirmation, then produce the Plan checkpoint before editing.
+> Read `AGENTS.md`, `CLAUDE.md`, and `SESSION_PROTOCOL.md`, then follow `NEXT_SESSION.md`. The current slice is GitHub issue `#69` first slice: add exactly Paladin, Cleric, and Barbarian. Produce the Orient summary, stop for confirmation, then produce the Plan checkpoint before editing.

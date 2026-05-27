@@ -22,6 +22,9 @@ export const HeroEffects = {
 
   getTierAdjustedAttack(hero, tier) {
     if (!hero) return 0;
+    if (tier === HeroTier.Gold) {
+      return GameRulesFns.scaleCombatStat(hero.baseAttack, GameRules.GoldStatMultiplier);
+    }
     let attack = hero.baseAttack;
     if (tier === HeroTier.Silver && hasSilverAttackBonus(hero)) {
       attack += GameRules.SilverStatAttackBonus;
@@ -35,6 +38,7 @@ export const HeroEffects = {
 
   getTierAdjustedUpkeep(hero, tier) {
     if (!hero) return 0;
+    if (tier === HeroTier.Gold) return hero.baseUpkeep + GameRules.GoldUpkeepIncrease;
     let upkeep = hero.baseUpkeep;
     if (tier === HeroTier.Silver
       && (hero.effectId === HeroEffectId.GolemArmor
@@ -53,7 +57,7 @@ export const HeroEffects = {
     for (const unit of playerUnits) {
       if (!unit.isAlive || !unit.sourceHero || !unit.sourceHero.definition) continue;
       if (unit.sourceHero.definition.effectId === HeroEffectId.KnightRedirect) {
-        const silverKnight = unit.sourceHero.tier === HeroTier.Silver;
+        const silverKnight = hasSilverEffectTier(unit.sourceHero.tier);
         knightRedirectsRemaining = silverKnight
           ? GameRules.SilverKnightRedirectCount
           : GameRules.BronzeKnightRedirectCount;
@@ -84,7 +88,7 @@ export const HeroEffects = {
       if (!unit.isAlive || !unit.sourceHero || !unit.sourceHero.definition) continue;
       if (unit.sourceHero.definition.effectId !== HeroEffectId.EnchanterAdjacent) continue;
 
-      const silver = unit.sourceHero.tier === HeroTier.Silver;
+      const silver = hasSilverEffectTier(unit.sourceHero.tier);
       for (let j = 0; j < playerUnits.length; j++) {
         if (j === i) continue;
         const ally = playerUnits[j];
@@ -168,7 +172,7 @@ export const HeroEffects = {
   onSurvivingAttack(attacker, defender, logger) {
     if (!attacker || !defender || !attacker.isPlayerSide) return;
     if (!attacker.sourceHero || !attacker.sourceHero.definition) return;
-    if (attacker.sourceHero.tier !== HeroTier.Silver) return;
+    if (!hasSilverEffectTier(attacker.sourceHero.tier)) return;
 
     let statusId = CombatStatusId.None;
     const effectId = attacker.sourceHero.definition.effectId;
@@ -199,7 +203,7 @@ export const HeroEffects = {
     for (const priest of playerUnits) {
       if (!priest.isAlive || !priest.sourceHero || !priest.sourceHero.definition) continue;
       if (priest.sourceHero.definition.effectId !== HeroEffectId.PriestHeal) continue;
-      const amount = priest.sourceHero.tier === HeroTier.Silver
+      const amount = hasSilverEffectTier(priest.sourceHero.tier)
         ? GameRules.SilverPriestHealAmount
         : GameRules.FrontlineHealAmount;
       healLeftmostFrontlineAlly(priest, playerUnits, amount, logger);
@@ -247,7 +251,7 @@ export const HeroEffects = {
       for (const hero of run.party) {
         if (!hero || !hero.definition) continue;
         if (hero.definition.effectId === HeroEffectId.BardGoldOnWin) {
-          const gain = hero.tier === HeroTier.Silver ? GameRules.SilverBardWinGold : GameRules.BronzeBardWinGold;
+          const gain = hasSilverEffectTier(hero.tier) ? GameRules.SilverBardWinGold : GameRules.BronzeBardWinGold;
           run.gold += gain;
           if (logger) logger.logMessage(`${hero.definition.displayName} sings for +${gain} gold.`);
         }
@@ -275,7 +279,7 @@ export const HeroEffects = {
       if (apprentice.definition.effectId !== HeroEffectId.ApprenticeWizardSupport) continue;
       const wizard = findFirstByEffect(run.party, HeroEffectId.WizardScaling);
       if (!wizard) continue;
-      const reduction = apprentice.tier === HeroTier.Silver
+      const reduction = hasSilverEffectTier(apprentice.tier)
         ? GameRules.SilverApprenticeWizardReduction
         : GameRules.BronzeApprenticeWizardReduction;
       let reduced = wizard.upkeepThisRound - reduction;
@@ -287,7 +291,7 @@ export const HeroEffects = {
     for (const treasurer of run.party) {
       if (!treasurer || !treasurer.definition) continue;
       if (treasurer.definition.effectId !== HeroEffectId.TreasurerUpkeepReduce) continue;
-      const targetCount = treasurer.tier === HeroTier.Silver
+      const targetCount = hasSilverEffectTier(treasurer.tier)
         ? GameRules.SilverTreasurerTargets
         : GameRules.BronzeTreasurerTargets;
       const targeted = [];
@@ -305,11 +309,18 @@ export const HeroEffects = {
 
 function getTierAdjustedMaxHealthDef(hero, tier) {
   if (!hero) return 0;
+  if (tier === HeroTier.Gold) {
+    return GameRulesFns.scaleCombatStat(hero.baseHealth, GameRules.GoldStatMultiplier);
+  }
   let max = hero.baseHealth;
   if (tier === HeroTier.Silver && hasSilverHealthBonus(hero)) {
     max += GameRules.SilverStatHealthBonus;
   }
   return max;
+}
+
+function hasSilverEffectTier(tier) {
+  return tier === HeroTier.Silver || tier === HeroTier.Gold;
 }
 
 function hasSilverAttackBonus(hero) {
