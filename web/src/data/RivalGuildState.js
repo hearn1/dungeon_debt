@@ -1,7 +1,7 @@
 // Ported from DungeonDebt/Assets/Scripts/Data/RivalGuildState.cs
 // Mutable rival snapshot.
 export class RivalGuildState {
-  constructor(guild, displayName, morale, debt, payroll, statusLabel, payrollGrowthPerRound) {
+  constructor(guild, displayName, morale, debt, payroll, statusLabel, payrollGrowthPerRound, progress = 0, finishedAtRound = null, tributeApplied = false) {
     this.guild = guild;
     this.displayName = displayName;
     this.morale = morale;
@@ -9,5 +9,8 @@ export class RivalGuildState {
     this.payroll = payroll;
     this.statusLabel = statusLabel;
     this.payrollGrowthPerRound = payrollGrowthPerRound;
+    this.progress = progress;
+    this.finishedAtRound = finishedAtRound;
+    this.tributeApplied = tributeApplied;
   }
 }

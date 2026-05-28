@@ -51,6 +51,46 @@ Copy this block when adding a new entry. Paste it at the top of the Session log 
 
 <!-- Newest entries at the top. -->
 
+## 2026-05-28 - #68: Rival Race mechanic
+
+**Milestone:** GitHub expansion issue wave
+**Status:** Complete
+
+**Files added:**
+- None
+
+**Files modified:**
+- `web/src/data/RivalGuildState.js` - added rival race progress, finish round, and one-time penalty guard fields.
+- `web/src/data/RunState.js` - added `rivalRaceFinishesThisRound` and scout-time rival lead snapshotting for current encounters.
+- `web/src/run/RivalManager.js` - advances deterministic race curves and applies finish-first morale pressure while preserving old rival stat mutation.
+- `web/src/run/RunManager.js` - applies end-of-run race tribute on victory.
+- `web/src/combat/CombatManager.js` - scales RivalGhost enemy stats from the scout-time lead snapshot.
+- `web/src/core/GameRules.js` - added Rival Race constants and curve helpers.
+- `web/src/core/DataRepository.js` - initializes race fields for all three rival guilds.
+- `web/src/ui/panels/RivalUpdatePanel.js` - replaced the passive stat dump with a 4-lane race leaderboard.
+- `web/styles/main.css` - added Rival Race lane, bar, progress, and finished-state styling.
+- `web/src/test/run.js` - added deterministic race, morale, stat-scaling, tribute, and panel smoke tests.
+
+**Acceptance criteria:**
+- [x] Rival progress advances per deterministic guild curve.
+- [x] Finish-first morale applies once per rival.
+- [x] RivalGhost lead scaling uses scout-time snapshot data, not live rival state.
+- [x] Victory tribute applies per rival still behind the player.
+- [x] Rival Update panel renders the 4-lane leaderboard with projected finish rounds.
+- [x] No new `Math.random()` usage or combat RNG introduced.
+- [x] Headless tests cover curve advancement, morale pressure, ghost scaling, victory tribute, and panel rendering.
+- [x] Browser preview verified the Rival Race panel with zero console warnings/errors.
+
+**Test plan:** `npm.cmd run test:headless`; `node src/test/verify.js`; browser preview via `python web/serve.py` - all pass.
+
+**Deviations from plan:**
+- Scout-time lead snapshotting was implemented in the `RunState.currentEncounter` setter so no out-of-list `EncounterManager.js` edit was needed.
+
+**Follow-up flagged:**
+- None
+
+**Next slice:** #71 - Visual identity V1
+
 ## 2026-05-27 - #67: Act 3 dev-flag content
 
 **Milestone:** GitHub expansion issue wave

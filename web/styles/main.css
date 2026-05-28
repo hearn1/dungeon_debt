@@ -12,6 +12,7 @@
   --rule-strong: rgb(74, 83, 100);
   --rule-faint: rgb(32, 38, 47);
   --gold: rgb(201, 160, 74);
+  --dd-rust-accent: rgb(204, 122, 58);
 
   --debt-stable: rgb(107, 155, 107);
   --debt-strained: rgb(201, 160, 74);
@@ -258,12 +259,50 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 
 /* ---- Rival leaderboard ---- */
 .rival-list { display: flex; flex-direction: column; gap: 10px; }
-.rival-row { display: flex; align-items: center; gap: 16px; background: var(--bg-card); border: 1px solid var(--rule); border-radius: 8px; padding: 12px 16px; }
-.rival-swatch { width: 10px; height: 36px; border-radius: 3px; }
 .rival-name { font-weight: 700; min-width: 140px; }
-.rival-stat { display: flex; flex-direction: column; min-width: 70px; }
-.rival-stat .v { font-weight: 700; }
-.rival-stat .l { font-size: 10px; letter-spacing: 1px; color: var(--ink-mute); }
+.rival-race-lane {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.7fr) minmax(360px, 1.4fr) 96px;
+  align-items: center;
+  gap: 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  padding: 14px 16px;
+}
+.rival-race-lane.finished {
+  opacity: 0.58;
+  filter: grayscale(0.8);
+}
+.rival-race-top { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.rival-race-meta { color: var(--ink-dim); font-size: 12px; letter-spacing: 0.4px; }
+.rival-race-track {
+  height: 12px;
+  background: var(--rule-faint);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.rival-race-bar {
+  height: 100%;
+  min-width: 2px;
+  border-radius: 6px;
+  transition: width .2s ease;
+}
+.rival-race-progress {
+  color: var(--ink-dim);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.rival-race-finished {
+  background: rgba(196, 74, 62, 0.12);
+  border: 1px solid var(--debt-critical);
+  border-radius: 8px;
+  color: rgb(232, 150, 142);
+  padding: 12px 16px;
+  font-weight: 700;
+}
 
 .scout-card { background: var(--bg-panel); border: 1px solid var(--rule); border-radius: 10px; padding: 20px; display: flex; flex-direction: column; gap: 12px; }
 .scout-card.capstone-card { border-color: var(--gold); box-shadow: 0 0 24px rgba(201, 160, 74, 0.18); }

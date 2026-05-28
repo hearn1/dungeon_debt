@@ -4,59 +4,71 @@ This file always describes the **next** session's work. Rewrite it at the end of
 
 ---
 
-## Session: #68 - Rival Race mechanic
+## Session: #71 - Visual identity V1
 
-**Slice ID:** GitHub issue `#68` first slice
+**Slice ID:** GitHub issue `#71` first slice
 **Type:** GitHub expansion issue wave
-**Severity:** Feature foundation
+**Severity:** Visual polish foundation
 
 ### One-sentence goal
 
-Replace the passive Rival Update stats panel with the deterministic "Race the Rivals" mechanic, including race progress, finish-first morale pressure, rival ghost lead scaling, victory tribute, and a 4-lane leaderboard.
+Ship the V1 visual identity pass only: locked Faded Ledger palette tokens, framed hero cards, corner tier ribbons, consistent panel headers, and sharp candle buttons without adding assets, dependencies, fonts, or animation work.
 
 ### Why this session exists
 
-`#72`, `#73`, `#66`, `#69`, `#70`, and `#67` are complete. The next conflict-aware slice is `#68`, which touches shared run/combat/UI surfaces and should be completed before the final visual identity sweep.
+`#72`, `#73`, `#66`, `#69`, `#70`, `#67`, and `#68` are complete. The final conflict-aware issue slice is `#71`, intentionally last because it is a broad UI/CSS sweep.
 
 ### Scope
 
 **In scope:**
 
-- Add continuous rival progress from 0 to 20, while player progress remains `runState.round`.
-- Advance rival progress every Rival Update tick using deterministic `GameRules.RivalRaceCurves` keyed by guild:
-  - Greedy: rounds 1-6 advance +1.4; round 7+ advances +0.8 if debt > 12, else +1.2.
-  - Frugal: always +1.1.
-  - Carry: rounds 1-5 advance +0.7; rounds 6-10 advance +1.1; round 11+ advance +1.5.
-- Keep old rival payroll/debt/morale mutation running in the background.
-- Add one-time morale penalty `GameRules.RivalFinishedFirstMorale = 5` when a rival reaches progress 20 before the player reaches round 20.
-- Populate `RunState.rivalRaceFinishesThisRound` for Rival Update flavor.
-- Snapshot rival lead at scout time for `RivalGhost` encounters.
-- Scale rival ghost enemies at combat start from the encounter snapshot:
-  - `lead = max(0, rival.progress - player.round)`
-  - HP multiplier `1 + 0.05 * lead`, capped at `1.50`
-  - attack multiplier `1 + 0.03 * lead`, capped at `1.30`
-- Apply victory tribute `GameRules.RivalRaceTributePerBehind = 3` per rival still behind the player at victory.
-- Rewrite `RivalUpdatePanel` as a 4-lane leaderboard with progress bars, current progress numbers, projected finish round, and finished-state flavor.
-- Add tests for curve advancement, finish-first morale, lead-based stat scaling, victory tribute, and panel rendering smoke.
+- V1 Visual identity pass only.
+- Add the locked Faded Ledger palette in `GameRules.js` and `main.css`:
+  - `--dd-parchment: #e3dcc6`
+  - `--dd-candle: #b8924a`
+  - `--dd-ink: #1a1612`
+  - `--dd-rust-accent: #a64a40`
+- Keep existing background, card, rule, role, debt, and status token families as-is; aliases may point at new tokens to minimize churn.
+- Keep typography family exactly `--font: 'Segoe UI', system-ui, sans-serif;`.
+- Replace flat hero cards with sharp-corner double-hairline framed cards.
+- Move hero role accent to a 4px left-edge swatch strip via `::before`.
+- Replace full tier pill text with a top-right clipped triangle ribbon showing the tier letter.
+- Refactor every panel under `web/src/ui/panels/` to emit the same D6 header structure:
+  - `.panel-head`
+  - `.panel-kicker`
+  - `.panel-title`
+  - optional `.panel-sub`
+  - followed by `<hr class="panel-rule" />`
+- Update button styling:
+  - `.btn.primary` solid candle fill, ink text, sharp corners.
+  - all `.btn` variants use `border-radius: 0`.
+  - `.btn.danger` uses rust accent color.
+- Capture before/after screenshots for the PR.
 
 **Locked design decisions:**
 
-- D1: Keep old payroll/debt/morale stats mutating in the background; remove them from the Rival Update UI.
-- D2: Rival ghost encounter slots stay unchanged at rounds 3, 6, and 9 in each act.
-- D3: Player-side race reward is end-of-run gold tribute only.
-- D4: Rival progress persists across acts; Act 1 -> 2 does not reset progress.
-- D5: Projected finish round is visible starting at round 1.
-- D6: Race-loss penalty is morale: `RivalFinishedFirstMorale = 5`, once per rival.
+- D1: Use the exact Faded Ledger token values above. They are foreground/accent only.
+- D2: System fonts only. Do not change `font-family`, add fonts, Google Fonts, or `@font-face`.
+- D3: Hero-card frame uses sharp corners and double-hairline frame. Status pills stay round.
+- D4: Role accent is a left-edge 4px swatch strip. Do not synthesize role colors for enemies.
+- D5: Tier badge is a top-right 22px triangle ribbon with the tier letter.
+- D6: Every panel uses identical header markup and a full-width `.panel-rule`.
+- D7: Primary button is solid candle fill with ink text and sharp corners.
 
 **Not in scope:**
 
-- Removing old payroll/debt/morale rival fields or old background mutation.
-- Moving rival encounter slots.
-- Mid-run pass bonuses or player-facing progress boosts.
-- Per-rival personality flavor variations beyond required finish/ahead messaging.
-- Balance harness tuning sweep.
-- Adding a fourth rival.
-- New RNG, `Math.random()`, combat RNG, dependencies, framework/bundler/TypeScript, canvas, or WebGL.
+- V2 combat scene.
+- V3 attack and impact feedback.
+- V4 status effect visuals.
+- V5 economy panel juice.
+- V6 panel/act/victory transitions.
+- New PNG/SVG assets or sprite work.
+- New animations beyond what already exists.
+- HP bar styling changes.
+- Status-pill shape changes.
+- Projectile overlay or combat-unit lunge keyframe changes.
+- Typography family changes.
+- New dependencies, framework/bundler/TypeScript, canvas, or WebGL.
 
 ### Files to read
 
@@ -64,51 +76,58 @@ Replace the passive Rival Update stats panel with the deterministic "Race the Ri
 AGENTS.md
 CLAUDE.md
 SESSION_PROTOCOL.md
-PROGRESS.md (latest #67, #70, #69 entries)
+PROGRESS.md (latest #68, #67, #70 entries)
 REGRESSIONS.md (Open section)
 IMPLEMENTATION_PLAN.md section 6
-web/src/data/RivalGuildState.js
-web/src/data/RunState.js
-web/src/run/RivalManager.js
-web/src/run/RunManager.js
-web/src/combat/CombatManager.js
-web/src/core/GameRules.js
-web/src/core/DataRepository.js
-web/src/ui/panels/RivalUpdatePanel.js
 web/styles/main.css
-web/src/test/run.js
+web/src/core/GameRules.js
+web/src/ui/components.js
+web/src/ui/panels/MainMenuPanel.js
+web/src/ui/panels/ScoutPanel.js
+web/src/ui/panels/ShopPanel.js
+web/src/ui/panels/FormationPanel.js
+web/src/ui/panels/PayrollPanel.js
+web/src/ui/panels/CombatPanel.js
+web/src/ui/panels/RelicRewardPanel.js
+web/src/ui/panels/RivalUpdatePanel.js
+web/src/ui/panels/EndScreenPanel.js
 ```
 
 ### Files to modify
 
-- `web/src/data/RivalGuildState.js` - add `progress`, `finishedAtRound`, and `tributeApplied`.
-- `web/src/data/RunState.js` - add `rivalRaceFinishesThisRound`.
-- `web/src/run/RivalManager.js` - advance progress, detect finishes, and populate per-round finish list while keeping existing payroll/debt/morale mutation.
-- `web/src/run/RunManager.js` - snapshot rival lead at scout time, apply finish-first morale penalty, and apply victory tribute.
-- `web/src/combat/CombatManager.js` - apply lead-based stat multipliers for `RivalGhost` enemies from the encounter snapshot.
-- `web/src/core/GameRules.js` - add race constants and `RivalRaceCurves`.
-- `web/src/core/DataRepository.js` - initialize rival race fields in `createRivalGuilds()`.
-- `web/src/ui/panels/RivalUpdatePanel.js` - replace old stats dump with 4-lane leaderboard.
-- `web/styles/main.css` - add `.rival-race-lane`, `.rival-race-bar`, and `.rival-race-finished`.
-- `web/src/test/run.js` - add deterministic race tests and panel rendering smoke coverage.
+- `web/styles/main.css` - palette tokens, card frame/ribbon/swatch styling, unified panel header/rule styles, sharp button styles.
+- `web/src/core/GameRules.js` - expose the four Faded Ledger tokens alongside existing UI tokens.
+- `web/src/ui/components.js` - update `heroCard()` tier rendering to use a tier letter ribbon.
+- `web/src/ui/panels/MainMenuPanel.js` - D6 header markup.
+- `web/src/ui/panels/ScoutPanel.js` - D6 header markup.
+- `web/src/ui/panels/ShopPanel.js` - D6 header markup.
+- `web/src/ui/panels/FormationPanel.js` - D6 header markup.
+- `web/src/ui/panels/PayrollPanel.js` - D6 header markup.
+- `web/src/ui/panels/CombatPanel.js` - D6 header markup.
+- `web/src/ui/panels/RelicRewardPanel.js` - D6 header markup.
+- `web/src/ui/panels/RivalUpdatePanel.js` - D6 header markup.
+- `web/src/ui/panels/EndScreenPanel.js` - D6 header markup.
 
 ### Files not to touch
 
-- `web/src/data/enums.js` unless the plan proves it is required and Matt confirms.
-- `web/src/ui/panels/MainMenuPanel.js`
+- `web/src/data/enums.js`
 - `web/src/core/Rng.js`
+- `web/src/combat/CombatManager.js`
+- `web/src/combat/HeroEffects.js`
+- `web/assets/**`
+- `package.json`
 - `PROGRESS.md`, `REGRESSIONS.md`, `NEXT_SESSION.md`, `IMPLEMENTATION_PLAN.md` until wrap.
 
 ### Acceptance criteria
 
-1. Each rival's `progress` advances per its guild curve every Rival Update tick from deterministic tests.
-2. Rival finish-first morale applies once per rival when that rival reaches progress 20 before the player reaches round 20.
-3. RivalGhost lead scaling uses the encounter snapshot, not live rival state, and applies the specified HP/attack formula with caps.
-4. Victory grants tribute = `RivalRaceTributePerBehind * rivals still behind player`.
-5. Rival Update panel shows a 4-lane leaderboard with progress bars, current progress numbers, projected finish round per lane, and finished state.
-6. Combat remains deterministic and no `Math.random()` is introduced.
-7. Headless tests cover curve advancement, finish-first morale, lead-based stat scaling, victory tribute, and panel rendering smoke.
-8. Browser/app preview verifies the Rival Update panel with zero console errors.
+1. The four `--dd-*` CSS custom properties exist on `:root` and are exposed from `GameRules.js`.
+2. Hero cards render with sharp double-hairline frame, left-edge role swatch for heroes, and top-right tier ribbon.
+3. Every panel uses identical D6 `.panel-head` markup and a following `.panel-rule`.
+4. `.btn.primary` is solid candle fill with ink text and sharp corners; all `.btn` variants have `border-radius: 0`.
+5. `npm.cmd run test:headless` passes.
+6. Browser preview verifies affected screens with zero console warnings/errors.
+7. Before/after screenshots are attached to the PR.
+8. No new runtime dependencies, font files, image assets, canvas, or WebGL.
 
 ### Verification
 
@@ -118,8 +137,8 @@ cd web
 npm.cmd run test:headless
 ```
 
-Because this rewrites a visible panel, also run browser/app preview and check console errors.
+Because this is broad UI/CSS work, also run browser preview and capture before/after screenshots for the PR.
 
 ### Start prompt for the next session
 
-> Read `AGENTS.md`, `CLAUDE.md`, and `SESSION_PROTOCOL.md`, then follow `NEXT_SESSION.md`. The current slice is GitHub issue `#68` first slice: Rival Race mechanic with locked decisions D1-D6. Produce the Orient summary, stop for confirmation, then produce the Plan checkpoint before editing.
+> Read `AGENTS.md`, `CLAUDE.md`, and `SESSION_PROTOCOL.md`, then follow `NEXT_SESSION.md`. The current slice is GitHub issue `#71` first slice: Visual identity V1 only with locked decisions D1-D7. Produce the Orient summary, stop for confirmation, then produce the Plan checkpoint before editing.

@@ -12,7 +12,9 @@ import { ShopManager } from "../run/ShopManager.js";
 import { ShopOffer } from "../data/ShopOffer.js";
 import { HeroInstance } from "../data/HeroInstance.js";
 import { HeroEffects } from "../combat/HeroEffects.js";
-import { HeroRole, HeroTier, PayrollActionId, EncounterType, DifficultyLevel } from "../data/enums.js";
+import { CombatManager } from "../combat/CombatManager.js";
+import { RivalUpdatePanel } from "../ui/panels/RivalUpdatePanel.js";
+import { HeroRole, HeroTier, PayrollActionId, EncounterType, DifficultyLevel, RivalGuild } from "../data/enums.js";
 
 let failures = 0;
 function check(name, cond) {
@@ -273,6 +275,84 @@ console.log("Run-flow test");
   gm.rivalManager.advanceRivals(run);
   const changed = run.rivals.some((r, i) => r.payroll !== payrollBefore[i]);
   check("rivals: payroll advanced", changed);
+  const greedy = run.rivals.find((r) => r.guild === RivalGuild.Greedy);
+  const frugal = run.rivals.find((r) => r.guild === RivalGuild.Frugal);
+  const carry = run.rivals.find((r) => r.guild === RivalGuild.Carry);
+  check("rivals-race: greedy round 1 progress +1.4", greedy && greedy.progress === 1.4);
+  check("rivals-race: frugal round 1 progress +1.1", frugal && frugal.progress === 1.1);
+  check("rivals-race: carry round 1 progress +0.7", carry && carry.progress === 0.7);
+}
+
+// ---- Rival finish-first morale fires once per rival ----
+{
+  const gm = new GameManager();
+  gm.startRun(DifficultyLevel.Level0);
+  const run = gm.currentRunState;
+  const greedy = run.rivals.find((r) => r.guild === RivalGuild.Greedy);
+  run.round = 19;
+  run.morale = 30;
+  greedy.progress = 19.5;
+  gm.rivalManager.advanceRivals(run);
+  check("rivals-race: finish recorded", greedy.finishedAtRound === 19);
+  check("rivals-race: finish list populated", run.rivalRaceFinishesThisRound.includes(RivalGuild.Greedy));
+  check("rivals-race: morale penalty applied", run.morale === 30 - GameRules.RivalFinishedFirstMorale);
+  gm.rivalManager.advanceRivals(run);
+  check("rivals-race: morale penalty is one-time", run.morale === 30 - GameRules.RivalFinishedFirstMorale);
+}
+
+// ---- Rival ghost lead snapshots at scout and scales combat stats ----
+{
+  const gm = new GameManager();
+  gm.startRun(DifficultyLevel.Level0);
+  const run = gm.currentRunState;
+  const greedy = run.rivals.find((r) => r.guild === RivalGuild.Greedy);
+  run.round = 3;
+  run.act = 1;
+  greedy.progress = 8;
+  gm.encounterManager.loadEncounter(run.round);
+  const encounter = run.currentEncounter;
+  const lead = encounter.rivalLead;
+  greedy.progress = 0;
+  fieldKnownParty(gm, ["warrior", "golem", "wizard", "ranger", "priest"]);
+  const result = new CombatManager().startCombat(run, encounter);
+  const tank = result.enemyStartUnits[0];
+  check("rivals-race: scout snapshot stores lead", lead === 5);
+  check("rivals-race: combat uses snapshot lead for hp", tank && tank.maxHealth === 10);
+  check("rivals-race: combat uses snapshot lead for attack", tank && tank.attack === 4);
+}
+
+// ---- Victory tribute grants gold for rivals still behind ----
+{
+  const gm = new GameManager();
+  gm.startRun(DifficultyLevel.Level0);
+  const run = gm.currentRunState;
+  run.act = 2;
+  run.round = GameRulesFns.act2FinalRound;
+  run.gold = 10;
+  run.latestCombatWon = true;
+  run.rivals[0].progress = 20;
+  run.rivals[1].progress = 18;
+  run.rivals[2].progress = 12;
+  const nextState = gm.runManager.evaluateNextState();
+  check("rivals-race: final victory reached", nextState === GameState.Victory);
+  check("rivals-race: tribute per behind rival applied", run.gold === 10 + (2 * GameRules.RivalRaceTributePerBehind));
+  gm.runManager.evaluateNextState();
+  check("rivals-race: tribute applies once", run.gold === 10 + (2 * GameRules.RivalRaceTributePerBehind));
+}
+
+// ---- Rival race panel render smoke ----
+{
+  const previousDocument = globalThis.document;
+  globalThis.document = createFakeDocument();
+  const gm = new GameManager();
+  gm.startRun(DifficultyLevel.Level0);
+  gm.rivalManager.advanceRivals(gm.currentRunState);
+  const panel = new RivalUpdatePanel(gm);
+  panel.render();
+  const laneCount = countClass(panel.root, "rival-race-lane");
+  check("rivals-race-ui: renders four lanes", laneCount === 4);
+  check("rivals-race-ui: title rendered", textContentOf(panel.root).includes("Race the Rivals"));
+  globalThis.document = previousDocument;
 }
 
 // ---- Payroll: PromiseVictoryBonus costs gold, buffs attack, no debt on win ----
@@ -649,4 +729,74 @@ function autopilot(gm, maxSteps) {
     }
   }
   return { terminated: false, state: gm.currentState, maxRound };
+}
+
+function createFakeDocument() {
+  return {
+    createElement(tag) {
+      return makeFakeElement(tag);
+    },
+    createTextNode(text) {
+      return { textContent: String(text) };
+    },
+  };
+}
+
+function makeFakeElement(tag) {
+  const node = {
+    tag,
+    children: [],
+    style: {},
+    dataset: {},
+    attributes: {},
+    className: "",
+    _textContent: "",
+    appendChild(child) {
+      this.children.push(child);
+      return child;
+    },
+    removeChild(child) {
+      const index = this.children.indexOf(child);
+      if (index >= 0) this.children.splice(index, 1);
+      return child;
+    },
+    setAttribute(key, value) {
+      this.attributes[key] = value;
+    },
+    addEventListener() {},
+  };
+
+  Object.defineProperty(node, "firstChild", {
+    get() {
+      return this.children.length > 0 ? this.children[0] : null;
+    },
+  });
+  Object.defineProperty(node, "textContent", {
+    get() {
+      return this._textContent + this.children.map((child) => child.textContent || "").join("");
+    },
+    set(value) {
+      this._textContent = String(value);
+      this.children.length = 0;
+    },
+  });
+
+  return node;
+}
+
+function countClass(node, className) {
+  if (!node) return 0;
+  let count = hasClass(node, className) ? 1 : 0;
+  if (!node.children) return count;
+  for (const child of node.children) count += countClass(child, className);
+  return count;
+}
+
+function hasClass(node, className) {
+  if (!node || typeof node.className !== "string") return false;
+  return node.className.split(" ").includes(className);
+}
+
+function textContentOf(node) {
+  return node && node.textContent ? node.textContent : "";
 }
