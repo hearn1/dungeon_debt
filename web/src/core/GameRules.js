@@ -134,6 +134,10 @@ export const GameRules = Object.freeze({
   DefaultDifficultyPreset: DifficultyLevel.Level0,
   MaxImplementedDifficultyLevel: DifficultyLevel.Level3,
   NoCombatMultiplier: 1,
+  ActStatScale: Object.freeze({
+    2: Object.freeze({ enemyHealth: 1, enemyAttack: 1 }),
+    3: Object.freeze({ enemyHealth: 1.2, enemyAttack: 1.15 }),
+  }),
 
   ApprenticeStartingGold: 20,
   ApprenticeStartingMorale: 36,
@@ -188,7 +192,8 @@ export const GameRules = Object.freeze({
 });
 
 // ---- Act structure (data-driven; append a count to add an act) ----
-const ActRoundCounts = [10, 10];
+const ActRoundCounts = [10, 10, 10];
+const DefaultActCount = 2;
 const ActAccentColors = [
   rgba(0.541, 0.565, 0.604),
   rgba(0.659, 0.212, 0.29),
@@ -197,7 +202,7 @@ const ActAccentColors = [
   rgba(0.549, 0.416, 0.659),
 ];
 const ActRomanNumerals = ["I", "II", "III", "IV", "V"];
-const ActThemeWords = ["Dungeon", "Demonic", "Verdant", "Golden", "Void"];
+const ActThemeWords = ["Dungeon", "Demonic", "The Mint", "Golden", "Void"];
 
 function clampAct(act) {
   if (act < 1) return 1;
@@ -295,6 +300,18 @@ export const GameRulesFns = {
     return scaledValue;
   },
 
+  getActStatScale(act) {
+    return GameRules.ActStatScale[act] || Object.freeze({ enemyHealth: 1, enemyAttack: 1 });
+  },
+
+  scaleEnemyAttackForAct(baseValue, act) {
+    return this.scaleCombatStat(baseValue, this.getActStatScale(act).enemyAttack);
+  },
+
+  scaleEnemyHealthForAct(baseValue, act) {
+    return this.scaleCombatStat(baseValue, this.getActStatScale(act).enemyHealth);
+  },
+
   getVeteranThresholdForTier(veteranTier) {
     if (veteranTier <= 0) return 0;
     if (veteranTier === 1) return GameRules.VeteranTier1XpThreshold;
@@ -341,13 +358,16 @@ export const GameRulesFns = {
     return "V" + veteranTier + " XP " + xp + "/" + nextThreshold;
   },
 
-  get totalActs() { return ActRoundCounts.length; },
-  get finalAct() { return ActRoundCounts.length; },
+  get totalActs() { return DefaultActCount; },
+  get devTotalActs() { return ActRoundCounts.length; },
+  get finalAct() { return DefaultActCount; },
   get finalRound() { return this.getActFinalRound(1); },
   get act1FinalRound() { return this.getActFinalRound(1); },
   get act2FinalRound() { return this.getActFinalRound(2); },
+  get act3FinalRound() { return this.getActFinalRound(3); },
   get act1Rounds() { return this.getRoundsInAct(1); },
   get act2Rounds() { return this.getRoundsInAct(2); },
+  get act3Rounds() { return this.getRoundsInAct(3); },
 
   getRoundsInAct(act) {
     return ActRoundCounts[clampAct(act) - 1];

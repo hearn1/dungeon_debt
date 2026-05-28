@@ -43,5 +43,6 @@ export class RunState {
     this.heroDamageMultiplier = 0;
     this.enemyHealthMultiplier = 0;
     this.enemyDamageMultiplier = 0;
+    this.devEnableAct3 = false;
   }
 }
