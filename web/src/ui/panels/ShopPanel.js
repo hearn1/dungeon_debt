@@ -1,6 +1,6 @@
 import { el, clear } from "../dom.js";
 import { GameRules, GameRulesFns } from "../../core/GameRules.js";
-import { heroCard } from "../components.js";
+import { heroCard, appendPanelHeader } from "../components.js";
 
 export class ShopPanel {
   constructor(gm) {
@@ -20,10 +20,7 @@ export class ShopPanel {
     const run = this.gm.currentRunState;
     const shop = this.gm.shopManager;
 
-    this.root.appendChild(el("div", { class: "panel-head" }, [
-      el("div", { class: "panel-title", text: "Shop" }),
-      el("div", { class: "panel-sub", text: `${run.gold} gold · party ${run.party.length}/${GameRules.MaxPartySize}` }),
-    ]));
+    appendPanelHeader(this.root, "SHOP", "Recruit Heroes", `${run.gold} gold · party ${run.party.length}/${GameRules.MaxPartySize}`);
 
     // Offers
     const offers = el("div", { class: "card-grid" });

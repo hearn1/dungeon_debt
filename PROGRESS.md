@@ -51,6 +51,48 @@ Copy this block when adding a new entry. Paste it at the top of the Session log 
 
 <!-- Newest entries at the top. -->
 
+## 2026-05-28 - #71: Visual identity V1
+
+**Milestone:** GitHub expansion issue wave
+**Status:** Complete
+
+**Files added:**
+- None
+
+**Files modified:**
+- `web/styles/main.css` - added Faded Ledger tokens, sharp buttons, framed hero cards, tier ribbons, role swatches, and unified panel header/rule styling.
+- `web/src/core/GameRules.js` - exposed the four locked Faded Ledger palette tokens.
+- `web/src/ui/components.js` - added shared panel header helpers and converted hero tier display to a letter ribbon.
+- `web/src/ui/panels/MainMenuPanel.js` - added D6 panel header chrome.
+- `web/src/ui/panels/ScoutPanel.js` - added D6 panel header chrome.
+- `web/src/ui/panels/ShopPanel.js` - added D6 panel header chrome.
+- `web/src/ui/panels/FormationPanel.js` - added D6 panel header chrome.
+- `web/src/ui/panels/PayrollPanel.js` - added D6 panel header chrome.
+- `web/src/ui/panels/CombatPanel.js` - added D6 panel header chrome.
+- `web/src/ui/panels/RelicRewardPanel.js` - added D6 panel header chrome.
+- `web/src/ui/panels/RivalUpdatePanel.js` - added D6 panel header chrome.
+- `web/src/ui/panels/EndScreenPanel.js` - added D6 panel header chrome.
+
+**Acceptance criteria:**
+- [x] The four `--dd-*` CSS custom properties exist on `:root` and are exposed from `GameRules.js`.
+- [x] Hero cards render with sharp double-hairline frame, left-edge role swatch for heroes, and top-right tier ribbon.
+- [x] Every panel uses shared D6 `.panel-head` markup and a following `.panel-rule`.
+- [x] `.btn.primary` is solid candle fill with ink text and sharp corners; all `.btn` variants have `border-radius: 0`.
+- [x] `npm.cmd run test:headless` passes.
+- [x] Browser preview verified Main Menu and Shop with zero console warnings/errors.
+- [x] Before/after screenshots captured.
+- [x] No runtime dependencies, font files, image assets, canvas, or WebGL added.
+
+**Test plan:** `npm.cmd run test:headless`; `node src/test/verify.js`; browser preview via `python web/serve.py` - all pass.
+
+**Deviations from plan:**
+- None
+
+**Follow-up flagged:**
+- Attaching screenshots to the PR is handled in the PR body/workflow, not by adding runtime assets to the repo.
+
+**Next slice:** Expansion issue wave complete; Matt should choose the next slice, with paused R005-3 death fade-out remaining available.
+
 ## 2026-05-28 - #68: Rival Race mechanic
 
 **Milestone:** GitHub expansion issue wave

@@ -2,7 +2,7 @@ import { el, clear } from "../dom.js";
 import { GameRules, GameRulesFns } from "../../core/GameRules.js";
 import { CombatReplayEventKind } from "../../data/CombatReplayEvent.js";
 import { HeroRole, EnemyEffectId } from "../../data/enums.js";
-import { statusPills, hpBar } from "../components.js";
+import { statusPills, hpBar, appendPanelHeader } from "../components.js";
 import { unitPortrait, attackEffect, healEffect } from "../SpriteCatalog.js";
 
 const STEP_MS = 280;
@@ -27,10 +27,7 @@ export class CombatPanel {
     this._result = this.gm.resolveCombat();
     this.onDirty?.(); // gold/debt changed during post-combat
 
-    this.root.appendChild(el("div", { class: "panel-head" }, [
-      el("div", { class: "panel-title", text: "Combat" }),
-      el("div", { class: "panel-sub", text: encounter ? encounter.displayName : "" }),
-    ]));
+    appendPanelHeader(this.root, "COMBAT", "Combat", encounter ? encounter.displayName : "");
 
     // Build the board: trapezoidal vertical stack facing the opposing side.
     //   enemy backline → enemy frontline → divider → player frontline → player backline

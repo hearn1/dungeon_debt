@@ -1,4 +1,5 @@
 import { el, clear } from "../dom.js";
+import { appendPanelHeader } from "../components.js";
 import { DataRepository } from "../../core/DataRepository.js";
 import { GameRules } from "../../core/GameRules.js";
 
@@ -14,6 +15,7 @@ export class MainMenuPanel {
 
   render() {
     clear(this.root);
+    appendPanelHeader(this.root, "MENU", "Dungeon Debt", "An auto-battler economy roguelite");
     this.root.appendChild(el("h1", { class: "title", text: "DUNGEON DEBT" }));
     this.root.appendChild(el("div", { class: "subtitle", text: "An auto-battler economy roguelite" }));
 

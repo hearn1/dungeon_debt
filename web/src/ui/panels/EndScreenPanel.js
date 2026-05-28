@@ -1,4 +1,5 @@
 import { el, clear } from "../dom.js";
+import { appendPanelHeader } from "../components.js";
 import { GameRulesFns } from "../../core/GameRules.js";
 import { GameState } from "../../core/GameState.js";
 
@@ -15,6 +16,7 @@ export class EndScreenPanel {
     this.root.className = `overlay ${victory ? "victory" : "defeat"}`;
 
     const moreActs = run && victory && run.act < GameRulesFns.totalActs;
+    appendPanelHeader(this.root, "END", victory ? "Run Complete" : "Run Failed", run ? `Gold ${run.gold} · Debt ${run.debt} · Morale ${run.morale}` : "");
 
     this.root.appendChild(el("h1", {
       class: "title",
@@ -23,10 +25,6 @@ export class EndScreenPanel {
     if (run && run.latestEndReason) {
       this.root.appendChild(el("div", { class: "end-reason", text: run.latestEndReason }));
     }
-    if (run) {
-      this.root.appendChild(el("div", { class: "subtitle", text: `Gold ${run.gold} · Debt ${run.debt} · Morale ${run.morale}` }));
-    }
-
     const actions = el("div", { class: "menu-choices" });
     if (moreActs) {
       actions.appendChild(el("button", {

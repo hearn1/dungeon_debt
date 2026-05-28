@@ -1,4 +1,5 @@
 import { el, clear } from "../dom.js";
+import { appendPanelHeader } from "../components.js";
 import { GameRules, GameRulesFns } from "../../core/GameRules.js";
 
 export class RivalUpdatePanel {
@@ -12,10 +13,7 @@ export class RivalUpdatePanel {
     clear(this.root);
     const run = this.gm.currentRunState;
 
-    this.root.appendChild(el("div", { class: "panel-head" }, [
-      el("div", { class: "panel-title", text: "Race the Rivals" }),
-      el("div", { class: "panel-sub", text: "Four guilds race for the same contract bonus." }),
-    ]));
+    appendPanelHeader(this.root, "REWARD", "Race the Rivals", "Four guilds race for the same contract bonus.");
 
     const list = el("div", { class: "rival-list" });
     list.appendChild(playerLane(run));
