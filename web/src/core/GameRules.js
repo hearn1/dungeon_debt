@@ -10,6 +10,27 @@ function rgba(r, g, b, a = 1) {
   return `rgba(${to255(r)}, ${to255(g)}, ${to255(b)}, ${a})`;
 }
 
+const RivalRaceCurves = Object.freeze({
+  [RivalGuild.Greedy]: Object.freeze({
+    getAdvance(round, rival) {
+      if (round <= 6) return 1.4;
+      return rival && rival.debt > 12 ? 0.8 : 1.2;
+    },
+  }),
+  [RivalGuild.Frugal]: Object.freeze({
+    getAdvance() {
+      return 1.1;
+    },
+  }),
+  [RivalGuild.Carry]: Object.freeze({
+    getAdvance(round) {
+      if (round <= 5) return 0.7;
+      if (round <= 10) return 1.1;
+      return 1.5;
+    },
+  }),
+});
+
 export const GameRules = Object.freeze({
   // ---- Role / tier / status colors ----
   TankRoleColor: rgba(0.31, 0.45, 0.62),
@@ -107,6 +128,14 @@ export const GameRules = Object.freeze({
   DangerousDebtThreshold: 12,
   CriticalDebtThreshold: 20,
   RivalIncomePerRound: 8,
+  RivalRaceCurves,
+  RivalRaceMaxProgress: 20,
+  RivalFinishedFirstMorale: 5,
+  RivalRaceHpLeadFactor: 0.05,
+  RivalRaceAttackLeadFactor: 0.03,
+  RivalRaceHpLeadCap: 0.50,
+  RivalRaceAttackLeadCap: 0.30,
+  RivalRaceTributePerBehind: 3,
   GreedyRivalStartingPayroll: 10,
   FrugalRivalStartingPayroll: 6,
   CarryRivalStartingPayroll: 8,
@@ -430,6 +459,29 @@ export const GameRulesFns = {
       case RivalGuild.Carry: return GameRules.GuildCarryColor;
       default: return GameRules.GuildNeutralColor;
     }
+  },
+
+  getRivalRaceAdvance(guild, round, rival) {
+    const curve = GameRules.RivalRaceCurves[guild];
+    if (!curve || typeof curve.getAdvance !== "function") return 0;
+    return curve.getAdvance(round, rival);
+  },
+
+  getRivalRaceAverageRemaining(guild, round, rival) {
+    let total = 0;
+    let count = 0;
+    for (let projectedRound = round; projectedRound <= GameRules.RivalRaceMaxProgress; projectedRound++) {
+      total += this.getRivalRaceAdvance(guild, projectedRound, rival);
+      count += 1;
+    }
+    return count > 0 ? total / count : 1;
+  },
+
+  getRivalRaceProjectedFinishRound(guild, round, progress, rival) {
+    if (progress >= GameRules.RivalRaceMaxProgress) return round;
+    const average = this.getRivalRaceAverageRemaining(guild, round, rival);
+    if (average <= 0) return round;
+    return round + Math.ceil((GameRules.RivalRaceMaxProgress - progress) / average);
   },
 
   isCapstoneEncounter(encounter) {

@@ -244,9 +244,9 @@ export const DataRepository = {
 
   createRivalGuilds() {
     return [
-      new RivalGuildState(RivalGuild.Greedy, "Greedy Guild", GameRules.StartingMorale, GameRules.StartingDebt, GameRules.GreedyRivalStartingPayroll, "Dangerous", GameRules.GreedyRivalPayrollGrowth),
-      new RivalGuildState(RivalGuild.Frugal, "Frugal Guild", GameRules.StartingMorale, GameRules.StartingDebt, GameRules.FrugalRivalStartingPayroll, "Safe", GameRules.FrugalRivalPayrollGrowth),
-      new RivalGuildState(RivalGuild.Carry, "Carry Guild", GameRules.StartingMorale, GameRules.StartingDebt, GameRules.CarryRivalStartingPayroll, "Scaling", GameRules.CarryRivalOddRoundPayrollGrowth),
+      new RivalGuildState(RivalGuild.Greedy, "Greedy Guild", GameRules.StartingMorale, GameRules.StartingDebt, GameRules.GreedyRivalStartingPayroll, "Dangerous", GameRules.GreedyRivalPayrollGrowth, 0, null, false),
+      new RivalGuildState(RivalGuild.Frugal, "Frugal Guild", GameRules.StartingMorale, GameRules.StartingDebt, GameRules.FrugalRivalStartingPayroll, "Safe", GameRules.FrugalRivalPayrollGrowth, 0, null, false),
+      new RivalGuildState(RivalGuild.Carry, "Carry Guild", GameRules.StartingMorale, GameRules.StartingDebt, GameRules.CarryRivalStartingPayroll, "Scaling", GameRules.CarryRivalOddRoundPayrollGrowth, 0, null, false),
     ];
   },
 };

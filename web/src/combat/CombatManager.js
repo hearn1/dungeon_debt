@@ -4,7 +4,7 @@ import { CombatLogger } from "./CombatLogger.js";
 import { CombatUnit } from "../data/CombatUnit.js";
 import { HeroEffects } from "./HeroEffects.js";
 import { GameRules, GameRulesFns } from "../core/GameRules.js";
-import { HeroRole, RelicId, CombatStatusId } from "../data/enums.js";
+import { HeroRole, RelicId, CombatStatusId, EncounterType } from "../data/enums.js";
 import { getScaledHeroMaxHealth, getRelicAttackBonus, hasRelic } from "../run/heroStats.js";
 
 export class CombatManager {
@@ -198,8 +198,15 @@ function buildEnemyUnits(run, encounter) {
 
   for (let i = 0; i < encounter.enemies.length; i++) {
     const enemy = encounter.enemies[i];
-    const attack = GameRulesFns.scaleCombatStat(enemy.attack, run ? run.enemyDamageMultiplier : GameRules.NoCombatMultiplier);
-    const health = GameRulesFns.scaleCombatStat(enemy.health, run ? run.enemyHealthMultiplier : GameRules.NoCombatMultiplier);
+    const raceScale = getRivalRaceScale(encounter);
+    const attack = GameRulesFns.scaleCombatStat(
+      GameRulesFns.scaleCombatStat(enemy.attack, run ? run.enemyDamageMultiplier : GameRules.NoCombatMultiplier),
+      raceScale.attack,
+    );
+    const health = GameRulesFns.scaleCombatStat(
+      GameRulesFns.scaleCombatStat(enemy.health, run ? run.enemyHealthMultiplier : GameRules.NoCombatMultiplier),
+      raceScale.health,
+    );
     const unit = new CombatUnit(enemy.displayName, attack, health, health, false, i, null, enemy);
     for (const status of enemy.startingStatuses) {
       unit.statuses.add(status);
@@ -209,6 +216,18 @@ function buildEnemyUnits(run, encounter) {
 
   sortUnitsBySlot(enemyUnits);
   return enemyUnits;
+}
+
+function getRivalRaceScale(encounter) {
+  if (!encounter || encounter.type !== EncounterType.RivalGhost) {
+    return { attack: GameRules.NoCombatMultiplier, health: GameRules.NoCombatMultiplier };
+  }
+
+  const lead = Math.max(0, encounter.rivalLead || 0);
+  return {
+    attack: 1 + Math.min(GameRules.RivalRaceAttackLeadCap, GameRules.RivalRaceAttackLeadFactor * lead),
+    health: 1 + Math.min(GameRules.RivalRaceHpLeadCap, GameRules.RivalRaceHpLeadFactor * lead),
+  };
 }
 
 function findTarget(attacker, defenders, combatRound) {

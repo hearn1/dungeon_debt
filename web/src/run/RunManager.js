@@ -237,6 +237,7 @@ export class RunManager {
           run.latestEndReason = null;
           return GameState.RivalUpdate;
         }
+        applyRivalRaceVictoryTribute(run);
         run.latestEndReason = actLabel + " cleared.";
         return GameState.Victory;
       }
@@ -425,4 +426,18 @@ function isRivalVeterancyEncounter(encounter) {
 function isEndOfActEncounter(encounter) {
   if (!encounter) return false;
   return encounter.round === GameRulesFns.getActFinalRound(encounter.act);
+}
+
+function applyRivalRaceVictoryTribute(run) {
+  if (!run || run.act !== GameRulesFns.totalActs) return;
+  const actLabel = GameRulesFns.getActLabel(run.act);
+  if (run.latestEndReason === actLabel + " cleared.") return;
+
+  let rivalsBehind = 0;
+  for (const rival of run.rivals) {
+    if (rival.progress < GameRules.RivalRaceMaxProgress) rivalsBehind += 1;
+  }
+
+  if (rivalsBehind <= 0) return;
+  run.gold += GameRules.RivalRaceTributePerBehind * rivalsBehind;
 }
