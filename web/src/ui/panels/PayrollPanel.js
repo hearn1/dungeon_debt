@@ -1,4 +1,5 @@
 import { el, clear } from "../dom.js";
+import { appendPanelHeader } from "../components.js";
 import { DataRepository } from "../../core/DataRepository.js";
 import { GameRules } from "../../core/GameRules.js";
 import { PayrollActionId } from "../../data/enums.js";
@@ -16,10 +17,7 @@ export class PayrollPanel {
     const run = this.gm.currentRunState;
     this._selected = run.selectedPayrollAction ?? null;
 
-    this.root.appendChild(el("div", { class: "panel-head" }, [
-      el("div", { class: "panel-title", text: "Payroll" }),
-      el("div", { class: "panel-sub", text: "Choose how to pay the guild this round." }),
-    ]));
+    appendPanelHeader(this.root, "PAYROLL", "Payroll", "Choose how to pay the guild this round.");
 
     const grid = el("div", { class: "card-grid" });
     for (const action of DataRepository.allPayrollActions) {

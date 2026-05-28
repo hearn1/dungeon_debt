@@ -24,6 +24,21 @@ export function statusPills(statuses) {
   return row;
 }
 
+export function panelHeader(kicker, title, sub = "") {
+  return [
+    el("div", { class: "panel-head" }, [
+      el("div", { class: "panel-kicker", text: kicker }),
+      el("h2", { class: "panel-title", text: title }),
+      sub ? el("div", { class: "panel-sub", text: sub }) : null,
+    ]),
+    el("hr", { class: "panel-rule" }),
+  ];
+}
+
+export function appendPanelHeader(root, kicker, title, sub = "") {
+  for (const node of panelHeader(kicker, title, sub)) root.appendChild(node);
+}
+
 // A hero card used in shop offers, formation, and party listings.
 // opts: { cost, actions: [{label, onClick, primary, danger, disabled}], showHp, run }
 export function heroCard(def, instance, opts = {}) {
@@ -36,7 +51,7 @@ export function heroCard(def, instance, opts = {}) {
         el("img", { class: "uc-portrait", src: heroPortrait(def), alt: def.displayName }),
         el("div", { class: "uc-name", text: def.displayName }),
       ]),
-      el("div", { class: `uc-tier ${tier}`, text: tier.toUpperCase() }),
+      el("div", { class: `uc-tier ${tier}`, text: tierLetter(tier) }),
     ]),
     el("div", { class: "uc-role", text: role }),
     el("div", { class: "uc-stats" }, [
@@ -65,6 +80,12 @@ export function heroCard(def, instance, opts = {}) {
   }
 
   return card;
+}
+
+function tierLetter(tier) {
+  if (tier === "Silver") return "S";
+  if (tier === "Gold") return "G";
+  return "B";
 }
 
 function stat(value, label) {

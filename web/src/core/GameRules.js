@@ -48,6 +48,12 @@ export const GameRules = Object.freeze({
   WeakenedStatusColor: rgba(0.48, 0.5, 0.54),
   InspiredStatusColor: rgba(0.92, 0.72, 0.18),
 
+  // ---- #71 V1 visual identity ("Faded Ledger") ----
+  DdParchment: rgba(227 / 255, 220 / 255, 198 / 255),
+  DdCandle: rgba(184 / 255, 146 / 255, 74 / 255),
+  DdInk: rgba(26 / 255, 22 / 255, 18 / 255),
+  DdRustAccent: rgba(166 / 255, 74 / 255, 64 / 255),
+
   // ---- M20.3 shared visual system ("Guild Ledger") ----
   UiInk: rgba(0.925, 0.886, 0.788),
   UiInkDim: rgba(0.714, 0.69, 0.62),

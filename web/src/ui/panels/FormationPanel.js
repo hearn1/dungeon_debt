@@ -1,6 +1,6 @@
 import { el, clear } from "../dom.js";
 import { GameRules } from "../../core/GameRules.js";
-import { heroCard } from "../components.js";
+import { heroCard, appendPanelHeader } from "../components.js";
 
 export class FormationPanel {
   constructor(gm) {
@@ -14,10 +14,7 @@ export class FormationPanel {
     clear(this.root);
     const run = this.gm.currentRunState;
 
-    this.root.appendChild(el("div", { class: "panel-head" }, [
-      el("div", { class: "panel-title", text: "Formation" }),
-      el("div", { class: "panel-sub", text: "Click two slots to swap. Frontline is targeted first." }),
-    ]));
+    appendPanelHeader(this.root, "FORMATION", "Formation", "Click two slots to swap. Frontline is targeted first.");
 
     const bySlot = new Map();
     for (const h of run.party) bySlot.set(h.formationSlot, h);

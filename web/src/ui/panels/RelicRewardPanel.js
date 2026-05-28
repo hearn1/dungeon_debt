@@ -1,4 +1,5 @@
 import { el, clear } from "../dom.js";
+import { appendPanelHeader } from "../components.js";
 import { DataRepository } from "../../core/DataRepository.js";
 
 export class RelicRewardPanel {
@@ -12,10 +13,7 @@ export class RelicRewardPanel {
     clear(this.root);
     const run = this.gm.currentRunState;
 
-    this.root.appendChild(el("div", { class: "panel-head" }, [
-      el("div", { class: "panel-title", text: "Choose a Relic" }),
-      el("div", { class: "panel-sub", text: "A reward for clearing a benchmark fight." }),
-    ]));
+    appendPanelHeader(this.root, "RELIC", "Choose a Relic", "A reward for clearing a benchmark fight.");
 
     const grid = el("div", { class: "card-grid" });
     for (const id of run.pendingRelicChoices) {

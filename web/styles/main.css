@@ -1,9 +1,14 @@
 /* Dungeon Debt — "Guild Ledger" web UI. Palette mirrors GameRules UI tokens. */
 :root {
-  --ink: rgb(236, 226, 201);
+  --dd-parchment: #e3dcc6;
+  --dd-candle: #b8924a;
+  --dd-ink: #1a1612;
+  --dd-rust-accent: #a64a40;
+
+  --ink: var(--dd-parchment);
   --ink-dim: rgb(182, 176, 158);
   --ink-mute: rgb(122, 120, 104);
-  --ink-invert: rgb(20, 17, 10);
+  --ink-invert: var(--dd-ink);
   --bg: rgb(14, 13, 18);
   --bg-strip: rgb(17, 20, 26);
   --bg-panel: rgb(22, 26, 32);
@@ -11,13 +16,12 @@
   --rule: rgb(44, 51, 63);
   --rule-strong: rgb(74, 83, 100);
   --rule-faint: rgb(32, 38, 47);
-  --gold: rgb(201, 160, 74);
-  --dd-rust-accent: rgb(204, 122, 58);
+  --gold: var(--dd-candle);
 
   --debt-stable: rgb(107, 155, 107);
   --debt-strained: rgb(201, 160, 74);
   --debt-dangerous: rgb(204, 122, 58);
-  --debt-critical: rgb(196, 74, 62);
+  --debt-critical: var(--dd-rust-accent);
 
   --role-tank: rgb(79, 115, 158);
   --role-damage: rgb(184, 51, 61);
@@ -37,18 +41,27 @@ button { font: inherit; cursor: pointer; }
 button:disabled { opacity: 0.4; cursor: not-allowed; }
 
 .btn {
-  background: linear-gradient(180deg, var(--bg-card), var(--bg-panel));
+  background: var(--bg-card);
   border: 1px solid var(--rule-strong);
   color: var(--ink);
-  border-radius: 6px;
+  border-radius: 0;
   padding: 10px 22px;
   font-weight: 600;
   letter-spacing: 0.4px;
   transition: transform .07s ease, border-color .15s ease, background .15s ease;
 }
-.btn:hover:not(:disabled) { transform: translateY(-1px); border-color: var(--gold); }
-.btn.primary { background: linear-gradient(180deg, rgb(54, 46, 24), rgb(38, 32, 16)); border-color: var(--gold); color: var(--gold); }
-.btn.danger { border-color: var(--debt-critical); color: rgb(232, 150, 142); }
+.btn:hover:not(:disabled) { transform: translateY(-1px); border-color: var(--dd-candle); }
+.btn.primary {
+  background: var(--dd-candle);
+  color: var(--dd-ink);
+  border: 1px solid #8c6f38;
+  border-radius: 0;
+  padding: 11px 24px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+.btn.primary:hover:not(:disabled) { background: #c9a558; border-color: #a48142; }
+.btn.danger { border-color: var(--dd-rust-accent); color: var(--dd-rust-accent); border-radius: 0; }
 .btn.small { padding: 5px 12px; font-size: 13px; }
 
 /* ---- Run header ---- */
@@ -111,22 +124,48 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   padding: 28px; display: flex; flex-direction: column; align-items: center;
 }
 .panel { width: 100%; max-width: 1180px; display: flex; flex-direction: column; gap: 18px; }
-.panel-head { display: flex; align-items: baseline; justify-content: space-between; }
+.panel-head { width: 100%; display: block; }
+.panel-kicker {
+  font-size: 11px;
+  letter-spacing: 2.5px;
+  color: var(--ink-mute);
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
 .panel-title { font-size: 24px; font-weight: 700; letter-spacing: 0.5px; }
 .panel-sub { color: var(--ink-dim); font-size: 14px; }
+.panel-rule { width: 100%; border: 0; border-top: 1px solid var(--rule-strong); margin: 4px 0 14px; }
 .panel-actions { display: flex; gap: 12px; justify-content: flex-end; }
 
 /* ---- Cards ---- */
 .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 14px; }
 .unit-card {
-  background: var(--bg-card); border: 1px solid var(--rule); border-radius: 10px;
-  padding: 14px; display: flex; flex-direction: column; gap: 8px;
-  border-top: 3px solid var(--rule-strong);
+  position: relative;
+  background: var(--bg-card);
+  border: 1px solid var(--rule-strong);
+  border-radius: 0;
+  padding: 15px 14px 15px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-shadow: inset 0 0 0 2px var(--bg-card), inset 0 0 0 3px var(--rule-faint);
+  overflow: hidden;
 }
-.unit-card.role-Tank { border-top-color: var(--role-tank); }
-.unit-card.role-Damage { border-top-color: var(--role-damage); }
-.unit-card.role-Support { border-top-color: var(--role-support); }
-.unit-card.role-Economy { border-top-color: var(--role-economy); }
+.unit-card.role-Tank::before,
+.unit-card.role-Damage::before,
+.unit-card.role-Support::before,
+.unit-card.role-Economy::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 4px;
+  background: var(--role-tank);
+}
+.unit-card.role-Damage::before { background: var(--role-damage); }
+.unit-card.role-Support::before { background: var(--role-support); }
+.unit-card.role-Economy::before { background: var(--role-economy); }
 .uc-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .uc-portrait {
   width: 32px; height: 32px; display: block; flex-shrink: 0;
@@ -134,10 +173,26 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 }
 .uc-name-wrap { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1; }
 .uc-name { font-weight: 700; font-size: 16px; }
-.uc-tier { font-size: 10px; font-weight: 700; letter-spacing: 1px; padding: 2px 7px; border-radius: 9px; }
-.uc-tier.Bronze { background: rgba(184, 115, 51, 0.22); color: rgb(204, 150, 95); }
-.uc-tier.Silver { background: rgba(209, 214, 224, 0.22); color: rgb(214, 218, 226); }
-.uc-tier.Gold { background: rgba(212, 175, 55, 0.24); color: rgb(236, 198, 78); box-shadow: 0 0 0 1px rgba(212, 175, 55, 0.34) inset; }
+.uc-tier {
+  position: absolute;
+  top: -1px;
+  right: -1px;
+  width: 22px;
+  height: 22px;
+  clip-path: polygon(0 0, 100% 0, 100% 100%);
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  padding: 2px 3px 0 0;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--dd-ink);
+  z-index: 1;
+}
+.uc-tier.Bronze { background: var(--role-economy); }
+.uc-tier.Silver { background: #d6dae2; }
+.uc-tier.Gold { background: var(--tier-gold, rgb(212, 175, 55)); }
 .uc-role { font-size: 11px; letter-spacing: 1.5px; color: var(--ink-mute); text-transform: uppercase; }
 .uc-stats { display: flex; gap: 14px; }
 .uc-stat { display: flex; flex-direction: column; }

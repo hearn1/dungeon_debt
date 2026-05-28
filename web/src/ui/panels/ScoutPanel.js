@@ -1,4 +1,5 @@
 import { el, clear } from "../dom.js";
+import { appendPanelHeader } from "../components.js";
 import { GameRules, GameRulesFns } from "../../core/GameRules.js";
 import { EncounterType } from "../../data/enums.js";
 
@@ -13,10 +14,7 @@ export class ScoutPanel {
     const run = this.gm.currentRunState;
     const enc = run ? run.currentEncounter : null;
 
-    this.root.appendChild(el("div", { class: "panel-head" }, [
-      el("div", { class: "panel-title", text: "Scout" }),
-      el("div", { class: "panel-sub", text: enc ? GameRulesFns.getEncounterKindLabel(enc) : "" }),
-    ]));
+    appendPanelHeader(this.root, "SCOUT", "Scout", enc ? GameRulesFns.getEncounterKindLabel(enc) : "");
 
     if (!enc) {
       this.root.appendChild(el("div", { class: "panel-sub", text: "No encounter." }));
