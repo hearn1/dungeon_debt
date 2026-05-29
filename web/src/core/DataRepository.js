@@ -33,6 +33,9 @@ const Apprentice = new HeroDefinition("apprentice", "Apprentice", HeroRole.Econo
 const Paladin = new HeroDefinition("paladin", "Paladin", HeroRole.Tank, 2, 14, 4, "Heals all living allies for 1 at the end of each combat round.", HeroEffectId.PaladinAuraHeal);
 const Cleric = new HeroDefinition("cleric", "Cleric", HeroRole.Support, 1, 8, 3, "Heals all living allies for 1 at the end of each combat round.", HeroEffectId.ClericGroupHeal);
 const Barbarian = new HeroDefinition("barbarian", "Barbarian", HeroRole.Damage, 2, 10, 3, "Gains +2 attack while at half health or below.", HeroEffectId.BarbarianRage);
+const Rogue = new HeroDefinition("rogue", "Rogue", HeroRole.Damage, 3, 7, 3, "First attack each combat deals double damage.", HeroEffectId.RogueFirstStrike);
+const Warlock = new HeroDefinition("warlock", "Warlock", HeroRole.Damage, 2, 6, 4, "Gains attack based on player debt at combat start.", HeroEffectId.WarlockDebtPact);
+const Artificer = new HeroDefinition("artificer", "Artificer", HeroRole.Economy, 1, 7, 2, "Gains attack based on owned relics at combat start.", HeroEffectId.ArtificerRelicCharge);
 
 // ---- Enemies (Act 1) ----
 const Slime = new EnemyDefinition("slime", "Slime", 1, 4, EnemyEffectId.None, "No effect.");
@@ -88,7 +91,7 @@ const Act3Mintmaster = createActEnemy(3, "act3-mintmaster", "MintMaster", 5, 30,
 
 const HeroDefinitions = [
   Warrior, Knight, Golem, Wizard, Ninja, Ranger, Priest, Bard, Enchanter, Squire, Treasurer, Apprentice,
-  Paladin, Cleric, Barbarian,
+  Paladin, Cleric, Barbarian, Rogue, Warlock, Artificer,
 ];
 
 const EnemyDefinitions = [

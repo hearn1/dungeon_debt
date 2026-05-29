@@ -108,6 +108,35 @@ export const HeroEffects = {
       }
     }
 
+    // Warlock: +attack based on player debt at combat start.
+    if (run) {
+      const warlockBoost = Math.min(4, Math.floor(run.debt / 6));
+      for (const unit of playerUnits) {
+        if (!unit.isAlive || !unit.sourceHero || !unit.sourceHero.definition) continue;
+        if (unit.sourceHero.definition.effectId === HeroEffectId.WarlockDebtPact) {
+          unit.attack += warlockBoost;
+          if (logger && warlockBoost > 0) {
+            logger.logMessage(`${unit.displayName} gains +${warlockBoost} attack from debt pact (debt ${run.debt}).`);
+          }
+        }
+      }
+    }
+
+    // Artificer: +attack based on owned relics at combat start.
+    if (run) {
+      const relicCount = run.activeRelics ? run.activeRelics.length : 0;
+      const artificerBoost = Math.min(4, relicCount);
+      for (const unit of playerUnits) {
+        if (!unit.isAlive || !unit.sourceHero || !unit.sourceHero.definition) continue;
+        if (unit.sourceHero.definition.effectId === HeroEffectId.ArtificerRelicCharge) {
+          unit.attack += artificerBoost;
+          if (logger && artificerBoost > 0) {
+            logger.logMessage(`${unit.displayName} gains +${artificerBoost} attack from relic charge (${relicCount} relics).`);
+          }
+        }
+      }
+    }
+
     // Debt Wraith: scale attack with current debt.
     if (run) {
       const wraithBaseAttack = 1 + Math.floor(run.debt / GameRules.DebtWraithDebtDivisor);
@@ -171,18 +200,35 @@ export const HeroEffects = {
 
   onAttack(attacker, _defender, logger) {
     if (!attacker || !attacker.isPlayerSide || !attacker.sourceHero || !attacker.sourceHero.definition) return;
-    if (attacker.sourceHero.definition.effectId !== HeroEffectId.BarbarianRage) return;
+    const effectId = attacker.sourceHero.definition.effectId;
 
-    if (attacker._barbarianBaseAttack === undefined) {
-      attacker._barbarianBaseAttack = attacker.attack;
+    if (effectId === HeroEffectId.BarbarianRage) {
+      if (attacker._barbarianBaseAttack === undefined) {
+        attacker._barbarianBaseAttack = attacker.attack;
+      }
+
+      const rageActive = attacker.currentHealth * 2 <= attacker.maxHealth;
+      const nextAttack = attacker._barbarianBaseAttack + (rageActive ? 2 : 0);
+      if (attacker.attack === nextAttack) return;
+
+      attacker.attack = nextAttack;
+      if (logger && rageActive) logger.logMessage(`${attacker.displayName} rages (+2 attack).`);
+      return;
     }
 
-    const rageActive = attacker.currentHealth * 2 <= attacker.maxHealth;
-    const nextAttack = attacker._barbarianBaseAttack + (rageActive ? 2 : 0);
-    if (attacker.attack === nextAttack) return;
-
-    attacker.attack = nextAttack;
-    if (logger && rageActive) logger.logMessage(`${attacker.displayName} rages (+2 attack).`);
+    if (effectId === HeroEffectId.RogueFirstStrike) {
+      if (attacker._rogueBaseAttack === undefined) {
+        attacker._rogueBaseAttack = attacker.attack;
+      }
+      if (!attacker._rogueFirstStrikeUsed) {
+        attacker.attack = attacker._rogueBaseAttack * 2;
+        attacker._rogueFirstStrikeUsed = true;
+        if (logger) logger.logMessage(`${attacker.displayName} strikes first for double damage!`);
+      } else {
+        attacker.attack = attacker._rogueBaseAttack;
+      }
+      return;
+    }
   },
 
   onSurvivingAttack(attacker, defender, logger) {
