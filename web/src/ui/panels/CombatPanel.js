@@ -81,6 +81,8 @@ export class CombatPanel {
   }
 
   _paintUnit(node, name, hp, max, statuses, unit) {
+    const previousRatio = Number.parseFloat(node.dataset.hpRatio);
+    const nextRatio = max > 0 ? Math.max(0, Math.min(1, hp / max)) : 0;
     clear(node);
     node.classList.toggle("dead", hp <= 0);
     if (unit) {
@@ -94,8 +96,9 @@ export class CombatPanel {
       el("span", { text: name }),
       el("span", { class: "cu-hp", text: `${hp}/${max}` }),
     ]));
-    node.appendChild(hpBar(hp, max));
+    node.appendChild(hpBar(hp, max, { previousRatio }));
     node.appendChild(statusPills(statuses || []));
+    node.dataset.hpRatio = String(nextRatio);
   }
 
   _tick() {
@@ -137,6 +140,7 @@ export class CombatPanel {
         const name = target.node.querySelector(".cu-head span")?.textContent
           || evt.logText;
         this._paintUnit(target.node, name, evt.targetHealthAfter, evt.targetMaxHealth || target.max, evt.targetStatuses, target.unit);
+        this._spawnFloatingNumber(target.node, evt);
         // One-shot death animation: target crossed to 0 HP → fade out.
         if (evt.targetHealthAfter <= 0 && target.node.dataset.died !== "1") {
           target.node.dataset.died = "1";
@@ -167,6 +171,30 @@ export class CombatPanel {
     }
 
     this._appendLog(evt.logText);
+  }
+
+  _spawnFloatingNumber(node, evt) {
+    if (evt.amount <= 0) return;
+    const isHeal = evt.kind === CombatReplayEventKind.Heal;
+    const isDamage = evt.kind === CombatReplayEventKind.Attack
+      || evt.kind === CombatReplayEventKind.StatusDamage;
+    if (!isHeal && !isDamage) return;
+
+    const number = el("div", {
+      class: `combat-float ${isHeal ? "heal" : "hit"}`,
+      text: `${isHeal ? "+" : "-"}${evt.amount}`,
+    });
+    node.appendChild(number);
+
+    let cleaned = false;
+    const cleanup = () => {
+      if (cleaned) return;
+      cleaned = true;
+      number.removeEventListener("animationend", cleanup);
+      number.remove();
+    };
+    number.addEventListener("animationend", cleanup);
+    setTimeout(cleanup, 760);
   }
 
   _fireProjectile(attacker, target, isHeal) {

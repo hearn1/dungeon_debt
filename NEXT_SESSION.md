@@ -12,7 +12,7 @@ This file always describes the **next** session's work. Rewrite it at the end of
 
 ### One-sentence goal
 
-The GitHub expansion issue wave `#66`-`#73` is complete, including the #67 Act 4 dev-gated Vault follow-up, #72 Phase 2 strategy-variants follow-up, #73 Bargain Stall clear-on-leave follow-up, #82 cumulative difficulty-description follow-up, and #83 final-run unlock follow-up; Matt should choose the next implementation slice before any code changes.
+The GitHub expansion issue wave `#66`-`#73` is complete, including the #67 Act 4 dev-gated Vault follow-up, #72 Phase 2 strategy-variants follow-up, #73 Bargain Stall clear-on-leave follow-up, #82 cumulative difficulty-description follow-up, #83 final-run unlock follow-up, and #88 Visual V3 attack/impact feedback follow-up; Matt should choose the next implementation slice before any code changes.
 
 ### Why this session exists
 
@@ -31,6 +31,7 @@ The recommended conflict-aware order has been completed:
 11. `#83` - Difficulty unlocks advance only after final-run victory
 12. `#72` - Balance harness Phase 2 strategy variants
 13. `#67` - Act 4 dev-gated Vault follow-up with Banker King Debt Judgment
+14. `#88` - Visual V3 attack and impact feedback
 
 ### Candidate next work
 
