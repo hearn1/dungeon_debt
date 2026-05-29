@@ -3,7 +3,9 @@ import { HeroEffects } from "../../combat/HeroEffects.js";
 import { PayrollActionId } from "../../data/enums.js";
 
 export const GreedyStrategy = Object.freeze({
-  buyHeroes(shopManager, run) {
+  id: "greedy",
+
+  visitShop(shopManager, run) {
     if (!shopManager || !run) return;
 
     while (run.party.length < GameRules.MaxPartySize) {

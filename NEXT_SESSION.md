@@ -12,7 +12,7 @@ This file always describes the **next** session's work. Rewrite it at the end of
 
 ### One-sentence goal
 
-The GitHub expansion issue wave `#66`-`#73` is complete, including the #73 Bargain Stall clear-on-leave follow-up, #82 cumulative difficulty-description follow-up, and #83 final-run unlock follow-up; Matt should choose the next implementation slice before any code changes.
+The GitHub expansion issue wave `#66`-`#73` is complete, including the #72 Phase 2 strategy-variants follow-up, #73 Bargain Stall clear-on-leave follow-up, #82 cumulative difficulty-description follow-up, and #83 final-run unlock follow-up; Matt should choose the next implementation slice before any code changes.
 
 ### Why this session exists
 
@@ -29,6 +29,7 @@ The recommended conflict-aware order has been completed:
 9. `#73` - Bargain Stall follow-up: clear event state when leaving Shop
 10. `#82` - Difficulty level descriptions show cumulative mutators, including locked levels
 11. `#83` - Difficulty unlocks advance only after final-run victory
+12. `#72` - Balance harness Phase 2 strategy variants
 
 ### Candidate next work
 
@@ -38,6 +39,7 @@ The recommended conflict-aware order has been completed:
 
 **Available follow-up issue slices:**
 
+- Later `#72` balance harness slices, especially Phase 3 markdown/report aggregation, only if Matt explicitly chooses one.
 - Later `#71` visual slices V2-V6, only if Matt explicitly chooses one.
 - Later expansion follow-ups from the issue bodies, only if Matt explicitly chooses one.
 
