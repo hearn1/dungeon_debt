@@ -77,6 +77,8 @@ export const RelicId = makeEnum(
   "ToxicCollateral",
 );
 
+export const ShopEventId = makeEnum("None", "BargainStall");
+
 export const CombatStatusId = makeEnum(
   "None",
   "Guarded",

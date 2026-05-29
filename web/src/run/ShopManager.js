@@ -1,5 +1,5 @@
 // Ported from DungeonDebt/Assets/Scripts/Run/ShopManager.cs
-import { HeroTier } from "../data/enums.js";
+import { HeroTier, ShopEventId } from "../data/enums.js";
 import { GameRules, GameRulesFns } from "../core/GameRules.js";
 import { DataRepository } from "../core/DataRepository.js";
 import { HeroInstance } from "../data/HeroInstance.js";
@@ -144,6 +144,41 @@ export class ShopManager {
 
       this._currentOffers.push(new ShopOffer(picked, hireCost, tier));
     }
+
+    // M17 — Roll a shop event (BargainStall ~20%).
+    this._rollShopEvent(run);
+  }
+
+  _rollShopEvent(run) {
+    if (!run) return;
+    run.currentShopEvent = null;
+
+    const rng = this._runManager ? this._runManager.rng : null;
+    if (!rng) return;
+
+    // 20% chance
+    if (rng.nextDouble() >= 0.2) return;
+
+    // Pick a non-null offer slot
+    const validSlots = [];
+    for (let i = 0; i < this._currentOffers.length; i++) {
+      if (this._currentOffers[i]) validSlots.push(i);
+    }
+    if (validSlots.length === 0) return;
+
+    const slotIndex = validSlots[rng.next(validSlots.length)];
+    const offer = this._currentOffers[slotIndex];
+    const originalCost = offer.hireCost;
+    const discountedCost = Math.max(1, Math.ceil(originalCost * 0.5));
+
+    offer.hireCost = discountedCost;
+
+    run.currentShopEvent = {
+      eventId: ShopEventId.BargainStall,
+      slotIndex,
+      originalCost,
+      discountedCost,
+    };
   }
 
   _getRunState() {

@@ -1,7 +1,7 @@
 import { el, clear } from "../dom.js";
 import { GameRules, GameRulesFns } from "../../core/GameRules.js";
 import { heroCard, appendPanelHeader } from "../components.js";
-import { HeroTier } from "../../data/enums.js";
+import { HeroTier, ShopEventId } from "../../data/enums.js";
 
 export class ShopPanel {
   constructor(gm) {
@@ -35,7 +35,8 @@ export class ShopPanel {
       const affordable = run.gold >= offer.hireCost && !offer.purchased;
       const full = run.party.length >= GameRules.MaxPartySize && !owned;
       const disabled = offer.purchased || !affordable || full || (owned && owned.tier === HeroTier.Diamond);
-      offers.appendChild(heroCard(offer.hero, null, {
+      const cardContainer = el("div", { class: "offer-card-wrap" });
+      cardContainer.appendChild(heroCard(offer.hero, null, {
         tier: offer.tier,
         cost: offer.hireCost,
         actions: [{
@@ -45,6 +46,11 @@ export class ShopPanel {
           onClick: () => { shop.hire(i); this.refresh(); },
         }],
       }));
+      const ev = run.currentShopEvent;
+      if (ev && ev.eventId === ShopEventId.BargainStall && ev.slotIndex === i && !offer.purchased) {
+        cardContainer.appendChild(el("div", { class: "shop-event-badge", text: "Bargain! 50% off" }));
+      }
+      offers.appendChild(cardContainer);
     });
     this.root.appendChild(sectionTitle("Recruits"));
     this.root.appendChild(offers);
