@@ -20,6 +20,7 @@ export class GameManager {
     this._currentState = GameState.MainMenu;
     this._pendingDifficulty = GameRules.DefaultDifficultyLevel;
     this._stateListeners = [];
+    this._highestBeatenDifficulty = -1;
 
     this._payrollManager = new PayrollManager();
     this._rivalManager = new RivalManager();
@@ -36,6 +37,13 @@ export class GameManager {
   get payrollManager() { return this._payrollManager; }
   get encounterManager() { return this._encounterManager; }
   get rivalManager() { return this._rivalManager; }
+  get highestBeatenDifficulty() { return this._highestBeatenDifficulty; }
+
+  isDifficultyLocked(difficulty) {
+    if (!difficulty || !difficulty.isImplemented) return true;
+    if (difficulty.level === 0) return false;
+    return difficulty.level > this._highestBeatenDifficulty + 1;
+  }
 
   // Replaces the C# `event Action<GameState> OnStateChanged`.
   onStateChanged(listener) {
@@ -139,6 +147,13 @@ export class GameManager {
 
     if (this._currentState === GameState.RivalUpdate && this._rivalManager) {
       this._rivalManager.advanceRivals(this.currentRunState);
+    }
+
+    if (this._currentState === GameState.Victory && this._runManager) {
+      const run = this._runManager.currentRunState;
+      if (run && run.selectedDifficulty !== null && run.selectedDifficulty > this._highestBeatenDifficulty) {
+        this._highestBeatenDifficulty = run.selectedDifficulty;
+      }
     }
 
     for (const listener of this._stateListeners) {
