@@ -51,6 +51,37 @@ Copy this block when adding a new entry. Paste it at the top of the Session log 
 
 <!-- Newest entries at the top. -->
 
+## 2026-05-29 - #82: Cumulative difficulty mutator descriptions
+
+**Milestone:** GitHub expansion follow-up
+**Status:** Complete
+
+**Files added:**
+- None
+
+**Files modified:**
+- `web/src/ui/panels/MainMenuPanel.js` - shows cumulative mutator names and descriptions for implemented difficulty levels, including locked levels.
+- `web/src/test/run.js` - added cumulative mutator id/description/order coverage for levels 1-3 and hardened the Bargain Stall reroll assertion so it exercises a successful reroll.
+- `PROGRESS.md` - logged this follow-up slice.
+- `NEXT_SESSION.md` - returned the project to the slice-selection checkpoint.
+
+**Acceptance criteria:**
+- [x] PR #94 reviewed against issue #82 and found incomplete because locked level cards hid cumulative mutator copy and tests did not assert cumulative ids/descriptions.
+- [x] Level 1 shows only Less Starting Gold; Level 2 shows Less Starting Gold + Higher Interest; Level 3 shows all three implemented mutators in order.
+- [x] Levels 4-10 remain disabled as `Coming soon.`
+- [x] `npm.cmd run test:headless` passes.
+- [x] Browser menu smoke check passes with zero console warnings/errors.
+
+**Test plan:** `npm.cmd run test:headless`; browser preview via `python web/serve.py` - all pass.
+
+**Deviations from plan:**
+- Also hardened an existing Bargain Stall reroll test setup that could fail after latest `main` because it attempted reroll without ensuring enough gold.
+
+**Follow-up flagged:**
+- None.
+
+**Next slice:** Awaiting Matt's next slice selection.
+
 ## 2026-05-29 - #73: Bargain Stall clear-on-leave follow-up
 
 **Milestone:** GitHub expansion issue wave
