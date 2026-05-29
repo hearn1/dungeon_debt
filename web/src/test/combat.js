@@ -222,6 +222,50 @@ console.log("Combat engine test");
   check("barbarian: rage removed after healing above half", barbarian.attack === 2);
 }
 
+// Rogue first strike doubles first attack damage.
+{
+  const run = buildRun(["rogue", "warrior", "golem"]);
+  const result = new CombatManager().startCombat(run, encounter(1, 1));
+  check("rogue: first strike message logged",
+    result.logLines.some(l => l.includes("strikes first for double damage")));
+  // Rogue attack 3, double = 6. Check the first damage line mentioning Rogue.
+  const rogueDmg = result.logLines.find(l => l.includes("Rogue attacks") && l.includes("for "));
+  if (rogueDmg) {
+    const m = rogueDmg.match(/for (\d+)/);
+    check("rogue: first strike deals 6 damage", m && parseInt(m[1], 10) === 6);
+  }
+}
+
+// Warlock gains attack from debt at combat start.
+{
+  const run = buildRun(["warlock", "warrior", "golem"]);
+  run.debt = 12;
+  const result = new CombatManager().startCombat(run, encounter(1, 1));
+  // debt 12 → floor(12/6) = 2, min(4, 2) = 2
+  check("warlock: debt pact message logged",
+    result.logLines.some(l => l.includes("gains +2 attack from debt pact")));
+}
+
+// Artificer gains attack from relics at combat start.
+{
+  const run = buildRun(["artificer", "warrior", "golem"]);
+  run.activeRelics.push("BladeCharter");
+  run.activeRelics.push("IronOath");
+  const result = new CombatManager().startCombat(run, encounter(1, 1));
+  // 2 relics → min(4, 2) = 2
+  check("artificer: relic charge message logged",
+    result.logLines.some(l => l.includes("gains +2 attack from relic charge")));
+}
+
+// The three new #69 heroes can complete a full combat together without errors.
+{
+  const run = buildRun(["rogue", "warlock", "artificer", "warrior", "golem"]);
+  const result = new CombatManager().startCombat(run, encounter(1, 1));
+  check("newheroes2: full combat resolved", result.logLines.length > 0);
+  check("newheroes2: no combat error and final line present",
+    result.logLines[result.logLines.length - 1] === "Player wins!" || result.logLines[result.logLines.length - 1] === "Player loses.");
+}
+
 // The three new heroes can complete a full combat together without errors.
 {
   const run = buildRun(["paladin", "cleric", "barbarian"]);

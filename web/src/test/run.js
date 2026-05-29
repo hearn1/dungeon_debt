@@ -217,6 +217,28 @@ console.log("Run-flow test");
   check("newheroes-shop: paladin cleric barbarian in party", hiredIds === "paladin,cleric,barbarian");
 }
 
+// ---- #69 second batch (Rogue/Warlock/Artificer) are hireable through the shop path ----
+{
+  const gm = new GameManager();
+  gm.startRun(DifficultyLevel.Level0);
+  gm.continueFromScout();
+  const run = gm.currentRunState;
+  const shop = gm.shopManager;
+  const rogue = DataRepository.allHeroes.find((h) => h.id === "rogue");
+  const warlock = DataRepository.allHeroes.find((h) => h.id === "warlock");
+  const artificer = DataRepository.allHeroes.find((h) => h.id === "artificer");
+
+  shop.currentOffers.length = 0;
+  shop.currentOffers.push(new ShopOffer(rogue, 0, HeroTier.Bronze));
+  shop.currentOffers.push(new ShopOffer(warlock, 0, HeroTier.Bronze));
+  shop.currentOffers.push(new ShopOffer(artificer, 0, HeroTier.Bronze));
+
+  const hiredAll = shop.hire(0) && shop.hire(1) && shop.hire(2);
+  const hiredIds = run.party.map((hero) => hero.definition.id).join(",");
+  check("newheroes2-shop: all three controlled offers hire", hiredAll === true);
+  check("newheroes2-shop: rogue warlock artificer in party", hiredIds === "rogue,warlock,artificer");
+}
+
 // ---- Shop role-balance spot check from a fixed seed ----
 {
   const runManager = new RunManager();
