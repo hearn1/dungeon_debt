@@ -89,6 +89,16 @@ const Act3BrimstoneMint = createActEnemy(3, "act3-brimstone-mint", "Minted Brims
 const Act3InfernalAuditorMint = createActEnemy(3, "act3-infernal-auditor-mint", "Mint Infernal Auditor", 2, 16, EnemyEffectId.DebtWraithScales, "Applies Poisoned on attack. Attack scales with player debt at combat start.", null, [C.Poisoned]);
 const Act3Mintmaster = createActEnemy(3, "act3-mintmaster", "MintMaster", 5, 30, EnemyEffectId.DungeonAuditorBoss, "Starts Inspired and applies Burned on attack. Raises upkeep and deals periodic damage.", [C.Inspired], [C.Burned]);
 
+// ---- Enemies (Act 4: The Vault) ----
+const Act4VaultSlime = createActEnemy(4, "act4-vault-slime", "Vault Slime", 2, 5, EnemyEffectId.None, "No effect.");
+const Act4VaultCoiner = createActEnemy(4, "act4-vault-coiner", "Vault Coiner", 2, 7, EnemyEffectId.GoblinStealGold, "Applies Weakened on attack; steals gold if alive past combat round 3.", null, [C.Weakened]);
+const Act4VaultBat = createActEnemy(4, "act4-vault-bat", "Vault Bat", 4, 6, EnemyEffectId.BackBatBackline, "Starts Marked. Applies Burned on attack; attacks lowest-HP backline hero on combat round 2.", [C.Marked], [C.Burned]);
+const Act4VaultImp = createActEnemy(4, "act4-vault-imp", "Vault Imp", 2, 5, EnemyEffectId.None, "No effect.");
+const Act4LedgerBroker = createActEnemy(4, "act4-ledger-broker", "Ledger Broker", 2, 16, EnemyEffectId.TreasureLeechRewardDrain, "Applies Poisoned on attack. Reduces reward if alive at combat end.", null, [C.Poisoned]);
+const Act4VaultBrute = createActEnemy(4, "act4-vault-brute", "Vault Brute", 6, 22, EnemyEffectId.None, "No effect.");
+const Act4VaultAuditor = createActEnemy(4, "act4-vault-auditor", "Vault Auditor", 2, 16, EnemyEffectId.DebtWraithScales, "Applies Poisoned on attack. Attack scales with player debt at combat start.", null, [C.Poisoned]);
+const Act4BankerKing = createActEnemy(4, "act4-banker-king", "The Banker King", 5, 30, EnemyEffectId.BankerKingDebtJudgment, "Starts Inspired and applies Burned on attack. Gains attack from player debt at combat start.", [C.Inspired], [C.Burned]);
+
 const HeroDefinitions = [
   Warrior, Knight, Golem, Wizard, Ninja, Ranger, Priest, Bard, Enchanter, Squire, Treasurer, Apprentice,
   Paladin, Cleric, Barbarian, Rogue, Warlock, Artificer,
@@ -101,6 +111,7 @@ const EnemyDefinitions = [
   Act2GreedyTank, Act2GreedyCarry, Act2CarryProtector, Act2CarryChampion, Act2CarrySupport, Act2FrugalGuard, Act2FrugalArcher, Act2FrugalHealer,
   Imp, SoulBroker, GloomBat, Act2DebtWraith, HoardFiend, BrimstoneBrute, InfernalAuditor,
   Act3SlimeMint, Act3GoblinCoiner, Act3BatTariff, Act3ImpMint, Act3SoulBrokerMint, Act3BrimstoneMint, Act3InfernalAuditorMint, Act3Mintmaster,
+  Act4VaultSlime, Act4VaultCoiner, Act4VaultBat, Act4VaultImp, Act4LedgerBroker, Act4VaultBrute, Act4VaultAuditor, Act4BankerKing,
 ];
 
 const PayrollActionDefinitions = [
@@ -161,6 +172,17 @@ const EncounterDefinitions = [
   new EncounterDefinition(3, 8, EncounterType.Dungeon, "Minted Brimstone Brute", "A towering press guard. Heavy stress test before the final guild fight.", "Heavy dungeon", [Act3BrimstoneMint, Act3ImpMint, Act3ImpMint], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None),
   new EncounterDefinition(3, 9, EncounterType.RivalGhost, "Carry Guild Mint Rematch", "The Carry Guild shields a hardened champion among the counting engines.", "Rival benchmark", [Act3BrimstoneMint, Act3BrimstoneMint, Act3InfernalAuditorMint, Act3SoulBrokerMint], GameRules.WinReward, EncounterEffectId.None, RivalGuild.Carry),
   new EncounterDefinition(3, 10, EncounterType.FinalBoss, "MintMaster", "Act 3 capstone. The MintMaster audits the run with stamped-fire precision.", "Final boss", [Act3Mintmaster], GameRules.WinReward, EncounterEffectId.FinalBossDamage, RivalGuild.None),
+
+  new EncounterDefinition(4, 1, EncounterType.Dungeon, "Vault Slime Lockbox", "The Vault hardens simple slimes into sealed ledgers.", "Basic stat check", [Act4VaultSlime, Act4VaultSlime, Act4VaultImp], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None),
+  new EncounterDefinition(4, 2, EncounterType.Dungeon, "Vault Coiners", "If a Vault Coiner survives past combat round 3, lose 3 gold.", "Economy pressure", [Act4VaultCoiner, Act4VaultImp], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None),
+  new EncounterDefinition(4, 3, EncounterType.RivalGhost, "Frugal Guild Vault Rematch", "The Frugal Guild returns to audit every step in The Vault.", "Rival benchmark", [Act4VaultSlime, Act4VaultSlime, Act4VaultCoiner, Act4LedgerBroker], GameRules.WinReward, EncounterEffectId.None, RivalGuild.Frugal),
+  new EncounterDefinition(4, 4, EncounterType.Dungeon, "Vault Bat", "Attacks your lowest-health backline hero on turn 2.", "Backline pressure", [Act4VaultBat, Act4VaultImp], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None),
+  new EncounterDefinition(4, 5, EncounterType.Dungeon, "Vault Auditor", "Gains attack based on your current debt. The Vault remembers every shortfall.", "Debt punishment", [Act4VaultAuditor], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None),
+  new EncounterDefinition(4, 6, EncounterType.RivalGhost, "Greedy Guild Vault Rematch", "The Greedy Guild returns with heavier locks and sharper claims.", "Rival benchmark", [Act4VaultBrute, Act4VaultBrute, Act4VaultBat], GameRules.WinReward, EncounterEffectId.None, RivalGuild.Greedy),
+  new EncounterDefinition(4, 7, EncounterType.Dungeon, "Ledger Broker", "If the Ledger Broker survives, your reward is reduced by 4 gold.", "Reward pressure", [Act4LedgerBroker, Act4VaultImp], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None),
+  new EncounterDefinition(4, 8, EncounterType.Dungeon, "Vault Brute", "A sealed-vault guard. Heavy stress test before the final guild fight.", "Heavy dungeon", [Act4VaultBrute, Act4VaultImp, Act4VaultImp], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None),
+  new EncounterDefinition(4, 9, EncounterType.RivalGhost, "Carry Guild Vault Rematch", "The Carry Guild shields its champion behind final-ledger muscle.", "Rival benchmark", [Act4VaultBrute, Act4VaultBrute, Act4VaultAuditor, Act4LedgerBroker], GameRules.WinReward, EncounterEffectId.None, RivalGuild.Carry),
+  new EncounterDefinition(4, 10, EncounterType.FinalBoss, "The Banker King", "Act 4 capstone. The Banker King judges the run by the debt it carries.", "Final boss", [Act4BankerKing], GameRules.WinReward, EncounterEffectId.FinalBossDamage, RivalGuild.None),
 ];
 
 const DifficultyMutatorDefinitions = [

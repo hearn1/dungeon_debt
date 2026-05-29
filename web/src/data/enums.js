@@ -42,6 +42,7 @@ export const EnemyEffectId = makeEnum(
   "TreasureLeechRewardDrain",
   "DungeonAuditorBoss",
   "FrugalGhostHeal",
+  "BankerKingDebtJudgment",
 );
 
 export const EncounterType = makeEnum("Dungeon", "RivalGhost", "FinalBoss");

@@ -233,7 +233,7 @@ export class RunManager {
     if (run.round >= GameRulesFns.getActFinalRound(run.act)) {
       const actLabel = GameRulesFns.getActLabel(run.act);
       if (run.latestCombatWon) {
-        if (run.act === GameRulesFns.totalActs && this._canContinueToDevAct3(run)) {
+        if (this._canContinueToNextDevAct(run)) {
           run.latestEndReason = null;
           return GameState.RivalUpdate;
         }
@@ -274,8 +274,8 @@ export class RunManager {
     const run = this._currentRunState;
     if (!run) return;
     run.round += 1;
-    if (this._canContinueToDevAct3(run) && run.round > GameRulesFns.getActFinalRound(GameRulesFns.totalActs)) {
-      run.act = GameRulesFns.totalActs + 1;
+    if (this._canContinueToNextDevAct(run) && run.round > GameRulesFns.getActFinalRound(run.act)) {
+      run.act += 1;
       run.round = GameRulesFns.getActStartRound(run.act);
     }
     run.hasLatestRewardSummary = false;
@@ -286,7 +286,7 @@ export class RunManager {
   advanceToNextAct() {
     const run = this._currentRunState;
     if (!run) return;
-    if (run.act >= GameRulesFns.totalActs && !this._canContinueToDevAct3(run)) return;
+    if (run.act >= GameRulesFns.totalActs && !this._canContinueToNextDevAct(run)) return;
     if (run.act >= GameRulesFns.devTotalActs) return;
 
     run.act += 1;
@@ -311,8 +311,8 @@ export class RunManager {
     run.pendingRelicNextState = GameState.MainMenu;
   }
 
-  _canContinueToDevAct3(run) {
-    return run && run.devEnableAct3 === true && run.act === GameRulesFns.totalActs && GameRulesFns.devTotalActs > GameRulesFns.totalActs;
+  _canContinueToNextDevAct(run) {
+    return run && run.devEnableAct3 === true && run.act >= GameRulesFns.totalActs && run.act < GameRulesFns.devTotalActs;
   }
 }
 
