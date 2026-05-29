@@ -34,7 +34,7 @@ export class ShopPanel {
       const mergeLabel = getMergeLabel(owned);
       const affordable = run.gold >= offer.hireCost && !offer.purchased;
       const full = run.party.length >= GameRules.MaxPartySize && !owned;
-      const disabled = offer.purchased || !affordable || full || (owned && owned.tier === HeroTier.Gold);
+      const disabled = offer.purchased || !affordable || full || (owned && owned.tier === HeroTier.Diamond);
       offers.appendChild(heroCard(offer.hero, null, {
         tier: offer.tier,
         cost: offer.hireCost,
@@ -88,6 +88,7 @@ function getMergeLabel(owned) {
   if (!owned) return null;
   if (owned.tier === HeroTier.Bronze) return "Merge → Silver";
   if (owned.tier === HeroTier.Silver) return "Merge → Gold";
+  if (owned.tier === HeroTier.Gold) return "Merge → Diamond";
   return null;
 }
 

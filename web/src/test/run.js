@@ -643,6 +643,64 @@ console.log("Run-flow test");
   }
 }
 
+// ---- #86 Generated-shop invariant: no duplicate party hero ids across seeds ----
+{
+  for (let seed = 1; seed <= 20; seed++) {
+    const gm = new GameManager();
+    gm.startRun(DifficultyLevel.Level0, seed);
+    gm.continueFromScout();
+    const shop = gm.shopManager;
+    const run = gm.currentRunState;
+    for (let attempt = 0; attempt < 6; attempt++) {
+      for (let i = 0; i < shop.currentOffers.length; i++) {
+        const offer = shop.currentOffers[i];
+        if (offer && !offer.purchased && run.gold >= offer.hireCost) {
+          shop.hire(i);
+        }
+      }
+      shop.reroll();
+    }
+    const uniqueIds = new Set(run.party.map((h) => h && h.definition && h.definition.id).filter(Boolean));
+    check("reg86-gen: seed " + seed + " no duplicate hero ids",
+      uniqueIds.size === run.party.filter((h) => h && h.definition).length);
+  }
+}
+
+// ---- #86 Full-party merge: merging works when party is at capacity ----
+{
+  const gm = new GameManager();
+  gm.startRun(DifficultyLevel.Level0);
+  gm.continueFromScout();
+  const run = gm.currentRunState;
+  const shop = gm.shopManager;
+
+  const def = shop.currentOffers.find((o) => o)?.hero;
+  if (def) {
+    shop.currentOffers.length = 0;
+    const otherDefs = DataRepository.allHeroes.filter((h) => h.id !== def.id);
+    for (let i = 0; i < GameRules.MaxPartySize - 1 && i < otherDefs.length; i++) {
+      shop.currentOffers.push(new ShopOffer(otherDefs[i], 0, HeroTier.Bronze));
+    }
+    for (let i = 0; i < shop.currentOffers.length; i++) {
+      shop.hire(i);
+    }
+    shop.currentOffers.length = 0;
+    shop.currentOffers.push(new ShopOffer(def, 0, HeroTier.Bronze));
+    shop.hire(0);
+    check("reg86-full: party at capacity", run.party.length === GameRules.MaxPartySize);
+
+    shop.currentOffers.length = 0;
+    shop.currentOffers.push(new ShopOffer(def, 0, HeroTier.Bronze));
+    const merged = shop.hire(0);
+    check("reg86-full: merge succeeds when party full", merged === true);
+    check("reg86-full: party size unchanged after merge", run.party.length === GameRules.MaxPartySize);
+    const owner = run.party.find((h) => h.definition.id === def.id);
+    check("reg86-full: merged hero tier advanced", owner && owner.tier === HeroTier.Silver);
+  } else {
+    check("reg86-full: had a definition to test", false);
+  }
+}
+
 // ---- Shop: fire hero ----
 {
   const gm = new GameManager();
