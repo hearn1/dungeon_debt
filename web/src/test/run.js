@@ -811,6 +811,15 @@ console.log("Run-flow test");
     // Reroll clears prior event
     shop.reroll();
     check("shopevent-force: event cleared after reroll", run.currentShopEvent === null);
+
+    run.currentShopEvent = {
+      eventId: ShopEventId.BargainStall,
+      slotIndex: 1,
+      originalCost: baseCost + 1,
+      discountedCost: Math.max(1, Math.ceil((baseCost + 1) * 0.5)),
+    };
+    gm.continueFromShop();
+    check("shopevent-force: event cleared after leaving shop", run.currentShopEvent === null);
   } else {
     check("shopevent-force: had a definition to test", false);
   }
