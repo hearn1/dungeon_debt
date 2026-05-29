@@ -30,11 +30,11 @@ export class MainMenuPanel {
     });
     for (const difficulty of DataRepository.allDifficultyLevels) {
       const isSelected = difficulty.level === this._selectedLevel;
-      const isImplemented = difficulty.isImplemented;
+      const isLocked = this._isLevelLocked(difficulty);
       choices.appendChild(el("button", {
         class: `btn difficulty-card${isSelected ? " primary" : ""}`,
-        disabled: isImplemented ? null : "",
-        title: isImplemented ? "" : "Coming soon.",
+        disabled: isLocked ? "" : null,
+        title: isLocked ? this._getLockedLabel(difficulty) : "",
         onClick: () => this._selectLevel(difficulty.level),
       }, [
         el("div", { class: "d-name", text: difficulty.displayName }),
@@ -70,15 +70,26 @@ export class MainMenuPanel {
     }));
   }
 
+  _isLevelLocked(difficulty) {
+    if (!difficulty.isImplemented) return true;
+    if (difficulty.level === 0) return false;
+    return difficulty.level > this.gm.highestBeatenDifficulty + 1;
+  }
+
+  _getLockedLabel(difficulty) {
+    if (!difficulty.isImplemented) return "Coming soon.";
+    return "Beat Level " + (difficulty.level - 1) + " to unlock.";
+  }
+
   _selectLevel(level) {
     const difficulty = DataRepository.getDifficultyLevel(level);
-    if (!difficulty || !difficulty.isImplemented) return;
+    if (!difficulty || this._isLevelLocked(difficulty)) return;
     this._selectedLevel = level;
     this.render();
   }
 
   _getDifficultySummary(difficulty) {
-    if (!difficulty.isImplemented) return "Coming soon.";
+    if (this._isLevelLocked(difficulty)) return this._getLockedLabel(difficulty);
     if (difficulty.mutators.length <= 0) return "Baseline contract.";
     return "Cumulative: " + difficulty.mutators.map((m) => m.description).join(" ");
   }
