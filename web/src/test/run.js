@@ -14,7 +14,7 @@ import { HeroInstance } from "../data/HeroInstance.js";
 import { HeroEffects } from "../combat/HeroEffects.js";
 import { CombatManager } from "../combat/CombatManager.js";
 import { RivalUpdatePanel } from "../ui/panels/RivalUpdatePanel.js";
-import { HeroRole, HeroTier, PayrollActionId, EncounterType, DifficultyLevel, RivalGuild } from "../data/enums.js";
+import { HeroRole, HeroTier, PayrollActionId, EncounterType, DifficultyLevel, RivalGuild, ShopEventId } from "../data/enums.js";
 
 let failures = 0;
 function check(name, cond) {
@@ -757,6 +757,65 @@ console.log("Run-flow test");
   check("shopreroll: offers replaced", !sameOffers);
 }
 
+// ---- M17 Shop events: BargainStall determinism and variety ----
+{
+  // Same seed produces same shop-event sequence
+  const seq1 = collectShopEventSequence(42);
+  const seq2 = collectShopEventSequence(42);
+  check("shopevent: same seed repeats sequence", JSON.stringify(seq1) === JSON.stringify(seq2));
+
+  // Multiple seeds show both event and no-event cases
+  const distinct = new Set();
+  for (let seed = 1; seed <= 10; seed++) {
+    const seq = collectShopEventSequence(seed);
+    distinct.add(seq.join("|"));
+  }
+  check("shopevent: ten seeds produce at least two distinct sequences", distinct.size >= 2);
+}
+
+// ---- M17 Shop events: discounted cost is charged once and reroll clears ----
+{
+  const gm = new GameManager();
+  gm.startRun(DifficultyLevel.Level0);
+  gm.continueFromScout();
+  const run = gm.currentRunState;
+  const shop = gm.shopManager;
+
+  // Inject a known hero offer to control costs
+  const def = shop.currentOffers.find((o) => o)?.hero;
+  if (def) {
+    // Force a BargainStall event onto slot 0
+    const baseCost = def.baseUpkeep + GameRules.HireCostBonus;
+    shop.currentOffers.length = 0;
+    shop.currentOffers.push(new ShopOffer(def, baseCost, HeroTier.Bronze));
+    shop.currentOffers.push(new ShopOffer(def, baseCost + 1, HeroTier.Bronze));
+
+    const expectedDiscounted = Math.max(1, Math.ceil(baseCost * 0.5));
+    run.currentShopEvent = {
+      eventId: ShopEventId.BargainStall,
+      slotIndex: 0,
+      originalCost: baseCost,
+      discountedCost: expectedDiscounted,
+    };
+    shop.currentOffers[0].hireCost = expectedDiscounted;
+
+    check("shopevent-force: offer cost was discounted", shop.currentOffers[0].hireCost === expectedDiscounted);
+    check("shopevent-force: other offer unchanged", shop.currentOffers[1].hireCost === baseCost + 1);
+
+    const goldBefore = run.gold;
+    const hired = shop.hire(0);
+    check("shopevent-force: hire succeeded", hired === true);
+    check("shopevent-force: charged discounted cost", run.gold === goldBefore - expectedDiscounted);
+    check("shopevent-force: party grew", run.party.length === 1);
+
+    // Reroll clears prior event
+    shop.reroll();
+    check("shopevent-force: event cleared after reroll", run.currentShopEvent === null);
+  } else {
+    check("shopevent-force: had a definition to test", false);
+  }
+}
+
 // ---- Full 20-round autopilot on easier preset ----
 {
   const gm = new GameManager();
@@ -816,6 +875,25 @@ function fieldKnownParty(gm, heroIds, tier = HeroTier.Bronze) {
     hero.currentHealth = HeroEffects.getTierAdjustedMaxHealth(hero);
     run.party.push(hero);
   });
+}
+
+function collectShopEventSequence(seed) {
+  const runManager = new RunManager();
+  const shop = new ShopManager(runManager);
+  const run = runManager.initializeRun(DifficultyLevel.Level0, seed);
+  const sequence = [];
+
+  // Generate offers 5 times per seed to capture event patterns
+  for (let i = 0; i < 5; i++) {
+    shop.generateOffers();
+    if (run.currentShopEvent && run.currentShopEvent.eventId === ShopEventId.BargainStall) {
+      sequence.push(`B:${run.currentShopEvent.slotIndex}`);
+    } else {
+      sequence.push("N");
+    }
+  }
+
+  return sequence;
 }
 
 function collectVariantSequence(seed) {

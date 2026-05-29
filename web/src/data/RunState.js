@@ -47,6 +47,9 @@ export class RunState {
     this.enemyHealthMultiplier = 0;
     this.enemyDamageMultiplier = 0;
     this.devEnableAct3 = false;
+
+    // M17 shop event state, cleared each shop visit.
+    this.currentShopEvent = null;
   }
 
   get currentEncounter() { return this._currentEncounter; }
