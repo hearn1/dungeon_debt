@@ -54,7 +54,7 @@ export class ShopManager {
 
     const existing = findExistingPartyMember(run, offer.hero);
     if (existing) {
-      if (existing.tier === HeroTier.Gold) return false;
+      if (existing.tier === HeroTier.Diamond) return false;
       run.gold -= offer.hireCost;
       existing.tier = getNextMergeTier(existing.tier);
       HeroEffects.applyTierStatSeed(existing);
@@ -99,24 +99,24 @@ export class ShopManager {
     if (!rng) return;
 
     const run = this._getRunState();
-    const goldOwned = new Set();
+    const terminalOwned = new Set();
     const anyOwned = new Set();
     if (run) {
       for (const member of run.party) {
         if (!member || !member.definition) continue;
         anyOwned.add(member.definition.id);
-        if (member.tier === HeroTier.Gold) goldOwned.add(member.definition.id);
+        if (member.tier === HeroTier.Diamond) terminalOwned.add(member.definition.id);
       }
     }
 
     const allHeroes = DataRepository.allHeroes;
 
-    // Bronze pool: owned Bronze/Silver heroes can merge; Gold is terminal.
+    // Bronze pool: heroes not already at Diamond (can still be merged up).
     const bronzePool = [];
     // Silver pool: only heroes the player does not own at all.
     const silverPool = [];
     for (const hero of allHeroes) {
-      if (!goldOwned.has(hero.id)) bronzePool.push(hero);
+      if (!terminalOwned.has(hero.id)) bronzePool.push(hero);
       if (!anyOwned.has(hero.id)) silverPool.push(hero);
     }
 
@@ -155,6 +155,7 @@ export class ShopManager {
 function getNextMergeTier(tier) {
   if (tier === HeroTier.Bronze) return HeroTier.Silver;
   if (tier === HeroTier.Silver) return HeroTier.Gold;
+  if (tier === HeroTier.Gold) return HeroTier.Diamond;
   return tier;
 }
 

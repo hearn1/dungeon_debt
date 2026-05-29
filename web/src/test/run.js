@@ -24,12 +24,12 @@ function check(name, cond) {
 
 console.log("Run-flow test");
 
-// ---- Gold tier enum is present and Diamond is deferred ----
+// ---- All four tier enums present ----
 {
   check("tier: Bronze exists", HeroTier.Bronze === "Bronze");
   check("tier: Silver exists", HeroTier.Silver === "Silver");
   check("tier: Gold exists", HeroTier.Gold === "Gold");
-  check("tier: Diamond absent", HeroTier.Diamond === undefined);
+  check("tier: Diamond exists", HeroTier.Diamond === "Diamond");
 }
 
 // ---- Run initialization applies difficulty levels ----
@@ -135,6 +135,7 @@ console.log("Run-flow test");
   const someHero = shop.currentOffers.find((o) => o && o.tier === HeroTier.Bronze);
   check("shop: at least one bronze offer", !!someHero);
   check("shop: no direct Gold offers", shop.currentOffers.every((o) => !o || o.tier !== HeroTier.Gold));
+  check("shop: no direct Diamond offers", shop.currentOffers.every((o) => !o || o.tier !== HeroTier.Diamond));
 
   const goldBefore = run.gold;
   const idx = shop.currentOffers.findIndex((o) => o && !o.purchased && o.hireCost <= run.gold);
@@ -223,10 +224,51 @@ console.log("Run-flow test");
     check("merge: Gold current health reseeded", hero.currentHealth === HeroEffects.getTierAdjustedMaxHealth(hero));
     check("merge: Gold upkeep is Bronze + 2", hero.upkeepThisRound === def.baseUpkeep + GameRules.GoldUpkeepIncrease);
     shop.currentOffers.push(new ShopOffer(def, 0, HeroTier.Bronze));
-    const blocked = shop.hire(3);
-    check("merge: Gold cannot promote further", blocked === false && hero.tier === HeroTier.Gold);
+    const promoted = shop.hire(3);
+    check("merge: Gold upgraded to Diamond", hero.tier === HeroTier.Diamond && promoted === true);
+    shop.currentOffers.push(new ShopOffer(def, 0, HeroTier.Bronze));
+    const blocked = shop.hire(0);
+    check("merge: Diamond cannot promote further", blocked === false && hero.tier === HeroTier.Diamond);
   } else {
     check("merge: had a definition to test", false);
+  }
+}
+
+// ---- Gold -> Diamond merge promotion test ----
+{
+  const gm = new GameManager();
+  gm.startRun(DifficultyLevel.Level0);
+  gm.continueFromScout();
+  const run = gm.currentRunState;
+  const shop = gm.shopManager;
+
+  const def = shop.currentOffers.find((o) => o)?.hero;
+  if (def) {
+    shop.currentOffers.length = 0;
+    shop.currentOffers.push(new ShopOffer(def, 0, HeroTier.Bronze));
+    shop.currentOffers.push(new ShopOffer(def, 0, HeroTier.Bronze));
+    shop.currentOffers.push(new ShopOffer(def, 0, HeroTier.Bronze));
+    shop.currentOffers.push(new ShopOffer(def, 0, HeroTier.Bronze));
+
+    shop.hire(0);
+    check("diamond: first hire is Bronze", run.party[0].tier === HeroTier.Bronze);
+    shop.hire(1);
+    check("diamond: duplicate upgraded to Silver", run.party[0].tier === HeroTier.Silver);
+    shop.hire(2);
+    check("diamond: duplicate upgraded to Gold", run.party[0].tier === HeroTier.Gold);
+    shop.hire(3);
+    const hero = run.party[0];
+    check("diamond: duplicate Gold upgraded to Diamond", hero.tier === HeroTier.Diamond);
+    check("diamond: still one party member", run.party.length === 1);
+    check("diamond: Diamond attack is 2.3x Bronze", hero.attack === GameRulesFns.scaleCombatStat(def.baseAttack, GameRules.DiamondStatMultiplier));
+    check("diamond: Diamond health is 2.3x Bronze", HeroEffects.getTierAdjustedMaxHealth(hero) === GameRulesFns.scaleCombatStat(def.baseHealth, GameRules.DiamondStatMultiplier));
+    check("diamond: Diamond current health reseeded", hero.currentHealth === HeroEffects.getTierAdjustedMaxHealth(hero));
+    check("diamond: Diamond upkeep is Bronze + 3", hero.upkeepThisRound === def.baseUpkeep + GameRules.DiamondUpkeepIncrease);
+    shop.currentOffers.push(new ShopOffer(def, 0, HeroTier.Bronze));
+    const blocked = shop.hire(0);
+    check("diamond: Diamond cannot promote further", blocked === false && hero.tier === HeroTier.Diamond);
+  } else {
+    check("diamond: had a definition to test", false);
   }
 }
 
@@ -511,9 +553,15 @@ console.log("Run-flow test");
     shop.currentOffers.length = 0;
     shop.currentOffers.push(new ShopOffer(def, 0, HeroTier.Bronze));
     shop.hire(0);
-    const goldHero = run.party[0];
-    check("reg86: Gold cannot promote further", goldHero.tier === HeroTier.Gold);
-    check("reg86: no duplicate added for Gold", run.party.length === 1);
+    const diamondHero = run.party[0];
+    check("reg86: Gold upgraded to Diamond", diamondHero.tier === HeroTier.Diamond);
+    check("reg86: no duplicate added after Gold→Diamond", run.party.length === 1);
+
+    shop.currentOffers.length = 0;
+    shop.currentOffers.push(new ShopOffer(def, 0, HeroTier.Bronze));
+    const blocked = shop.hire(0);
+    check("reg86: Diamond cannot promote further", blocked === false && diamondHero.tier === HeroTier.Diamond);
+    check("reg86: no duplicate added for Diamond", run.party.length === 1);
 
     const uniqueIds = new Set(run.party.map((h) => h.definition.id));
     check("reg86: all party members have unique definition ids",

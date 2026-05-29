@@ -193,6 +193,7 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 .uc-tier.Bronze { background: var(--role-economy); }
 .uc-tier.Silver { background: #d6dae2; }
 .uc-tier.Gold { background: var(--tier-gold, rgb(212, 175, 55)); }
+.uc-tier.Diamond { background: var(--tier-diamond, rgb(185, 242, 255)); }
 .uc-role { font-size: 11px; letter-spacing: 1.5px; color: var(--ink-mute); text-transform: uppercase; }
 .uc-stats { display: flex; gap: 14px; }
 .uc-stat { display: flex; flex-direction: column; }
