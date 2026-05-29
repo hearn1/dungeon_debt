@@ -22,6 +22,9 @@ export const HeroEffects = {
 
   getTierAdjustedAttack(hero, tier) {
     if (!hero) return 0;
+    if (tier === HeroTier.Diamond) {
+      return GameRulesFns.scaleCombatStat(hero.baseAttack, GameRules.DiamondStatMultiplier);
+    }
     if (tier === HeroTier.Gold) {
       return GameRulesFns.scaleCombatStat(hero.baseAttack, GameRules.GoldStatMultiplier);
     }
@@ -38,6 +41,7 @@ export const HeroEffects = {
 
   getTierAdjustedUpkeep(hero, tier) {
     if (!hero) return 0;
+    if (tier === HeroTier.Diamond) return hero.baseUpkeep + GameRules.DiamondUpkeepIncrease;
     if (tier === HeroTier.Gold) return hero.baseUpkeep + GameRules.GoldUpkeepIncrease;
     let upkeep = hero.baseUpkeep;
     if (tier === HeroTier.Silver
@@ -329,6 +333,9 @@ export const HeroEffects = {
 
 function getTierAdjustedMaxHealthDef(hero, tier) {
   if (!hero) return 0;
+  if (tier === HeroTier.Diamond) {
+    return GameRulesFns.scaleCombatStat(hero.baseHealth, GameRules.DiamondStatMultiplier);
+  }
   if (tier === HeroTier.Gold) {
     return GameRulesFns.scaleCombatStat(hero.baseHealth, GameRules.GoldStatMultiplier);
   }
@@ -340,7 +347,7 @@ function getTierAdjustedMaxHealthDef(hero, tier) {
 }
 
 function hasSilverEffectTier(tier) {
-  return tier === HeroTier.Silver || tier === HeroTier.Gold;
+  return tier === HeroTier.Silver || tier === HeroTier.Gold || tier === HeroTier.Diamond;
 }
 
 function hasSilverAttackBonus(hero) {
