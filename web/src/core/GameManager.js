@@ -6,7 +6,7 @@
 // drive a fight and feed the result back through RunManager.
 
 import { GameState } from "./GameState.js";
-import { GameRules } from "./GameRules.js";
+import { GameRules, GameRulesFns } from "./GameRules.js";
 import { RunManager } from "../run/RunManager.js";
 import { ShopManager } from "../run/ShopManager.js";
 import { PayrollManager } from "../run/PayrollManager.js";
@@ -154,7 +154,7 @@ export class GameManager {
 
     if (this._currentState === GameState.Victory && this._runManager) {
       const run = this._runManager.currentRunState;
-      if (run && run.selectedDifficulty !== null && run.selectedDifficulty > this._highestBeatenDifficulty) {
+      if (this._isFinalRunVictory(run) && run.selectedDifficulty !== null && run.selectedDifficulty > this._highestBeatenDifficulty) {
         this._highestBeatenDifficulty = run.selectedDifficulty;
       }
     }
@@ -162,5 +162,11 @@ export class GameManager {
     for (const listener of this._stateListeners) {
       listener(this._currentState);
     }
+  }
+
+  _isFinalRunVictory(run) {
+    if (!run) return false;
+    const finalAct = run.devEnableAct3 ? GameRulesFns.devTotalActs : GameRulesFns.totalActs;
+    return run.act >= finalAct;
   }
 }

@@ -119,48 +119,44 @@ console.log("Run-flow test");
   check("unlock: level 3 locked before beating 0", gm.isDifficultyLocked(DataRepository.getDifficultyLevel(3)));
   check("unlock: level 4 locked (not implemented)", gm.isDifficultyLocked(DataRepository.getDifficultyLevel(4)));
 
-  // Simulate beating level 0 by driving a run to Victory
   gm.startRun(DifficultyLevel.Level0);
-  const run = gm.currentRunState;
-  run.morale = 999;
-  gm.continueFromScout();
-  gm.continueFromShop();
-  gm.continueFromFormation();
-  gm.selectPayrollAction(PayrollActionId.StandardPay);
-  gm.continueFromPayroll();
-  gm.resolveCombat();
-  gm.continueAfterReward();
-  check("unlock: after level 0 run reached Victory or RivalUpdate",
-    gm.currentState === GameState.Victory || gm.currentState === GameState.RivalUpdate);
+  gm.currentRunState.act = 1;
+  gm.currentRunState.round = GameRulesFns.act1FinalRound;
+  gm.changeState(GameState.Victory);
+  check("unlock: Act 1 victory does not unlock level 1", gm.highestBeatenDifficulty === -1);
+  check("unlock: level 1 still locked after Act 1 victory", gm.isDifficultyLocked(DataRepository.getDifficultyLevel(1)));
 
-  // Keep advancing until Victory
-  for (let i = 0; i < 100; i++) {
-    if (gm.currentState === GameState.Victory) break;
-    if (gm.currentState === GameState.Defeat) break;
-    if (gm.currentState === GameState.Scout) gm.continueFromScout();
-    else if (gm.currentState === GameState.Shop) gm.continueFromShop();
-    else if (gm.currentState === GameState.Formation) gm.continueFromFormation();
-    else if (gm.currentState === GameState.Payroll) {
-      gm.selectPayrollAction(PayrollActionId.StandardPay);
-      gm.continueFromPayroll();
-    } else if (gm.currentState === GameState.Combat) {
-      gm.resolveCombat();
-      gm.continueAfterReward();
-    } else if (gm.currentState === GameState.RelicReward) {
-      if (run.pendingRelicChoices.length > 0) gm.continueAfterRelicReward(run.pendingRelicChoices[0]);
-      else gm.continueAfterRelicReward(null);
-    } else if (gm.currentState === GameState.RivalUpdate) {
-      gm.continueFromRivalUpdate();
-    } else break;
+  const progression = [
+    { beaten: DifficultyLevel.Level0, unlocks: DifficultyLevel.Level1, locks: DifficultyLevel.Level2 },
+    { beaten: DifficultyLevel.Level1, unlocks: DifficultyLevel.Level2, locks: DifficultyLevel.Level3 },
+    { beaten: DifficultyLevel.Level2, unlocks: DifficultyLevel.Level3, locks: DifficultyLevel.Level4 },
+    { beaten: DifficultyLevel.Level3, unlocks: null, locks: DifficultyLevel.Level4 },
+  ];
+
+  for (const step of progression) {
+    gm.returnToMainMenu();
+    gm.startRun(step.beaten);
+    const outcome = autopilotWithParty(gm, ["paladin", "golem", "barbarian", "ranger", "cleric"], 1000, {
+      tier: HeroTier.Gold,
+      stabilizeEconomy: true,
+    });
+    check(`unlock: level ${step.beaten} full run reaches Victory`,
+      outcome.terminated && outcome.state === GameState.Victory);
+    check(`unlock: highestBeaten becomes ${step.beaten} after full victory`,
+      gm.highestBeatenDifficulty === step.beaten);
+    if (step.unlocks !== null) {
+      check(`unlock: level ${step.unlocks} unlocked after beating ${step.beaten}`,
+        !gm.isDifficultyLocked(DataRepository.getDifficultyLevel(step.unlocks)));
+    }
+    check(`unlock: level ${step.locks} remains locked after beating ${step.beaten}`,
+      gm.isDifficultyLocked(DataRepository.getDifficultyLevel(step.locks)));
   }
 
-  if (gm.currentState === GameState.Victory) {
-    check("unlock: highestBeaten becomes 0 after level 0 victory", gm.highestBeatenDifficulty === 0);
-    check("unlock: level 1 unlocked after beating 0", !gm.isDifficultyLocked(DataRepository.getDifficultyLevel(1)));
-    check("unlock: level 2 still locked after beating 0", gm.isDifficultyLocked(DataRepository.getDifficultyLevel(2)));
-  } else {
-    check("unlock: party lost before Act 1 victory (non-deterministic)", true);
-  }
+  const lossGm = new GameManager();
+  lossGm.startRun(DifficultyLevel.Level0);
+  lossGm.changeState(GameState.Defeat);
+  check("unlock: loss does not advance highestBeaten", lossGm.highestBeatenDifficulty === -1);
+  check("unlock: level 1 stays locked after loss", lossGm.isDifficultyLocked(DataRepository.getDifficultyLevel(1)));
 }
 
 // ---- Encounter variants: four Act 1 pools select from the run RNG ----
