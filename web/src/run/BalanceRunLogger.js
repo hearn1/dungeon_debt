@@ -9,6 +9,7 @@ export const BalanceRunLogger = {
   rows: [],
   seedResultColumns: Object.freeze([
     "seed",
+    "strategy",
     "outcome",
     "roundsReached",
     "finalGold",
@@ -63,6 +64,7 @@ export const BalanceRunLogger = {
 function formatSeedResultRow(result) {
   const row = {
     seed: result ? result.seed : "",
+    strategy: result ? result.strategy : "",
     outcome: result ? result.outcome : "",
     roundsReached: result ? result.roundsReached : "",
     finalGold: result ? result.finalGold : "",
@@ -100,6 +102,7 @@ function formatSummaryRow(results) {
   const count = results.length;
   const row = {
     seed: "SUMMARY",
+    strategy: getSummaryStrategy(results),
     outcome: "",
     roundsReached: "",
     finalGold: "",
@@ -115,6 +118,15 @@ function formatSummaryRow(results) {
     avgMorale: formatAverage(totalMorale, count),
   };
   return formatTsvRow(row);
+}
+
+function getSummaryStrategy(results) {
+  if (results.length <= 0) return "";
+  const first = results[0].strategy;
+  for (const result of results) {
+    if (result.strategy !== first) return "all";
+  }
+  return first;
 }
 
 function formatTsvRow(row) {

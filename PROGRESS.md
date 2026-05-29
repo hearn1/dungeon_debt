@@ -51,6 +51,41 @@ Copy this block when adding a new entry. Paste it at the top of the Session log 
 
 <!-- Newest entries at the top. -->
 
+## 2026-05-29 - #72: Balance harness Phase 2 strategy variants
+
+**Milestone:** GitHub expansion follow-up
+**Status:** Complete
+
+**Files added:**
+- `web/src/test/strategies/frugal.js`
+- `web/src/test/strategies/smart.js`
+- `web/src/test/strategies/random.js`
+
+**Files modified:**
+- `web/src/test/balance.js` - added `--strategy=greedy|frugal|smart|random|all`, strategy dispatch, and deterministic per-strategy run coverage.
+- `web/src/test/strategies/greedy.js` - preserved greedy behavior under the shared strategy interface.
+- `web/src/run/BalanceRunLogger.js` - added the TSV `strategy` column while preserving the existing seed/result columns.
+- `PROGRESS.md` - logged this follow-up slice.
+- `NEXT_SESSION.md` - returned the project to the slice-selection checkpoint with #72 Phase 2 noted as complete.
+
+**Acceptance criteria:**
+- [x] PR #74 reviewed against issue #72 and found complete for Phase 1 only; latest issue comments locked Phase 2 strategy variants.
+- [x] Each strategy runs `--seeds=100`.
+- [x] `--strategy=all` runs every selected seed once per strategy and produces byte-identical TSV across the determinism guard.
+- [x] TSV output includes `strategy` while keeping the rest of the schema stable.
+- [x] Random strategy uses an explicitly seeded `Rng`; no `Math.random()` was added.
+- [x] `npm.cmd run test:headless` passes.
+
+**Test plan:** `npm.cmd run test:balance -- --seeds=100 --strategy=greedy`; `--strategy=frugal`; `--strategy=smart`; `--strategy=random`; `--strategy=all`; and `npm.cmd run test:headless` - all pass.
+
+**Deviations from plan:**
+- None.
+
+**Follow-up flagged:**
+- #72 Phase 3 markdown/report aggregation and later balance-tuning recommendations remain deferred.
+
+**Next slice:** Awaiting Matt's next slice selection.
+
 ## 2026-05-29 - #83: Final-run difficulty unlock follow-up
 
 **Milestone:** GitHub expansion follow-up
