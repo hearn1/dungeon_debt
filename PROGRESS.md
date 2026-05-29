@@ -51,6 +51,40 @@ Copy this block when adding a new entry. Paste it at the top of the Session log 
 
 <!-- Newest entries at the top. -->
 
+## 2026-05-29 - #88: Visual V3 attack and impact feedback
+
+**Milestone:** GitHub visual follow-up
+**Status:** Complete
+
+**Files added:**
+- None
+
+**Files modified:**
+- `web/src/ui/components.js` - let HP bars animate from their previous ratio after combat-card repaint.
+- `web/src/ui/panels/CombatPanel.js` - added floating combat numbers for attack, heal, and status-damage replay events.
+- `web/styles/main.css` - added non-layout-shifting combat-number overlay styling and animation.
+- `PROGRESS.md` - logged this follow-up slice.
+- `NEXT_SESSION.md` - returned the project to the slice-selection checkpoint with #88 noted as complete.
+
+**Acceptance criteria:**
+- [x] Issue #88 had no issue comments and no recent PR found implementing it, so the slice was treated as not yet implemented.
+- [x] Damage/heal/status-damage numbers attach to the target unit after `_paintUnit(...)` when `evt.amount > 0`.
+- [x] Damage/status damage show negative hit styling; heals show positive heal styling.
+- [x] Combat numbers are absolutely positioned inside the combat card and do not shift card layout.
+- [x] HP bars transition from the previous ratio after card repaint without changing combat math or replay timing.
+- [x] `npm.cmd run test:headless` passes.
+- [x] Browser combat replay and Skip flush checks pass with zero console warnings/errors.
+
+**Test plan:** `npm.cmd run test:headless`; browser preview via `python web/serve.py` with combat replay, Skip flush, and screenshots captured at `C:\Users\Matt\Desktop\Code\dungeon_debt_issue_88_screenshots` - all pass.
+
+**Deviations from plan:**
+- None.
+
+**Follow-up flagged:**
+- None.
+
+**Next slice:** Awaiting Matt's next slice selection.
+
 ## 2026-05-29 - #67: Act 4 dev-gated Vault follow-up
 
 **Milestone:** GitHub expansion follow-up

@@ -3,11 +3,20 @@ import { el } from "./dom.js";
 import { GameRulesFns } from "../core/GameRules.js";
 import { heroPortrait } from "./SpriteCatalog.js";
 
-export function hpBar(current, max) {
+export function hpBar(current, max, opts = {}) {
   const ratio = max > 0 ? Math.max(0, Math.min(1, current / max)) : 0;
+  const previousRatio = Number.isFinite(opts.previousRatio)
+    ? Math.max(0, Math.min(1, opts.previousRatio))
+    : ratio;
+  const fill = el("span", { style: { width: `${previousRatio * 100}%` } });
   const bar = el("div", { class: `hpbar${ratio <= 0.34 ? " low" : ""}` }, [
-    el("span", { style: { width: `${ratio * 100}%` } }),
+    fill,
   ]);
+  if (previousRatio !== ratio) {
+    const applyWidth = () => { fill.style.width = `${ratio * 100}%`; };
+    if (typeof requestAnimationFrame === "function") requestAnimationFrame(applyWidth);
+    else setTimeout(applyWidth, 0);
+  }
   return bar;
 }
 

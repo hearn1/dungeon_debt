@@ -245,7 +245,7 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 .combat-side-lbl { font-size: 12px; letter-spacing: 2px; color: var(--ink-mute); }
 .combat-row { display: flex; gap: 8px; justify-content: center; }
 .combat-divider { width: 60%; max-width: 520px; border-top: 1px dashed var(--rule); margin: 4px 0; }
-.combat-unit { width: 160px; background: var(--bg-card); border: 1px solid var(--rule); border-radius: 8px; padding: 8px 12px; display: flex; flex-direction: column; align-items: center; gap: 5px; }
+.combat-unit { width: 160px; background: var(--bg-card); border: 1px solid var(--rule); border-radius: 8px; padding: 8px 12px; display: flex; flex-direction: column; align-items: center; gap: 5px; position: relative; overflow: visible; }
 .combat-unit.dead { opacity: 0.35; }
 .combat-unit.acting { border-color: var(--gold); box-shadow: 0 0 0 1px var(--gold); }
 .cu-portrait {
@@ -290,6 +290,26 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 .projectile.proj-snap { animation: proj-snap 170ms ease-out forwards; }
 .projectile.proj-jab { animation: proj-jab 140ms ease-out forwards; }
 .projectile.proj-generic { animation: proj-generic 240ms ease-out forwards; }
+.combat-float {
+  position: absolute;
+  left: 50%;
+  top: 42%;
+  z-index: 3;
+  min-width: 32px;
+  padding: 2px 7px;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  background: rgba(12, 15, 18, 0.84);
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1.1;
+  text-align: center;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  animation: combat-float-up 700ms ease-out forwards;
+}
+.combat-float.hit { color: var(--debt-critical); }
+.combat-float.heal { color: var(--debt-stable); }
 .combat-log {
   background: var(--bg-strip); border: 1px solid var(--rule); border-radius: 8px;
   padding: 12px; height: 220px; overflow-y: auto; font-size: 13px; line-height: 1.7;
@@ -401,6 +421,12 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 }
 .combat-unit.flash-hit { animation: flash-hit 380ms ease-out 1; }
 .combat-unit.flash-heal { animation: flash-heal 380ms ease-out 1; }
+
+@keyframes combat-float-up {
+  0% { opacity: 0; transform: translate(-50%, -35%) scale(0.92); }
+  18% { opacity: 1; transform: translate(-50%, -58%) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -118%) scale(0.96); }
+}
 
 /* Melee attack lunge on the acting combat-unit card. Direction is by side
    (player rows lunge up, enemy rows lunge down); only ~64% of the cycle is
