@@ -51,6 +51,38 @@ Copy this block when adding a new entry. Paste it at the top of the Session log 
 
 <!-- Newest entries at the top. -->
 
+## 2026-05-29 - #83: Final-run difficulty unlock follow-up
+
+**Milestone:** GitHub expansion follow-up
+**Status:** Complete
+
+**Files added:**
+- None
+
+**Files modified:**
+- `web/src/core/GameManager.js` - difficulty progression now advances only on final-run victory, not intermediate act-cleared victory.
+- `web/src/test/run.js` - replaced the soft unlock smoke test with deterministic coverage for Act 1 non-unlock, full-run 0->1->2->3 progression, loss non-unlock, and Level 4 remaining disabled.
+- `PROGRESS.md` - logged this follow-up slice.
+- `NEXT_SESSION.md` - returned the project to the slice-selection checkpoint.
+
+**Acceptance criteria:**
+- [x] PR #95 reviewed against issue #83 and found incomplete because Act 1 victory could unlock the next difficulty.
+- [x] Level 1 unlocks only after a full Level 0 run victory, not an Act 1 clear.
+- [x] Level 2 unlocks only after beating Level 1; Level 3 unlocks only after beating Level 2.
+- [x] Losses do not unlock anything.
+- [x] Levels 4-10 remain disabled as unimplemented.
+- [x] `npm.cmd run test:headless` passes.
+
+**Test plan:** `npm.cmd run test:headless` - all pass.
+
+**Deviations from plan:**
+- None.
+
+**Follow-up flagged:**
+- None.
+
+**Next slice:** Awaiting Matt's next slice selection.
+
 ## 2026-05-29 - #82: Cumulative difficulty mutator descriptions
 
 **Milestone:** GitHub expansion follow-up
