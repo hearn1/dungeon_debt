@@ -51,6 +51,44 @@ Copy this block when adding a new entry. Paste it at the top of the Session log 
 
 <!-- Newest entries at the top. -->
 
+## 2026-05-29 - #67: Act 4 dev-gated Vault follow-up
+
+**Milestone:** GitHub expansion follow-up
+**Status:** Complete
+
+**Files added:**
+- None
+
+**Files modified:**
+- `web/src/data/enums.js` - added `EnemyEffectId.BankerKingDebtJudgment`.
+- `web/src/core/GameRules.js` - added Act 4 stat scaling, round metadata, theme text, and helpers.
+- `web/src/core/DataRepository.js` - added eight Act 4 Vault enemies and ten Act 4 encounters.
+- `web/src/run/RunManager.js` - generalized the dev-gated long-run continuation through all registered dev acts.
+- `web/src/combat/HeroEffects.js` - implemented Banker King's deterministic Debt Judgment combat-start attack bonus.
+- `web/src/test/combat.js` - added Debt Judgment cap/log coverage.
+- `web/src/test/run.js` - added Act 4 data/shape checks and dev-gated 40-round autopilot coverage.
+- `PROGRESS.md` - logged this follow-up slice.
+- `NEXT_SESSION.md` - returned the project to the slice-selection checkpoint with the #67 Act 4 follow-up noted as complete.
+
+**Acceptance criteria:**
+- [x] PR #79 reviewed against the latest #67 issue comments and found complete for Act 3 only.
+- [x] Act 4 adds eight The Vault enemies and ten encounters mirroring the Act 2/3 slot structure.
+- [x] `GameRules.ActStatScale[4]` is `{ enemyHealth: 1.45, enemyAttack: 1.35 }`.
+- [x] Hidden dev long-run path completes 40 rounds through Act 4 and reaches Victory; normal runs still end at Act 2.
+- [x] Banker King's Debt Judgment is deterministic, capped at +4 attack, combat-only, and logged.
+- [x] No payroll/interest/reward rebalance, new statuses, combat RNG, or `Math.random()` was added.
+- [x] `npm.cmd run test:headless` passes.
+
+**Test plan:** `npm.cmd run test:headless` - all pass.
+
+**Deviations from plan:**
+- None.
+
+**Follow-up flagged:**
+- #67 normal-player access for Acts 3-4, unique/non-placeholder boss mechanics beyond Debt Judgment, and economy/balance tuning remain deferred unless Matt explicitly chooses those slices.
+
+**Next slice:** Awaiting Matt's next slice selection.
+
 ## 2026-05-29 - #72: Balance harness Phase 2 strategy variants
 
 **Milestone:** GitHub expansion follow-up

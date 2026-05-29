@@ -9,7 +9,7 @@ import { HeroEffects } from "../combat/HeroEffects.js";
 import { RunState } from "../data/RunState.js";
 import { HeroInstance } from "../data/HeroInstance.js";
 import { GameRules, GameRulesFns } from "../core/GameRules.js";
-import { HeroTier, RelicId, CombatStatusId } from "../data/enums.js";
+import { EnemyEffectId, HeroTier, RelicId, CombatStatusId } from "../data/enums.js";
 import { CombatUnit as CU } from "../data/CombatUnit.js";
 
 let failures = 0;
@@ -339,6 +339,20 @@ console.log("Combat engine test");
     const m = scaleMsg[0].match(/scales to (\d+) attack/);
     check("debtwraith: attack = 5 at debt 12", m && parseInt(m[1], 10) === 5);
   }
+}
+
+// Banker King gains capped attack from player debt at combat start.
+{
+  const bankerEncounter = encounter(4, 10);
+  const banker = bankerEncounter.enemies[0];
+  const run = buildRun(["paladin", "golem", "barbarian", "ranger", "cleric"]);
+  run.debt = 45;
+  const result = new CombatManager().startCombat(run, bankerEncounter);
+  check("bankerking: effect id assigned", banker.effectId === EnemyEffectId.BankerKingDebtJudgment);
+  check("bankerking: debt judgment capped at +4 attack",
+    result.enemyStartUnits[0] && result.enemyStartUnits[0].attack === banker.attack + 4);
+  check("bankerking: debt judgment logged with final attack",
+    result.logLines.some(l => l.includes("gains +4 attack from Debt Judgment") && l.includes("debt 45")));
 }
 
 // Goblin Thief sets survivor flag if alive past combat round 3.

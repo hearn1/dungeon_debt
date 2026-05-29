@@ -173,6 +173,7 @@ export const GameRules = Object.freeze({
   ActStatScale: Object.freeze({
     2: Object.freeze({ enemyHealth: 1, enemyAttack: 1 }),
     3: Object.freeze({ enemyHealth: 1.2, enemyAttack: 1.15 }),
+    4: Object.freeze({ enemyHealth: 1.45, enemyAttack: 1.35 }),
   }),
 
   ApprenticeStartingGold: 20,
@@ -230,7 +231,7 @@ export const GameRules = Object.freeze({
 });
 
 // ---- Act structure (data-driven; append a count to add an act) ----
-const ActRoundCounts = [10, 10, 10];
+const ActRoundCounts = [10, 10, 10, 10];
 const DefaultActCount = 2;
 const ActAccentColors = [
   rgba(0.541, 0.565, 0.604),
@@ -240,7 +241,7 @@ const ActAccentColors = [
   rgba(0.549, 0.416, 0.659),
 ];
 const ActRomanNumerals = ["I", "II", "III", "IV", "V"];
-const ActThemeWords = ["Dungeon", "Demonic", "The Mint", "Golden", "Void"];
+const ActThemeWords = ["Dungeon", "Demonic", "The Mint", "The Vault", "Void"];
 
 function clampAct(act) {
   if (act < 1) return 1;
@@ -403,9 +404,11 @@ export const GameRulesFns = {
   get act1FinalRound() { return this.getActFinalRound(1); },
   get act2FinalRound() { return this.getActFinalRound(2); },
   get act3FinalRound() { return this.getActFinalRound(3); },
+  get act4FinalRound() { return this.getActFinalRound(4); },
   get act1Rounds() { return this.getRoundsInAct(1); },
   get act2Rounds() { return this.getRoundsInAct(2); },
   get act3Rounds() { return this.getRoundsInAct(3); },
+  get act4Rounds() { return this.getRoundsInAct(4); },
 
   getRoundsInAct(act) {
     return ActRoundCounts[clampAct(act) - 1];

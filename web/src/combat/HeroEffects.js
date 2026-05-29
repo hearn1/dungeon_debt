@@ -150,6 +150,21 @@ export const HeroEffects = {
       }
     }
 
+    // Banker King: Debt Judgment adds attack from player debt for this combat only.
+    if (run) {
+      const judgmentBoost = Math.min(4, Math.floor(run.debt / 10));
+      if (judgmentBoost > 0) {
+        for (const unit of enemyUnits) {
+          if (!unit.sourceEnemy) continue;
+          if (unit.sourceEnemy.effectId !== EnemyEffectId.BankerKingDebtJudgment) continue;
+          unit.attack += judgmentBoost;
+          if (logger) {
+            logger.logMessage(`${unit.displayName} gains +${judgmentBoost} attack from Debt Judgment (debt ${run.debt}, attack ${unit.attack}).`);
+          }
+        }
+      }
+    }
+
     return knightRedirectsRemaining;
   },
 
