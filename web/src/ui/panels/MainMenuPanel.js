@@ -44,9 +44,7 @@ export class MainMenuPanel {
     this.root.appendChild(choices);
 
     const selectedDifficulty = DataRepository.getDifficultyLevel(this._selectedLevel);
-    const mutatorText = selectedDifficulty && selectedDifficulty.mutators.length > 0
-      ? selectedDifficulty.mutators.map((m) => m.description).join(" ")
-      : "No mutators applied.";
+    const mutatorText = this._formatDifficultyMutators(selectedDifficulty, "No mutators applied.");
 
     this.root.appendChild(el("div", {
       class: "subtitle",
@@ -89,9 +87,18 @@ export class MainMenuPanel {
   }
 
   _getDifficultySummary(difficulty) {
-    if (this._isLevelLocked(difficulty)) return this._getLockedLabel(difficulty);
+    if (!difficulty.isImplemented) return this._getLockedLabel(difficulty);
     if (difficulty.mutators.length <= 0) return "Baseline contract.";
-    return "Cumulative: " + difficulty.mutators.map((m) => m.description).join(" ");
+    const mutatorSummary = "Cumulative: " + this._formatDifficultyMutators(difficulty);
+    if (this._isLevelLocked(difficulty)) return this._getLockedLabel(difficulty) + " " + mutatorSummary;
+    return mutatorSummary;
+  }
+
+  _formatDifficultyMutators(difficulty, fallback = "") {
+    if (!difficulty || difficulty.mutators.length <= 0) return fallback;
+    return difficulty.mutators
+      .map((mutator) => `${mutator.displayName}: ${mutator.description}`)
+      .join(" ");
   }
 
   _startRun() {

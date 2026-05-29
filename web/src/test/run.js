@@ -78,6 +78,35 @@ console.log("Run-flow test");
   const allLevels = DataRepository.allDifficultyLevels;
   const visibleLevels = allLevels.map((d) => d.level).join(",");
   check("difficulty: levels 0-10 visible in data", visibleLevels === "0,1,2,3,4,5,6,7,8,9,10");
+
+  const expectedMutatorStacks = [
+    {
+      level: DifficultyLevel.Level1,
+      ids: ["LessStartingGold"],
+      descriptions: ["-3 starting gold."],
+    },
+    {
+      level: DifficultyLevel.Level2,
+      ids: ["LessStartingGold", "HigherInterest"],
+      descriptions: ["-3 starting gold.", "Interest divisor becomes 4."],
+    },
+    {
+      level: DifficultyLevel.Level3,
+      ids: ["LessStartingGold", "HigherInterest", "LowerDebtLimit"],
+      descriptions: ["-3 starting gold.", "Interest divisor becomes 4.", "-5 debt limit."],
+    },
+  ];
+
+  for (const expectation of expectedMutatorStacks) {
+    const mutators = DataRepository.getDifficultyMutatorsForLevel(expectation.level);
+    const levelDefinition = DataRepository.getDifficultyLevel(expectation.level);
+    check(`difficulty: level ${expectation.level} cumulative mutator ids`,
+      mutators.map((mutator) => mutator.id).join(",") === expectation.ids.join(","));
+    check(`difficulty: level ${expectation.level} cumulative mutator descriptions`,
+      mutators.map((mutator) => mutator.description).join(" ") === expectation.descriptions.join(" "));
+    check(`difficulty: level ${expectation.level} definition uses cumulative mutators`,
+      levelDefinition.mutators.map((mutator) => mutator.id).join(",") === expectation.ids.join(","));
+  }
 }
 
 // ---- Difficulty progressive unlock ----
@@ -809,7 +838,9 @@ console.log("Run-flow test");
     check("shopevent-force: party grew", run.party.length === 1);
 
     // Reroll clears prior event
-    shop.reroll();
+    run.gold = Math.max(run.gold, GameRules.RerollCost);
+    const rerolled = shop.reroll();
+    check("shopevent-force: reroll succeeded", rerolled === true);
     check("shopevent-force: event cleared after reroll", run.currentShopEvent === null);
 
     run.currentShopEvent = {
