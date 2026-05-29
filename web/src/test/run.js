@@ -480,6 +480,49 @@ console.log("Run-flow test");
   }
 }
 
+// ---- #86 Regression: shop hire merges correct tier; no duplicate party members ----
+{
+  const gm = new GameManager();
+  gm.startRun(DifficultyLevel.Level0);
+  gm.continueFromScout();
+  const run = gm.currentRunState;
+  const shop = gm.shopManager;
+
+  const def = shop.currentOffers.find((o) => o)?.hero;
+  if (def) {
+    shop.currentOffers.length = 0;
+    shop.currentOffers.push(new ShopOffer(def, 0, HeroTier.Bronze));
+    shop.currentOffers.push(new ShopOffer(def, 0, HeroTier.Bronze));
+
+    shop.hire(0);
+    check("reg86: first hire is Bronze", run.party[0].tier === HeroTier.Bronze);
+
+    shop.hire(1);
+    check("reg86: duplicate hire upgrades to Silver", run.party[0].tier === HeroTier.Silver);
+    check("reg86: still one party member after Bronze→Silver", run.party.length === 1);
+
+    shop.currentOffers.length = 0;
+    shop.currentOffers.push(new ShopOffer(def, 0, HeroTier.Bronze));
+
+    shop.hire(0);
+    check("reg86: Silver upgraded to Gold", run.party[0].tier === HeroTier.Gold);
+    check("reg86: still one party member after Silver→Gold", run.party.length === 1);
+
+    shop.currentOffers.length = 0;
+    shop.currentOffers.push(new ShopOffer(def, 0, HeroTier.Bronze));
+    shop.hire(0);
+    const goldHero = run.party[0];
+    check("reg86: Gold cannot promote further", goldHero.tier === HeroTier.Gold);
+    check("reg86: no duplicate added for Gold", run.party.length === 1);
+
+    const uniqueIds = new Set(run.party.map((h) => h.definition.id));
+    check("reg86: all party members have unique definition ids",
+      uniqueIds.size === run.party.length);
+  } else {
+    check("reg86: had a definition to test", false);
+  }
+}
+
 // ---- Shop: fire hero ----
 {
   const gm = new GameManager();
