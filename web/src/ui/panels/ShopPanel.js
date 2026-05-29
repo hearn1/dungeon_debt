@@ -1,6 +1,7 @@
 import { el, clear } from "../dom.js";
 import { GameRules, GameRulesFns } from "../../core/GameRules.js";
 import { heroCard, appendPanelHeader } from "../components.js";
+import { HeroTier } from "../../data/enums.js";
 
 export class ShopPanel {
   constructor(gm) {
@@ -30,16 +31,17 @@ export class ShopPanel {
         return;
       }
       const owned = run.party.find((h) => h.definition.id === offer.hero.id);
-      const merge = owned && owned.tier !== "Silver";
+      const mergeLabel = getMergeLabel(owned);
       const affordable = run.gold >= offer.hireCost && !offer.purchased;
       const full = run.party.length >= GameRules.MaxPartySize && !owned;
+      const disabled = offer.purchased || !affordable || full || (owned && owned.tier === HeroTier.Gold);
       offers.appendChild(heroCard(offer.hero, null, {
         tier: offer.tier,
         cost: offer.hireCost,
         actions: [{
-          label: offer.purchased ? "Hired" : merge ? "Merge → Silver" : "Hire",
+          label: offer.purchased ? "Hired" : mergeLabel || "Hire",
           primary: true,
-          disabled: offer.purchased || !affordable || full,
+          disabled,
           onClick: () => { shop.hire(i); this.refresh(); },
         }],
       }));
@@ -80,6 +82,13 @@ export class ShopPanel {
       el("button", { class: "btn primary", text: "To Formation →", onClick: () => this.gm.continueFromShop() }),
     ]));
   }
+}
+
+function getMergeLabel(owned) {
+  if (!owned) return null;
+  if (owned.tier === HeroTier.Bronze) return "Merge → Silver";
+  if (owned.tier === HeroTier.Silver) return "Merge → Gold";
+  return null;
 }
 
 function sectionTitle(text) {
