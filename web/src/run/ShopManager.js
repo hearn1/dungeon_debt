@@ -24,6 +24,11 @@ export class ShopManager {
     this._fillAllOffers();
   }
 
+  clearShopEvent() {
+    const run = this._getRunState();
+    if (run) run.currentShopEvent = null;
+  }
+
   reroll() {
     const run = this._getRunState();
     if (!run || run.gold < GameRules.RerollCost) return false;

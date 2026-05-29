@@ -65,7 +65,10 @@ export class GameManager {
   }
 
   continueFromScout() { this.changeState(GameState.Shop); }
-  continueFromShop() { this.changeState(GameState.Formation); }
+  continueFromShop() {
+    if (this._shopManager) this._shopManager.clearShopEvent();
+    this.changeState(GameState.Formation);
+  }
   continueFromFormation() { this.changeState(GameState.Payroll); }
 
   selectPayrollAction(actionId) {

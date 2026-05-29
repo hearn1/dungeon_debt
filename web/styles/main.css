@@ -202,6 +202,19 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 .uc-blurb { font-size: 12px; color: var(--ink-dim); min-height: 32px; }
 .uc-cost { font-size: 13px; color: var(--gold); font-weight: 700; }
 .uc-actions { display: flex; gap: 8px; margin-top: 4px; }
+.offer-card-wrap { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.offer-card-wrap .unit-card { height: 100%; }
+.shop-event-badge {
+  align-self: flex-start;
+  border: 1px solid #8c6f38;
+  background: var(--dd-candle);
+  color: var(--dd-ink);
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+}
 
 /* HP bar */
 .hpbar { height: 7px; background: var(--rule-faint); border-radius: 4px; overflow: hidden; }

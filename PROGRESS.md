@@ -51,6 +51,37 @@ Copy this block when adding a new entry. Paste it at the top of the Session log 
 
 <!-- Newest entries at the top. -->
 
+## 2026-05-29 - #73: Bargain Stall clear-on-leave follow-up
+
+**Milestone:** GitHub expansion issue wave
+**Status:** Complete
+
+**Files added:**
+- None
+
+**Files modified:**
+- `web/src/core/GameManager.js` - clears active shop-event state when leaving Shop for Formation.
+- `web/src/run/ShopManager.js` - added a public `clearShopEvent()` transition helper.
+- `web/src/test/run.js` - added coverage for Bargain Stall event state clearing after Shop exit.
+- `web/styles/main.css` - styled the Bargain Stall badge surfaced by PR #98.
+
+**Acceptance criteria:**
+- [x] PR #98 reviewed against the latest accepted #73 comment scope.
+- [x] Bargain Stall state clears on reroll and when leaving Shop.
+- [x] Bargain Stall badge is visibly styled in the Shop UI.
+- [x] `npm.cmd run test:headless` passes.
+- [x] Browser Shop smoke check passes with zero console warnings/errors.
+
+**Test plan:** `npm.cmd run test:headless`; browser preview via `python web/serve.py` - all pass.
+
+**Deviations from plan:**
+- None
+
+**Follow-up flagged:**
+- None for the accepted Bargain Stall-only slice. Wider #73 buckets remain explicit future slices.
+
+**Next slice:** Awaiting Matt's next slice selection.
+
 ## 2026-05-28 - #71: Visual identity V1
 
 **Milestone:** GitHub expansion issue wave
