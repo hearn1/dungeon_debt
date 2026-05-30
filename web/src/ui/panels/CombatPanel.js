@@ -2,7 +2,7 @@ import { el, clear } from "../dom.js";
 import { GameRules, GameRulesFns } from "../../core/GameRules.js";
 import { CombatReplayEventKind } from "../../data/CombatReplayEvent.js";
 import { HeroRole, EnemyEffectId } from "../../data/enums.js";
-import { statusPills, hpBar, appendPanelHeader } from "../components.js";
+import { statusPills, hpBar, statusGlyphs, appendPanelHeader } from "../components.js";
 import { unitPortrait, attackEffect, healEffect } from "../SpriteCatalog.js";
 
 const STEP_MS = 280;
@@ -74,23 +74,24 @@ export class CombatPanel {
       const node = el("div", { class: "combat-unit" });
       // Remember the unit so projectile lookup can resolve its sprite.
       this._units.set(this._key(isPlayer, u.slot), { node, max: u.maxHealth, unit: u });
-      this._paintUnit(node, u.displayName, u.currentHealth, u.maxHealth, u.statuses.activeStatuses, u);
+      this._paintUnit(node, u.displayName, u.currentHealth, u.maxHealth, u.statuses.activeStatuses, u.statuses.poisonDamage, u);
       row.appendChild(node);
     }
     return row;
   }
 
-  _paintUnit(node, name, hp, max, statuses, unit) {
+  _paintUnit(node, name, hp, max, statuses, poisonDamage, unit) {
     const previousRatio = Number.parseFloat(node.dataset.hpRatio);
     const nextRatio = max > 0 ? Math.max(0, Math.min(1, hp / max)) : 0;
     clear(node);
     node.classList.toggle("dead", hp <= 0);
     if (unit) {
-      node.appendChild(el("img", {
-        class: "cu-portrait",
-        src: unitPortrait(unit),
-        alt: name,
-      }));
+      const portraitWrap = el("div", { class: "cu-portrait-wrap" }, [
+        el("img", { class: "cu-portrait", src: unitPortrait(unit), alt: name }),
+      ]);
+      const sg = statusGlyphs(statuses, poisonDamage);
+      if (sg) portraitWrap.appendChild(sg);
+      node.appendChild(portraitWrap);
     }
     node.appendChild(el("div", { class: "cu-head" }, [
       el("span", { text: name }),
@@ -139,7 +140,8 @@ export class CombatPanel {
       if (target) {
         const name = target.node.querySelector(".cu-head span")?.textContent
           || evt.logText;
-        this._paintUnit(target.node, name, evt.targetHealthAfter, evt.targetMaxHealth || target.max, evt.targetStatuses, target.unit);
+        const pd = target.unit ? target.unit.statuses.poisonDamage : 0;
+        this._paintUnit(target.node, name, evt.targetHealthAfter, evt.targetMaxHealth || target.max, evt.targetStatuses, pd, target.unit);
         this._spawnFloatingNumber(target.node, evt);
         // One-shot death animation: target crossed to 0 HP → fade out.
         if (evt.targetHealthAfter <= 0 && target.node.dataset.died !== "1") {

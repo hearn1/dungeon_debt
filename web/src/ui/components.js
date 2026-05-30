@@ -2,6 +2,7 @@
 import { el } from "./dom.js";
 import { GameRulesFns } from "../core/GameRules.js";
 import { heroPortrait } from "./SpriteCatalog.js";
+import { CombatStatusId } from "../data/enums.js";
 
 export function hpBar(current, max, opts = {}) {
   const ratio = max > 0 ? Math.max(0, Math.min(1, current / max)) : 0;
@@ -31,6 +32,26 @@ export function statusPills(statuses) {
     }));
   }
   return row;
+}
+
+export function statusGlyphs(statuses, poisonDamage) {
+  if (!statuses || statuses.length === 0) return null;
+  const container = el("div", {
+    class: `status-glyph-container${statuses.length >= 3 ? " many" : ""}`,
+  });
+  for (const s of statuses) {
+    const color = GameRulesFns.getCombatStatusColor(s);
+    const d = GameRulesFns.getCombatStatusGlyphPath(s);
+    if (!d) continue;
+    const isFill = s === CombatStatusId.Burned || s === CombatStatusId.Poisoned || s === CombatStatusId.Inspired;
+    const glyph = el("div", { class: "status-glyph-wrap" });
+    glyph.innerHTML = `<svg class="status-glyph" width="16" height="16" viewBox="0 0 16 16"><path d="${d}" fill="${isFill ? color : "none"}" stroke="${isFill ? "none" : color}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+    if (s === CombatStatusId.Poisoned && poisonDamage > 0) {
+      glyph.appendChild(el("span", { class: "poison-dmg", text: String(poisonDamage) }));
+    }
+    container.appendChild(glyph);
+  }
+  return container;
 }
 
 export function panelHeader(kicker, title, sub = "") {
