@@ -266,11 +266,11 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 .slot.selected { border-color: var(--gold); box-shadow: 0 0 0 1px var(--gold); }
 
 /* ---- Combat ---- */
-.combat-board { display: flex; flex-direction: column; align-items: center; gap: 10px; position: relative; }
+.combat-board { display: flex; flex-direction: column; align-items: center; gap: 10px; position: relative; perspective: 600px; transform: rotateX(2deg); border: 1px solid var(--act-accent, var(--rule)); }
 .combat-side { display: flex; flex-direction: column; align-items: center; gap: 6px; width: 100%; }
 .combat-side-lbl { font-size: 12px; letter-spacing: 2px; color: var(--ink-mute); }
 .combat-row { display: flex; gap: 8px; justify-content: center; }
-.combat-divider { width: 60%; max-width: 520px; border-top: 1px dashed var(--rule); margin: 4px 0; }
+.combat-divider { width: 60%; max-width: 520px; border-top: 1px dashed var(--rule); border-top-color: var(--act-accent, var(--rule)); margin: 4px 0; }
 .combat-unit { width: 160px; background: var(--bg-card); border: 1px solid var(--rule); border-radius: 8px; padding: 8px 12px; display: flex; flex-direction: column; align-items: center; gap: 5px; position: relative; overflow: visible; }
 .combat-unit.dead { opacity: 0.35; }
 .combat-unit.acting { border-color: var(--gold); box-shadow: 0 0 0 1px var(--gold); }
@@ -518,3 +518,19 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   100% { opacity: 0.35; transform: scale(0.92) translateY(4px); }
 }
 .combat-unit.dying { animation: death-fade 400ms ease-out forwards; }
+
+/* ---- V2 combat board backgrounds and staging ---- */
+/* Backline row depth offset */
+.combat-row.back { transform: scale(0.95) translateY(4px); }
+
+/* Encounter-type floor washes: radial gradient from bottom-center */
+.combat-board.encounter-dungeon {
+  background: radial-gradient(ellipse at 50% 100%, var(--act-accent) 0%, transparent 65%);
+}
+.combat-board.encounter-rival {
+  background: radial-gradient(ellipse at 50% 100%, var(--act-accent) 0%, transparent 55%);
+}
+.combat-board.encounter-boss {
+  background: radial-gradient(ellipse at 50% 100%, var(--act-accent) 0%, transparent 45%);
+  box-shadow: 0 0 40px color-mix(in srgb, var(--act-accent) 20%, transparent);
+}
