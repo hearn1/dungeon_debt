@@ -1,7 +1,7 @@
 import { el, clear } from "../dom.js";
 import { GameRules, GameRulesFns } from "../../core/GameRules.js";
 import { CombatReplayEventKind } from "../../data/CombatReplayEvent.js";
-import { HeroRole, EnemyEffectId } from "../../data/enums.js";
+import { HeroRole, EnemyEffectId, EncounterType } from "../../data/enums.js";
 import { statusPills, hpBar, statusGlyphs, appendPanelHeader } from "../components.js";
 import { unitPortrait, attackEffect, healEffect } from "../SpriteCatalog.js";
 
@@ -49,6 +49,12 @@ export class CombatPanel {
       playerBlock,
       this._projectileLayer,
     ]);
+    // Encounter-type visual background and per-act accent palette
+    const encClass = encounter?.type === EncounterType.RivalGhost ? "encounter-rival"
+      : encounter?.type === EncounterType.FinalBoss ? "encounter-boss"
+      : "encounter-dungeon";
+    this._board.classList.add(encClass);
+    this._board.style.setProperty("--act-accent", GameRulesFns.getActAccentColor(run.act));
     this.root.appendChild(this._board);
 
     this._log = el("div", { class: "combat-log" });
