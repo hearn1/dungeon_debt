@@ -137,6 +137,8 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 .panel-rule { width: 100%; border: 0; border-top: 1px solid var(--rule-strong); margin: 4px 0 14px; }
 .panel-actions { display: flex; gap: 12px; justify-content: flex-end; }
 
+.stage > .panel, .stage > .overlay { animation: panel-fade-in 150ms ease-out; }
+
 /* ---- Cards ---- */
 .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 14px; }
 .unit-card {
@@ -410,6 +412,10 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 .victory .title { background: linear-gradient(90deg, var(--debt-stable), var(--gold)); -webkit-background-clip: text; background-clip: text; }
 .defeat .title { background: linear-gradient(90deg, var(--debt-critical), rgb(204, 122, 58)); -webkit-background-clip: text; background-clip: text; }
 
+.overlay > .title { animation: overlay-stagger-in 300ms ease-out; }
+.overlay > .end-reason { animation: overlay-stagger-in 300ms ease-out both; animation-delay: 200ms; }
+.overlay > .menu-choices { animation: overlay-stagger-in 300ms ease-out both; animation-delay: 450ms; }
+
 /* ---- Rival leaderboard ---- */
 .rival-list { display: flex; flex-direction: column; gap: 10px; }
 .rival-name { font-weight: 700; min-width: 140px; }
@@ -553,4 +559,13 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 .offer-card-wrap {
   animation: card-enter 0.3s ease-out both;
   animation-delay: calc(var(--idx, 0) * 60ms);
+}
+
+@keyframes panel-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes overlay-stagger-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
