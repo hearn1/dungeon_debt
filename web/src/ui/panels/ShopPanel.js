@@ -23,6 +23,49 @@ export class ShopPanel {
 
     appendPanelHeader(this.root, "SHOP", "Recruit Heroes", `${run.gold} gold · party ${run.party.length}/${GameRules.MaxPartySize}`);
 
+    // Shop event area
+    const ev = run.currentShopEvent;
+    if (ev) {
+      if (ev.eventId === ShopEventId.TaxAudit) {
+        const eventArea = el("div", { class: "shop-event-area" });
+        eventArea.appendChild(el("div", { class: "shop-event-badge", text: "Tax Audit!" }));
+        eventArea.appendChild(el("div", { class: "panel-sub", text: "Pay " + GameRules.TaxAuditGoldCost + " gold or lose 1 morale." }));
+        const btnRow = el("div", { class: "shop-event-actions" });
+        btnRow.appendChild(el("button", {
+          class: "btn small", text: "Pay " + GameRules.TaxAuditGoldCost + " gold",
+          disabled: run.gold < GameRules.TaxAuditGoldCost ? "" : null,
+          onClick: () => { shop.resolveTaxAudit(true); this.refresh(); },
+        }));
+        btnRow.appendChild(el("button", {
+          class: "btn small danger", text: "Refuse (-1 morale)",
+          onClick: () => { shop.resolveTaxAudit(false); this.refresh(); },
+        }));
+        eventArea.appendChild(btnRow);
+        this.root.appendChild(eventArea);
+      } else if (ev.eventId === ShopEventId.TravellingMerchant) {
+        const eventArea = el("div", { class: "shop-event-area" });
+        eventArea.appendChild(el("div", { class: "shop-event-badge", text: "Travelling Merchant" }));
+        for (const good of ev.goods) {
+          const purchased = shop.isTravellingGoodPurchased(good.id);
+          const row = el("div", { class: "shop-event-good" });
+          row.appendChild(el("span", { class: "shop-event-good-label", text: good.label }));
+          row.appendChild(el("span", { class: "panel-sub", text: good.description }));
+          if (purchased) {
+            row.appendChild(el("span", { class: "shop-event-badge", text: "Bought" }));
+          } else {
+            row.appendChild(el("button", {
+              class: "btn small" + (run.gold >= good.cost ? " primary" : ""),
+              text: "Buy (" + good.cost + "g)",
+              disabled: run.gold < good.cost ? "" : null,
+              onClick: () => { shop.purchaseTravellingGood(good.id); this.refresh(); },
+            }));
+          }
+          eventArea.appendChild(row);
+        }
+        this.root.appendChild(eventArea);
+      }
+    }
+
     // Offers
     const offers = el("div", { class: "card-grid" });
     shop.currentOffers.forEach((offer, i) => {
@@ -85,7 +128,12 @@ export class ShopPanel {
         disabled: debtPayment <= 0 ? "" : null,
         onClick: () => { shop.payDebt(); this.refresh(); },
       }),
-      el("button", { class: "btn primary", text: "To Formation →", onClick: () => this.gm.continueFromShop() }),
+      el("button", {
+        class: "btn primary",
+        text: ev && ev.eventId === ShopEventId.TaxAudit ? "Resolve Tax Audit first" : "To Formation →",
+        disabled: ev && ev.eventId === ShopEventId.TaxAudit ? "" : null,
+        onClick: () => { if (!ev || ev.eventId !== ShopEventId.TaxAudit) this.gm.continueFromShop(); },
+      }),
     ]));
   }
 }

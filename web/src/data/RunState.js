@@ -50,6 +50,7 @@ export class RunState {
 
     // M17 shop event state, cleared each shop visit.
     this.currentShopEvent = null;
+    this.pendingNextRewardBonus = 0;
   }
 
   get currentEncounter() { return this._currentEncounter; }

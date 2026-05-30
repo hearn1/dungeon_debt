@@ -114,6 +114,11 @@ export class RunManager {
     const relicRewardGold = hasRelic(run, RelicId.GuildDividend) ? GameRules.GuildDividendRewardGold : 0;
     rewardGold += relicRewardGold;
 
+    if (run.pendingNextRewardBonus > 0) {
+      rewardGold += run.pendingNextRewardBonus;
+      run.pendingNextRewardBonus = 0;
+    }
+
     run.gold += rewardGold;
     run.morale += moraleChange;
 
