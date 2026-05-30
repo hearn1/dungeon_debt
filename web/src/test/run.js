@@ -793,7 +793,7 @@ console.log("Run-flow test");
   check("shopreroll: offers replaced", !sameOffers);
 }
 
-// ---- M17 Shop events: BargainStall determinism and variety ----
+// ---- M17 Shop events: determinism and variety across all event types ----
 {
   // Same seed produces same shop-event sequence
   const seq1 = collectShopEventSequence(42);
@@ -802,11 +802,11 @@ console.log("Run-flow test");
 
   // Multiple seeds show both event and no-event cases
   const distinct = new Set();
-  for (let seed = 1; seed <= 10; seed++) {
+  for (let seed = 1; seed <= 15; seed++) {
     const seq = collectShopEventSequence(seed);
     distinct.add(seq.join("|"));
   }
-  check("shopevent: ten seeds produce at least two distinct sequences", distinct.size >= 2);
+  check("shopevent: fifteen seeds produce at least three distinct sequences", distinct.size >= 3);
 }
 
 // ---- M17 Shop events: discounted cost is charged once and reroll clears ----
@@ -861,6 +861,123 @@ console.log("Run-flow test");
   } else {
     check("shopevent-force: had a definition to test", false);
   }
+}
+
+// ---- M17 Shop events: TaxAudit costs deducted correctly ----
+{
+  const gm = new GameManager();
+  gm.startRun(DifficultyLevel.Level0);
+  gm.continueFromScout();
+  const run = gm.currentRunState;
+  const shop = gm.shopManager;
+
+  run.currentShopEvent = { eventId: ShopEventId.TaxAudit };
+  const goldBefore = run.gold;
+  const resolved = shop.resolveTaxAudit(true);
+  check("taxaudit: pay succeeded", resolved === true);
+  check("taxaudit: gold deducted by cost", run.gold === goldBefore - GameRules.TaxAuditGoldCost);
+  check("taxaudit: event cleared after pay", run.currentShopEvent === null);
+
+  run.currentShopEvent = { eventId: ShopEventId.TaxAudit };
+  const moraleBefore = run.morale;
+  shop.resolveTaxAudit(false);
+  check("taxaudit: morale decreased by 1", run.morale === moraleBefore - 1);
+  check("taxaudit: event cleared after refuse", run.currentShopEvent === null);
+
+  run.currentShopEvent = { eventId: ShopEventId.TaxAudit };
+  run.gold = 2;
+  check("taxaudit: fails with insufficient gold", shop.resolveTaxAudit(true) === false);
+  check("taxaudit: event preserved on failed pay", run.currentShopEvent !== null);
+
+  run.currentShopEvent = { eventId: ShopEventId.TaxAudit };
+  gm.continueFromShop();
+  check("taxaudit: event cleared after leaving shop", run.currentShopEvent === null);
+}
+
+// ---- M17 Shop events: TravellingMerchant purchases ----
+{
+  const gm = new GameManager();
+  gm.startRun(DifficultyLevel.Level0);
+  gm.continueFromScout();
+  const run = gm.currentRunState;
+  const shop = gm.shopManager;
+  const def = DataRepository.allHeroes.find((h) => h.id === "warrior");
+
+  // Set up party with a damaged hero
+  run.party.length = 0;
+  const hero = new HeroInstance(def, 0);
+  hero.currentHealth = 1;
+  run.party.push(hero);
+  const maxHp = HeroEffects.getTierAdjustedMaxHealth(hero);
+
+  // Inject TravellingMerchant event
+  run.currentShopEvent = {
+    eventId: ShopEventId.TravellingMerchant,
+    purchases: [],
+    goods: [
+      { id: "healAll", label: "Heal All Party", cost: GameRules.TravellingHealAllCost, description: "Restore all heroes to full HP" },
+      { id: "goldBlessing", label: "Gold Blessing", cost: GameRules.TravellingBlessingCost, description: "+" + GameRules.TravellingBlessingAmount + " gold on next combat reward" },
+    ],
+  };
+
+  // Heal all purchase
+  run.gold = 20;
+  check("travelling: healAll not yet purchased", shop.isTravellingGoodPurchased("healAll") === false);
+  const goldBeforeHeal = run.gold;
+  shop.purchaseTravellingGood("healAll");
+  check("travelling: healAll purchased", shop.isTravellingGoodPurchased("healAll") === true);
+  check("travelling: gold deducted for healAll", run.gold === goldBeforeHeal - GameRules.TravellingHealAllCost);
+  check("travelling: hero healed to max", run.party[0].currentHealth === maxHp);
+
+  // Prevent double-purchase
+  const goldBeforeDouble = run.gold;
+  shop.purchaseTravellingGood("healAll");
+  check("travelling: healAll not charged twice", run.gold === goldBeforeDouble);
+
+  // Gold blessing purchase
+  const goldBeforeBless = run.gold;
+  const pendingBefore = run.pendingNextRewardBonus;
+  shop.purchaseTravellingGood("goldBlessing");
+  check("travelling: goldBlessing purchased", shop.isTravellingGoodPurchased("goldBlessing") === true);
+  check("travelling: gold deducted for blessing", run.gold === goldBeforeBless - GameRules.TravellingBlessingCost);
+  check("travelling: pendingNextRewardBonus increased", run.pendingNextRewardBonus === pendingBefore + GameRules.TravellingBlessingAmount);
+
+  // Fail with insufficient gold
+  run.currentShopEvent = {
+    eventId: ShopEventId.TravellingMerchant,
+    purchases: [],
+    goods: [
+      { id: "healAll", label: "Heal All Party", cost: GameRules.TravellingHealAllCost, description: "Restore all heroes to full HP" },
+    ],
+  };
+  run.gold = 1;
+  check("travelling: fails with insufficient gold", shop.purchaseTravellingGood("healAll") === false);
+
+  // Clear on leaving shop
+  run.currentShopEvent = {
+    eventId: ShopEventId.TravellingMerchant,
+    purchases: [],
+    goods: [],
+  };
+  gm.continueFromShop();
+  check("travelling: event cleared after leaving shop", run.currentShopEvent === null);
+}
+
+// ---- M17 Shop events: goldBlessing applies to combat reward ----
+{
+  const gm = new GameManager();
+  gm.startRun(DifficultyLevel.Level0);
+  gm.continueFromScout();
+  fieldKnownParty(gm, ["warrior", "golem"]);
+  gm.continueFromShop();
+  gm.continueFromFormation();
+  gm.selectPayrollAction(PayrollActionId.StandardPay);
+  gm.continueFromPayroll();
+  const run = gm.currentRunState;
+  run.pendingNextRewardBonus = 999;
+  const result = gm.resolveCombat();
+  check("goldblessing: reward bonus applied", run.latestRewardGold === GameRules.WinReward + 999);
+  check("goldblessing: bonus consumed after reward", run.pendingNextRewardBonus === 0);
 }
 
 // ---- Full 20-round autopilot on easier preset ----
@@ -933,8 +1050,8 @@ function collectShopEventSequence(seed) {
   // Generate offers 5 times per seed to capture event patterns
   for (let i = 0; i < 5; i++) {
     shop.generateOffers();
-    if (run.currentShopEvent && run.currentShopEvent.eventId === ShopEventId.BargainStall) {
-      sequence.push(`B:${run.currentShopEvent.slotIndex}`);
+    if (run.currentShopEvent) {
+      sequence.push(run.currentShopEvent.eventId);
     } else {
       sequence.push("N");
     }

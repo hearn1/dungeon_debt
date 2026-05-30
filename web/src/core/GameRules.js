@@ -207,6 +207,12 @@ export const GameRules = Object.freeze({
   TreasureLeechStealGold: 4,
   FrontlineHealAmount: 2,
 
+  // ---- M17 shop events ----
+  TaxAuditGoldCost: 5,
+  TravellingHealAllCost: 3,
+  TravellingBlessingCost: 3,
+  TravellingBlessingAmount: 5,
+
   // ---- Silver tier ----
   SilverHireCostBonus: 3,
   SilverOfferChance: 0.12,

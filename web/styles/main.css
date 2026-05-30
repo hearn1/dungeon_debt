@@ -215,6 +215,32 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   letter-spacing: 0.8px;
   text-transform: uppercase;
 }
+.shop-event-area {
+  background: var(--bg-panel);
+  border: 1px solid var(--rule-strong);
+  padding: 14px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.shop-event-actions {
+  display: flex;
+  gap: 8px;
+}
+.shop-event-good {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--rule-faint);
+}
+.shop-event-good:last-child {
+  border-bottom: none;
+}
+.shop-event-good-label {
+  font-weight: 700;
+  min-width: 160px;
+}
 
 /* HP bar */
 .hpbar { height: 7px; background: var(--rule-faint); border-radius: 4px; overflow: hidden; }

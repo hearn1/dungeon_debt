@@ -150,7 +150,7 @@ export class ShopManager {
       this._currentOffers.push(new ShopOffer(picked, hireCost, tier));
     }
 
-    // M17 — Roll a shop event (BargainStall ~20%).
+    // M17 — Roll a shop event (~20%).
     this._rollShopEvent(run);
   }
 
@@ -161,15 +161,38 @@ export class ShopManager {
     const rng = this._runManager ? this._runManager.rng : null;
     if (!rng) return;
 
-    // 20% chance
+    // 20% chance for any event
     if (rng.nextDouble() >= 0.2) return;
 
-    // Pick a non-null offer slot
+    // Pick one event from the pool
+    const eventPool = [ShopEventId.BargainStall, ShopEventId.TaxAudit, ShopEventId.TravellingMerchant];
+    const eventId = eventPool[rng.next(eventPool.length)];
+
+    if (eventId === ShopEventId.BargainStall) {
+      this._applyBargainStallEvent(run);
+    } else if (eventId === ShopEventId.TaxAudit) {
+      run.currentShopEvent = { eventId: ShopEventId.TaxAudit };
+    } else if (eventId === ShopEventId.TravellingMerchant) {
+      run.currentShopEvent = {
+        eventId: ShopEventId.TravellingMerchant,
+        purchases: [],
+        goods: [
+          { id: "healAll", label: "Heal All Party", cost: GameRules.TravellingHealAllCost, description: "Restore all heroes to full HP" },
+          { id: "goldBlessing", label: "Gold Blessing", cost: GameRules.TravellingBlessingCost, description: "+" + GameRules.TravellingBlessingAmount + " gold on next combat reward" },
+        ],
+      };
+    }
+  }
+
+  _applyBargainStallEvent(run) {
     const validSlots = [];
     for (let i = 0; i < this._currentOffers.length; i++) {
       if (this._currentOffers[i]) validSlots.push(i);
     }
     if (validSlots.length === 0) return;
+
+    const rng = this._runManager ? this._runManager.rng : null;
+    if (!rng) return;
 
     const slotIndex = validSlots[rng.next(validSlots.length)];
     const offer = this._currentOffers[slotIndex];
@@ -184,6 +207,50 @@ export class ShopManager {
       originalCost,
       discountedCost,
     };
+  }
+
+  resolveTaxAudit(payGold) {
+    const run = this._getRunState();
+    if (!run || !run.currentShopEvent || run.currentShopEvent.eventId !== ShopEventId.TaxAudit) return false;
+
+    if (payGold) {
+      if (run.gold < GameRules.TaxAuditGoldCost) return false;
+      run.gold -= GameRules.TaxAuditGoldCost;
+    } else {
+      run.morale -= 1;
+    }
+    run.currentShopEvent = null;
+    return true;
+  }
+
+  purchaseTravellingGood(itemId) {
+    const run = this._getRunState();
+    if (!run || !run.currentShopEvent || run.currentShopEvent.eventId !== ShopEventId.TravellingMerchant) return false;
+
+    const goods = run.currentShopEvent.goods;
+    const good = goods.find((g) => g.id === itemId);
+    if (!good) return false;
+    if (this.isTravellingGoodPurchased(itemId)) return false;
+    if (run.gold < good.cost) return false;
+
+    run.gold -= good.cost;
+    run.currentShopEvent.purchases.push(itemId);
+
+    if (itemId === "healAll") {
+      for (const hero of run.party) {
+        hero.currentHealth = HeroEffects.getTierAdjustedMaxHealth(hero);
+      }
+    } else if (itemId === "goldBlessing") {
+      run.pendingNextRewardBonus += GameRules.TravellingBlessingAmount;
+    }
+
+    return true;
+  }
+
+  isTravellingGoodPurchased(itemId) {
+    const run = this._getRunState();
+    if (!run || !run.currentShopEvent || run.currentShopEvent.eventId !== ShopEventId.TravellingMerchant) return false;
+    return run.currentShopEvent.purchases.indexOf(itemId) !== -1;
   }
 
   _getRunState() {
