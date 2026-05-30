@@ -14,6 +14,10 @@ export class RunHeader {
   show() { this.root.style.display = "flex"; }
 
   refresh(run) {
+    const oldGold = this._prevGold;
+    const oldDebt = this._prevDebt;
+    const oldMorale = this._prevMorale;
+
     clear(this.root);
     if (!run) { this.hide(); return; }
     this.show();
@@ -47,6 +51,25 @@ export class RunHeader {
 
     this.root.appendChild(primary);
     this.root.appendChild(this.relicStrip(run));
+
+    if (oldGold !== undefined && run.gold !== oldGold) {
+      const el_ = this.root.querySelector('.rh-res-val.gold');
+      if (el_) el_.classList.add('counter-bump');
+    }
+    if (oldDebt !== undefined && run.debt !== oldDebt) {
+      const valEl = this.root.querySelector('.rh-debt-val');
+      const tierEl = this.root.querySelector('.rh-debt-tier');
+      if (valEl) valEl.classList.add('counter-bump');
+      if (tierEl) tierEl.classList.add('counter-bump');
+    }
+    if (oldMorale !== undefined && run.morale !== oldMorale) {
+      const el_ = this.root.querySelector('.rh-resources .rh-res:last-child .rh-res-val');
+      if (el_) el_.classList.add('counter-bump');
+    }
+
+    this._prevGold = run.gold;
+    this._prevDebt = run.debt;
+    this._prevMorale = run.morale;
   }
 
   debtChip(debt) {

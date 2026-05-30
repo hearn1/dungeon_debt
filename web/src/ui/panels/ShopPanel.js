@@ -78,7 +78,7 @@ export class ShopPanel {
       const affordable = run.gold >= offer.hireCost && !offer.purchased;
       const full = run.party.length >= GameRules.MaxPartySize && !owned;
       const disabled = offer.purchased || !affordable || full || (owned && owned.tier === HeroTier.Diamond);
-      const cardContainer = el("div", { class: "offer-card-wrap" });
+      const cardContainer = el("div", { class: "offer-card-wrap", style: "--idx: " + i });
       cardContainer.appendChild(heroCard(offer.hero, null, {
         tier: offer.tier,
         cost: offer.hireCost,
