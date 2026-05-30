@@ -69,15 +69,46 @@ console.log("Run-flow test");
 
   let threw = false;
   try {
-    runManager.initializeRun(DifficultyLevel.Level4, 70);
+    runManager.initializeRun(99, 70);
   } catch (err) {
-    threw = err.message.includes("not implemented");
+    threw = err.message.includes("not implemented") || err.message.includes("Unknown difficulty");
   }
-  check("difficulty: level >3 throws clear error", threw);
+  check("difficulty: level >10 throws clear error", threw);
 
   const allLevels = DataRepository.allDifficultyLevels;
   const visibleLevels = allLevels.map((d) => d.level).join(",");
   check("difficulty: levels 0-10 visible in data", visibleLevels === "0,1,2,3,4,5,6,7,8,9,10");
+
+  // Level 4-10 init field checks.
+  const level4 = runManager.initializeRun(DifficultyLevel.Level4, 70);
+  check("difficulty: level 4 applies InitialDebt", level4.debt === GameRules.StartingDebt + 3);
+  check("difficulty: level 4 keeps baseline morale", level4.morale === GameRules.StartingMorale);
+
+  const level5 = runManager.initializeRun(DifficultyLevel.Level5, 70);
+  check("difficulty: level 5 keeps level 4 debt", level5.debt === GameRules.StartingDebt + 3);
+  check("difficulty: level 5 applies ReducedMorale", level5.morale === GameRules.StartingMorale - 5);
+
+  const level6 = runManager.initializeRun(DifficultyLevel.Level6, 70);
+  check("difficulty: level 6 applies ReducedReward modifier", level6.rewardGoldModifier === -2);
+  check("difficulty: level 6 keeps baseline reroll modifier", level6.rerollCostModifier === 0);
+
+  const level7 = runManager.initializeRun(DifficultyLevel.Level7, 70);
+  check("difficulty: level 7 applies CostlyRerolls modifier", level7.rerollCostModifier === 1);
+  check("difficulty: level 7 keeps level 6 reward modifier", level7.rewardGoldModifier === -2);
+
+  const level8 = runManager.initializeRun(DifficultyLevel.Level8, 70);
+  check("difficulty: level 8 applies SlowerGrowth modifier", level8.veteranXpModifier === -1);
+  check("difficulty: level 8 keeps baseline enemy health", level8.enemyHealthMultiplier === GameRules.NoCombatMultiplier);
+
+  const level9 = runManager.initializeRun(DifficultyLevel.Level9, 70);
+  check("difficulty: level 9 applies TougherEnemies", level9.enemyHealthMultiplier === 1.15);
+  check("difficulty: level 9 keeps baseline hero health", level9.heroHealthMultiplier === GameRules.NoCombatMultiplier);
+
+  const level10 = runManager.initializeRun(DifficultyLevel.Level10, 70);
+  check("difficulty: level 10 applies BrutalContract heroHealth", level10.heroHealthMultiplier === 0.85);
+  check("difficulty: level 10 applies BrutalContract heroDamage", level10.heroDamageMultiplier === 0.85);
+  check("difficulty: level 10 applies BrutalContract enemyDamage", level10.enemyDamageMultiplier === 1.15);
+  check("difficulty: level 10 keeps level 9 enemy health", level10.enemyHealthMultiplier === 1.15);
 
   const expectedMutatorStacks = [
     {
@@ -94,6 +125,41 @@ console.log("Run-flow test");
       level: DifficultyLevel.Level3,
       ids: ["LessStartingGold", "HigherInterest", "LowerDebtLimit"],
       descriptions: ["-3 starting gold.", "Interest divisor becomes 4.", "-5 debt limit."],
+    },
+    {
+      level: DifficultyLevel.Level4,
+      ids: ["LessStartingGold", "HigherInterest", "LowerDebtLimit", "InitialDebt"],
+      descriptions: ["-3 starting gold.", "Interest divisor becomes 4.", "-5 debt limit.", "Start the run with +3 debt."],
+    },
+    {
+      level: DifficultyLevel.Level5,
+      ids: ["LessStartingGold", "HigherInterest", "LowerDebtLimit", "InitialDebt", "ReducedMorale"],
+      descriptions: ["-3 starting gold.", "Interest divisor becomes 4.", "-5 debt limit.", "Start the run with +3 debt.", "-5 starting morale."],
+    },
+    {
+      level: DifficultyLevel.Level6,
+      ids: ["LessStartingGold", "HigherInterest", "LowerDebtLimit", "InitialDebt", "ReducedMorale", "ReducedReward"],
+      descriptions: ["-3 starting gold.", "Interest divisor becomes 4.", "-5 debt limit.", "Start the run with +3 debt.", "-5 starting morale.", "Combat win rewards reduced by 2 gold."],
+    },
+    {
+      level: DifficultyLevel.Level7,
+      ids: ["LessStartingGold", "HigherInterest", "LowerDebtLimit", "InitialDebt", "ReducedMorale", "ReducedReward", "CostlyRerolls"],
+      descriptions: ["-3 starting gold.", "Interest divisor becomes 4.", "-5 debt limit.", "Start the run with +3 debt.", "-5 starting morale.", "Combat win rewards reduced by 2 gold.", "Shop rerolls cost 1 extra gold."],
+    },
+    {
+      level: DifficultyLevel.Level8,
+      ids: ["LessStartingGold", "HigherInterest", "LowerDebtLimit", "InitialDebt", "ReducedMorale", "ReducedReward", "CostlyRerolls", "SlowerGrowth"],
+      descriptions: ["-3 starting gold.", "Interest divisor becomes 4.", "-5 debt limit.", "Start the run with +3 debt.", "-5 starting morale.", "Combat win rewards reduced by 2 gold.", "Shop rerolls cost 1 extra gold.", "Heroes earn 1 less veterancy XP per combat."],
+    },
+    {
+      level: DifficultyLevel.Level9,
+      ids: ["LessStartingGold", "HigherInterest", "LowerDebtLimit", "InitialDebt", "ReducedMorale", "ReducedReward", "CostlyRerolls", "SlowerGrowth", "TougherEnemies"],
+      descriptions: ["-3 starting gold.", "Interest divisor becomes 4.", "-5 debt limit.", "Start the run with +3 debt.", "-5 starting morale.", "Combat win rewards reduced by 2 gold.", "Shop rerolls cost 1 extra gold.", "Heroes earn 1 less veterancy XP per combat.", "Enemies have 15% more HP."],
+    },
+    {
+      level: DifficultyLevel.Level10,
+      ids: ["LessStartingGold", "HigherInterest", "LowerDebtLimit", "InitialDebt", "ReducedMorale", "ReducedReward", "CostlyRerolls", "SlowerGrowth", "TougherEnemies", "BrutalContract"],
+      descriptions: ["-3 starting gold.", "Interest divisor becomes 4.", "-5 debt limit.", "Start the run with +3 debt.", "-5 starting morale.", "Combat win rewards reduced by 2 gold.", "Shop rerolls cost 1 extra gold.", "Heroes earn 1 less veterancy XP per combat.", "Enemies have 15% more HP.", "Heroes have 15% less HP and deal 15% less damage; enemies deal 15% more damage."],
     },
   ];
 
@@ -117,7 +183,7 @@ console.log("Run-flow test");
   check("unlock: level 1 locked before beating 0", gm.isDifficultyLocked(DataRepository.getDifficultyLevel(1)));
   check("unlock: level 2 locked before beating 0", gm.isDifficultyLocked(DataRepository.getDifficultyLevel(2)));
   check("unlock: level 3 locked before beating 0", gm.isDifficultyLocked(DataRepository.getDifficultyLevel(3)));
-  check("unlock: level 4 locked (not implemented)", gm.isDifficultyLocked(DataRepository.getDifficultyLevel(4)));
+  check("unlock: level 4 locked before beating 3", gm.isDifficultyLocked(DataRepository.getDifficultyLevel(4)));
 
   gm.startRun(DifficultyLevel.Level0);
   gm.currentRunState.act = 1;
@@ -130,7 +196,7 @@ console.log("Run-flow test");
     { beaten: DifficultyLevel.Level0, unlocks: DifficultyLevel.Level1, locks: DifficultyLevel.Level2 },
     { beaten: DifficultyLevel.Level1, unlocks: DifficultyLevel.Level2, locks: DifficultyLevel.Level3 },
     { beaten: DifficultyLevel.Level2, unlocks: DifficultyLevel.Level3, locks: DifficultyLevel.Level4 },
-    { beaten: DifficultyLevel.Level3, unlocks: null, locks: DifficultyLevel.Level4 },
+    { beaten: DifficultyLevel.Level3, unlocks: DifficultyLevel.Level4, locks: DifficultyLevel.Level5 },
   ];
 
   for (const step of progression) {

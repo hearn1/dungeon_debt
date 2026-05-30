@@ -168,7 +168,7 @@ export const GameRules = Object.freeze({
   // ---- Difficulty levels ----
   DefaultDifficultyLevel: DifficultyLevel.Level0,
   DefaultDifficultyPreset: DifficultyLevel.Level0,
-  MaxImplementedDifficultyLevel: DifficultyLevel.Level3,
+  MaxImplementedDifficultyLevel: DifficultyLevel.Level10,
   NoCombatMultiplier: 1,
   ActStatScale: Object.freeze({
     2: Object.freeze({ enemyHealth: 1, enemyAttack: 1 }),

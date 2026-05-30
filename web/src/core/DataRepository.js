@@ -204,6 +204,52 @@ const DifficultyMutatorDefinitions = [
     "-5 debt limit.",
     (settings) => { settings.debtLimit -= 5; },
   ),
+  new MutatorDefinition(
+    "InitialDebt",
+    "Initial Debt",
+    "Start the run with +3 debt.",
+    (settings) => { settings.startingDebt += 3; },
+  ),
+  new MutatorDefinition(
+    "ReducedMorale",
+    "Reduced Morale",
+    "-5 starting morale.",
+    (settings) => { settings.startingMorale -= 5; },
+  ),
+  new MutatorDefinition(
+    "ReducedReward",
+    "Reduced Reward",
+    "Combat win rewards reduced by 2 gold.",
+    (settings) => { settings.rewardGoldModifier -= 2; },
+  ),
+  new MutatorDefinition(
+    "CostlyRerolls",
+    "Costly Rerolls",
+    "Shop rerolls cost 1 extra gold.",
+    (settings) => { settings.rerollCostModifier += 1; },
+  ),
+  new MutatorDefinition(
+    "SlowerGrowth",
+    "Slower Growth",
+    "Heroes earn 1 less veterancy XP per combat.",
+    (settings) => { settings.veteranXpModifier -= 1; },
+  ),
+  new MutatorDefinition(
+    "TougherEnemies",
+    "Tougher Enemies",
+    "Enemies have 15% more HP.",
+    (settings) => { settings.enemyHealthMultiplier = 1.15; },
+  ),
+  new MutatorDefinition(
+    "BrutalContract",
+    "Brutal Contract",
+    "Heroes have 15% less HP and deal 15% less damage; enemies deal 15% more damage.",
+    (settings) => {
+      settings.heroHealthMultiplier = 0.85;
+      settings.heroDamageMultiplier = 0.85;
+      settings.enemyDamageMultiplier = 1.15;
+    },
+  ),
 ];
 
 const DifficultyLevelDefinitions = Object.freeze([

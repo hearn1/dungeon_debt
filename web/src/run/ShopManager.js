@@ -31,8 +31,9 @@ export class ShopManager {
 
   reroll() {
     const run = this._getRunState();
-    if (!run || run.gold < GameRules.RerollCost) return false;
-    run.gold -= GameRules.RerollCost;
+    const rerollCost = GameRules.RerollCost + (run ? run.rerollCostModifier : 0);
+    if (!run || run.gold < rerollCost) return false;
+    run.gold -= rerollCost;
     run.rerollCount += 1;
     this._fillAllOffers();
     return true;

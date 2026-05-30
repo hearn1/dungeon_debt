@@ -75,6 +75,9 @@ export class RunManager {
     runState.heroDamageMultiplier = difficultySettings.heroDamageMultiplier;
     runState.enemyHealthMultiplier = difficultySettings.enemyHealthMultiplier;
     runState.enemyDamageMultiplier = difficultySettings.enemyDamageMultiplier;
+    runState.rewardGoldModifier = difficultySettings.rewardGoldModifier;
+    runState.rerollCostModifier = difficultySettings.rerollCostModifier;
+    runState.veteranXpModifier = difficultySettings.veteranXpModifier;
     runState.devEnableAct3 = this._devEnableAct3ForNextRun;
     runState.rerollCount = 0;
     runState.selectedPayrollAction = null;
@@ -101,6 +104,7 @@ export class RunManager {
     const isRivalGhost = encounter && encounter.type === EncounterType.RivalGhost;
     let rewardGold = combatResult.playerWon ? GameRules.WinReward : GameRules.LossReward;
     if (combatResult.playerWon && isRivalGhost) rewardGold += GameRules.RivalWinBonus;
+    if (combatResult.playerWon && run.rewardGoldModifier !== 0) rewardGold = Math.max(0, rewardGold + run.rewardGoldModifier);
 
     const lossMorale = isRivalGhost ? GameRules.RivalLossMorale : GameRules.DungeonLossMorale;
     const moraleChange = combatResult.playerWon ? 0 : -lossMorale;
@@ -332,6 +336,9 @@ function createBaselineDifficultySettings() {
     heroDamageMultiplier: GameRules.NoCombatMultiplier,
     enemyHealthMultiplier: GameRules.NoCombatMultiplier,
     enemyDamageMultiplier: GameRules.NoCombatMultiplier,
+    rewardGoldModifier: 0,
+    rerollCostModifier: 0,
+    veteranXpModifier: 0,
   };
 }
 
@@ -381,7 +388,7 @@ function awardVeterancyXp(run, combatResult, encounter) {
   if (!run || !combatResult) return "";
 
   const awards = new Array(run.party.length).fill(0);
-  let survivorAward = GameRules.VeteranSurvivorXp;
+  let survivorAward = Math.max(0, GameRules.VeteranSurvivorXp + run.veteranXpModifier);
   if (isRivalVeterancyEncounter(encounter)) survivorAward += GameRules.VeteranRivalFightBonusXp;
   if (isEndOfActEncounter(encounter)) survivorAward += GameRules.VeteranEndOfActFightBonusXp;
 
