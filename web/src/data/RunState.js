@@ -48,6 +48,10 @@ export class RunState {
     this.enemyDamageMultiplier = 0;
     this.devEnableAct3 = false;
 
+    this.rewardGoldModifier = 0;
+    this.rerollCostModifier = 0;
+    this.veteranXpModifier = 0;
+
     // M17 shop event state, cleared each shop visit.
     this.currentShopEvent = null;
     this.pendingNextRewardBonus = 0;
