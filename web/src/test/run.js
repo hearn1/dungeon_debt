@@ -14,6 +14,7 @@ import { HeroInstance } from "../data/HeroInstance.js";
 import { HeroEffects } from "../combat/HeroEffects.js";
 import { CombatManager } from "../combat/CombatManager.js";
 import { RivalUpdatePanel } from "../ui/panels/RivalUpdatePanel.js";
+import { ScoutPanel } from "../ui/panels/ScoutPanel.js";
 import { EnemyEffectId, HeroRole, HeroTier, PayrollActionId, EncounterType, DifficultyLevel, RivalGuild, ShopEventId } from "../data/enums.js";
 
 let failures = 0;
@@ -569,6 +570,187 @@ console.log("Run-flow test");
   check("rivals-race-ui: renders four lanes", laneCount === 4);
   check("rivals-race-ui: title rendered", textContentOf(panel.root).includes("Race the Rivals"));
   globalThis.document = previousDocument;
+}
+
+// ---- #85 Scout race actions: playerRaceProgress initialized to round ----
+{
+  const gm = new GameManager();
+  gm.startRun(DifficultyLevel.Level0);
+  const run = gm.currentRunState;
+  check("raceactions: playerRaceProgress starts at round 1", run.playerRaceProgress === 1);
+  check("raceactions: usedRaceActions empty", run.usedRaceActions.size === 0);
+}
+
+// ---- #85 Rush Ahead costs morale, advances progress ----
+{
+  const gm = new GameManager();
+  gm.startRun(DifficultyLevel.Level0);
+  const run = gm.currentRunState;
+  run.playerRaceProgress = 3;
+  run.morale = 30;
+  const result = gm.applyRaceAction("rushAhead");
+  check("raceactions-rush: action applied", result === true);
+  check("raceactions-rush: progress advanced", run.playerRaceProgress === 4);
+  check("raceactions-rush: morale deducted", run.morale === 30 - GameRules.RushAheadMoraleCost);
+  check("raceactions-rush: marked used", run.usedRaceActions.has("rushAhead") === true);
+  const second = gm.applyRaceAction("rushAhead");
+  check("raceactions-rush: second use blocked", second === false);
+}
+
+// ---- #85 Bribe Guide costs gold, advances progress ----
+{
+  const gm = new GameManager();
+  gm.startRun(DifficultyLevel.Level0);
+  const run = gm.currentRunState;
+  run.playerRaceProgress = 5;
+  run.gold = 10;
+  const goldBefore = run.gold;
+  const result = gm.applyRaceAction("bribeGuide");
+  check("raceactions-bribe: action applied", result === true);
+  check("raceactions-bribe: progress advanced", run.playerRaceProgress === 6);
+  check("raceactions-bribe: gold deducted", run.gold === goldBefore - GameRules.BribeGuideGoldCost);
+  check("raceactions-bribe: marked used", run.usedRaceActions.has("bribeGuide") === true);
+  const second = gm.applyRaceAction("bribeGuide");
+  check("raceactions-bribe: second use blocked", second === false);
+}
+
+// ---- #85 Bribe Guide debt fallback when gold insufficient ----
+{
+  const gm = new GameManager();
+  gm.startRun(DifficultyLevel.Level0);
+  const run = gm.currentRunState;
+  run.playerRaceProgress = 7;
+  run.gold = 1;
+  const debtBefore = run.debt;
+  const result = gm.applyRaceAction("bribeGuide");
+  check("raceactions-bribe-debt: action applied", result === true);
+  check("raceactions-bribe-debt: progress advanced", run.playerRaceProgress === 8);
+  check("raceactions-bribe-debt: debt increased", run.debt === debtBefore + GameRules.BribeGuideDebtFallback);
+  check("raceactions-bribe-debt: gold unchanged", run.gold === 1);
+}
+
+// ---- #85 Both actions usable in same scout visit ----
+{
+  const gm = new GameManager();
+  gm.startRun(DifficultyLevel.Level0);
+  const run = gm.currentRunState;
+  run.playerRaceProgress = 2;
+  run.morale = 30;
+  run.gold = 10;
+  const rushOk = gm.applyRaceAction("rushAhead");
+  const bribeOk = gm.applyRaceAction("bribeGuide");
+  check("raceactions-both: rush applied", rushOk === true);
+  check("raceactions-both: bribe applied", bribeOk === true);
+  check("raceactions-both: progress advanced twice", run.playerRaceProgress === 4);
+  check("raceactions-both: both marked used", run.usedRaceActions.size === 2);
+  check("raceactions-both: rush blocked again", gm.applyRaceAction("rushAhead") === false);
+  check("raceactions-both: bribe blocked again", gm.applyRaceAction("bribeGuide") === false);
+}
+
+// ---- #85 usedRaceActions clears on entering Scout ----
+{
+  const gm = new GameManager();
+  gm.startRun(DifficultyLevel.Level0);
+  const run = gm.currentRunState;
+  gm.applyRaceAction("rushAhead");
+  check("raceactions-clear: used before scout re-enter", run.usedRaceActions.has("rushAhead") === true);
+  // Fresh run creates new RunState with empty set
+  gm.returnToMainMenu();
+  gm.startRun(DifficultyLevel.Level0);
+  const freshRun = gm.currentRunState;
+  check("raceactions-clear: fresh run has empty set", freshRun.usedRaceActions.size === 0);
+}
+
+// ---- #85 playerRaceProgress advances with round ----
+{
+  const gm = new GameManager();
+  gm.startRun(DifficultyLevel.Level0);
+  const run = gm.currentRunState;
+  run.playerRaceProgress = 5;
+  run.round = 5;
+  gm.runManager.advanceRound();
+  check("raceactions-advance: progress incremented with round", run.playerRaceProgress === 6);
+  check("raceactions-advance: round also advanced", run.round === 6);
+}
+
+// ---- #85 playerRaceProgress cap at RivalRaceMaxProgress ----
+{
+  const gm = new GameManager();
+  gm.startRun(DifficultyLevel.Level0);
+  const run = gm.currentRunState;
+  run.playerRaceProgress = 19;
+  run.morale = 30;
+  run.gold = 10;
+  gm.applyRaceAction("rushAhead");
+  check("raceactions-cap: rush to 20 ok", run.playerRaceProgress === 20);
+  gm.applyRaceAction("bribeGuide");
+  check("raceactions-cap: stays at 20", run.playerRaceProgress === 20);
+}
+
+// ---- #85 Player lane uses playerRaceProgress in RivalUpdate panel ----
+{
+  const previousDocument = globalThis.document;
+  globalThis.document = createFakeDocument();
+  const gm = new GameManager();
+  gm.startRun(DifficultyLevel.Level0);
+  const run = gm.currentRunState;
+  run.playerRaceProgress = 7;
+  gm.rivalManager.advanceRivals(run);
+  const panel = new RivalUpdatePanel(gm);
+  panel.render();
+  const text = textContentOf(panel.root);
+  check("raceactions-panel: shows player progress 7", text.includes("7") && text.includes("Your Guild"));
+  globalThis.document = previousDocument;
+}
+
+// ---- #85 ScoutPanel render smoke with race actions ----
+{
+  const previousDocument = globalThis.document;
+  globalThis.document = createFakeDocument();
+  const gm = new GameManager();
+  gm.startRun(DifficultyLevel.Level0);
+  const panel = new ScoutPanel(gm);
+  panel.render();
+  const text = textContentOf(panel.root);
+  check("raceactions-scout-ui: race header rendered", text.includes("RACE"));
+  check("raceactions-scout-ui: rush ahead button present", text.includes("Rush Ahead"));
+  check("raceactions-scout-ui: bribe guide button present", text.includes("Bribe Guide"));
+  panel.render();
+  check("raceactions-scout-ui: re-render stable", textContentOf(panel.root).includes("RACE"));
+  globalThis.document = previousDocument;
+}
+
+// ---- #85 Finish-first morale still works after playerRaceProgress changes ----
+{
+  const gm = new GameManager();
+  gm.startRun(DifficultyLevel.Level0);
+  const run = gm.currentRunState;
+  const greedy = run.rivals.find((r) => r.guild === RivalGuild.Greedy);
+  run.round = 19;
+  run.morale = 30;
+  run.playerRaceProgress = 15;
+  greedy.progress = 19.5;
+  gm.rivalManager.advanceRivals(run);
+  check("raceactions-finish: finish recorded", greedy.finishedAtRound === 19);
+  check("raceactions-finish: morale penalty applied", run.morale === 30 - GameRules.RivalFinishedFirstMorale);
+}
+
+// ---- #85 Victory tribute still works after playerRaceProgress changes ----
+{
+  const gm = new GameManager();
+  gm.startRun(DifficultyLevel.Level0);
+  const run = gm.currentRunState;
+  run.act = 2;
+  run.round = GameRulesFns.act2FinalRound;
+  run.gold = 10;
+  run.playerRaceProgress = 18;
+  run.latestCombatWon = true;
+  run.rivals[0].progress = 20;
+  run.rivals[1].progress = 18;
+  run.rivals[2].progress = 12;
+  const nextState = gm.runManager.evaluateNextState();
+  check("raceactions-tribute: final victory reached", nextState === GameState.Victory);
+  check("raceactions-tribute: tribute per behind rival applied", run.gold === 10 + (2 * GameRules.RivalRaceTributePerBehind));
 }
 
 // ---- Payroll: PromiseVictoryBonus costs gold, buffs attack, no debt on win ----

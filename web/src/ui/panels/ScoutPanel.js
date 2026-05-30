@@ -60,6 +60,33 @@ export class ScoutPanel {
     card.appendChild(enemies);
     this.root.appendChild(card);
 
+    const raceActions = el("div", { class: "scout-race-actions" });
+    const progress = run.playerRaceProgress;
+    raceActions.appendChild(el("div", { class: "scout-race-header", text: `RACE — ${progress}/${GameRules.RivalRaceMaxProgress}` }));
+
+    const rushUsed = run.usedRaceActions.has("rushAhead");
+    const bribeUsed = run.usedRaceActions.has("bribeGuide");
+
+    if (!rushUsed) {
+      raceActions.appendChild(el("button", {
+        class: "btn secondary", text: `Rush Ahead  (-${GameRules.RushAheadMoraleCost} morale, +1 progress)`,
+        onClick: () => { this.gm.applyRaceAction("rushAhead"); this.render(); },
+      }));
+    } else {
+      raceActions.appendChild(el("div", { class: "scout-race-done", text: "✓ Rush Ahead used" }));
+    }
+
+    if (!bribeUsed) {
+      raceActions.appendChild(el("button", {
+        class: "btn secondary",
+        text: `Bribe Guide  (${GameRules.BribeGuideGoldCost}g or +${GameRules.BribeGuideDebtFallback} debt, +1 progress)`,
+        onClick: () => { this.gm.applyRaceAction("bribeGuide"); this.render(); },
+      }));
+    } else {
+      raceActions.appendChild(el("div", { class: "scout-race-done", text: "✓ Bribe Guide used" }));
+    }
+
+    this.root.appendChild(raceActions);
     this.root.appendChild(el("div", { class: "panel-actions" }, [
       el("button", { class: "btn primary", text: "To the Shop →", onClick: () => this.gm.continueFromScout() }),
     ]));

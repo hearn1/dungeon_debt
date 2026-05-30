@@ -434,6 +434,10 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   background: rgba(201, 160, 74, 0.10); border-color: var(--gold); color: var(--gold);
 }
 .scout-cue.rival { background: var(--bg-card); }
+.scout-race-actions { margin-top: 16px; display: flex; flex-direction: column; gap: 6px; }
+.scout-race-header { font-size: 13px; letter-spacing: 1px; color: var(--gold); margin-bottom: 2px; }
+.scout-race-actions .btn { align-self: flex-start; }
+.scout-race-done { font-size: 13px; color: var(--ink-dim); padding: 6px 0; }
 .enemy-line { display: flex; justify-content: space-between; font-size: 14px; padding: 6px 0; border-bottom: 1px solid var(--rule-faint); }
 
 /* Hit / heal flash on combat unit cards. */
