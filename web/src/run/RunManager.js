@@ -81,6 +81,8 @@ export class RunManager {
     runState.devEnableAct3 = this._devEnableAct3ForNextRun;
     runState.rerollCount = 0;
     runState.selectedPayrollAction = null;
+    runState.playerRaceProgress = 1;
+    runState.usedRaceActions = new Set();
     runState.fullUpkeepPaidLastRound = false;
     runState.latestVeterancySummary = "";
 
@@ -283,9 +285,11 @@ export class RunManager {
     const run = this._currentRunState;
     if (!run) return;
     run.round += 1;
+    run.playerRaceProgress = Math.min(GameRules.RivalRaceMaxProgress, run.round);
     if (this._canContinueToNextDevAct(run) && run.round > GameRulesFns.getActFinalRound(run.act)) {
       run.act += 1;
       run.round = GameRulesFns.getActStartRound(run.act);
+      run.playerRaceProgress = run.round;
     }
     run.hasLatestRewardSummary = false;
     run.latestVeterancySummary = "";
@@ -300,10 +304,34 @@ export class RunManager {
 
     run.act += 1;
     run.round = GameRulesFns.getActStartRound(run.act);
+    run.playerRaceProgress = run.round;
     run.hasLatestRewardSummary = false;
     run.latestEndReason = null;
     run.latestVeterancySummary = "";
     resetPartyTierStats(run);
+  }
+
+  applyRaceAction(actionId) {
+    const run = this._currentRunState;
+    if (!run) return false;
+    if (run.usedRaceActions.has(actionId)) return false;
+
+    if (actionId === "rushAhead") {
+      run.morale = Math.max(0, run.morale - GameRules.RushAheadMoraleCost);
+      run.playerRaceProgress = Math.min(GameRules.RivalRaceMaxProgress, run.playerRaceProgress + 1);
+    } else if (actionId === "bribeGuide") {
+      if (run.gold >= GameRules.BribeGuideGoldCost) {
+        run.gold -= GameRules.BribeGuideGoldCost;
+      } else {
+        run.debt += GameRules.BribeGuideDebtFallback;
+      }
+      run.playerRaceProgress = Math.min(GameRules.RivalRaceMaxProgress, run.playerRaceProgress + 1);
+    } else {
+      return false;
+    }
+
+    run.usedRaceActions.add(actionId);
+    return true;
   }
 
   _isPendingRelicChoice(relicId) {

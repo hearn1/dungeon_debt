@@ -13,6 +13,8 @@ export class RunState {
     this.rivals = [];
     this.selectedPayrollAction = null;
     this.rerollCount = 0;
+    this.playerRaceProgress = 0;
+    this.usedRaceActions = new Set();
     this.hasLatestRewardSummary = false;
     this.latestCombatWon = false;
     this.latestRewardGold = 0;

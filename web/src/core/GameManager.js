@@ -125,6 +125,11 @@ export class GameManager {
     this.changeState(GameState.Scout);
   }
 
+  applyRaceAction(actionId) {
+    if (!this._runManager) return false;
+    return this._runManager.applyRaceAction(actionId);
+  }
+
   continueFromRivalUpdate() {
     if (!this._runManager) return;
     this._runManager.advanceRound();
@@ -140,8 +145,11 @@ export class GameManager {
 
     if (this._currentState === GameState.Scout && this._encounterManager) {
       const runState = this.currentRunState;
-      const round = runState ? runState.round : 1;
-      this._encounterManager.loadEncounter(round);
+      if (runState) {
+        runState.usedRaceActions = new Set();
+        const round = runState.round;
+        this._encounterManager.loadEncounter(round);
+      }
     }
 
     if (this._currentState === GameState.Shop && this._shopManager) {

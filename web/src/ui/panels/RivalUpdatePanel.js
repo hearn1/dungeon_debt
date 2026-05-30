@@ -38,7 +38,7 @@ export class RivalUpdatePanel {
 }
 
 function playerLane(run) {
-  const progress = Math.min(GameRules.RivalRaceMaxProgress, run.round);
+  const progress = Math.min(GameRules.RivalRaceMaxProgress, run.playerRaceProgress || run.round);
   return raceLane({
     name: "Your Guild",
     progress,
