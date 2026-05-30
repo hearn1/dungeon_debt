@@ -315,6 +315,18 @@ export const GameRulesFns = {
     }
   },
 
+  getCombatStatusGlyphPath(statusId) {
+    switch (statusId) {
+      case CombatStatusId.Burned: return "M8 0 C12 4 15 9 13 13 C11 16 5 16 3 13 C1 9 4 4 8 0 Z";
+      case CombatStatusId.Poisoned: return "M8 0 C12 4 14 9 12 12.5 C10 15.5 6 15.5 4 12.5 C2 9 4 4 8 0 Z";
+      case CombatStatusId.Marked: return "M8 2 A6 6 0 1 1 8 14 A6 6 0 1 1 8 2 M3 8 L13 8 M8 3 L8 13";
+      case CombatStatusId.Guarded: return "M8 1 L14 4 L14 11 L8 15 L2 11 L2 4 Z";
+      case CombatStatusId.Inspired: return "M8 0 L12 6 L16 8 L12 10 L8 16 L4 10 L0 8 L4 6 Z";
+      case CombatStatusId.Weakened: return "M8 2 L8 9 M3 7 L8 11 L13 7";
+      default: return "";
+    }
+  },
+
   getDebtStatusLabel(debt) {
     if (debt >= GameRules.CriticalDebtThreshold) return "Critical";
     if (debt >= GameRules.DangerousDebtThreshold) return "Dangerous";
