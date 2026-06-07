@@ -21,41 +21,41 @@ export class ShopPanel {
     const run = this.gm.currentRunState;
     const shop = this.gm.shopManager;
 
-    appendPanelHeader(this.root, "SHOP", "Recruit Heroes", `${run.gold} gold · party ${run.party.length}/${GameRules.MaxPartySize}`);
+    appendPanelHeader(this.root, "RECRUITMENT", "Recruitment Office", `${run.gold} gold payroll cash · roster ${run.party.length}/${GameRules.MaxPartySize}`);
 
     // Shop event area
     const ev = run.currentShopEvent;
     if (ev) {
       if (ev.eventId === ShopEventId.TaxAudit) {
         const eventArea = el("div", { class: "shop-event-area" });
-        eventArea.appendChild(el("div", { class: "shop-event-badge", text: "Tax Audit!" }));
-        eventArea.appendChild(el("div", { class: "panel-sub", text: "Pay " + GameRules.TaxAuditGoldCost + " gold or lose 1 morale." }));
+        eventArea.appendChild(el("div", { class: "shop-event-badge", text: "Surprise Tax Audit" }));
+        eventArea.appendChild(el("div", { class: "panel-sub", text: "Settle " + GameRules.TaxAuditGoldCost + " gold from petty cash or let morale take the hit." }));
         const btnRow = el("div", { class: "shop-event-actions" });
         btnRow.appendChild(el("button", {
-          class: "btn small", text: "Pay " + GameRules.TaxAuditGoldCost + " gold",
+          class: "btn small", text: "Settle Audit (" + GameRules.TaxAuditGoldCost + "g)",
           disabled: run.gold < GameRules.TaxAuditGoldCost ? "" : null,
           onClick: () => { shop.resolveTaxAudit(true); this.refresh(); },
         }));
         btnRow.appendChild(el("button", {
-          class: "btn small danger", text: "Refuse (-1 morale)",
+          class: "btn small danger", text: "Contest Audit (-1 morale)",
           onClick: () => { shop.resolveTaxAudit(false); this.refresh(); },
         }));
         eventArea.appendChild(btnRow);
         this.root.appendChild(eventArea);
       } else if (ev.eventId === ShopEventId.TravellingMerchant) {
         const eventArea = el("div", { class: "shop-event-area" });
-        eventArea.appendChild(el("div", { class: "shop-event-badge", text: "Travelling Merchant" }));
+        eventArea.appendChild(el("div", { class: "shop-event-badge", text: "Travelling Supplier" }));
         for (const good of ev.goods) {
           const purchased = shop.isTravellingGoodPurchased(good.id);
           const row = el("div", { class: "shop-event-good" });
           row.appendChild(el("span", { class: "shop-event-good-label", text: good.label }));
           row.appendChild(el("span", { class: "panel-sub", text: good.description }));
           if (purchased) {
-            row.appendChild(el("span", { class: "shop-event-badge", text: "Bought" }));
+            row.appendChild(el("span", { class: "shop-event-badge", text: "Filed" }));
           } else {
             row.appendChild(el("button", {
               class: "btn small" + (run.gold >= good.cost ? " primary" : ""),
-              text: "Buy (" + good.cost + "g)",
+              text: "Purchase (" + good.cost + "g)",
               disabled: run.gold < good.cost ? "" : null,
               onClick: () => { shop.purchaseTravellingGood(good.id); this.refresh(); },
             }));
@@ -70,7 +70,7 @@ export class ShopPanel {
     const offers = el("div", { class: "card-grid" });
     shop.currentOffers.forEach((offer, i) => {
       if (!offer) {
-        offers.appendChild(el("div", { class: "unit-card", text: "Sold out" }));
+        offers.appendChild(el("div", { class: "unit-card", text: "Position filled" }));
         return;
       }
       const owned = run.party.find((h) => h.definition.id === offer.hero.id);
@@ -83,7 +83,7 @@ export class ShopPanel {
         tier: offer.tier,
         cost: offer.hireCost,
         actions: [{
-          label: offer.purchased ? "Hired" : mergeLabel || "Hire",
+          label: offer.purchased ? "On Payroll" : mergeLabel || "Sign Contract",
           primary: true,
           disabled,
           onClick: () => { shop.hire(i); this.refresh(); },
@@ -95,19 +95,19 @@ export class ShopPanel {
       }
       offers.appendChild(cardContainer);
     });
-    this.root.appendChild(sectionTitle("Recruits"));
+    this.root.appendChild(sectionTitle("Candidate Pool"));
     this.root.appendChild(offers);
 
     // Party
-    this.root.appendChild(sectionTitle("Your Guild"));
+    this.root.appendChild(sectionTitle("Current Payroll"));
     const party = el("div", { class: "card-grid" });
     if (run.party.length === 0) {
-      party.appendChild(el("div", { class: "panel-sub", text: "No heroes hired yet." }));
+      party.appendChild(el("div", { class: "panel-sub", text: "No adventurers under contract yet." }));
     }
     run.party.forEach((hero, i) => {
       party.appendChild(heroCard(hero.definition, hero, {
         actions: [{
-          label: `Fire (+${GameRules.FireRefund})`,
+          label: `Release Contract (+${GameRules.FireRefund})`,
           danger: true,
           onClick: () => { shop.fire(i); this.refresh(); },
         }],
@@ -119,18 +119,18 @@ export class ShopPanel {
     const debtPayment = GameRulesFns.calculateDebtPaymentAmount(run.gold, run.debt);
     this.root.appendChild(el("div", { class: "panel-actions" }, [
       el("button", {
-        class: "btn", text: `Reroll (${GameRules.RerollCost})`,
+        class: "btn", text: `Refresh Candidates (${GameRules.RerollCost})`,
         disabled: run.gold < GameRules.RerollCost ? "" : null,
         onClick: () => { shop.reroll(); this.refresh(); },
       }),
       el("button", {
-        class: "btn", text: debtPayment > 0 ? `Pay Debt (−${debtPayment})` : "Pay Debt",
+        class: "btn", text: debtPayment > 0 ? `Pay Down Ledger Debt (−${debtPayment})` : "Pay Down Ledger Debt",
         disabled: debtPayment <= 0 ? "" : null,
         onClick: () => { shop.payDebt(); this.refresh(); },
       }),
       el("button", {
         class: "btn primary",
-        text: ev && ev.eventId === ShopEventId.TaxAudit ? "Resolve Tax Audit first" : "To Formation →",
+        text: ev && ev.eventId === ShopEventId.TaxAudit ? "Resolve Tax Audit first" : "Set Formation →",
         disabled: ev && ev.eventId === ShopEventId.TaxAudit ? "" : null,
         onClick: () => { if (!ev || ev.eventId !== ShopEventId.TaxAudit) this.gm.continueFromShop(); },
       }),
@@ -140,9 +140,9 @@ export class ShopPanel {
 
 function getMergeLabel(owned) {
   if (!owned) return null;
-  if (owned.tier === HeroTier.Bronze) return "Merge → Silver";
-  if (owned.tier === HeroTier.Silver) return "Merge → Gold";
-  if (owned.tier === HeroTier.Gold) return "Merge → Diamond";
+  if (owned.tier === HeroTier.Bronze) return "Promote → Silver";
+  if (owned.tier === HeroTier.Silver) return "Promote → Gold";
+  if (owned.tier === HeroTier.Gold) return "Promote → Diamond";
   return null;
 }
 

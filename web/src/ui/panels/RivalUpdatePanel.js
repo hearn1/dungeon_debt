@@ -13,7 +13,7 @@ export class RivalUpdatePanel {
     clear(this.root);
     const run = this.gm.currentRunState;
 
-    appendPanelHeader(this.root, "REWARD", "Race the Rivals", "Four guilds race for the same contract bonus.");
+    appendPanelHeader(this.root, "RIVAL LEDGER", "Rival Contract Race", "Competing guilds are chasing the same contract bonus.");
 
     const list = el("div", { class: "rival-list" });
     list.appendChild(playerLane(run));
@@ -28,11 +28,11 @@ export class RivalUpdatePanel {
         .map((rival) => rival.displayName)
         .join(", ");
       this.root.appendChild(el("div", { class: "rival-race-finished" },
-        `The ${names} claims your contract bonus. -${GameRules.RivalFinishedFirstMorale} morale each.`));
+        `The ${names} filed first and claims your contract bonus. -${GameRules.RivalFinishedFirstMorale} morale each.`));
     }
 
     this.root.appendChild(el("div", { class: "panel-actions" }, [
-      el("button", { class: "btn primary", text: "Next Round ->", onClick: () => this.gm.continueFromRivalUpdate() }),
+      el("button", { class: "btn primary", text: "Open Next Contract →", onClick: () => this.gm.continueFromRivalUpdate() }),
     ]));
   }
 }
@@ -40,7 +40,7 @@ export class RivalUpdatePanel {
 function playerLane(run) {
   const progress = Math.min(GameRules.RivalRaceMaxProgress, run.playerRaceProgress || run.round);
   return raceLane({
-    name: "Your Guild",
+    name: "Your Guild Office",
     progress,
     color: "var(--dd-rust-accent)",
     meta: progress >= GameRules.RivalRaceMaxProgress ? "FINISHED" : `Projected round ${GameRules.RivalRaceMaxProgress}`,
