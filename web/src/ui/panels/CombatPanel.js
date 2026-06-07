@@ -27,20 +27,20 @@ export class CombatPanel {
     this._result = this.gm.resolveCombat();
     this.onDirty?.(); // gold/debt changed during post-combat
 
-    appendPanelHeader(this.root, "COMBAT", "Combat", encounter ? encounter.displayName : "");
+    appendPanelHeader(this.root, "JOB SITE", "Contract Execution", encounter ? `${encounter.displayName} · employees executing the plan` : "Employees executing the plan");
 
     // Build the board: trapezoidal vertical stack facing the opposing side.
     //   enemy backline → enemy frontline → divider → player frontline → player backline
     this._units = new Map();
     const enemyBlock = el("div", { class: "combat-side enemy" }, [
-      el("div", { class: "combat-side-lbl", text: "ENEMIES" }),
+      el("div", { class: "combat-side-lbl", text: "OPPOSITION CREW" }),
       this._buildRow(this._result.enemyStartUnits, false, false),
       this._buildRow(this._result.enemyStartUnits, false, true),
     ]);
     const playerBlock = el("div", { class: "combat-side player" }, [
       this._buildRow(this._result.playerStartUnits, true, true),
       this._buildRow(this._result.playerStartUnits, true, false),
-      el("div", { class: "combat-side-lbl", text: "YOUR GUILD" }),
+      el("div", { class: "combat-side-lbl", text: "ON-CLOCK PARTY" }),
     ]);
     this._projectileLayer = el("div", { class: "projectile-layer" });
     this._board = el("div", { class: "combat-board" }, [
@@ -61,7 +61,7 @@ export class CombatPanel {
     this.root.appendChild(this._log);
 
     this._actions = el("div", { class: "panel-actions" }, [
-      el("button", { class: "btn", text: "Skip ▶▶", onClick: () => this._finish() }),
+      el("button", { class: "btn", text: "Fast-forward Report ▶▶", onClick: () => this._finish() }),
     ]);
     this.root.appendChild(this._actions);
 
@@ -273,27 +273,27 @@ export class CombatPanel {
     const summary = el("div", { class: "summary" });
     const won = this._result.playerWon;
     summary.appendChild(el("div", { class: "summary-row" }, [
-      el("strong", { text: won ? "Victory" : "Defeat", class: won ? "pos" : "neg" }),
-      el("span", { class: "panel-sub", text: `${this._result.combatRoundsElapsed} combat rounds` }),
+      el("strong", { text: won ? "Contract Fulfilled" : "Contract Failed", class: won ? "pos" : "neg" }),
+      el("span", { class: "panel-sub", text: `${this._result.combatRoundsElapsed} combat rounds logged` }),
     ]));
-    summary.appendChild(row("Reward gold", `+${run.latestRewardGold}`, "pos"));
-    if (run.latestRelicRewardGold > 0) summary.appendChild(row("  (relic bonus)", `+${run.latestRelicRewardGold}`, "pos"));
-    if (run.latestMoraleChange !== 0) summary.appendChild(row("Morale", `${run.latestMoraleChange}`, "neg"));
-    summary.appendChild(row("Upkeep paid", `−${run.latestUpkeepPaid} / ${run.latestTotalUpkeep}`));
-    if (run.latestUpkeepShortfall > 0) summary.appendChild(row("Upkeep shortfall → debt", `+${run.latestUpkeepShortfall}`, "neg"));
-    summary.appendChild(row("Interest paid", `−${run.latestInterestPaid} / ${run.latestInterestCharged}`));
-    if (run.latestInterestAddedToDebt > 0) summary.appendChild(row("Interest → debt", `+${run.latestInterestAddedToDebt}`, "neg"));
-    if (run.latestPayrollSummary) summary.appendChild(row("Payroll", run.latestPayrollSummary));
-    if (run.latestVeterancySummary) summary.appendChild(row("Veterancy", run.latestVeterancySummary));
+    summary.appendChild(row("Contract payout", `+${run.latestRewardGold}`, "pos"));
+    if (run.latestRelicRewardGold > 0) summary.appendChild(row("  (relic clause)", `+${run.latestRelicRewardGold}`, "pos"));
+    if (run.latestMoraleChange !== 0) summary.appendChild(row("Morale adjustment", `${run.latestMoraleChange}`, "neg"));
+    summary.appendChild(row("Wages paid", `−${run.latestUpkeepPaid} / ${run.latestTotalUpkeep}`));
+    if (run.latestUpkeepShortfall > 0) summary.appendChild(row("Wage shortfall → debt", `+${run.latestUpkeepShortfall}`, "neg"));
+    summary.appendChild(row("Debt interest paid", `−${run.latestInterestPaid} / ${run.latestInterestCharged}`));
+    if (run.latestInterestAddedToDebt > 0) summary.appendChild(row("Unpaid interest → debt", `+${run.latestInterestAddedToDebt}`, "neg"));
+    if (run.latestPayrollSummary) summary.appendChild(row("Payroll policy", run.latestPayrollSummary));
+    if (run.latestVeterancySummary) summary.appendChild(row("Staff development", run.latestVeterancySummary));
     summary.appendChild(el("hr", { style: { border: "none", borderTop: "1px solid var(--rule)" } }));
-    summary.appendChild(row("Gold", String(run.gold)));
-    summary.appendChild(row("Debt", `${run.debt} (${GameRulesFns.getDebtStatusLabel(run.debt)})`));
-    summary.appendChild(row("Morale", String(run.morale)));
+    summary.appendChild(row("Cash on hand", String(run.gold)));
+    summary.appendChild(row("Ledger debt", `${run.debt} (${GameRulesFns.getDebtStatusLabel(run.debt)})`));
+    summary.appendChild(row("Crew morale", String(run.morale)));
 
     this.root.insertBefore(summary, this._actions);
 
     this._actions.appendChild(el("button", {
-      class: "btn primary", text: "Continue →",
+      class: "btn primary", text: "File Report →",
       onClick: () => { this.onDirty?.(); this.gm.continueAfterReward(); },
     }));
   }

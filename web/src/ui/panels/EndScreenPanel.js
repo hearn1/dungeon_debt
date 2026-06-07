@@ -16,11 +16,11 @@ export class EndScreenPanel {
     this.root.className = `overlay ${victory ? "victory" : "defeat"}`;
 
     const moreActs = run && victory && run.act < GameRulesFns.totalActs;
-    appendPanelHeader(this.root, "END", victory ? "Run Complete" : "Run Failed", run ? `Gold ${run.gold} · Debt ${run.debt} · Morale ${run.morale}` : "");
+    appendPanelHeader(this.root, "FINAL LEDGER", victory ? "Guild Audit Closed" : "Guild Bankrupt", run ? `Cash ${run.gold} · Debt ${run.debt} · Morale ${run.morale}` : "");
 
     this.root.appendChild(el("h1", {
       class: "title",
-      text: victory ? (moreActs ? "ACT CLEARED" : "GUILD TRIUMPHANT") : "BANKRUPT",
+      text: victory ? (moreActs ? "ACT CONTRACT CLEARED" : "GUILD LEDGER CLEARED") : "BANKRUPTCY NOTICE",
     }));
     if (run && run.latestEndReason) {
       this.root.appendChild(el("div", { class: "end-reason", text: run.latestEndReason }));
@@ -28,12 +28,12 @@ export class EndScreenPanel {
     const actions = el("div", { class: "menu-choices" });
     if (moreActs) {
       actions.appendChild(el("button", {
-        class: "btn primary", text: `Descend to Act ${run.act + 1} →`,
+        class: "btn primary", text: `Accept Act ${run.act + 1} Contract →`,
         onClick: () => this.gm.continueToNextAct(),
       }));
     }
     actions.appendChild(el("button", {
-      class: "btn", text: "Return to Main Menu",
+      class: "btn", text: "Return to Guild Office",
       onClick: () => this.gm.returnToMainMenu(),
     }));
     this.root.appendChild(actions);

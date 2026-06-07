@@ -15,9 +15,9 @@ export class MainMenuPanel {
 
   render() {
     clear(this.root);
-    appendPanelHeader(this.root, "MENU", "Dungeon Debt", "An auto-battler economy roguelite");
+    appendPanelHeader(this.root, "GUILD OFFICE", "Dungeon Debt", "Run a mercenary guild, take dungeon contracts, and keep the ledger out of the red.");
     this.root.appendChild(el("h1", { class: "title", text: "DUNGEON DEBT" }));
-    this.root.appendChild(el("div", { class: "subtitle", text: "An auto-battler economy roguelite" }));
+    this.root.appendChild(el("div", { class: "subtitle", text: "Own the guild. Pay the party. Survive the audit." }));
 
     const choices = el("div", {
       class: "menu-choices",
@@ -49,14 +49,14 @@ export class MainMenuPanel {
     this.root.appendChild(el("div", {
       class: "subtitle",
       style: { maxWidth: "560px", letterSpacing: "1px", textTransform: "none" },
-      text: `Cumulative mutators: ${mutatorText}`,
+      text: `Contract clauses: ${mutatorText}`,
     }));
 
     this.root.appendChild(el("button", {
       class: "btn primary",
       onClick: () => this._startRun(),
     }, [
-      el("div", { class: "d-name", text: `Start ${selectedDifficulty.displayName}` }),
+      el("div", { class: "d-name", text: `Sign ${selectedDifficulty.displayName} Contract` }),
     ]));
 
     this.root.appendChild(el("a", {
@@ -76,7 +76,7 @@ export class MainMenuPanel {
 
   _getLockedLabel(difficulty) {
     if (!difficulty.isImplemented) return "Coming soon.";
-    return "Beat Level " + (difficulty.level - 1) + " to unlock.";
+    return "Clear Level " + (difficulty.level - 1) + " contract to unlock.";
   }
 
   _selectLevel(level) {
@@ -88,8 +88,8 @@ export class MainMenuPanel {
 
   _getDifficultySummary(difficulty) {
     if (!difficulty.isImplemented) return this._getLockedLabel(difficulty);
-    if (difficulty.mutators.length <= 0) return "Baseline contract.";
-    const mutatorSummary = "Cumulative: " + this._formatDifficultyMutators(difficulty);
+    if (difficulty.mutators.length <= 0) return "Standard guild charter.";
+    const mutatorSummary = "Clauses: " + this._formatDifficultyMutators(difficulty);
     if (this._isLevelLocked(difficulty)) return this._getLockedLabel(difficulty) + " " + mutatorSummary;
     return mutatorSummary;
   }

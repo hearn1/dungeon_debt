@@ -115,13 +115,13 @@ const EnemyDefinitions = [
 ];
 
 const PayrollActionDefinitions = [
-  new PayrollActionDefinition(PayrollActionId.TakeLoan, "Take Loan",
-    `Gain ${GameRules.LoanGoldGain} gold immediately. Adds ${GameRules.LoanDebtCost} debt.`),
+  new PayrollActionDefinition(PayrollActionId.TakeLoan, "Take Operating Loan",
+    `Gain ${GameRules.LoanGoldGain} gold immediately. Adds ${GameRules.LoanDebtCost} debt to the guild ledger.`),
   new PayrollActionDefinition(PayrollActionId.CutWages, "Cut Wages",
-    `Total upkeep this round drops by ${GameRules.CutWagesUpkeepReduction} (min 0). Each hero's attack drops by ${GameRules.CutWagesAttackPenalty} (min 0).`),
-  new PayrollActionDefinition(PayrollActionId.PromiseVictoryBonus, "Promise Victory Bonus",
-    `Pay ${GameRules.VictoryBonusGoldCost} gold now. Each hero gains +${GameRules.VictoryBonusAttackBuff} attack this fight.`),
-  new PayrollActionDefinition(PayrollActionId.StandardPay, "Skip Payroll", "No effect this round."),
+    `Reduce this round's wage bill by ${GameRules.CutWagesUpkeepReduction} (min 0). Each adventurer loses ${GameRules.CutWagesAttackPenalty} attack this contract.`),
+  new PayrollActionDefinition(PayrollActionId.PromiseVictoryBonus, "Post Victory Bonus",
+    `Pay ${GameRules.VictoryBonusGoldCost} gold now. Each adventurer gains +${GameRules.VictoryBonusAttackBuff} attack for this contract.`),
+  new PayrollActionDefinition(PayrollActionId.StandardPay, "Standard Payroll", "Pay normal wages. No extra contract clause this round."),
 ];
 
 const RelicDefinitions = [

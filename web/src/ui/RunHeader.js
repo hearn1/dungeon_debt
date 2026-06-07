@@ -43,8 +43,8 @@ export class RunHeader {
       ]),
       el("div", { class: "rh-spacer" }),
       el("div", { class: "rh-resources" }, [
-        resource(run.gold, "GOLD", true),
-        resource(run.morale, "MORALE", false),
+        resource(run.gold, "CASH", true),
+        resource(run.morale, "CREW MORALE", false),
       ]),
       this.debtChip(run.debt),
     ]);
@@ -78,7 +78,7 @@ export class RunHeader {
     return el("div", { class: "rh-debt", style: { background: bg, borderColor: color } }, [
       el("div", { class: "rh-debt-row" }, [
         el("div", { class: "rh-debt-val", text: String(debt), style: { color } }),
-        el("div", { class: "rh-debt-lbl", text: "DEBT" }),
+        el("div", { class: "rh-debt-lbl", text: "LEDGER DEBT" }),
       ]),
       el("div", { class: "rh-debt-tier", text: GameRulesFns.getDebtStatusLabel(debt).toUpperCase(), style: { color } }),
     ]);
@@ -87,7 +87,7 @@ export class RunHeader {
   relicStrip(run) {
     const strip = el("div", { class: "rh-relics" });
     if (!run.activeRelics || run.activeRelics.length === 0) {
-      strip.appendChild(el("div", { class: "rh-relics-empty", text: "NO RELICS" }));
+      strip.appendChild(el("div", { class: "rh-relics-empty", text: "NO LEDGER CLAUSES" }));
       return strip;
     }
     for (const id of run.activeRelics) {

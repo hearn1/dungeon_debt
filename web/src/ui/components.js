@@ -87,13 +87,13 @@ export function heroCard(def, instance, opts = {}) {
     el("div", { class: "uc-stats" }, [
       stat(attack, "ATK"),
       stat(instance ? instance.currentHealth : def.baseHealth, "HP"),
-      stat(instance ? instance.upkeepThisRound : def.baseUpkeep, "UPKEEP"),
+      stat(instance ? instance.upkeepThisRound : def.baseUpkeep, "WAGE"),
     ]),
     el("div", { class: "uc-blurb", text: def.effectDescription }),
   ]);
 
   if (opts.cost !== undefined && opts.cost !== null) {
-    card.appendChild(el("div", { class: "uc-cost", text: `Hire — ${opts.cost} gold` }));
+    card.appendChild(el("div", { class: "uc-cost", text: `Signing Cost — ${opts.cost} gold` }));
   }
 
   if (opts.actions && opts.actions.length) {

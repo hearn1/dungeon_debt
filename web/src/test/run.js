@@ -568,7 +568,7 @@ console.log("Run-flow test");
   panel.render();
   const laneCount = countClass(panel.root, "rival-race-lane");
   check("rivals-race-ui: renders four lanes", laneCount === 4);
-  check("rivals-race-ui: title rendered", textContentOf(panel.root).includes("Race the Rivals"));
+  check("rivals-race-ui: title rendered", textContentOf(panel.root).includes("Rival Contract Race"));
   globalThis.document = previousDocument;
 }
 
@@ -713,8 +713,8 @@ console.log("Run-flow test");
   panel.render();
   const text = textContentOf(panel.root);
   check("raceactions-scout-ui: race header rendered", text.includes("RACE"));
-  check("raceactions-scout-ui: rush ahead button present", text.includes("Rush Ahead"));
-  check("raceactions-scout-ui: bribe guide button present", text.includes("Bribe Guide"));
+  check("raceactions-scout-ui: rush ahead button present", text.includes("Rush the Paperwork"));
+  check("raceactions-scout-ui: bribe guide button present", text.includes("Expedite with Guide"));
   panel.render();
   check("raceactions-scout-ui: re-render stable", textContentOf(panel.root).includes("RACE"));
   globalThis.document = previousDocument;

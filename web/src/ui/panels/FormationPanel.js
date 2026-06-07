@@ -14,7 +14,7 @@ export class FormationPanel {
     clear(this.root);
     const run = this.gm.currentRunState;
 
-    appendPanelHeader(this.root, "FORMATION", "Formation", "Click two slots to swap. Frontline is targeted first.");
+    appendPanelHeader(this.root, "DEPLOYMENT", "Formation Orders", "Assign the contract crew. Frontline draws the first hits.");
 
     const bySlot = new Map();
     for (const h of run.party) bySlot.set(h.formationSlot, h);
@@ -27,17 +27,17 @@ export class FormationPanel {
 
     this.root.appendChild(el("div", { class: "formation" }, [
       el("div", { class: "formation-zone" }, [
-        el("div", { class: "formation-zone-lbl", text: "FRONTLINE" }),
+        el("div", { class: "formation-zone-lbl", text: "FRONTLINE ASSIGNMENTS" }),
         frontline,
       ]),
       el("div", { class: "formation-zone" }, [
-        el("div", { class: "formation-zone-lbl", text: "BACKLINE" }),
+        el("div", { class: "formation-zone-lbl", text: "BACKLINE ASSIGNMENTS" }),
         backline,
       ]),
     ]));
 
     this.root.appendChild(el("div", { class: "panel-actions" }, [
-      el("button", { class: "btn primary", text: "To Payroll →", onClick: () => this.gm.continueFromFormation() }),
+      el("button", { class: "btn primary", text: "Approve Deployment →", onClick: () => this.gm.continueFromFormation() }),
     ]));
   }
 
@@ -48,7 +48,7 @@ export class FormationPanel {
       onClick: () => this.onSlotClick(slotIndex),
     });
     if (hero) node.appendChild(heroCard(hero.definition, hero, {}));
-    else node.textContent = "Empty";
+    else node.textContent = "Open Assignment";
     return node;
   }
 

@@ -14,10 +14,10 @@ export class ScoutPanel {
     const run = this.gm.currentRunState;
     const enc = run ? run.currentEncounter : null;
 
-    appendPanelHeader(this.root, "SCOUT", "Scout", enc ? GameRulesFns.getEncounterKindLabel(enc) : "");
+    appendPanelHeader(this.root, "CONTRACT", "Review Dungeon Contract", enc ? GameRulesFns.getEncounterKindLabel(enc) : "No active contract");
 
     if (!enc) {
-      this.root.appendChild(el("div", { class: "panel-sub", text: "No encounter." }));
+      this.root.appendChild(el("div", { class: "panel-sub", text: "No contract on the desk." }));
       return;
     }
 
@@ -28,13 +28,13 @@ export class ScoutPanel {
     // Top cue strip — capstone signals a relic reward; rival fights show the guild.
     if (capstone) {
       this.root.appendChild(el("div", { class: "scout-cue capstone",
-        text: `★ CAPSTONE — choose 1 of ${GameRules.RelicChoiceCount} relics on victory` }));
+        text: `★ CAPSTONE CLAUSE — choose 1 of ${GameRules.RelicChoiceCount} relic clauses after fulfillment` }));
     } else if (isRival) {
       const color = GameRulesFns.getRivalGuildColor(enc.rivalGuild);
       this.root.appendChild(el("div", { class: "scout-cue rival", style: { borderColor: color, color } },
-        [`vs ${enc.rivalGuild.toUpperCase()} GUILD`]));
+        [`RIVAL BID — ${enc.rivalGuild.toUpperCase()} GUILD`]));
     } else if (isBoss) {
-      this.root.appendChild(el("div", { class: "scout-cue capstone", text: "★ FINAL BOSS" }));
+      this.root.appendChild(el("div", { class: "scout-cue capstone", text: "★ FINAL AUDIT" }));
     }
 
     const card = el("div", { class: `scout-card${capstone ? " capstone-card" : ""}` }, [
@@ -45,12 +45,12 @@ export class ScoutPanel {
 
     // Reward preview.
     card.appendChild(el("div", { class: "scout-reward-row" }, [
-      el("span", { class: "panel-sub", text: "REWARD" }),
+      el("span", { class: "panel-sub", text: "CONTRACT PAYOUT" }),
       el("span", { class: "uc-cost", text: `+${enc.baseGoldReward}g${isRival ? ` (+${GameRules.RivalWinBonus} rival bonus)` : ""}` }),
     ]));
 
     const enemies = el("div", {});
-    enemies.appendChild(el("div", { class: "combat-side-lbl", text: `ENEMY LINEUP · ${enc.enemies.length}` }));
+    enemies.appendChild(el("div", { class: "combat-side-lbl", text: `OPPOSITION ROSTER · ${enc.enemies.length}` }));
     for (const e of enc.enemies) {
       enemies.appendChild(el("div", { class: "enemy-line" }, [
         el("span", { text: e.displayName }),
@@ -62,33 +62,33 @@ export class ScoutPanel {
 
     const raceActions = el("div", { class: "scout-race-actions" });
     const progress = run.playerRaceProgress;
-    raceActions.appendChild(el("div", { class: "scout-race-header", text: `RACE — ${progress}/${GameRules.RivalRaceMaxProgress}` }));
+    raceActions.appendChild(el("div", { class: "scout-race-header", text: `CONTRACT RACE — ${progress}/${GameRules.RivalRaceMaxProgress}` }));
 
     const rushUsed = run.usedRaceActions.has("rushAhead");
     const bribeUsed = run.usedRaceActions.has("bribeGuide");
 
     if (!rushUsed) {
       raceActions.appendChild(el("button", {
-        class: "btn secondary", text: `Rush Ahead  (-${GameRules.RushAheadMoraleCost} morale, +1 progress)`,
+        class: "btn secondary", text: `Rush the Paperwork  (-${GameRules.RushAheadMoraleCost} morale, +1 progress)`,
         onClick: () => { this.gm.applyRaceAction("rushAhead"); this.render(); },
       }));
     } else {
-      raceActions.appendChild(el("div", { class: "scout-race-done", text: "✓ Rush Ahead used" }));
+      raceActions.appendChild(el("div", { class: "scout-race-done", text: "✓ Rush order filed" }));
     }
 
     if (!bribeUsed) {
       raceActions.appendChild(el("button", {
         class: "btn secondary",
-        text: `Bribe Guide  (${GameRules.BribeGuideGoldCost}g or +${GameRules.BribeGuideDebtFallback} debt, +1 progress)`,
+        text: `Expedite with Guide  (${GameRules.BribeGuideGoldCost}g or +${GameRules.BribeGuideDebtFallback} debt, +1 progress)`,
         onClick: () => { this.gm.applyRaceAction("bribeGuide"); this.render(); },
       }));
     } else {
-      raceActions.appendChild(el("div", { class: "scout-race-done", text: "✓ Bribe Guide used" }));
+      raceActions.appendChild(el("div", { class: "scout-race-done", text: "✓ Guide retainer paid" }));
     }
 
     this.root.appendChild(raceActions);
     this.root.appendChild(el("div", { class: "panel-actions" }, [
-      el("button", { class: "btn primary", text: "To the Shop →", onClick: () => this.gm.continueFromScout() }),
+      el("button", { class: "btn primary", text: "Send to Recruitment →", onClick: () => this.gm.continueFromScout() }),
     ]));
   }
 }

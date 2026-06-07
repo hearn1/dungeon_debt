@@ -13,7 +13,7 @@ export class RelicRewardPanel {
     clear(this.root);
     const run = this.gm.currentRunState;
 
-    appendPanelHeader(this.root, "RELIC", "Choose a Relic", "A reward for clearing a benchmark fight.");
+    appendPanelHeader(this.root, "CONTRACT BONUS", "Choose a Relic Clause", "Benchmark cleared. Add one permanent clause to the guild ledger.");
 
     const grid = el("div", { class: "card-grid" });
     for (const id of run.pendingRelicChoices) {
