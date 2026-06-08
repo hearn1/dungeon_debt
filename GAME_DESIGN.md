@@ -219,25 +219,25 @@ No bonus. No penalty.
 
 ##### Take Loan
 
-Gain gold now, but add debt later.
+Borrow gold now to buffer the upcoming economy settlement.
 
 ```text
 Gain +5 gold now.
-After combat, add +6 debt.
+Add +6 debt now.
 ```
 
 Use case:
 
-> “I need money now to buy the unit that saves this fight.”
+> “I need a cash buffer before upkeep and interest resolve.”
 
 ##### Promise Victory Bonus
 
-Spike combat power, but risk debt.
+Spike combat power on a wager — pay only if you win.
 
 ```text
 All heroes gain +1 attack this fight.
-If you win, pay 3 gold after combat.
-If you lose, add 5 debt.
+If you win: pay 3 gold after combat reward (unpaid amount becomes debt).
+If you lose: add 5 debt.
 ```
 
 Use case:
