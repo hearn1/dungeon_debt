@@ -287,7 +287,20 @@ export class CombatPanel {
     if (run.latestVeterancySummary) summary.appendChild(row("Staff development", run.latestVeterancySummary));
     summary.appendChild(el("hr", { style: { border: "none", borderTop: "1px solid var(--rule)" } }));
     summary.appendChild(row("Cash on hand", String(run.gold)));
-    summary.appendChild(row("Ledger debt", `${run.debt} (${GameRulesFns.getDebtStatusLabel(run.debt)})`));
+
+    const debtStatusBefore = run.latestDebtStatusBefore;
+    const debtStatusAfter = GameRulesFns.getDebtStatusLabel(run.debt);
+    const debtStatusText = (debtStatusBefore && debtStatusBefore !== debtStatusAfter)
+      ? `${debtStatusBefore} → ${debtStatusAfter}`
+      : debtStatusAfter;
+    const isHighDebt = GameRulesFns.isHighDebtPressure(run.debt);
+    const debtStatusCls = isHighDebt ? "neg" : "";
+    summary.appendChild(row("Ledger debt", String(run.debt)));
+    summary.appendChild(row("Debt status", debtStatusText, debtStatusCls));
+    if (isHighDebt) {
+      summary.appendChild(el("div", { class: "summary-debt-hint", text: "Interest pressure is high. Use Pay Debt in Shop to reduce principal." }));
+    }
+
     summary.appendChild(row("Crew morale", String(run.morale)));
 
     this.root.insertBefore(summary, this._actions);

@@ -75,13 +75,25 @@ export class RunHeader {
   debtChip(debt) {
     const color = GameRulesFns.getDebtStatusColor(debt);
     const bg = GameRulesFns.getDebtStatusBackgroundColor(debt);
-    return el("div", { class: "rh-debt", style: { background: bg, borderColor: color } }, [
+    const statusLabel = GameRulesFns.getDebtStatusLabel(debt);
+    const severityClass = statusLabel.toLowerCase();
+    const tooltip = "Interest is charged after upkeep: ceil(debt / interest divisor). Pay Debt in the Shop to reduce principal before the next fight.";
+
+    const children = [
       el("div", { class: "rh-debt-row" }, [
         el("div", { class: "rh-debt-val", text: String(debt), style: { color } }),
         el("div", { class: "rh-debt-lbl", text: "LEDGER DEBT" }),
       ]),
-      el("div", { class: "rh-debt-tier", text: GameRulesFns.getDebtStatusLabel(debt).toUpperCase(), style: { color } }),
-    ]);
+      el("div", { class: "rh-debt-tier", text: statusLabel.toUpperCase(), style: { color } }),
+    ];
+
+    if (severityClass === "dangerous") {
+      children.push(el("div", { class: "rh-debt-warning", text: "Interest pressure is shaping this run. Pay down principal in Shop when you can." }));
+    } else if (severityClass === "critical") {
+      children.push(el("div", { class: "rh-debt-warning critical", text: "Bankruptcy is close. Pay Debt before taking more financial risk." }));
+    }
+
+    return el("div", { class: `rh-debt ${severityClass}`, style: { background: bg, borderColor: color }, title: tooltip }, children);
   }
 
   relicStrip(run) {

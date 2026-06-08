@@ -133,7 +133,7 @@ export const GameRules = Object.freeze({
   InterestDebtDivisor: 3,
   StrainedDebtThreshold: 6,
   DangerousDebtThreshold: 12,
-  CriticalDebtThreshold: 20,
+  CriticalDebtThreshold: 14,
   RivalIncomePerRound: 8,
   RivalRaceCurves,
   RivalRaceMaxProgress: 20,

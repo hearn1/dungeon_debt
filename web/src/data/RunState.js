@@ -29,6 +29,10 @@ export class RunState {
     this.latestVeterancySummary = null;
     this.latestPayrollSummary = null;
     this.latestVictoryBonusLossDebt = 0;
+    this.latestDebtBeforeCombat = 0;
+    this.latestDebtAfterCombat = 0;
+    this.latestDebtStatusBefore = "";
+    this.latestDebtStatusAfter = "";
     this.latestEndReason = null;
     this._currentEncounter = null;
     this.latestCompletedEncounter = null;
