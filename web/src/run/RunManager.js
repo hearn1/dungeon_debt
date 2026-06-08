@@ -292,7 +292,7 @@ export class RunManager {
     const run = this._currentRunState;
     if (!run) return;
     run.round += 1;
-    run.playerRaceProgress = Math.min(GameRules.RivalRaceMaxProgress, run.round);
+    run.playerRaceProgress = Math.min(GameRules.RivalRaceMaxProgress, run.playerRaceProgress + 1);
     if (this._canContinueToNextDevAct(run) && run.round > GameRulesFns.getActFinalRound(run.act)) {
       run.act += 1;
       run.round = GameRulesFns.getActStartRound(run.act);

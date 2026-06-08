@@ -77,7 +77,7 @@ function snapshotRivalLead(run, encounter) {
   let lead = 0;
   for (const rival of run.rivals) {
     if (rival.guild !== encounter.rivalGuild) continue;
-    lead = Math.max(0, rival.progress - run.round);
+    lead = Math.max(0, rival.progress - (run.playerRaceProgress || run.round));
     break;
   }
 

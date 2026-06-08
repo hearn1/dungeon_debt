@@ -526,6 +526,7 @@ console.log("Run-flow test");
   const run = gm.currentRunState;
   const greedy = run.rivals.find((r) => r.guild === RivalGuild.Greedy);
   run.round = 3;
+  run.playerRaceProgress = 3;
   run.act = 1;
   greedy.progress = 8;
   gm.encounterManager.loadEncounter(run.round);
