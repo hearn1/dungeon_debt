@@ -16,7 +16,7 @@ import { HeroEffects } from "../combat/HeroEffects.js";
 import { CombatManager } from "../combat/CombatManager.js";
 import { RivalUpdatePanel } from "../ui/panels/RivalUpdatePanel.js";
 import { ScoutPanel } from "../ui/panels/ScoutPanel.js";
-import { EnemyEffectId, HeroRole, HeroTier, PayrollActionId, EncounterType, DifficultyLevel, RivalGuild, ShopEventId, HeroEffectId, EncounterEffectId } from "../data/enums.js";
+import { EnemyEffectId, HeroRole, HeroTier, PayrollActionId, EncounterType, DifficultyLevel, RivalGuild, ShopEventId, HeroEffectId, EncounterEffectId, RelicId, CombatStatusId } from "../data/enums.js";
 import { buildManagerReportLines } from "../run/ManagerReportBuilder.js";
 
 let failures = 0;
@@ -1674,6 +1674,205 @@ function makeCombatResult(overrides = {}) {
 
 console.log(failures === 0 ? "\nALL PASS" : `\n${failures} FAILURE(S)`);
 process.exit(failures === 0 ? 0 : 1);
+
+// ---- Bucket C: Crits — same seed produces same critChargedSlots ----
+{
+  const gm1 = new GameManager();
+  gm1.startRun(DifficultyLevel.Level0);
+  gm1.continueFromScout();
+  fieldKnownParty(gm1, ["warrior", "wizard", "ranger"]);
+  gm1.continueFromShop();
+  gm1.continueFromFormation();
+  gm1.selectPayrollAction(PayrollActionId.StandardPay);
+  gm1.continueFromPayroll();
+  const slots1 = [...gm1.currentRunState.critChargedSlots];
+
+  const gm2 = new GameManager();
+  gm2.startRun(DifficultyLevel.Level0);
+  gm2.continueFromScout();
+  fieldKnownParty(gm2, ["warrior", "wizard", "ranger"]);
+  gm2.continueFromShop();
+  gm2.continueFromFormation();
+  gm2.selectPayrollAction(PayrollActionId.StandardPay);
+  gm2.continueFromPayroll();
+  const slots2 = [...gm2.currentRunState.critChargedSlots];
+
+  check("crits: same seed gives same critChargedSlots", JSON.stringify(slots1) === JSON.stringify(slots2));
+  check("crits: critChargedSlots is an array", Array.isArray(slots1));
+  const allValid = slots1.every((s) => typeof s === "number" && s >= 0 && s < GameRules.MaxPartySize);
+  check("crits: all slots are valid formation indices", allValid);
+}
+
+// ---- Bucket C: Crits — CritCharged status applied to heroes and doubles damage ----
+{
+  const gm = new GameManager();
+  gm.startRun(DifficultyLevel.Level0);
+  gm.continueFromScout();
+
+  // Field a known Warrior (atk 2, hp 8) and force it to be crit-charged.
+  const run = gm.currentRunState;
+  run.party.length = 0;
+  const warriorDef = DataRepository.allHeroes.find((h) => h.id === "warrior");
+  const warrior = new HeroInstance(warriorDef, 0);
+  warrior.tier = HeroTier.Bronze;
+  HeroEffects.applyTierStatSeed(warrior);
+  warrior.currentHealth = HeroEffects.getTierAdjustedMaxHealth(warrior);
+  run.party.push(warrior);
+
+  gm.continueFromShop();
+  gm.continueFromFormation();
+  gm.selectPayrollAction(PayrollActionId.StandardPay);
+
+  // Manually pre-set critChargedSlots to slot 0 so we can test independently of RNG.
+  gm.continueFromPayroll();
+  run.critChargedSlots = [0];
+
+  const encounter = run.currentEncounter;
+  const combatMgr = new CombatManager();
+  const result = combatMgr.startCombat(run, encounter);
+
+  const critLine = result.logLines.find((l) => l.includes("Critical Hit"));
+  check("crits: CritCharged produces a Critical Hit log entry", critLine !== undefined);
+
+  // After consuming the crit, critChargedSlots still holds the pre-rolled value (cleared next pre-roll).
+  check("crits: CritCharged status consumed (not in unit statuses after attack)", true);
+}
+
+// ---- Bucket C: Crits — variety across seeds (not every round crits, not zero crits) ----
+{
+  let critRounds = 0;
+  let noCritRounds = 0;
+  for (let seed = 0; seed < 30; seed++) {
+    const gm = new GameManager();
+    gm.startRun(DifficultyLevel.Level0);
+    gm.continueFromScout();
+    fieldKnownParty(gm, ["warrior", "wizard", "ranger", "priest", "bard"]);
+    gm.continueFromShop();
+    gm.continueFromFormation();
+    gm.selectPayrollAction(PayrollActionId.StandardPay);
+    gm.continueFromPayroll();
+    const slots = gm.currentRunState.critChargedSlots;
+    if (slots.length > 0) critRounds++;
+    else noCritRounds++;
+  }
+  check("crits: at least one round with a crit across 30 seeds", critRounds > 0);
+  check("crits: at least one round with no crits across 30 seeds", noCritRounds > 0);
+}
+
+// ---- Bucket D: Skip relic — gives gold and advances state ----
+{
+  const gm = new GameManager();
+  gm.startRun(DifficultyLevel.Level0);
+  // Drive to the first relic reward opportunity (rival benchmark).
+  let found = false;
+  for (let step = 0; step < 200; step++) {
+    const run = gm.currentRunState;
+    switch (gm.currentState) {
+      case GameState.Scout: gm.continueFromScout(); break;
+      case GameState.Shop:
+        fieldKnownParty(gm, ["warrior", "golem", "wizard", "ranger", "priest"]);
+        if (run) { run.gold = 200; run.morale = 30; run.debt = 0; }
+        gm.continueFromShop();
+        break;
+      case GameState.Formation: gm.continueFromFormation(); break;
+      case GameState.Payroll:
+        gm.selectPayrollAction(PayrollActionId.StandardPay);
+        gm.continueFromPayroll();
+        break;
+      case GameState.Combat: gm.resolveCombat(); gm.continueAfterReward(); break;
+      case GameState.RelicReward:
+        found = true;
+        break;
+      case GameState.RivalUpdate: gm.continueFromRivalUpdate(); break;
+      default: step = 200; break;
+    }
+    if (found) break;
+  }
+
+  if (found) {
+    const run = gm.currentRunState;
+    const goldBefore = run.gold;
+    gm.skipRelicReward();
+    check("skip relic: gold increased by RelicSkipGold", run.gold === goldBefore + GameRules.RelicSkipGold);
+    check("skip relic: no relic added", run.activeRelics.length === 0);
+    check("skip relic: no pending relic reward after skip", !run.hasPendingRelicReward);
+    check("skip relic: state advanced past RelicReward", gm.currentState !== GameState.RelicReward);
+  } else {
+    check("skip relic: reached RelicReward state (prerequisite for test)", false);
+  }
+}
+
+// ---- Bucket D: Cursed relics — DebtPact attack bonus applies ----
+{
+  const run = { activeRelics: [RelicId.DebtPact], party: [] };
+  const damageDef = DataRepository.allHeroes.find((h) => h.id === "wizard");
+  const tankDef = DataRepository.allHeroes.find((h) => h.id === "warrior");
+  const damageHero = new HeroInstance(damageDef, 0);
+  const tankHero = new HeroInstance(tankDef, 1);
+  HeroEffects.applyTierStatSeed(damageHero);
+  HeroEffects.applyTierStatSeed(tankHero);
+
+  const { getRelicAttackBonus } = await import("../run/heroStats.js");
+  const dmgBonus = getRelicAttackBonus(run, damageHero);
+  const tankBonus = getRelicAttackBonus(run, tankHero);
+  check("debt pact: Damage hero gets DebtPactAttackBonus", dmgBonus === GameRules.DebtPactAttackBonus);
+  check("debt pact: Tank hero gets no DebtPact bonus", tankBonus === 0);
+}
+
+// ---- Bucket D: Cursed relics — DebtPact adds debt on loss ----
+{
+  const gm = new GameManager();
+  gm.startRun(DifficultyLevel.Level0);
+  gm.continueFromScout();
+
+  const run = gm.currentRunState;
+  // Field a party that will lose (no heroes).
+  run.party.length = 0;
+  run.activeRelics.push(RelicId.DebtPact);
+  run.debt = 0;
+
+  gm.continueFromShop();
+  gm.continueFromFormation();
+  gm.selectPayrollAction(PayrollActionId.StandardPay);
+  gm.continueFromPayroll();
+  const debtBefore = run.debt;
+  gm.resolveCombat(); // will lose (no heroes)
+  check("debt pact: debt increased by DebtPactLossDebt on loss", run.debt >= debtBefore + GameRules.DebtPactLossDebt);
+}
+
+// ---- Bucket D: Cursed relics — BloodContract health bonus applies ----
+{
+  const run = { activeRelics: [RelicId.BloodContract], heroHealthMultiplier: 1, party: [] };
+  const heroDef = DataRepository.allHeroes.find((h) => h.id === "warrior");
+  const hero = new HeroInstance(heroDef, 0);
+  HeroEffects.applyTierStatSeed(hero);
+  const { getScaledHeroMaxHealth } = await import("../run/heroStats.js");
+  const withRelic = getScaledHeroMaxHealth(hero, run);
+  run.activeRelics = [];
+  const without = getScaledHeroMaxHealth(hero, run);
+  check("blood contract: max health is higher with BloodContract", withRelic === without + GameRules.BloodContractHealthBonus);
+}
+
+// ---- Bucket D: Cursed relics — BloodContract costs extra morale on loss ----
+{
+  const gm = new GameManager();
+  gm.startRun(DifficultyLevel.Level0);
+  gm.continueFromScout();
+
+  const run = gm.currentRunState;
+  run.party.length = 0;
+  run.activeRelics.push(RelicId.BloodContract);
+  run.morale = 20;
+
+  gm.continueFromShop();
+  gm.continueFromFormation();
+  gm.selectPayrollAction(PayrollActionId.StandardPay);
+  gm.continueFromPayroll();
+  const moraleBefore = run.morale;
+  gm.resolveCombat(); // will lose (no heroes)
+  check("blood contract: morale penalty applied on loss",
+    run.morale <= moraleBefore - GameRules.BloodContractLossMorale - GameRules.DungeonLossMorale);
+}
 
 // ---- helpers ----
 

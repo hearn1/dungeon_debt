@@ -79,6 +79,8 @@ export const RelicId = makeEnum(
   "RedInkBrand",
   "CausticWrit",
   "ToxicCollateral",
+  "DebtPact",
+  "BloodContract",
 );
 
 export const ShopEventId = makeEnum("None", "BargainStall", "TaxAudit", "TravellingMerchant");
@@ -91,4 +93,5 @@ export const CombatStatusId = makeEnum(
   "Marked",
   "Weakened",
   "Inspired",
+  "CritCharged",
 );

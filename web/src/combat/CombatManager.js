@@ -108,6 +108,13 @@ export class CombatManager {
 
   _applyAttack(attacker, defender, logger) {
     let damage = attacker.attack;
+
+    if (attacker.statuses.has(CombatStatusId.CritCharged)) {
+      damage *= GameRules.CritDamageMultiplier;
+      attacker.statuses.remove(CombatStatusId.CritCharged);
+      if (logger) logger.logStatusChange(attacker, `${attacker.displayName} scores a Critical Hit! (base ${attacker.attack} → ${damage} damage)`);
+    }
+
     damage = applyOutgoingStatusModifiers(attacker, damage, logger);
     damage = applyIncomingStatusModifiers(defender, damage, logger);
 
@@ -180,11 +187,16 @@ function buildPlayerUnits(run) {
   const playerUnits = [];
   if (!run) return playerUnits;
 
+  const critSlots = run.critChargedSlots || [];
+
   for (const hero of run.party) {
     const maxHealth = getScaledHeroMaxHealth(hero, run);
     const attack = GameRulesFns.scaleCombatStat(hero.attack, run.heroDamageMultiplier)
       + getRelicAttackBonus(run, hero);
     const unit = new CombatUnit(hero.definition.displayName, attack, maxHealth, maxHealth, true, hero.formationSlot, hero, null);
+    if (critSlots.includes(hero.formationSlot)) {
+      unit.statuses.add(CombatStatusId.CritCharged);
+    }
     playerUnits.push(unit);
   }
 

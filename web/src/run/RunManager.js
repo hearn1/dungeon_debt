@@ -131,6 +131,11 @@ export class RunManager {
     run.gold += rewardGold;
     run.morale += moraleChange;
 
+    if (!combatResult.playerWon) {
+      if (hasRelic(run, RelicId.DebtPact)) run.debt += GameRules.DebtPactLossDebt;
+      if (hasRelic(run, RelicId.BloodContract)) run.morale -= GameRules.BloodContractLossMorale;
+    }
+
     if (this._payrollManager) {
       this._payrollManager.applyPostCombat(run, combatResult);
     }
@@ -232,6 +237,27 @@ export class RunManager {
 
     this._clearPendingRelicReward();
     return nextState;
+  }
+
+  skipPendingRelicReward() {
+    const run = this._currentRunState;
+    if (!run || !run.hasPendingRelicReward) return GameState.MainMenu;
+
+    const nextState = run.pendingRelicNextState;
+    run.gold += GameRules.RelicSkipGold;
+    this._clearPendingRelicReward();
+    return nextState;
+  }
+
+  preRollCombatStatuses(run) {
+    if (!run) return;
+    run.critChargedSlots.length = 0;
+    if (!this._rng) this._rng = new Rng();
+    for (const hero of run.party) {
+      if (this._rng.nextDouble() < GameRules.CritChance) {
+        run.critChargedSlots.push(hero.formationSlot);
+      }
+    }
   }
 
   evaluateNextState() {

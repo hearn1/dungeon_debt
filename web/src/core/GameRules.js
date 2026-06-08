@@ -239,6 +239,21 @@ export const GameRules = Object.freeze({
   BronzeTreasurerTargets: 1,
   SilverTreasurerTargets: 2,
   TreasurerUpkeepReduction: 2,
+
+  // ---- Crits (Bucket C) ----
+  CritChance: 0.25,
+  CritDamageMultiplier: 2,
+
+  // ---- Relic surprises (Bucket D) ----
+  RelicSkipGold: 5,
+  DebtPactAttackBonus: 2,
+  DebtPactLossDebt: 2,
+  DebtPactRelicName: "Debt Pact",
+  DebtPactRelicDescription: "Damage heroes get +2 attack in combat. Take +2 debt on each combat loss.",
+  BloodContractHealthBonus: 3,
+  BloodContractLossMorale: 1,
+  BloodContractRelicName: "Blood Contract",
+  BloodContractRelicDescription: "All heroes get +3 max health in combat. Lose 1 extra morale on each combat loss.",
 });
 
 // ---- Act structure (data-driven; append a count to add an act) ----
