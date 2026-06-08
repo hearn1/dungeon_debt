@@ -1,5 +1,5 @@
 import { el, clear } from "../dom.js";
-import { appendPanelHeader } from "../components.js";
+import { appendPanelHeader, roundGuidanceCallout } from "../components.js";
 import { GameRules, GameRulesFns } from "../../core/GameRules.js";
 import { EncounterType } from "../../data/enums.js";
 
@@ -59,6 +59,9 @@ export class ScoutPanel {
     }
     card.appendChild(enemies);
     this.root.appendChild(card);
+
+    const guidance = roundGuidanceCallout(run.round);
+    if (guidance) this.root.appendChild(guidance);
 
     const raceActions = el("div", { class: "scout-race-actions" });
     const progress = run.playerRaceProgress;
