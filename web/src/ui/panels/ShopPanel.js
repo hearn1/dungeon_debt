@@ -117,17 +117,15 @@ export class ShopPanel {
 
     // Actions
     const debtPayment = GameRulesFns.calculateDebtPaymentAmount(run.gold, run.debt);
+    const debtArea = el("div", { class: "shop-debt-area" });
+    debtArea.appendChild(this._buildPayDebtControl(run, shop, debtPayment));
     this.root.appendChild(el("div", { class: "panel-actions" }, [
       el("button", {
         class: "btn", text: `Refresh Candidates (${GameRules.RerollCost})`,
         disabled: run.gold < GameRules.RerollCost ? "" : null,
         onClick: () => { shop.reroll(); this.refresh(); },
       }),
-      el("button", {
-        class: "btn", text: debtPayment > 0 ? `Pay Down Ledger Debt (−${debtPayment})` : "Pay Down Ledger Debt",
-        disabled: debtPayment <= 0 ? "" : null,
-        onClick: () => { shop.payDebt(); this.refresh(); },
-      }),
+      debtArea,
       el("button", {
         class: "btn primary",
         text: ev && ev.eventId === ShopEventId.TaxAudit ? "Resolve Tax Audit first" : "Set Formation →",
@@ -135,6 +133,42 @@ export class ShopPanel {
         onClick: () => { if (!ev || ev.eventId !== ShopEventId.TaxAudit) this.gm.continueFromShop(); },
       }),
     ]));
+  }
+
+  _buildPayDebtControl(run, shop, debtPayment) {
+    const wrap = el("div", { class: "shop-debt-control" });
+    let btnText;
+    let disabled;
+    let helperLines = [];
+
+    if (run.debt <= 0) {
+      btnText = "No Debt";
+      disabled = true;
+      helperLines.push("Your ledger is clear.");
+    } else if (run.gold <= 0) {
+      btnText = "Need Gold to Pay Debt";
+      disabled = true;
+      helperLines.push("Debt keeps generating interest after upkeep.");
+    } else {
+      const debtAfter = run.debt - debtPayment;
+      btnText = `Pay Debt: ${debtPayment}g (cap ${GameRules.DebtPaymentCap})`;
+      disabled = false;
+      helperLines.push(`Debt ${run.debt} → ${debtAfter}. Paying now lowers future interest.`);
+      if (GameRulesFns.isHighDebtPressure(run.debt)) {
+        helperLines.push("Unpaid debt keeps generating interest and can push the guild toward bankruptcy.");
+      }
+    }
+
+    wrap.appendChild(el("button", {
+      class: "btn",
+      text: btnText,
+      disabled: disabled ? "" : null,
+      onClick: () => { shop.payDebt(); this.refresh(); },
+    }));
+    for (const line of helperLines) {
+      wrap.appendChild(el("div", { class: "shop-debt-helper", text: line }));
+    }
+    return wrap;
   }
 }
 

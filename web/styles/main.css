@@ -111,6 +111,15 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 .rh-debt-lbl { font-size: 10px; letter-spacing: 2px; color: var(--ink-mute); }
 .rh-debt-tier { font-size: 12px; font-weight: 700; letter-spacing: 1px; }
 
+.rh-debt.dangerous { border-width: 2px; }
+.rh-debt.critical { border-width: 2px; box-shadow: 0 0 8px rgba(196, 74, 62, 0.4); }
+.rh-debt-warning { font-size: 10px; color: var(--debt-dangerous); margin-top: 4px; max-width: 180px; line-height: 1.4; text-align: right; }
+.rh-debt-warning.critical { color: var(--debt-critical); }
+
+.shop-debt-control { display: flex; flex-direction: column; gap: 4px; }
+.shop-debt-helper { font-size: 11px; color: var(--ink-dim); line-height: 1.4; max-width: 280px; }
+.summary-debt-hint { font-size: 11px; color: var(--debt-dangerous); margin: 2px 0 4px 0; padding-left: 8px; line-height: 1.4; }
+
 .rh-relics { display: flex; gap: 8px; align-items: center; min-height: 22px; }
 .rh-relic-chip {
   font-size: 11px; padding: 3px 9px; border-radius: 11px;

@@ -1025,6 +1025,66 @@ console.log("Run-flow test");
   }
 }
 
+// ---- Shop: Pay Debt exact outcomes ----
+{
+  const runManager = new RunManager();
+  const run = runManager.initializeRun(DifficultyLevel.Level0, 1);
+  const shop = new ShopManager(runManager);
+
+  run.debt = 10; run.gold = 10;
+  shop.payDebt();
+  check("shopdebt-exact: debt=10 gold=10 -> pay 3, debt 7, gold 7", run.debt === 7 && run.gold === 7);
+
+  run.debt = 2; run.gold = 10;
+  shop.payDebt();
+  check("shopdebt-exact: debt=2 gold=10 -> pay 2, debt 0, gold 8", run.debt === 0 && run.gold === 8);
+
+  run.debt = 10; run.gold = 2;
+  shop.payDebt();
+  check("shopdebt-exact: debt=10 gold=2 -> pay 2, debt 8, gold 0", run.debt === 8 && run.gold === 0);
+
+  run.debt = 0; run.gold = 10;
+  const r1 = shop.payDebt();
+  check("shopdebt-exact: debt=0 gold=10 -> payDebt returns false", r1 === false);
+
+  run.debt = 10; run.gold = 0;
+  const r2 = shop.payDebt();
+  check("shopdebt-exact: debt=10 gold=0 -> payDebt returns false", r2 === false);
+}
+
+// ---- Defeat boundary: Critical is distinct from Defeat ----
+{
+  const runManager = new RunManager();
+  const run = runManager.initializeRun(DifficultyLevel.Level0, 1);
+
+  run.debt = GameRules.DebtLimit - 1;
+  check("debtboundary: debt=debtLimit-1 is Critical", GameRulesFns.getDebtStatusLabel(run.debt) === "Critical");
+  check("debtboundary: debt=debtLimit-1 is not defeated", run.debt < run.debtLimit);
+
+  run.debt = GameRules.DebtLimit;
+  check("debtboundary: debt=debtLimit is at defeat threshold", run.debt >= run.debtLimit);
+}
+
+// ---- Defeat boundary at Level 3 (debtLimit = 15) ----
+{
+  const runManager = new RunManager();
+  const run = runManager.initializeRun(DifficultyLevel.Level3, 1);
+  check("debtboundary-l3: level 3 debtLimit is 15", run.debtLimit === 15);
+
+  run.debt = 14;
+  check("debtboundary-l3: debt=14 is Critical", GameRulesFns.getDebtStatusLabel(run.debt) === "Critical");
+  check("debtboundary-l3: debt=14 is not defeated", run.debt < run.debtLimit);
+
+  const shop = new ShopManager(runManager);
+  run.gold = 3;
+  shop.payDebt();
+  check("debtboundary-l3: after pay 3g, debt=11 Strained", run.debt === 11 && GameRulesFns.getDebtStatusLabel(run.debt) === "Strained");
+  check("debtboundary-l3: still not defeated after payment", run.debt < run.debtLimit);
+
+  run.debt = 15;
+  check("debtboundary-l3: debt=15 at defeat threshold", run.debt >= run.debtLimit);
+}
+
 // ---- Shop: reroll costs gold ----
 {
   const gm = new GameManager();

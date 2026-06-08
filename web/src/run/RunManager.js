@@ -103,6 +103,8 @@ export class RunManager {
     if (!run || !combatResult) return;
 
     run.latestCompletedEncounter = encounter;
+    run.latestDebtBeforeCombat = run.debt;
+    run.latestDebtStatusBefore = GameRulesFns.getDebtStatusLabel(run.debt);
     const isRivalGhost = encounter && encounter.type === EncounterType.RivalGhost;
     let rewardGold = combatResult.playerWon ? GameRules.WinReward : GameRules.LossReward;
     if (combatResult.playerWon && isRivalGhost) rewardGold += GameRules.RivalWinBonus;
@@ -157,6 +159,9 @@ export class RunManager {
       run.debt += interestAddedToDebt;
       run.gold = 0;
     }
+
+    run.latestDebtAfterCombat = run.debt;
+    run.latestDebtStatusAfter = GameRulesFns.getDebtStatusLabel(run.debt);
 
     const veterancySummary = awardVeterancyXp(run, combatResult, encounter);
 
