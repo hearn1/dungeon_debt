@@ -60,12 +60,13 @@ export class PayrollPanel {
       }, [
         el("div", { class: "d-name", text: action.displayName }),
         el("div", { class: "d-desc", text: action.description }),
-        el("div", { class: "payroll-preview" }, preview.map((row) =>
-          el("div", { class: "payroll-preview-row" }, [
+        el("div", { class: "payroll-preview" }, preview.map((row) => {
+          const isActiveRisk = row.label === "Risk" && row.value !== "none";
+          return el("div", { class: "payroll-preview-row" }, [
             el("span", { class: "payroll-preview-label", text: row.label }),
-            el("span", { class: "payroll-preview-value", text: row.value }),
-          ]),
-        )),
+            el("span", { class: `payroll-preview-value${isActiveRisk ? " risk" : ""}`, text: row.value }),
+          ]);
+        })),
       ]));
     }
     this.root.appendChild(grid);

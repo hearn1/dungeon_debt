@@ -17,6 +17,7 @@
   --rule-strong: rgb(74, 83, 100);
   --rule-faint: rgb(32, 38, 47);
   --gold: var(--dd-candle);
+  --morale: rgb(185, 198, 215); /* crew condition — cool steel, distinct from gold */
 
   --debt-stable: rgb(107, 155, 107);
   --debt-strained: rgb(201, 160, 74);
@@ -58,7 +59,8 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   border-radius: 0;
   padding: 11px 24px;
   font-weight: 700;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
 }
 .btn.primary:hover:not(:disabled) { background: #c9a558; border-color: #a48142; }
 .btn.danger { border-color: var(--dd-rust-accent); color: var(--dd-rust-accent); border-radius: 0; }
@@ -89,7 +91,7 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 .rh-seal-theme { font-size: 17px; font-weight: 700; letter-spacing: 1px; }
 
 .rh-round { display: flex; flex-direction: column; gap: 2px; min-width: 150px; }
-.rh-round-big { font-size: 22px; font-weight: 700; }
+.rh-round-big { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .rh-round-total { font-size: 11px; letter-spacing: 1.5px; color: var(--ink-mute); }
 .rh-contract { font-size: 11px; letter-spacing: 1.5px; color: var(--ink-dim); }
 
@@ -97,22 +99,25 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 
 .rh-resources { display: flex; gap: 22px; }
 .rh-res { display: flex; flex-direction: column; align-items: center; min-width: 60px; }
-.rh-res-val { font-size: 22px; font-weight: 700; }
+.rh-res-val { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .rh-res-lbl { font-size: 10px; letter-spacing: 2px; color: var(--ink-mute); }
 .rh-res-val.gold { color: var(--gold); }
+.rh-res-val.morale { color: var(--morale); }
 
+/* Debt chip: rectangular stamp, 4px severity-colored left border, pulse on critical. */
 .rh-debt {
   display: flex; flex-direction: column; align-items: flex-end;
-  padding: 6px 16px; border-radius: 8px; border: 1px solid var(--rule-strong);
+  padding: 6px 16px; border-radius: 0; border: 1px solid var(--rule-strong);
+  border-left-width: 4px;
   min-width: 150px;
 }
 .rh-debt-row { display: flex; align-items: baseline; gap: 8px; }
-.rh-debt-val { font-size: 26px; font-weight: 800; }
-.rh-debt-lbl { font-size: 10px; letter-spacing: 2px; color: var(--ink-mute); }
-.rh-debt-tier { font-size: 12px; font-weight: 700; letter-spacing: 1px; }
+.rh-debt-val { font-size: 26px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.rh-debt-lbl { font-size: 10px; letter-spacing: 2px; color: var(--ink-mute); text-transform: uppercase; }
+.rh-debt-tier { font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
 
-.rh-debt.dangerous { border-width: 2px; }
-.rh-debt.critical { border-width: 2px; box-shadow: 0 0 8px rgba(196, 74, 62, 0.4); }
+.rh-debt.dangerous { border-width: 2px; border-left-width: 4px; }
+.rh-debt.critical { border-width: 2px; border-left-width: 4px; animation: debt-pulse 2s ease-in-out infinite; }
 .rh-debt-warning { font-size: 10px; color: var(--debt-dangerous); margin-top: 4px; max-width: 180px; line-height: 1.4; text-align: right; }
 .rh-debt-warning.critical { color: var(--debt-critical); }
 
@@ -120,10 +125,12 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 .shop-debt-helper { font-size: 11px; color: var(--ink-dim); line-height: 1.4; max-width: 280px; }
 .summary-debt-hint { font-size: 11px; color: var(--debt-dangerous); margin: 2px 0 4px 0; padding-left: 8px; line-height: 1.4; }
 
+/* Relic chips: flat rectangular ledger entries, not decorative pills. */
 .rh-relics { display: flex; gap: 8px; align-items: center; min-height: 22px; }
 .rh-relic-chip {
-  font-size: 11px; padding: 3px 9px; border-radius: 11px;
+  font-size: 11px; padding: 3px 9px; border-radius: 2px;
   background: var(--bg-card); border: 1px solid var(--rule-strong); color: var(--ink-dim);
+  text-transform: uppercase; letter-spacing: 0.5px;
 }
 .rh-relics-empty { font-size: 11px; color: var(--ink-mute); letter-spacing: 1px; }
 
@@ -134,16 +141,29 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 }
 .panel { width: 100%; max-width: 1180px; display: flex; flex-direction: column; gap: 18px; }
 .panel-head { width: 100%; display: block; }
+
+/* Panel kicker: inline gold underline mark — reads as ledger category in both left-aligned panels and centered overlays. */
 .panel-kicker {
+  display: inline-block;
   font-size: 11px;
   letter-spacing: 2.5px;
   color: var(--ink-mute);
   text-transform: uppercase;
   margin-bottom: 4px;
+  padding-bottom: 2px;
+  border-bottom: 1px solid rgba(184, 146, 74, 0.4);
 }
-.panel-title { font-size: 24px; font-weight: 700; letter-spacing: 0.5px; }
+.panel-title { font-size: 24px; font-weight: 800; letter-spacing: 0.5px; }
 .panel-sub { color: var(--ink-dim); font-size: 14px; }
-.panel-rule { width: 100%; border: 0; border-top: 1px solid var(--rule-strong); margin: 4px 0 14px; }
+
+/* Panel rule: gradient ink stroke — fades at both edges like a drawn line. */
+.panel-rule {
+  width: 100%;
+  border: 0;
+  height: 1px;
+  background: linear-gradient(to right, transparent 0%, var(--rule-strong) 15%, var(--rule-strong) 85%, transparent 100%);
+  margin: 4px 0 14px;
+}
 .panel-actions { display: flex; gap: 12px; justify-content: flex-end; }
 
 .stage > .panel, .stage > .overlay { animation: panel-fade-in 150ms ease-out; }
@@ -208,7 +228,7 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 .uc-role { font-size: 11px; letter-spacing: 1.5px; color: var(--ink-mute); text-transform: uppercase; }
 .uc-stats { display: flex; gap: 14px; }
 .uc-stat { display: flex; flex-direction: column; }
-.uc-stat-val { font-size: 18px; font-weight: 700; }
+.uc-stat-val { font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .uc-stat-lbl { font-size: 10px; letter-spacing: 1px; color: var(--ink-mute); }
 .uc-blurb { font-size: 12px; color: var(--ink-dim); min-height: 32px; }
 .uc-cost { font-size: 13px; color: var(--gold); font-weight: 700; }
@@ -395,7 +415,7 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 
 /* ---- Summary / reward ---- */
 .summary { background: var(--bg-panel); border: 1px solid var(--rule); border-radius: 10px; padding: 18px; display: flex; flex-direction: column; gap: 8px; }
-.summary-row { display: flex; justify-content: space-between; font-size: 14px; }
+.summary-row { display: flex; justify-content: space-between; font-size: 14px; padding: 2px 0; }
 .summary-row .pos { color: var(--debt-stable); }
 .summary-row .neg { color: var(--debt-critical); }
 .manager-report { border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); padding: 8px 0; display: flex; flex-direction: column; gap: 4px; }
@@ -466,14 +486,39 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 }
 .tutorial-tip-label { font-weight: 700; color: var(--gold); }
 .tutorial-footer { padding: 14px 20px; border-top: 1px solid var(--rule); display: flex; justify-content: flex-end; }
+
+/* ---- Choice cards (difficulty, payroll, relic) ---- */
+/* Left accent strip mirrors the unit-card role-strip language across all card types. */
 .menu-choices { display: flex; flex-direction: column; gap: 12px; min-width: 320px; }
-.difficulty-card { text-align: left; padding: 14px 18px; }
+.difficulty-card {
+  text-align: left;
+  padding: 14px 18px 14px 22px;
+  position: relative;
+  overflow: hidden;
+}
+.difficulty-card::before {
+  content: "";
+  position: absolute;
+  top: 0; bottom: 0; left: 0;
+  width: 4px;
+  background: var(--rule-strong);
+  transition: background .15s ease;
+}
+.difficulty-card:hover:not(:disabled)::before { background: var(--dd-candle); }
+/* Selected (primary) state: dark ink strip on gold background — stamped/authorized. */
+.difficulty-card.primary::before { background: var(--dd-ink); }
 .difficulty-card .d-name { font-weight: 700; font-size: 16px; }
 .difficulty-card .d-desc { font-size: 12px; color: var(--ink-dim); margin-top: 4px; }
+/* Description text must stay readable on the gold primary background. */
+.difficulty-card.primary .d-desc,
+.difficulty-card.primary .payroll-preview-label,
+.difficulty-card.primary .payroll-preview-value { color: rgba(26, 22, 18, 0.65); }
 .payroll-preview { margin-top: 8px; display: flex; flex-direction: column; gap: 2px; }
 .payroll-preview-row { display: flex; gap: 6px; font-size: 11px; }
 .payroll-preview-label { color: var(--ink-dim); min-width: 48px; font-weight: 600; }
 .payroll-preview-value { color: var(--ink); }
+/* Risk row with active consequence: orange warning tone. */
+.payroll-preview-value.risk { color: var(--debt-dangerous); font-style: italic; }
 .end-reason { font-size: 18px; color: var(--ink-dim); }
 .victory .title { background: linear-gradient(90deg, var(--debt-stable), var(--gold)); -webkit-background-clip: text; background-clip: text; }
 .defeat .title { background: linear-gradient(90deg, var(--debt-critical), rgb(204, 122, 58)); -webkit-background-clip: text; background-clip: text; }
@@ -529,16 +574,36 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   font-weight: 700;
 }
 
-.scout-card { background: var(--bg-panel); border: 1px solid var(--rule); border-radius: 10px; padding: 20px; display: flex; flex-direction: column; gap: 12px; }
+/* Scout card: dungeon job-board notice. Left strip: gray default, gold on capstone. */
+.scout-card {
+  background: var(--bg-panel);
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  padding: 20px 20px 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  position: relative;
+  overflow: hidden;
+}
+.scout-card::before {
+  content: "";
+  position: absolute;
+  top: 0; bottom: 0; left: 0;
+  width: 4px;
+  background: var(--rule-strong);
+}
 .scout-card.capstone-card { border-color: var(--gold); box-shadow: 0 0 24px rgba(201, 160, 74, 0.18); }
+.scout-card.capstone-card::before { background: var(--dd-candle); }
 .scout-kind { font-size: 12px; letter-spacing: 1.5px; color: var(--gold); text-transform: uppercase; }
 .scout-text { color: var(--ink-dim); }
 .scout-reward-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: var(--bg-card); border-radius: 6px; }
 .scout-cue {
   font-size: 12px; font-weight: 700; letter-spacing: 2px;
-  padding: 8px 14px; border-radius: 6px;
+  padding: 8px 14px; border-radius: 0;
   background: var(--bg-card); border: 1px solid var(--rule-strong);
   align-self: flex-start;
+  text-transform: uppercase;
 }
 .scout-cue.capstone {
   background: rgba(201, 160, 74, 0.10); border-color: var(--gold); color: var(--gold);
@@ -634,4 +699,10 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 @keyframes overlay-stagger-in {
   from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Debt chip critical-tier pulse: financial threat signal. */
+@keyframes debt-pulse {
+  0%, 100% { box-shadow: 0 0 8px rgba(166, 74, 64, 0.4); }
+  50%       { box-shadow: 0 0 20px rgba(166, 74, 64, 0.75); }
 }

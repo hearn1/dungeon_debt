@@ -111,8 +111,9 @@ export class RunHeader {
 }
 
 function resource(value, label, isGold) {
+  const valClass = isGold ? "rh-res-val gold" : "rh-res-val morale";
   return el("div", { class: "rh-res" }, [
-    el("div", { class: `rh-res-val${isGold ? " gold" : ""}`, text: String(value) }),
+    el("div", { class: valClass, text: String(value) }),
     el("div", { class: "rh-res-lbl", text: label }),
   ]);
 }
