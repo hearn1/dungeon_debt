@@ -17,7 +17,7 @@ Dungeon Debt was originally built in Unity (uGUI, C#) across 20+ milestones (M1�
 - **Runtime:** Electron 42 (Chromium-based desktop window), or any modern browser served by `web/serve.py` (Python `http.server`).
 - **Language:** Plain ES modules. No bundler, no TypeScript, no JSX.
 - **UI:** DOM + CSS. Design tokens live in `web/src/core/GameRules.js` as CSS `rgba()` strings and in `web/styles/main.css` as CSS custom properties.
-- **State:** A single `GameManager` instance in the renderer process. No persistence, no save/load.
+- **State:** A single `GameManager` instance in the renderer process. `SaveManager` (`web/src/core/SaveManager.js`) persists SaveData v1 (difficulty progression + last selected difficulty) via `localStorage`. Current-run state is not persisted.
 - **RNG:** One seeded `mulberry32` PRNG (`web/src/core/Rng.js`) owned by `RunManager`. Combat itself is RNG-free.
 - **Tests:** Three headless Node scripts under `web/src/test/` exercise the foundation, combat engine, and run-flow state machine. No browser tests; UI is verified by manual reload + console-error check.
 
@@ -39,6 +39,7 @@ web/
     │   ├── GameState.js         ← frozen enum of states
     │   ├── GameRules.js         ← all numeric constants + helper fns + color tokens
     │   ├── DataRepository.js    ← static tables: heroes, enemies, encounters, payroll, relics, difficulty, rivals
+    │   ├── SaveManager.js       ← SaveData v1: persists difficulty progression + last selected difficulty via localStorage
     │   └── Rng.js               ← seeded mulberry32
     ├── data/
     │   ├── enums.js             ← HeroRole, HeroTier, HeroEffectId, EnemyEffectId, EncounterType, …

@@ -7,8 +7,9 @@ export class MainMenuPanel {
   constructor(gm) {
     this.gm = gm;
     this.root = el("div", { class: "overlay" });
-    this._selectedLevel = GameRules.DefaultDifficultyLevel;
+    this._selectedLevel = this._resolveInitialLevel();
     this._devEnableAct3 = false;
+    this._resetConfirming = false;
     this._onKeyDown = (event) => this._handleKeyDown(event);
     if (globalThis.window) window.addEventListener("keydown", this._onKeyDown);
   }
@@ -59,6 +60,8 @@ export class MainMenuPanel {
       el("div", { class: "d-name", text: `Sign ${selectedDifficulty.displayName} Contract` }),
     ]));
 
+    this.root.appendChild(this._renderResetProgress());
+
     const menuFooter = el("div", { class: "menu-footer" });
     menuFooter.appendChild(el("button", {
       class: "btn how-to-play-btn",
@@ -75,10 +78,23 @@ export class MainMenuPanel {
     this.root.appendChild(menuFooter);
   }
 
-  _isLevelLocked(difficulty) {
+  _resolveInitialLevel() {
+    const saved = this.gm.getLastSelectedDifficulty();
+    const difficulty = DataRepository.getDifficultyLevel(saved);
+    if (!difficulty || this._isLevelLockedForDifficulty(difficulty)) {
+      return GameRules.DefaultDifficultyLevel;
+    }
+    return saved;
+  }
+
+  _isLevelLockedForDifficulty(difficulty) {
     if (!difficulty.isImplemented) return true;
     if (difficulty.level === 0) return false;
     return difficulty.level > this.gm.highestBeatenDifficulty + 1;
+  }
+
+  _isLevelLocked(difficulty) {
+    return this._isLevelLockedForDifficulty(difficulty);
   }
 
   _getLockedLabel(difficulty) {
@@ -90,6 +106,7 @@ export class MainMenuPanel {
     const difficulty = DataRepository.getDifficultyLevel(level);
     if (!difficulty || this._isLevelLocked(difficulty)) return;
     this._selectedLevel = level;
+    this.gm.recordSelectedDifficulty(level);
     this.render();
   }
 
@@ -113,6 +130,43 @@ export class MainMenuPanel {
       this.gm.runManager.setDevEnableAct3ForNextRun(this._devEnableAct3);
     }
     this.gm.startRun(this._selectedLevel);
+  }
+
+  _renderResetProgress() {
+    const wrapper = el("div", { class: "reset-progress-area" });
+    if (!this._resetConfirming) {
+      wrapper.appendChild(el("button", {
+        class: "btn reset-progress-btn",
+        text: "Reset Progress",
+        onClick: () => {
+          this._resetConfirming = true;
+          this.render();
+        },
+      }));
+    } else {
+      wrapper.appendChild(el("div", { class: "subtitle", text: "Reset difficulty unlocks and saved menu settings?" }));
+      const btnRow = el("div", { class: "reset-confirm-row" });
+      btnRow.appendChild(el("button", {
+        class: "btn danger",
+        text: "Confirm Reset",
+        onClick: () => {
+          this.gm.resetProgress();
+          this._selectedLevel = GameRules.DefaultDifficultyLevel;
+          this._resetConfirming = false;
+          this.render();
+        },
+      }));
+      btnRow.appendChild(el("button", {
+        class: "btn",
+        text: "Cancel",
+        onClick: () => {
+          this._resetConfirming = false;
+          this.render();
+        },
+      }));
+      wrapper.appendChild(btnRow);
+    }
+    return wrapper;
   }
 
   _showTutorial() {

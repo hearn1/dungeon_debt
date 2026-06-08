@@ -155,7 +155,7 @@ These are hard limits for the prototype:
 - **No new top-level folders** in `web/src/` without discussion. The five subfolders (`core`, `data`, `run`, `combat`, `ui`) cover everything.
 - **No build step.** Plain ES modules + CSS. If you reach for Vite, Webpack, esbuild, or TypeScript, stop and ask.
 - **No third-party libraries** without explicit approval. The whole point of porting off Unity was to keep the surface small.
-- **No save/load**, no persistence, no accounts.
+- **SaveData v1 persistence is allowed** — `SaveManager` stores only `progression.highestBeatenDifficulty` and `settings.lastSelectedDifficulty` in `localStorage`. Current-run save/load, save slots, cloud saves, accounts, and meta-currency remain out of scope.
 - **No procedural maps** or branching paths.
 - **No real multiplayer**, online ghosts, leaderboards, accounts.
 - **No meta progression**, unlocks, persistent currency.
