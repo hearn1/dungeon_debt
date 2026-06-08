@@ -280,7 +280,7 @@ console.log("Run-flow test");
   check("act4data: Banker King has Debt Judgment", bankerKing && bankerKing.effectId === EnemyEffectId.BankerKingDebtJudgment);
   const mintmasterEnc = DataRepository.encounters.find((e) => e.act === 3 && e.slot === 10);
   check("act3data: MintMaster slot 10 uses MintMasterOvermint (not FinalBossDamage)", mintmasterEnc && mintmasterEnc.encounterEffectId === EncounterEffectId.MintMasterOvermint);
-  check("actdata: normal total acts remains 2", GameRulesFns.totalActs === 2 && GameRulesFns.devTotalActs === 4);
+  check("actdata: total acts is now 4 (Acts 3-4 enabled by default)", GameRulesFns.totalActs === 4 && GameRulesFns.devTotalActs === 4);
 }
 
 // ---- Shop hire spends gold and adds to party; direct offers stop at Silver ----
@@ -549,8 +549,8 @@ console.log("Run-flow test");
   const gm = new GameManager();
   gm.startRun(DifficultyLevel.Level0);
   const run = gm.currentRunState;
-  run.act = 2;
-  run.round = GameRulesFns.act2FinalRound;
+  run.act = 4;
+  run.round = GameRulesFns.act4FinalRound;
   run.gold = 10;
   run.latestCombatWon = true;
   run.rivals[0].progress = 20;
@@ -746,10 +746,10 @@ console.log("Run-flow test");
   const gm = new GameManager();
   gm.startRun(DifficultyLevel.Level0);
   const run = gm.currentRunState;
-  run.act = 2;
-  run.round = GameRulesFns.act2FinalRound;
+  run.act = 4;
+  run.round = GameRulesFns.act4FinalRound;
   run.gold = 10;
-  run.playerRaceProgress = 18;
+  run.playerRaceProgress = 38;
   run.latestCombatWon = true;
   run.rivals[0].progress = 20;
   run.rivals[1].progress = 18;
@@ -1407,20 +1407,20 @@ console.log("Run-flow test");
     outcome.state === GameState.Victory || outcome.state === GameState.Defeat);
 }
 
-// ---- Normal strong run still resolves at Act 2 victory ----
+// ---- Normal strong run resolves at Act 4 victory (Acts 3-4 now enabled by default) ----
 {
   const gm = new GameManager();
   gm.startRun(DifficultyLevel.Level0);
-  const outcome = autopilotWithParty(gm, ["paladin", "golem", "barbarian", "ranger", "cleric"], 1000, {
+  const outcome = autopilotWithParty(gm, ["paladin", "golem", "barbarian", "ranger", "cleric"], 1400, {
     tier: HeroTier.Gold,
     stabilizeEconomy: true,
   });
   const run = gm.currentRunState;
-  check("20run-normal: strong run reaches Victory", outcome.terminated && outcome.state === GameState.Victory);
-  check("20run-normal: ends on act 2 round 20", run.act === 2 && outcome.maxRound === GameRulesFns.act2FinalRound);
+  check("40run-normal: strong run reaches Victory", outcome.terminated && outcome.state === GameState.Victory);
+  check("40run-normal: ends on act 4 round 40", run.act === 4 && outcome.maxRound === GameRulesFns.act4FinalRound);
 }
 
-// ---- Dev-enabled long run reaches 40-round victory ----
+// ---- Dev flag is a no-op now that Acts 3-4 are default; run still reaches 40-round victory ----
 {
   const gm = new GameManager();
   gm.runManager.setDevEnableAct3ForNextRun(true);
