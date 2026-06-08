@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 
 import { GameState } from "../core/GameState.js";
 import { GameRules, GameRulesFns } from "../core/GameRules.js";
+import { RelicId } from "../data/enums.js";
 import { RunManager } from "../run/RunManager.js";
 import { ShopManager } from "../run/ShopManager.js";
 import { PayrollManager } from "../run/PayrollManager.js";
@@ -36,9 +37,16 @@ const secondPass = runSeedSet(options.seedCount, strategies);
 const secondTsv = BalanceRunLogger.formatSeedResults(secondPass);
 const deterministic = firstTsv === secondTsv;
 
-const reportPath = writeReport(firstTsv);
+const runTimestamp = getTimestampForFilename();
+const reportPath = writeTsvFile(firstTsv, runTimestamp);
 const wins = firstPass.filter((result) => result.outcome === "WIN").length;
 const losses = firstPass.length - wins;
+
+if (options.report) {
+  const mdContent = buildMarkdownReport(firstPass, options, runTimestamp);
+  const mdPath = writeMarkdownFile(mdContent, runTimestamp);
+  console.log(`Markdown: ${mdPath}`);
+}
 
 console.log(`Balance harness complete: ${options.seedCount} seeds`);
 console.log(`Strategies: ${strategies.map((strategy) => strategy.id).join(", ")}`);
@@ -53,6 +61,8 @@ function parseOptions(args) {
   let seeds = DefaultSeedCount;
   let strategy = GreedyStrategy.id;
 
+  let report = false;
+
   for (const arg of args) {
     if (arg.startsWith("--seeds=")) {
       const value = Number(arg.slice("--seeds=".length));
@@ -65,12 +75,14 @@ function parseOptions(args) {
       if (!isKnownStrategyArg(strategy)) {
         failUsage("--strategy must be greedy, frugal, smart, random, or all");
       }
+    } else if (arg === "--report") {
+      report = true;
     } else {
       failUsage(`Unknown argument: ${arg}`);
     }
   }
 
-  return { seedCount: seeds, strategy };
+  return { seedCount: seeds, strategy, report };
 }
 
 function isKnownStrategyArg(strategy) {
@@ -86,7 +98,7 @@ function resolveStrategies(strategyArg) {
 
 function failUsage(message) {
   console.error(message);
-  console.error("Usage: npm.cmd run test:balance -- --seeds=100 --strategy=greedy");
+  console.error("Usage: npm.cmd run test:balance -- --seeds=100 --strategy=greedy [--report]");
   process.exit(1);
 }
 
@@ -220,12 +232,166 @@ function formatHeroes(run) {
     .join(",");
 }
 
-function writeReport(contents) {
+function writeTsvFile(contents, timestamp) {
   const reportDir = getReportDir();
   fs.mkdirSync(reportDir, { recursive: true });
-  const reportPath = path.join(reportDir, `run-${getTimestampForFilename()}.tsv`);
+  const reportPath = path.join(reportDir, `run-${timestamp}.tsv`);
   fs.writeFileSync(reportPath, contents, "utf8");
   return reportPath;
+}
+
+function writeMarkdownFile(contents, timestamp) {
+  const reportDir = getReportDir();
+  fs.mkdirSync(reportDir, { recursive: true });
+  const mdPath = path.join(reportDir, `run-${timestamp}.md`);
+  fs.writeFileSync(mdPath, contents, "utf8");
+  return mdPath;
+}
+
+function buildMarkdownReport(results, options, timestamp) {
+  const lines = [];
+  const wins = results.filter((r) => r.outcome === "WIN").length;
+  const losses = results.length - wins;
+  const winRate = results.length > 0 ? ((wins / results.length) * 100).toFixed(1) : "0.0";
+
+  lines.push(`# Balance Report — ${timestamp}`, "");
+
+  lines.push("## Configuration");
+  lines.push(`- Seeds: ${options.seedCount}`);
+  lines.push(`- Strategy: ${options.strategy}`);
+  lines.push(`- Difficulty: ${GameRules.DefaultDifficultyPreset}`);
+  lines.push(`- Date: ${new Date().toISOString()}`);
+  lines.push("");
+
+  lines.push("## Overview");
+  lines.push(`- Total runs: ${results.length}`);
+  lines.push(`- Wins: ${wins}`);
+  lines.push(`- Losses: ${losses}`);
+  lines.push(`- Win rate: ${winRate}%`);
+  lines.push("");
+
+  const uniqueStrategies = [...new Set(results.map((r) => r.strategy))];
+  if (uniqueStrategies.length > 1) {
+    lines.push("## Per-Strategy Breakdown");
+    lines.push("| Strategy | Runs | Wins | Losses | Win Rate | Median Rounds | Avg Gold | Avg Debt |");
+    lines.push("|---|---|---|---|---|---|---|---|");
+    for (const strat of uniqueStrategies) {
+      const sr = results.filter((r) => r.strategy === strat);
+      const sw = sr.filter((r) => r.outcome === "WIN").length;
+      lines.push(
+        `| ${strat} | ${sr.length} | ${sw} | ${sr.length - sw} | ${pct(sw, sr.length)} | ${median(sr.map((r) => r.roundsReached))} | ${avg(sr.map((r) => r.finalGold))} | ${avg(sr.map((r) => r.finalDebt))} |`
+      );
+    }
+    lines.push(
+      `| **Overall** | ${results.length} | ${wins} | ${losses} | ${winRate}% | ${median(results.map((r) => r.roundsReached))} | ${avg(results.map((r) => r.finalGold))} | ${avg(results.map((r) => r.finalDebt))} |`
+    );
+    lines.push("");
+  }
+
+  const heroTally = tallyHeroes(results);
+  const sortedHeroes = Object.entries(heroTally).sort((a, b) => b[1].count - a[1].count);
+  lines.push("## Top 10 Most Hired Heroes");
+  lines.push("| Hero ID | Total Picks | Avg Final Tier |");
+  lines.push("|---|---|---|");
+  for (const [heroId, stats] of sortedHeroes.slice(0, 10)) {
+    lines.push(`| ${heroId} | ${stats.count} | ${(stats.totalTier / stats.count).toFixed(2)} |`);
+  }
+  lines.push("");
+
+  const hireThreshold = results.length * 0.05;
+  const belowThreshold = sortedHeroes.filter(([, s]) => s.count < hireThreshold).map(([id]) => id);
+  lines.push("## Heroes Below 5% Hire Rate");
+  lines.push(belowThreshold.length > 0 ? belowThreshold.join(", ") : "None");
+  lines.push("");
+
+  const relicTally = tallyRelics(results);
+  const sortedRelics = Object.entries(relicTally).sort((a, b) => b[1] - a[1]);
+  const zeroRelics = Object.values(RelicId).filter((id) => !relicTally[id]);
+  lines.push("## Relic Analysis");
+  lines.push("**Top 5 most-picked relics:**");
+  for (const [relicId, count] of sortedRelics.slice(0, 5)) {
+    lines.push(`- ${relicId}: ${count}`);
+  }
+  if (zeroRelics.length > 0) {
+    lines.push("");
+    lines.push(`**Relics with 0 selections:** ${zeroRelics.join(", ")}`);
+  }
+  lines.push("");
+
+  const act1Threshold = GameRulesFns.act1FinalRound;
+  const lossResults = results.filter((r) => r.outcome !== "WIN");
+  const act1Losses = lossResults.filter((r) => r.roundsReached <= act1Threshold).length;
+  const act2Losses = lossResults.filter((r) => r.roundsReached > act1Threshold).length;
+  lines.push("## Act 1 vs Act 2 Loss Split");
+  lines.push(`- Act 1 losses (rounds ≤ ${act1Threshold}): ${act1Losses}`);
+  lines.push(`- Act 2 losses (rounds > ${act1Threshold}): ${act2Losses}`);
+  lines.push("");
+
+  const byGold = [...results].sort((a, b) => b.finalGold - a.finalGold);
+  lines.push("## Top 5 Outlier Seeds");
+  lines.push("**Highest final gold:**");
+  for (const r of byGold.slice(0, 5)) {
+    lines.push(`- Seed ${r.seed} (${r.strategy}): ${r.finalGold} gold, ${r.outcome}`);
+  }
+  lines.push("");
+  lines.push("**Lowest final gold:**");
+  for (const r of byGold.slice(-5).reverse()) {
+    lines.push(`- Seed ${r.seed} (${r.strategy}): ${r.finalGold} gold, ${r.outcome}`);
+  }
+  lines.push("");
+
+  return lines.join("\n");
+}
+
+function tallyHeroes(results) {
+  const tierOrdinal = Object.freeze({ Bronze: 1, Silver: 2, Gold: 3, Diamond: 4 });
+  const tally = {};
+  for (const result of results) {
+    if (!result.heroes) continue;
+    for (const pair of result.heroes.split(",")) {
+      if (!pair) continue;
+      const colonIdx = pair.lastIndexOf(":");
+      if (colonIdx < 0) continue;
+      const heroId = pair.slice(0, colonIdx);
+      const tierStr = pair.slice(colonIdx + 1);
+      if (!heroId) continue;
+      const tierNum = tierOrdinal[tierStr] ?? 1;
+      if (!tally[heroId]) tally[heroId] = { count: 0, totalTier: 0 };
+      tally[heroId].count += 1;
+      tally[heroId].totalTier += tierNum;
+    }
+  }
+  return tally;
+}
+
+function tallyRelics(results) {
+  const tally = {};
+  for (const result of results) {
+    if (!result.relics) continue;
+    for (const relicId of result.relics.split(",")) {
+      if (!relicId) continue;
+      tally[relicId] = (tally[relicId] ?? 0) + 1;
+    }
+  }
+  return tally;
+}
+
+function median(values) {
+  if (values.length === 0) return 0;
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 0
+    ? ((sorted[mid - 1] + sorted[mid]) / 2).toFixed(1)
+    : sorted[mid];
+}
+
+function avg(values) {
+  if (values.length === 0) return "0.00";
+  return (values.reduce((sum, v) => sum + v, 0) / values.length).toFixed(2);
+}
+
+function pct(wins, total) {
+  return total > 0 ? `${((wins / total) * 100).toFixed(1)}%` : "0.0%";
 }
 
 function getReportDir() {
