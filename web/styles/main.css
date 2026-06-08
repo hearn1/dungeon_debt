@@ -121,6 +121,14 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 .rh-debt-warning { font-size: 10px; color: var(--debt-dangerous); margin-top: 4px; max-width: 180px; line-height: 1.4; text-align: right; }
 .rh-debt-warning.critical { color: var(--debt-critical); }
 
+.rh-help-btn {
+  padding: 6px 12px; font-size: 15px; font-weight: 700; align-self: center;
+  color: var(--ink-dim); border: 1px solid var(--rule); border-radius: 4px;
+  background: transparent; cursor: pointer; letter-spacing: 0;
+  flex-shrink: 0;
+}
+.rh-help-btn:hover { color: var(--gold); border-color: var(--gold); }
+
 .shop-debt-control { display: flex; flex-direction: column; gap: 4px; }
 .shop-debt-helper { font-size: 11px; color: var(--ink-dim); line-height: 1.4; max-width: 280px; }
 .summary-debt-hint { font-size: 11px; color: var(--debt-dangerous); margin: 2px 0 4px 0; padding-left: 8px; line-height: 1.4; }
