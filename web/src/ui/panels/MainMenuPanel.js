@@ -59,13 +59,20 @@ export class MainMenuPanel {
       el("div", { class: "d-name", text: `Sign ${selectedDifficulty.displayName} Contract` }),
     ]));
 
-    this.root.appendChild(el("a", {
+    const menuFooter = el("div", { class: "menu-footer" });
+    menuFooter.appendChild(el("button", {
+      class: "btn how-to-play-btn",
+      text: "How to Play",
+      onClick: () => this._showTutorial(),
+    }));
+    menuFooter.appendChild(el("a", {
       class: "credits-link",
       href: "ATTRIBUTION.md",
       target: "_blank",
       rel: "noopener",
       text: "Art credits",
     }));
+    this.root.appendChild(menuFooter);
   }
 
   _isLevelLocked(difficulty) {
@@ -106,6 +113,64 @@ export class MainMenuPanel {
       this.gm.runManager.setDevEnableAct3ForNextRun(this._devEnableAct3);
     }
     this.gm.startRun(this._selectedLevel);
+  }
+
+  _showTutorial() {
+    if (document.getElementById("how-to-play-modal")) return;
+
+    const steps = [
+      { num: "1", head: "Review the Contract", body: "Scout the next fight, enemy roster, and payout before spending." },
+      { num: "2", head: "Recruit Adventurers", body: "Use gold to sign new heroes, promote duplicates, reroll candidates, or pay down debt." },
+      { num: "3", head: "Set Formation", body: "Frontline slots are targeted first. Put durable heroes up front and fragile damage/support heroes in back." },
+      { num: "4", head: "Choose Payroll", body: "Standard pay is safe. Loans give cash but add debt. Cutting wages saves money but weakens the party. Victory bonuses cost cash for temporary power." },
+      { num: "5", head: "Watch Combat Resolve", body: "Combat is automatic. Your roster, formation, payroll choice, and matchup decide the result." },
+      { num: "6", head: "Read the Ledger", body: "After combat, rewards are paid, wages are charged, debt interest applies, and morale may change." },
+    ];
+
+    const backdrop = el("div", { id: "how-to-play-modal", class: "tutorial-backdrop" });
+    const modal = el("div", { class: "tutorial-modal" }, [
+      el("div", { class: "tutorial-header" }, [
+        el("h2", { class: "tutorial-title", text: "How to Manage Your Guild" }),
+        el("button", {
+          class: "btn tutorial-close",
+          text: "✕",
+          onClick: () => this._closeTutorial(),
+        }),
+      ]),
+      el("div", { class: "tutorial-body" }, [
+        el("p", { class: "tutorial-intro", text: "Dungeon Debt is about managing a guild, not controlling heroes directly." }),
+        el("p", { class: "tutorial-lead", text: "Your job each round:" }),
+        el("div", { class: "tutorial-steps" },
+          steps.map(s => el("div", { class: "tutorial-step" }, [
+            el("div", { class: "tutorial-step-head" }, [
+              el("span", { class: "tutorial-step-num", text: s.num }),
+              el("span", { text: s.head }),
+            ]),
+            el("div", { class: "tutorial-step-body", text: s.body }),
+          ]))
+        ),
+        el("p", { class: "tutorial-goal", text: "Win contracts, grow the guild, and keep debt under control." }),
+        el("div", { class: "tutorial-tip" }, [
+          el("span", { class: "tutorial-tip-label", text: "Tip" }),
+          el("span", { text: " If unsure: hire one durable frontline hero, one damage hero, use Standard Payroll, and watch the post-combat ledger." }),
+        ]),
+      ]),
+      el("div", { class: "tutorial-footer" }, [
+        el("button", {
+          class: "btn primary",
+          text: "Got it",
+          onClick: () => this._closeTutorial(),
+        }),
+      ]),
+    ]);
+
+    backdrop.appendChild(modal);
+    backdrop.addEventListener("click", (e) => { if (e.target === backdrop) this._closeTutorial(); });
+    document.getElementById("app").appendChild(backdrop);
+  }
+
+  _closeTutorial() {
+    document.getElementById("how-to-play-modal")?.remove();
   }
 
   _handleKeyDown(event) {
