@@ -11,6 +11,7 @@ import { GameRules, GameRulesFns } from "../core/GameRules.js";
 import { DataRepository } from "../core/DataRepository.js";
 import { HeroEffects } from "../combat/HeroEffects.js";
 import { BalanceRunLogger } from "./BalanceRunLogger.js";
+import { buildManagerReportLines } from "./ManagerReportBuilder.js";
 import {
   EncounterType, EncounterEffectId, PayrollActionId, RelicId,
 } from "../data/enums.js";
@@ -178,6 +179,7 @@ export class RunManager {
     run.latestInterestAddedToDebt = interestAddedToDebt;
     run.latestVeterancySummary = veterancySummary;
     run.fullUpkeepPaidLastRound = (upkeepShortfall === 0);
+    run.latestManagerReportLines = buildManagerReportLines(run, combatResult, encounter);
 
     if (this._payrollManager) {
       this._payrollManager.revertPerCombatHeroStats(run);
@@ -298,6 +300,7 @@ export class RunManager {
     }
     run.hasLatestRewardSummary = false;
     run.latestVeterancySummary = "";
+    run.latestManagerReportLines = [];
     resetPartyTierStats(run);
   }
 
@@ -313,6 +316,7 @@ export class RunManager {
     run.hasLatestRewardSummary = false;
     run.latestEndReason = null;
     run.latestVeterancySummary = "";
+    run.latestManagerReportLines = [];
     resetPartyTierStats(run);
   }
 

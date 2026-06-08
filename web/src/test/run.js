@@ -15,7 +15,8 @@ import { HeroEffects } from "../combat/HeroEffects.js";
 import { CombatManager } from "../combat/CombatManager.js";
 import { RivalUpdatePanel } from "../ui/panels/RivalUpdatePanel.js";
 import { ScoutPanel } from "../ui/panels/ScoutPanel.js";
-import { EnemyEffectId, HeroRole, HeroTier, PayrollActionId, EncounterType, DifficultyLevel, RivalGuild, ShopEventId } from "../data/enums.js";
+import { EnemyEffectId, HeroRole, HeroTier, PayrollActionId, EncounterType, DifficultyLevel, RivalGuild, ShopEventId, HeroEffectId } from "../data/enums.js";
+import { buildManagerReportLines } from "../run/ManagerReportBuilder.js";
 
 let failures = 0;
 function check(name, cond) {
@@ -1428,6 +1429,149 @@ console.log("Run-flow test");
   });
   check("40run-dev: run terminated in Victory", outcome.terminated && outcome.state === GameState.Victory);
   check("40run-dev: ends on act 4 round 40", run.act === 4 && outcome.maxRound === GameRulesFns.act4FinalRound);
+}
+
+// ---- ManagerReportBuilder unit tests ----
+console.log("\nManagerReportBuilder");
+
+function makeRun(overrides = {}) {
+  return Object.assign({
+    latestVictoryBonusLossDebt: 0,
+    latestUpkeepShortfall: 0,
+    latestInterestAddedToDebt: 0,
+    latestMoraleChange: 0,
+    party: [],
+  }, overrides);
+}
+
+function makeCombatResult(overrides = {}) {
+  return Object.assign({ playerWon: true, survivorFlags: {} }, overrides);
+}
+
+// Upkeep shortfall produces correct line
+{
+  const run = makeRun({ latestUpkeepShortfall: 4 });
+  const lines = buildManagerReportLines(run, makeCombatResult(), null);
+  check("report: upkeep shortfall line text", lines.some(l => l.includes("Upkeep exceeded cash on hand") && l.includes("+4 debt added")));
+}
+
+// Interest rollover produces correct line
+{
+  const run = makeRun({ latestInterestAddedToDebt: 2 });
+  const lines = buildManagerReportLines(run, makeCombatResult(), null);
+  check("report: interest rollover line text", lines.some(l => l.includes("Interest could not be paid in full") && l.includes("+2 debt rolled over")));
+}
+
+// Priority order and max-lines cap: triggers 10, 20, 30, 60 all firing — only first 3 returned
+{
+  const run = makeRun({
+    latestVictoryBonusLossDebt: 5,
+    latestUpkeepShortfall: 3,
+    latestInterestAddedToDebt: 1,
+    latestMoraleChange: -2,
+  });
+  const lines = buildManagerReportLines(run, makeCombatResult(), null);
+  check("report: max 3 lines returned", lines.length === 3);
+  check("report: priority 10 first", lines[0].includes("victory bonus missed"));
+  check("report: priority 20 second", lines[1].includes("Upkeep exceeded cash on hand"));
+  check("report: priority 30 third", lines[2].includes("Interest could not be paid in full"));
+}
+
+// Treasure leech survivor flag
+{
+  const run = makeRun();
+  const result = makeCombatResult({ survivorFlags: { treasureLeechSurvived: true } });
+  const lines = buildManagerReportLines(run, result, null);
+  check("report: treasure leech line", lines.some(l => l.includes("Reward drain survived")));
+}
+
+// Goblin thief survivor flag
+{
+  const run = makeRun();
+  const result = makeCombatResult({ survivorFlags: { goblinStoleGold: true } });
+  const lines = buildManagerReportLines(run, result, null);
+  check("report: goblin thief line", lines.some(l => l.includes("thief escaped")));
+}
+
+// Morale loss
+{
+  const run = makeRun({ latestMoraleChange: -3 });
+  const lines = buildManagerReportLines(run, makeCombatResult(), null);
+  check("report: morale loss line", lines.some(l => l.includes("loss cost 3 morale")));
+}
+
+// Rival win bonus
+{
+  const run = makeRun();
+  const encounter = { type: EncounterType.RivalGhost };
+  const lines = buildManagerReportLines(run, makeCombatResult({ playerWon: true }), encounter);
+  check("report: rival win bonus line", lines.some(l => l.includes("Rival contract bonus")));
+}
+
+// Rival win bonus not shown on loss
+{
+  const run = makeRun();
+  const encounter = { type: EncounterType.RivalGhost };
+  const lines = buildManagerReportLines(run, makeCombatResult({ playerWon: false }), encounter);
+  check("report: rival win bonus absent on loss", !lines.some(l => l.includes("Rival contract bonus")));
+}
+
+// Wizard scaling: full upkeep paid with wizard in party
+{
+  const run = makeRun({
+    latestUpkeepShortfall: 0,
+    party: [{ definition: { effectId: HeroEffectId.WizardScaling } }],
+  });
+  const lines = buildManagerReportLines(run, makeCombatResult(), null);
+  check("report: wizard scaling line when full upkeep paid", lines.some(l => l.includes("Wizard scaling is enabled")));
+}
+
+// Wizard scaling: NOT shown when upkeep shortfall exists
+{
+  const run = makeRun({
+    latestUpkeepShortfall: 2,
+    party: [{ definition: { effectId: HeroEffectId.WizardScaling } }],
+  });
+  const lines = buildManagerReportLines(run, makeCombatResult(), null);
+  check("report: wizard scaling absent with shortfall", !lines.some(l => l.includes("Wizard scaling")));
+}
+
+// No lines when no triggers fire
+{
+  const run = makeRun();
+  const lines = buildManagerReportLines(run, makeCombatResult(), null);
+  check("report: empty when no triggers", lines.length === 0);
+}
+
+// latestManagerReportLines populated on run after applyPostCombatResult
+{
+  const gm = new GameManager();
+  gm.startRun(DifficultyLevel.Level0);
+  gm.continueFromScout();
+  fieldKnownParty(gm, ["squire"]);
+  gm.continueFromShop();
+  gm.continueFromFormation();
+  gm.selectPayrollAction(PayrollActionId.StandardPay);
+  gm.continueFromPayroll();
+  gm.resolveCombat();
+  const run = gm.currentRunState;
+  check("report: latestManagerReportLines is array after combat", Array.isArray(run.latestManagerReportLines));
+}
+
+// latestManagerReportLines cleared on advanceRound
+{
+  const gm = new GameManager();
+  gm.startRun(DifficultyLevel.Level0);
+  gm.continueFromScout();
+  fieldKnownParty(gm, ["squire"]);
+  gm.continueFromShop();
+  gm.continueFromFormation();
+  gm.selectPayrollAction(PayrollActionId.StandardPay);
+  gm.continueFromPayroll();
+  gm.resolveCombat();
+  const run = gm.currentRunState;
+  gm.runManager.advanceRound();
+  check("report: latestManagerReportLines cleared on advanceRound", run.latestManagerReportLines.length === 0);
 }
 
 console.log(failures === 0 ? "\nALL PASS" : `\n${failures} FAILURE(S)`);
