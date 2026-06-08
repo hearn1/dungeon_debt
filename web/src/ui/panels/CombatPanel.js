@@ -276,6 +276,16 @@ export class CombatPanel {
       el("strong", { text: won ? "Contract Fulfilled" : "Contract Failed", class: won ? "pos" : "neg" }),
       el("span", { class: "panel-sub", text: `${this._result.combatRoundsElapsed} combat rounds logged` }),
     ]));
+
+    if (run.latestManagerReportLines && run.latestManagerReportLines.length > 0) {
+      const reportBlock = el("div", { class: "manager-report" });
+      reportBlock.appendChild(el("div", { class: "manager-report-header", text: "Manager Report" }));
+      for (const line of run.latestManagerReportLines) {
+        reportBlock.appendChild(el("div", { class: "manager-report-line", text: line }));
+      }
+      summary.appendChild(reportBlock);
+    }
+
     summary.appendChild(row("Contract payout", `+${run.latestRewardGold}`, "pos"));
     if (run.latestRelicRewardGold > 0) summary.appendChild(row("  (relic clause)", `+${run.latestRelicRewardGold}`, "pos"));
     if (run.latestMoraleChange !== 0) summary.appendChild(row("Morale adjustment", `${run.latestMoraleChange}`, "neg"));

@@ -398,6 +398,9 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 .summary-row { display: flex; justify-content: space-between; font-size: 14px; }
 .summary-row .pos { color: var(--debt-stable); }
 .summary-row .neg { color: var(--debt-critical); }
+.manager-report { border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); padding: 8px 0; display: flex; flex-direction: column; gap: 4px; }
+.manager-report-header { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); }
+.manager-report-line { font-size: 13px; color: var(--text-body); padding-left: 8px; line-height: 1.5; }
 
 /* ---- Overlays (menu, end screens) ---- */
 .overlay {
