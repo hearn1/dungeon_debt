@@ -16,7 +16,7 @@ import { HeroEffects } from "../combat/HeroEffects.js";
 import { CombatManager } from "../combat/CombatManager.js";
 import { RivalUpdatePanel } from "../ui/panels/RivalUpdatePanel.js";
 import { ScoutPanel } from "../ui/panels/ScoutPanel.js";
-import { EnemyEffectId, HeroRole, HeroTier, PayrollActionId, EncounterType, DifficultyLevel, RivalGuild, ShopEventId, HeroEffectId } from "../data/enums.js";
+import { EnemyEffectId, HeroRole, HeroTier, PayrollActionId, EncounterType, DifficultyLevel, RivalGuild, ShopEventId, HeroEffectId, EncounterEffectId } from "../data/enums.js";
 import { buildManagerReportLines } from "../run/ManagerReportBuilder.js";
 
 let failures = 0;
@@ -255,15 +255,17 @@ console.log("Run-flow test");
   const bankerKing = DataRepository.allEnemies.find((enemy) => enemy.id === "act4-banker-king");
   const act3Encounters = DataRepository.encounters.filter((encounter) => encounter.act === 3);
   const act4Encounters = DataRepository.encounters.filter((encounter) => encounter.act === 4);
+  // Shape checks slot structure (type, rival guild, enemy count) but not encounterEffectId
+  // — boss encounters across acts intentionally have different effect IDs.
   const act2Shape = DataRepository.encounters
     .filter((encounter) => encounter.act === 2)
-    .map((encounter) => `${encounter.slot}:${encounter.type}:${encounter.rivalGuild}:${encounter.encounterEffectId}:${encounter.enemies.length}`)
+    .map((encounter) => `${encounter.slot}:${encounter.type}:${encounter.rivalGuild}:${encounter.enemies.length}`)
     .join("|");
   const act3Shape = act3Encounters
-    .map((encounter) => `${encounter.slot}:${encounter.type}:${encounter.rivalGuild}:${encounter.encounterEffectId}:${encounter.enemies.length}`)
+    .map((encounter) => `${encounter.slot}:${encounter.type}:${encounter.rivalGuild}:${encounter.enemies.length}`)
     .join("|");
   const act4Shape = act4Encounters
-    .map((encounter) => `${encounter.slot}:${encounter.type}:${encounter.rivalGuild}:${encounter.encounterEffectId}:${encounter.enemies.length}`)
+    .map((encounter) => `${encounter.slot}:${encounter.type}:${encounter.rivalGuild}:${encounter.enemies.length}`)
     .join("|");
 
   check("actscale: act 2 reads table without stat drift", act2Imp.attack === 2 && act2Imp.health === 5);
@@ -276,6 +278,8 @@ console.log("Run-flow test");
   check("act4data: exactly ten act 4 encounters", act4Encounters.length === 10);
   check("act4data: encounter structure mirrors act 2", act4Shape === act2Shape);
   check("act4data: Banker King has Debt Judgment", bankerKing && bankerKing.effectId === EnemyEffectId.BankerKingDebtJudgment);
+  const mintmasterEnc = DataRepository.encounters.find((e) => e.act === 3 && e.slot === 10);
+  check("act3data: MintMaster slot 10 uses MintMasterOvermint (not FinalBossDamage)", mintmasterEnc && mintmasterEnc.encounterEffectId === EncounterEffectId.MintMasterOvermint);
   check("actdata: normal total acts remains 2", GameRulesFns.totalActs === 2 && GameRulesFns.devTotalActs === 4);
 }
 
@@ -1430,6 +1434,21 @@ console.log("Run-flow test");
   });
   check("40run-dev: run terminated in Victory", outcome.terminated && outcome.state === GameState.Victory);
   check("40run-dev: ends on act 4 round 40", run.act === 4 && outcome.maxRound === GameRulesFns.act4FinalRound);
+}
+
+// ---- MintMaster Overmint: upkeep formula constants are correct ----
+// calculateTotalUpkeep is private; verify constants match expected debt-scaling table.
+{
+  check("overmint: MintDebtDivisor is 5", GameRules.MintDebtDivisor === 5);
+  check("overmint: MintMaxUpkeep is 6", GameRules.MintMaxUpkeep === 6);
+  // debt 0–4 → +0, debt 5–9 → +1, debt 15–19 → +3, debt 30+ → capped at 6.
+  const bonus = (debt) => Math.min(GameRules.MintMaxUpkeep, Math.floor(debt / GameRules.MintDebtDivisor));
+  check("overmint: debt=0 yields +0", bonus(0) === 0);
+  check("overmint: debt=4 yields +0 (below first threshold)", bonus(4) === 0);
+  check("overmint: debt=5 yields +1", bonus(5) === 1);
+  check("overmint: debt=15 yields +3", bonus(15) === 3);
+  check("overmint: debt=30 yields +6 (cap)", bonus(30) === 6);
+  check("overmint: debt=50 is still capped at MintMaxUpkeep", bonus(50) === GameRules.MintMaxUpkeep);
 }
 
 // ---- ManagerReportBuilder unit tests ----

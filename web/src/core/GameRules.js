@@ -204,6 +204,8 @@ export const GameRules = Object.freeze({
   AuditorUpkeep: 3,
   AuditorDamageEvery: 3,
   AuditorDamage: 1,
+  MintDebtDivisor: 5,
+  MintMaxUpkeep: 6,
   DebtWraithDebtDivisor: 3,
   GoblinThiefStealRound: 3,
   GoblinThiefStealGold: 3,
