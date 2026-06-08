@@ -100,6 +100,7 @@ export class GameManager {
     if (runState && runState.selectedPayrollAction !== null && runState.selectedPayrollAction !== undefined && this._payrollManager) {
       this._payrollManager.apply(runState, runState.selectedPayrollAction);
     }
+    if (this._runManager) this._runManager.preRollCombatStatuses(runState);
     this.changeState(GameState.Combat);
   }
 
@@ -134,6 +135,12 @@ export class GameManager {
   continueAfterRelicReward(relicId) {
     if (!this._runManager) return;
     const nextState = this._runManager.selectPendingRelic(relicId);
+    this.changeState(nextState);
+  }
+
+  skipRelicReward() {
+    if (!this._runManager) return;
+    const nextState = this._runManager.skipPendingRelicReward();
     this.changeState(nextState);
   }
 

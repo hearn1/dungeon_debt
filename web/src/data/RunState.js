@@ -43,6 +43,7 @@ export class RunState {
     this.pendingRelicChoices = [];
     this.hasPendingRelicReward = false;
     this.pendingRelicNextState = null;
+    this.critChargedSlots = [];
 
     // M15.1 difficulty preset (run-scoped).
     this.selectedDifficulty = null;

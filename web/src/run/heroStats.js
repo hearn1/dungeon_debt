@@ -14,10 +14,14 @@ export function hasRelic(runState, relicId) {
 
 export function getRelicAttackBonus(runState, hero) {
   if (!hero || !hero.definition) return 0;
+  let bonus = 0;
   if (hero.definition.role === HeroRole.Damage && hasRelic(runState, RelicId.BladeCharter)) {
-    return GameRules.BladeCharterAttackBonus;
+    bonus += GameRules.BladeCharterAttackBonus;
   }
-  return 0;
+  if (hero.definition.role === HeroRole.Damage && hasRelic(runState, RelicId.DebtPact)) {
+    bonus += GameRules.DebtPactAttackBonus;
+  }
+  return bonus;
 }
 
 export function getRelicMaxHealthBonus(runState, hero) {
@@ -28,6 +32,9 @@ export function getRelicMaxHealthBonus(runState, hero) {
   }
   if (hasRelic(runState, RelicId.CampRations)) {
     bonus += GameRules.CampRationsHealthBonus;
+  }
+  if (hasRelic(runState, RelicId.BloodContract)) {
+    bonus += GameRules.BloodContractHealthBonus;
   }
   return bonus;
 }

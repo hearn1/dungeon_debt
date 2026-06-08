@@ -138,6 +138,8 @@ const RelicDefinitions = [
   new RelicDefinition(RelicId.RedInkBrand, GameRules.RedInkBrandRelicName, GameRules.RedInkBrandRelicDescription),
   new RelicDefinition(RelicId.CausticWrit, GameRules.CausticWritRelicName, GameRules.CausticWritRelicDescription),
   new RelicDefinition(RelicId.ToxicCollateral, GameRules.ToxicCollateralRelicName, GameRules.ToxicCollateralRelicDescription),
+  new RelicDefinition(RelicId.DebtPact, GameRules.DebtPactRelicName, GameRules.DebtPactRelicDescription),
+  new RelicDefinition(RelicId.BloodContract, GameRules.BloodContractRelicName, GameRules.BloodContractRelicDescription),
 ];
 
 const EncounterDefinitions = [

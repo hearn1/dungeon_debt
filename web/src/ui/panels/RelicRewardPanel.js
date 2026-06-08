@@ -1,6 +1,7 @@
 import { el, clear } from "../dom.js";
 import { appendPanelHeader } from "../components.js";
 import { DataRepository } from "../../core/DataRepository.js";
+import { GameRules } from "../../core/GameRules.js";
 
 export class RelicRewardPanel {
   constructor(gm) {
@@ -26,6 +27,15 @@ export class RelicRewardPanel {
         el("div", { class: "d-desc", text: relic.effectDescription }),
       ]));
     }
+
+    grid.appendChild(el("button", {
+      class: "btn difficulty-card relic-skip",
+      onClick: () => { this.gm.skipRelicReward(); this.onDirty?.(); },
+    }, [
+      el("div", { class: "d-name", text: `Skip — Take ${GameRules.RelicSkipGold} Gold` }),
+      el("div", { class: "d-desc", text: "Decline the clause. Receive gold instead." }),
+    ]));
+
     this.root.appendChild(grid);
   }
 }
