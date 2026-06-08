@@ -69,6 +69,22 @@ export function appendPanelHeader(root, kicker, title, sub = "") {
   for (const node of panelHeader(kicker, title, sub)) root.appendChild(node);
 }
 
+const ROUND_HINTS = {
+  1: "Start simple: hire at least one adventurer, place them in formation, and use Standard Payroll if unsure.",
+  2: "Watch wages and debt. More adventurers make combat safer but increase payroll pressure.",
+  3: "Promotion and formation start to matter. Frontline protects backline, but some enemies can bypass it.",
+};
+
+// Returns a guidance callout element for rounds 1–3, or null for later rounds.
+export function roundGuidanceCallout(round) {
+  const hint = ROUND_HINTS[round];
+  if (!hint) return null;
+  return el("div", { class: "round-guidance" }, [
+    el("span", { class: "round-guidance-label", text: `Round ${round} Brief` }),
+    el("p", { class: "round-guidance-text", text: hint }),
+  ]);
+}
+
 // A hero card used in shop offers, formation, and party listings.
 // opts: { cost, actions: [{label, onClick, primary, danger, disabled}], showHp, run }
 export function heroCard(def, instance, opts = {}) {

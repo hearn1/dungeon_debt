@@ -1,5 +1,5 @@
 import { el, clear } from "../dom.js";
-import { appendPanelHeader } from "../components.js";
+import { appendPanelHeader, roundGuidanceCallout } from "../components.js";
 import { DataRepository } from "../../core/DataRepository.js";
 import { GameRules } from "../../core/GameRules.js";
 import { PayrollActionId } from "../../data/enums.js";
@@ -49,6 +49,9 @@ export class PayrollPanel {
     this._selected = run.selectedPayrollAction ?? null;
 
     appendPanelHeader(this.root, "PAYROLL", "Payroll Desk", "Choose this round's wage policy before the party enters danger.");
+
+    const guidance = roundGuidanceCallout(run.round);
+    if (guidance) this.root.appendChild(guidance);
 
     const grid = el("div", { class: "card-grid" });
     for (const action of DataRepository.allPayrollActions) {
