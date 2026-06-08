@@ -47,7 +47,7 @@ export const EnemyEffectId = makeEnum(
 
 export const EncounterType = makeEnum("Dungeon", "RivalGhost", "FinalBoss");
 
-export const EncounterEffectId = makeEnum("None", "TaxCollectorUpkeep", "FinalBossDamage");
+export const EncounterEffectId = makeEnum("None", "TaxCollectorUpkeep", "FinalBossDamage", "MintMasterOvermint");
 
 export const RivalGuild = makeEnum("None", "Greedy", "Frugal", "Carry");
 

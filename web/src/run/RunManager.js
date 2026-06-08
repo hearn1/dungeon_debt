@@ -410,6 +410,8 @@ function calculateTotalUpkeep(run, encounter) {
       totalUpkeep += GameRules.TaxCollectorUpkeep;
     } else if (encounter.encounterEffectId === EncounterEffectId.FinalBossDamage) {
       totalUpkeep += GameRules.AuditorUpkeep;
+    } else if (encounter.encounterEffectId === EncounterEffectId.MintMasterOvermint) {
+      totalUpkeep += Math.min(GameRules.MintMaxUpkeep, Math.floor(run.debt / GameRules.MintDebtDivisor));
     }
   }
 

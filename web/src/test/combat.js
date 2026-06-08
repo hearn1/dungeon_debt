@@ -9,7 +9,7 @@ import { HeroEffects } from "../combat/HeroEffects.js";
 import { RunState } from "../data/RunState.js";
 import { HeroInstance } from "../data/HeroInstance.js";
 import { GameRules, GameRulesFns } from "../core/GameRules.js";
-import { EnemyEffectId, HeroTier, RelicId, CombatStatusId } from "../data/enums.js";
+import { EnemyEffectId, HeroTier, RelicId, CombatStatusId, EncounterEffectId } from "../data/enums.js";
 import { CombatUnit as CU } from "../data/CombatUnit.js";
 
 let failures = 0;
@@ -124,6 +124,16 @@ console.log("Combat engine test");
   const auditorLine = result.logLines.some((l) => l.startsWith("Dungeon Auditor audits"));
   check("auditor: combat lasted past round 3", result.combatRoundsElapsed >= 3);
   check("auditor: periodic audit damage logged", auditorLine);
+}
+
+// MintMaster encounter uses MintMasterOvermint (not FinalBossDamage).
+// Overmint formula: min(MintMaxUpkeep, floor(debt / MintDebtDivisor)).
+{
+  const mintEnc = DataRepository.encounters.find((e) => e.act === 3 && e.slot === 10);
+  check("mintmaster: encounter effect id is MintMasterOvermint", mintEnc && mintEnc.encounterEffectId === EncounterEffectId.MintMasterOvermint);
+  check("mintmaster: debt=0 gives +0 upkeep bonus", Math.min(GameRules.MintMaxUpkeep, Math.floor(0 / GameRules.MintDebtDivisor)) === 0);
+  check("mintmaster: debt=15 gives +3 upkeep bonus", Math.min(GameRules.MintMaxUpkeep, Math.floor(15 / GameRules.MintDebtDivisor)) === 3);
+  check("mintmaster: debt=30 is capped at MintMaxUpkeep", Math.min(GameRules.MintMaxUpkeep, Math.floor(30 / GameRules.MintDebtDivisor)) === GameRules.MintMaxUpkeep);
 }
 
 // Determinism: same setup yields identical logs (combat has no RNG).

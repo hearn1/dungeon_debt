@@ -204,6 +204,8 @@ export const GameRules = Object.freeze({
   AuditorUpkeep: 3,
   AuditorDamageEvery: 3,
   AuditorDamage: 1,
+  MintDebtDivisor: 5,
+  MintMaxUpkeep: 6,
   DebtWraithDebtDivisor: 3,
   GoblinThiefStealRound: 3,
   GoblinThiefStealGold: 3,
@@ -241,7 +243,7 @@ export const GameRules = Object.freeze({
 
 // ---- Act structure (data-driven; append a count to add an act) ----
 const ActRoundCounts = [10, 10, 10, 10];
-const DefaultActCount = 2;
+const DefaultActCount = 4;
 const ActAccentColors = [
   rgba(0.541, 0.565, 0.604),
   rgba(0.659, 0.212, 0.29),

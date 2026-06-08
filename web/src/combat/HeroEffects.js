@@ -313,9 +313,10 @@ export const HeroEffects = {
       }
     }
 
-    // Dungeon Auditor periodic damage.
+    // Dungeon Auditor / MintMaster periodic damage.
     if (encounter
-      && encounter.encounterEffectId === EncounterEffectId.FinalBossDamage
+      && (encounter.encounterEffectId === EncounterEffectId.FinalBossDamage
+        || encounter.encounterEffectId === EncounterEffectId.MintMasterOvermint)
       && combatRound % GameRules.AuditorDamageEvery === 0) {
       for (const hero of playerUnits) {
         if (!hero.isAlive) continue;
