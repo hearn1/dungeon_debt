@@ -276,6 +276,34 @@ console.log("Combat engine test");
     result.logLines[result.logLines.length - 1] === "Player wins!" || result.logLines[result.logLines.length - 1] === "Player loses.");
 }
 
+// Sorcerer applies Burned to surviving defender.
+{
+  const run = buildRun(["sorcerer", "warrior", "golem"]);
+  // encounter(1, 4) = Tax Collector — high HP, survives the first hit.
+  const result = new CombatManager().startCombat(run, encounter(1, 4));
+  check("sorcerer: applies Burned to surviving defender",
+    result.logLines.some(l => l.includes("applies Burned to")));
+}
+
+// Fighter gains +1 attack per round survived.
+{
+  const run = buildRun(["fighter", "warrior", "golem"]);
+  // encounter(1, 4) = Tax Collector — tanky enough to last multiple rounds.
+  const result = new CombatManager().startCombat(run, encounter(1, 4));
+  check("fighter: tenacity message logged",
+    result.logLines.some(l => l.includes("gains tenacity")));
+}
+
+// Druid applies Inspired to leftmost living ally.
+{
+  const run = buildRun(["warrior", "druid", "golem"]);
+  const result = new CombatManager().startCombat(run, encounter(1, 4));
+  check("druid: inspire message logged",
+    result.logLines.some(l => l.includes("inspires")));
+  check("druid: ally spends Inspired",
+    result.logLines.some(l => l.includes("spends Inspired")));
+}
+
 // The three new heroes can complete a full combat together without errors.
 {
   const run = buildRun(["paladin", "cleric", "barbarian"]);

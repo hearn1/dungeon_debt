@@ -249,10 +249,22 @@ export const HeroEffects = {
   onSurvivingAttack(attacker, defender, logger) {
     if (!attacker || !defender || !attacker.isPlayerSide) return;
     if (!attacker.sourceHero || !attacker.sourceHero.definition) return;
+
+    const effectId = attacker.sourceHero.definition.effectId;
+
+    // Sorcerer applies Burned natively (no Silver tier requirement).
+    if (effectId === HeroEffectId.SorcererBurned) {
+      const added = defender.statuses.add(CombatStatusId.Burned);
+      if (added && logger) {
+        logger.logStatusChange(defender,
+          `${attacker.displayName} applies Burned to ${defender.displayName}.`);
+      }
+      return;
+    }
+
     if (!hasSilverEffectTier(attacker.sourceHero.tier)) return;
 
     let statusId = CombatStatusId.None;
-    const effectId = attacker.sourceHero.definition.effectId;
     if (effectId === HeroEffectId.NinjaLowestTarget) statusId = CombatStatusId.Poisoned;
     else if (effectId === HeroEffectId.WizardScaling) statusId = CombatStatusId.Burned;
     else if (effectId === HeroEffectId.EnchanterAdjacent) statusId = CombatStatusId.Weakened;
@@ -292,6 +304,29 @@ export const HeroEffects = {
       const effectId = healer.sourceHero.definition.effectId;
       if (effectId !== HeroEffectId.PaladinAuraHeal && effectId !== HeroEffectId.ClericGroupHeal) continue;
       healAllLivingAllies(healer, playerUnits, 1, logger);
+    }
+
+    // Fighter: gains +1 attack per round survived (stacks).
+    for (const fighter of playerUnits) {
+      if (!fighter.isAlive || !fighter.sourceHero || !fighter.sourceHero.definition) continue;
+      if (fighter.sourceHero.definition.effectId !== HeroEffectId.FighterTenacity) continue;
+      if (fighter._fighterBaseAttack === undefined) fighter._fighterBaseAttack = fighter.attack;
+      if (fighter._fighterRoundsSurvived === undefined) fighter._fighterRoundsSurvived = 0;
+      fighter._fighterRoundsSurvived += 1;
+      fighter.attack = fighter._fighterBaseAttack + fighter._fighterRoundsSurvived;
+      if (logger) logger.logMessage(`${fighter.displayName} gains tenacity (+${fighter._fighterRoundsSurvived} attack total).`);
+    }
+
+    // Druid: applies Inspired to the leftmost living ally (excluding self) each round.
+    for (const druid of playerUnits) {
+      if (!druid.isAlive || !druid.sourceHero || !druid.sourceHero.definition) continue;
+      if (druid.sourceHero.definition.effectId !== HeroEffectId.DruidInspire) continue;
+      const ally = findLeftmostLivingNonSelf(playerUnits, druid);
+      if (!ally) continue;
+      const added = ally.statuses.add(CombatStatusId.Inspired);
+      if (added && logger) {
+        logger.logStatusChange(ally, `${druid.displayName} inspires ${ally.displayName}.`);
+      }
     }
 
     // Frugal Healer reuses the Priest-style frontline heal for its ghost team.
@@ -485,6 +520,15 @@ function healUnit(healer, healTarget, healAmount, logger) {
 
   healTarget.currentHealth = newHealth;
   if (logger) logger.logHeal(healer, healTarget, healed);
+}
+
+function findLeftmostLivingNonSelf(units, self) {
+  let best = null;
+  for (const unit of units) {
+    if (!unit.isAlive || unit === self) continue;
+    if (best === null || unit.slot < best.slot) best = unit;
+  }
+  return best;
 }
 
 function findLeftmostLivingInSlotRange(units, minSlot, maxSlot) {
