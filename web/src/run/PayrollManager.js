@@ -21,15 +21,12 @@ export class PayrollManager {
         }
         break;
 
-      case PayrollActionId.PromiseVictoryBonus: {
-        let gold = runState.gold - GameRules.VictoryBonusGoldCost;
-        if (gold < 0) gold = 0;
-        runState.gold = gold;
+      case PayrollActionId.PromiseVictoryBonus:
+        // No upfront gold cost — the wager settles in applyPostCombat.
         for (const hero of runState.party) {
           hero.attack += GameRules.VictoryBonusAttackBuff;
         }
         break;
-      }
 
       case PayrollActionId.StandardPay:
       default:
@@ -48,29 +45,41 @@ export class PayrollManager {
 
     switch (selected) {
       case PayrollActionId.TakeLoan:
-        runState.latestPayrollSummary = `Loan: +${GameRules.LoanGoldGain} gold, +${GameRules.LoanDebtCost} debt`;
+        runState.latestPayrollSummary = `Loan taken: +${GameRules.LoanGoldGain} gold, +${GameRules.LoanDebtCost} debt.`;
         break;
 
       case PayrollActionId.CutWages:
         runState.latestPayrollSummary =
-          `Cut Wages: total upkeep -${GameRules.CutWagesUpkeepReduction} (min 0), attack -${GameRules.CutWagesAttackPenalty} per hero (min 0)`;
+          `Wages cut: upkeep reduced by up to ${GameRules.CutWagesUpkeepReduction}; heroes fought at -${GameRules.CutWagesAttackPenalty} attack.`;
         break;
 
       case PayrollActionId.PromiseVictoryBonus: {
-        const victoryBonusLine =
-          `Victory Bonus: -${GameRules.VictoryBonusGoldCost} gold, +${GameRules.VictoryBonusAttackBuff} attack per hero`;
         if (combatResult.playerWon) {
-          runState.latestPayrollSummary = victoryBonusLine;
+          // Reward has already been granted; now attempt to pay the promised bonus.
+          const owed = GameRules.VictoryBonusGoldCost;
+          const paid = Math.min(runState.gold, owed);
+          const unpaid = owed - paid;
+          runState.gold -= paid;
+          if (unpaid > 0) {
+            runState.debt += unpaid;
+            runState.latestPayrollSummary =
+              `Victory bonus partly paid: heroes gained +${GameRules.VictoryBonusAttackBuff} attack; paid ${paid} gold, added ${unpaid} debt.`;
+          } else {
+            runState.latestPayrollSummary =
+              `Victory bonus paid: heroes gained +${GameRules.VictoryBonusAttackBuff} attack; paid ${paid} gold after the win.`;
+          }
         } else {
           runState.debt += GameRules.VictoryBonusDebtOnLoss;
           runState.latestVictoryBonusLossDebt = GameRules.VictoryBonusDebtOnLoss;
-          runState.latestPayrollSummary = `${victoryBonusLine}\n+${GameRules.VictoryBonusDebtOnLoss} debt (loss penalty)`;
+          runState.latestPayrollSummary =
+            `Victory bonus failed: heroes gained +${GameRules.VictoryBonusAttackBuff} attack; +${GameRules.VictoryBonusDebtOnLoss} debt from the broken promise.`;
         }
         break;
       }
 
       case PayrollActionId.StandardPay:
       default:
+        runState.latestPayrollSummary = "Payroll skipped. No payroll risk taken.";
         break;
     }
   }

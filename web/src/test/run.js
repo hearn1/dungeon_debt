@@ -753,7 +753,95 @@ console.log("Run-flow test");
   check("raceactions-tribute: tribute per behind rival applied", run.gold === 10 + (2 * GameRules.RivalRaceTributePerBehind));
 }
 
-// ---- Payroll: PromiseVictoryBonus costs gold, buffs attack, no debt on win ----
+// ---- Payroll: PromiseVictoryBonus buffs attack without upfront gold spend ----
+{
+  const gm = new GameManager();
+  gm.startRun(DifficultyLevel.Level0);
+  gm.continueFromScout();
+  fieldKnownParty(gm, ["warrior", "golem", "wizard", "ranger", "priest"]);
+  gm.continueFromShop();
+  gm.continueFromFormation();
+  const run = gm.currentRunState;
+  const goldBefore = run.gold;
+  const debtBefore = run.debt;
+  const attackBefore = run.party[0].attack;
+  gm.selectPayrollAction(PayrollActionId.PromiseVictoryBonus);
+  gm.continueFromPayroll();
+  check("victorybonus-pre: gold NOT spent upfront", run.gold === goldBefore);
+  check("victorybonus-pre: each hero buffed +1 attack", run.party[0].attack === attackBefore + GameRules.VictoryBonusAttackBuff);
+  check("victorybonus-pre: entered Combat", gm.currentState === GameState.Combat);
+}
+
+// ---- Payroll: PromiseVictoryBonus — win pays gold after reward ----
+{
+  const gm = new GameManager();
+  gm.startRun(DifficultyLevel.Level0);
+  gm.continueFromScout();
+  fieldKnownParty(gm, ["warrior", "golem", "wizard", "ranger", "priest"]);
+  gm.continueFromShop();
+  gm.continueFromFormation();
+  const run = gm.currentRunState;
+  run.gold = 200; // large buffer so upkeep/interest are fully paid from gold
+  const debtBefore = run.debt;
+  gm.selectPayrollAction(PayrollActionId.PromiseVictoryBonus);
+  gm.continueFromPayroll();
+  const result = gm.resolveCombat();
+  check("victorybonus-win: won fight", result.playerWon === true);
+  // Ordering: reward → payroll payout → upkeep → interest.
+  // All are fully paid from gold so we can use latestUpkeepPaid and latestInterestPaid.
+  const expectedGold = 200 + run.latestRewardGold - GameRules.VictoryBonusGoldCost
+    - run.latestUpkeepPaid - run.latestInterestPaid;
+  check("victorybonus-win: 3 gold deducted for bonus after reward", run.gold === expectedGold);
+  check("victorybonus-win: no loss debt added", run.debt === debtBefore);
+  check("victorybonus-win: summary uses win copy", run.latestPayrollSummary.includes("paid"));
+}
+
+// ---- Payroll: PromiseVictoryBonus — win with partial payment becomes debt ----
+{
+  const gm = new GameManager();
+  gm.startRun(DifficultyLevel.Level0);
+  gm.continueFromScout();
+  fieldKnownParty(gm, ["warrior", "golem", "wizard", "ranger", "priest"]);
+  gm.continueFromShop();
+  gm.continueFromFormation();
+  const run = gm.currentRunState;
+  // Use rewardGoldModifier so post-reward gold = 1 (< VictoryBonusGoldCost=3).
+  // Start gold=0, reward drops from 5 to 1 via modifier so paid=1, unpaid=2.
+  run.gold = 0;
+  run.rewardGoldModifier = -(GameRules.WinReward - 1); // reward becomes 1
+  gm.selectPayrollAction(PayrollActionId.PromiseVictoryBonus);
+  gm.continueFromPayroll();
+  const result = gm.resolveCombat();
+  check("victorybonus-partial: won fight", result.playerWon === true);
+  // latestPayrollSummary is set in the payroll branch; unpaid=2 went to debt before upkeep runs.
+  check("victorybonus-partial: summary mentions partly paid", run.latestPayrollSummary.includes("partly"));
+  check("victorybonus-partial: summary mentions paid 1 gold", run.latestPayrollSummary.includes("paid 1 gold"));
+  check("victorybonus-partial: summary mentions added 2 debt", run.latestPayrollSummary.includes("added 2 debt"));
+}
+
+// ---- Payroll: PromiseVictoryBonus — loss adds debt, no gold spent on bonus ----
+{
+  const gm = new GameManager();
+  gm.startRun(DifficultyLevel.Level0);
+  gm.continueFromScout();
+  fieldKnownParty(gm, ["squire"]); // weak party — will lose round 1
+  gm.continueFromShop();
+  gm.continueFromFormation();
+  const run = gm.currentRunState;
+  run.gold = 200; // large buffer so upkeep/interest paid fully in gold, not debt
+  const debtBefore = run.debt;
+  gm.selectPayrollAction(PayrollActionId.PromiseVictoryBonus);
+  gm.continueFromPayroll();
+  const result = gm.resolveCombat();
+  check("victorybonus-loss: lost fight", result.playerWon === false);
+  // VictoryBonus on loss: no gold spent, but VictoryBonusDebtOnLoss added to debt.
+  const expectedGold = 200 + run.latestRewardGold - run.latestUpkeepPaid - run.latestInterestPaid;
+  check("victorybonus-loss: no bonus gold deducted", run.gold === expectedGold);
+  check("victorybonus-loss: VictoryBonusDebtOnLoss tracked", run.latestVictoryBonusLossDebt === GameRules.VictoryBonusDebtOnLoss);
+  check("victorybonus-loss: summary mentions broken promise", run.latestPayrollSummary.includes("failed"));
+}
+
+// ---- Payroll: PromiseVictoryBonus selectable with 0 gold ----
 {
   const gm = new GameManager();
   gm.startRun(DifficultyLevel.Level0);
@@ -761,17 +849,31 @@ console.log("Run-flow test");
   gm.continueFromShop();
   gm.continueFromFormation();
   const run = gm.currentRunState;
-  const goldBefore = run.gold;
-  const debtBefore = run.debt;
+  run.gold = 0;
   gm.selectPayrollAction(PayrollActionId.PromiseVictoryBonus);
   gm.continueFromPayroll();
-  check("victorybonus: gold deducted", run.gold === goldBefore - GameRules.VictoryBonusGoldCost);
-  check("victorybonus: entered Combat", gm.currentState === GameState.Combat);
-  // Win the fight — no debt on win, gold cost already applied
+  check("victorybonus-afford: selectable with 0 gold", gm.currentState === GameState.Combat);
+  check("victorybonus-afford: gold not spent upfront", run.gold === 0);
+}
+
+// ---- Payroll: Skip Payroll is a no-op ----
+{
+  const gm = new GameManager();
+  gm.startRun(DifficultyLevel.Level0);
+  gm.continueFromScout();
   fieldKnownParty(gm, ["warrior", "golem", "wizard", "ranger", "priest"]);
-  const result = gm.resolveCombat();
-  check("victorybonus: won fight", result.playerWon === true);
-  check("victorybonus: no debt on win", run.debt === debtBefore);
+  gm.continueFromShop();
+  gm.continueFromFormation();
+  const run = gm.currentRunState;
+  const goldBefore = run.gold;
+  const debtBefore = run.debt;
+  gm.selectPayrollAction(PayrollActionId.StandardPay);
+  gm.continueFromPayroll();
+  check("skippayroll: gold unchanged", run.gold === goldBefore);
+  check("skippayroll: debt unchanged", run.debt === debtBefore);
+  check("skippayroll: entered Combat", gm.currentState === GameState.Combat);
+  gm.resolveCombat();
+  check("skippayroll: summary is no-op", run.latestPayrollSummary.includes("skipped"));
 }
 
 // ---- Payroll: CutWages reduces total upkeep ----

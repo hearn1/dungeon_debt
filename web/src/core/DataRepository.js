@@ -116,12 +116,13 @@ const EnemyDefinitions = [
 
 const PayrollActionDefinitions = [
   new PayrollActionDefinition(PayrollActionId.TakeLoan, "Take Operating Loan",
-    `Gain ${GameRules.LoanGoldGain} gold immediately. Adds ${GameRules.LoanDebtCost} debt to the guild ledger.`),
+    `Borrow now. +${GameRules.LoanGoldGain} gold and +${GameRules.LoanDebtCost} debt immediately. Use when you need a cash buffer before upkeep and interest resolve.`),
   new PayrollActionDefinition(PayrollActionId.CutWages, "Cut Wages",
-    `Reduce this round's wage bill by ${GameRules.CutWagesUpkeepReduction} (min 0). Each adventurer loses ${GameRules.CutWagesAttackPenalty} attack this contract.`),
-  new PayrollActionDefinition(PayrollActionId.PromiseVictoryBonus, "Post Victory Bonus",
-    `Pay ${GameRules.VictoryBonusGoldCost} gold now. Each adventurer gains +${GameRules.VictoryBonusAttackBuff} attack for this contract.`),
-  new PayrollActionDefinition(PayrollActionId.StandardPay, "Standard Payroll", "Pay normal wages. No extra contract clause this round."),
+    `Cut payroll. Saves up to ${GameRules.CutWagesUpkeepReduction} upkeep after combat. All heroes fight at -${GameRules.CutWagesAttackPenalty} attack. Use when you cannot afford upkeep without weakening the party.`),
+  new PayrollActionDefinition(PayrollActionId.PromiseVictoryBonus, "Promise Victory Bonus",
+    `Promise a win bonus. All heroes gain +${GameRules.VictoryBonusAttackBuff} attack this fight. On win: pay ${GameRules.VictoryBonusGoldCost} gold after reward (unpaid becomes debt). On loss: +${GameRules.VictoryBonusDebtOnLoss} debt. Use when you believe you can win with a damage spike.`),
+  new PayrollActionDefinition(PayrollActionId.StandardPay, "Skip Payroll",
+    `Safe default. No gold change, no debt, no stat change. Use when you are stable and need no extra risk.`),
 ];
 
 const RelicDefinitions = [

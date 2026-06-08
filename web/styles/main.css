@@ -417,6 +417,10 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 .difficulty-card { text-align: left; padding: 14px 18px; }
 .difficulty-card .d-name { font-weight: 700; font-size: 16px; }
 .difficulty-card .d-desc { font-size: 12px; color: var(--ink-dim); margin-top: 4px; }
+.payroll-preview { margin-top: 8px; display: flex; flex-direction: column; gap: 2px; }
+.payroll-preview-row { display: flex; gap: 6px; font-size: 11px; }
+.payroll-preview-label { color: var(--ink-dim); min-width: 48px; font-weight: 600; }
+.payroll-preview-value { color: var(--ink); }
 .end-reason { font-size: 18px; color: var(--ink-dim); }
 .victory .title { background: linear-gradient(90deg, var(--debt-stable), var(--gold)); -webkit-background-clip: text; background-clip: text; }
 .defeat .title { background: linear-gradient(90deg, var(--debt-critical), rgb(204, 122, 58)); -webkit-background-clip: text; background-clip: text; }
