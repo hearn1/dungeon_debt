@@ -2,6 +2,7 @@ import { el, clear } from "../dom.js";
 import { appendPanelHeader } from "../components.js";
 import { DataRepository } from "../../core/DataRepository.js";
 import { GameRules } from "../../core/GameRules.js";
+import { Settings } from "../../core/Settings.js";
 
 const APP_VERSION = "0.1.0";
 
@@ -74,6 +75,11 @@ export class MainMenuPanel {
       class: "btn how-to-play-btn",
       text: "Report Feedback",
       onClick: () => this._showFeedback(),
+    }));
+    menuFooter.appendChild(el("button", {
+      class: "btn how-to-play-btn",
+      text: "Settings",
+      onClick: () => this._showSettings(),
     }));
     menuFooter.appendChild(el("a", {
       class: "credits-link",
@@ -279,6 +285,80 @@ export class MainMenuPanel {
 
   _closeFeedback() {
     document.getElementById("feedback-modal")?.remove();
+  }
+
+  _showSettings() {
+    if (document.getElementById("settings-modal")) return;
+
+    const backdrop = el("div", { id: "settings-modal", class: "tutorial-backdrop" });
+    const modal = el("div", { class: "tutorial-modal" }, [
+      el("div", { class: "tutorial-header" }, [
+        el("h2", { class: "tutorial-title", text: "Settings" }),
+        el("button", {
+          class: "btn tutorial-close",
+          text: "✕",
+          onClick: () => this._closeSettings(),
+        }),
+      ]),
+      el("div", { class: "tutorial-body" }, [
+        this._buildSettingRow(
+          "Animation Speed",
+          "Controls how fast combat animations play.",
+          ["normal", "fast"],
+          ["Normal", "Fast"],
+          Settings.animationSpeed,
+          (v) => Settings.setAnimationSpeed(v),
+        ),
+        this._buildSettingRow(
+          "Reduced Motion",
+          "Disables all UI animations for motion sensitivity.",
+          ["false", "true"],
+          ["Off", "On"],
+          String(Settings.reducedMotion),
+          (v) => Settings.setReducedMotion(v === "true"),
+        ),
+      ]),
+      el("div", { class: "tutorial-footer" }, [
+        el("button", {
+          class: "btn primary",
+          text: "Done",
+          onClick: () => this._closeSettings(),
+        }),
+      ]),
+    ]);
+
+    backdrop.appendChild(modal);
+    backdrop.addEventListener("click", (e) => { if (e.target === backdrop) this._closeSettings(); });
+    document.getElementById("app").appendChild(backdrop);
+  }
+
+  _buildSettingRow(label, description, values, labels, currentValue, onChange) {
+    const row = el("div", { class: "setting-row" }, [
+      el("div", { class: "setting-row-label" }, [
+        el("div", { class: "setting-row-name", text: label }),
+        el("div", { class: "setting-row-desc", text: description }),
+      ]),
+      el("div", { class: "setting-row-options" },
+        values.map((v, i) => {
+          const btn = el("button", {
+            class: `btn setting-option${v === currentValue ? " primary" : ""}`,
+            text: labels[i],
+            onClick: () => {
+              onChange(v);
+              const modal = document.getElementById("settings-modal");
+              if (modal) modal.remove();
+              this._showSettings();
+            },
+          });
+          return btn;
+        })
+      ),
+    ]);
+    return row;
+  }
+
+  _closeSettings() {
+    document.getElementById("settings-modal")?.remove();
   }
 
   _handleKeyDown(event) {

@@ -4,8 +4,7 @@ import { CombatReplayEventKind } from "../../data/CombatReplayEvent.js";
 import { HeroRole, EnemyEffectId, EncounterType } from "../../data/enums.js";
 import { statusPills, hpBar, statusGlyphs, appendPanelHeader } from "../components.js";
 import { unitPortrait, attackEffect, healEffect } from "../SpriteCatalog.js";
-
-const STEP_MS = 280;
+import { Settings } from "../../core/Settings.js";
 const PROJ_DURATION = { arc: 300, snap: 170, jab: 140, generic: 240 };
 
 export class CombatPanel {
@@ -67,7 +66,8 @@ export class CombatPanel {
 
     // Begin timed replay.
     this._eventIndex = 0;
-    this._timer = setInterval(() => this._tick(), STEP_MS);
+    this._stepMs = Settings.stepMs;
+    this._timer = setInterval(() => this._tick(), this._stepMs);
   }
 
   _buildRow(units, isPlayer, isFrontline) {
@@ -137,7 +137,7 @@ export class CombatPanel {
       const node = attacker.node;
       setTimeout(() => {
         node.classList.remove("lunging", "player", "enemy");
-      }, STEP_MS);
+      }, this._stepMs);
     }
 
     // Update the affected target unit from the event snapshot.
