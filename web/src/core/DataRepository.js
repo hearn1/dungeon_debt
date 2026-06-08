@@ -36,6 +36,9 @@ const Barbarian = new HeroDefinition("barbarian", "Barbarian", HeroRole.Damage, 
 const Rogue = new HeroDefinition("rogue", "Rogue", HeroRole.Damage, 3, 7, 3, "First attack each combat deals double damage.", HeroEffectId.RogueFirstStrike);
 const Warlock = new HeroDefinition("warlock", "Warlock", HeroRole.Damage, 2, 6, 4, "Gains attack based on player debt at combat start.", HeroEffectId.WarlockDebtPact);
 const Artificer = new HeroDefinition("artificer", "Artificer", HeroRole.Economy, 1, 7, 2, "Gains attack based on owned relics at combat start.", HeroEffectId.ArtificerRelicCharge);
+const Sorcerer = new HeroDefinition("sorcerer", "Sorcerer", HeroRole.Damage, 3, 5, 4, "Applies Burned to the defender on a surviving attack.", HeroEffectId.SorcererBurned);
+const Fighter = new HeroDefinition("fighter", "Fighter", HeroRole.Tank, 2, 12, 4, "Gains +1 attack at the end of each combat round survived (stacks).", HeroEffectId.FighterTenacity);
+const Druid = new HeroDefinition("druid", "Druid", HeroRole.Support, 1, 6, 3, "Applies Inspired to the leftmost living ally (excluding self) at the end of each combat round.", HeroEffectId.DruidInspire);
 
 // ---- Enemies (Act 1) ----
 const Slime = new EnemyDefinition("slime", "Slime", 1, 4, EnemyEffectId.None, "No effect.");
@@ -102,6 +105,7 @@ const Act4BankerKing = createActEnemy(4, "act4-banker-king", "The Banker King", 
 const HeroDefinitions = [
   Warrior, Knight, Golem, Wizard, Ninja, Ranger, Priest, Bard, Enchanter, Squire, Treasurer, Apprentice,
   Paladin, Cleric, Barbarian, Rogue, Warlock, Artificer,
+  Sorcerer, Fighter, Druid,
 ];
 
 const EnemyDefinitions = [
