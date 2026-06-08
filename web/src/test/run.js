@@ -3,6 +3,7 @@
 // errors. Run with: node src/test/run.js
 
 import { GameManager } from "../core/GameManager.js";
+import { MemoryStorage } from "../core/SaveManager.js";
 import { GameState } from "../core/GameState.js";
 import { GameRules, GameRulesFns } from "../core/GameRules.js";
 import { DataRepository } from "../core/DataRepository.js";
@@ -1572,6 +1573,61 @@ function makeCombatResult(overrides = {}) {
   const run = gm.currentRunState;
   gm.runManager.advanceRound();
   check("report: latestManagerReportLines cleared on advanceRound", run.latestManagerReportLines.length === 0);
+}
+
+// ---- SaveManager / GameManager persistence ----
+{
+  // New GameManager starts with saved highestBeatenDifficulty
+  const storage = new MemoryStorage();
+  const gm1 = new GameManager(storage);
+  check("persist: fresh GM starts at -1", gm1.highestBeatenDifficulty === -1);
+
+  // Simulate a final-run victory on level 0
+  gm1.startRun(DifficultyLevel.Level0);
+  const outcome = autopilotWithParty(gm1, ["paladin", "golem", "barbarian", "ranger", "cleric"], 1000, {
+    tier: HeroTier.Gold,
+    stabilizeEconomy: true,
+  });
+  check("persist: full run reaches Victory", outcome.terminated && outcome.state === GameState.Victory);
+  check("persist: GM1 highestBeaten = 0 after victory", gm1.highestBeatenDifficulty === 0);
+
+  // Second GM with same storage sees the unlock
+  const gm2 = new GameManager(storage);
+  check("persist: GM2 sees highestBeaten = 0 from storage", gm2.highestBeatenDifficulty === 0);
+  check("persist: GM2 level 0 unlocked", !gm2.isDifficultyLocked(DataRepository.getDifficultyLevel(0)));
+  check("persist: GM2 level 1 unlocked after level 0 beaten", !gm2.isDifficultyLocked(DataRepository.getDifficultyLevel(1)));
+  check("persist: GM2 level 2 still locked", gm2.isDifficultyLocked(DataRepository.getDifficultyLevel(2)));
+
+  // resetProgress clears unlock and relocks level 1
+  gm2.resetProgress();
+  check("persist: after reset highestBeaten = -1", gm2.highestBeatenDifficulty === -1);
+  check("persist: after reset level 1 relocked", gm2.isDifficultyLocked(DataRepository.getDifficultyLevel(1)));
+
+  // Third GM with same storage sees the reset
+  const gm3 = new GameManager(storage);
+  check("persist: GM3 sees highestBeaten = -1 after reset", gm3.highestBeatenDifficulty === -1);
+
+  // Selected difficulty persists
+  const storage2 = new MemoryStorage();
+  const gm4 = new GameManager(storage2);
+  gm4.recordSelectedDifficulty(0);
+  check("persist: getLastSelectedDifficulty = 0", gm4.getLastSelectedDifficulty() === 0);
+  const gm5 = new GameManager(storage2);
+  check("persist: GM5 sees lastSelectedDifficulty = 0", gm5.getLastSelectedDifficulty() === 0);
+
+  // Invalid saved selected difficulty falls back to default when resolved by panel logic
+  const storage3 = new MemoryStorage();
+  storage3.setItem("dungeonDebt.save.v1", JSON.stringify({
+    schemaVersion: 1,
+    progression: { highestBeatenDifficulty: -1 },
+    settings: { lastSelectedDifficulty: 5 },
+  }));
+  const gm6 = new GameManager(storage3);
+  const saved = gm6.getLastSelectedDifficulty();
+  const levelDef = DataRepository.getDifficultyLevel(saved);
+  const isLocked = !levelDef || levelDef.level > gm6.highestBeatenDifficulty + 1;
+  const resolved = isLocked ? GameRules.DefaultDifficultyLevel : saved;
+  check("persist: locked saved difficulty falls back to default", resolved === GameRules.DefaultDifficultyLevel);
 }
 
 console.log(failures === 0 ? "\nALL PASS" : `\n${failures} FAILURE(S)`);

@@ -14,13 +14,17 @@ import { EncounterManager } from "../run/EncounterManager.js";
 import { RivalManager } from "../run/RivalManager.js";
 import { CombatManager } from "../combat/CombatManager.js";
 import { BalanceRunLogger } from "../run/BalanceRunLogger.js";
+import { SaveManager } from "./SaveManager.js";
 
 export class GameManager {
-  constructor() {
+  constructor(saveStorage = null) {
+    this._saveManager = saveStorage ? new SaveManager(saveStorage) : new SaveManager();
+    this._saveManager.load();
+
     this._currentState = GameState.MainMenu;
     this._pendingDifficulty = GameRules.DefaultDifficultyLevel;
     this._stateListeners = [];
-    this._highestBeatenDifficulty = -1;
+    this._highestBeatenDifficulty = this._saveManager.getHighestBeatenDifficulty();
 
     this._payrollManager = new PayrollManager();
     this._rivalManager = new RivalManager();
@@ -38,6 +42,20 @@ export class GameManager {
   get encounterManager() { return this._encounterManager; }
   get rivalManager() { return this._rivalManager; }
   get highestBeatenDifficulty() { return this._highestBeatenDifficulty; }
+  get saveManager() { return this._saveManager; }
+
+  getLastSelectedDifficulty() {
+    return this._saveManager.getLastSelectedDifficulty();
+  }
+
+  recordSelectedDifficulty(level) {
+    this._saveManager.setLastSelectedDifficulty(level);
+  }
+
+  resetProgress() {
+    this._saveManager.reset();
+    this._highestBeatenDifficulty = -1;
+  }
 
   isDifficultyLocked(difficulty) {
     if (!difficulty || !difficulty.isImplemented) return true;
@@ -164,6 +182,7 @@ export class GameManager {
       const run = this._runManager.currentRunState;
       if (this._isFinalRunVictory(run) && run.selectedDifficulty !== null && run.selectedDifficulty > this._highestBeatenDifficulty) {
         this._highestBeatenDifficulty = run.selectedDifficulty;
+        this._saveManager.setHighestBeatenDifficulty(run.selectedDifficulty);
       }
     }
 

@@ -411,6 +411,9 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   background: linear-gradient(90deg, var(--gold), rgb(204, 122, 58));
   -webkit-background-clip: text; background-clip: text; color: transparent; }
 .subtitle { color: var(--ink-dim); letter-spacing: 3px; text-transform: uppercase; font-size: 14px; }
+.reset-progress-area { display: flex; flex-direction: column; align-items: center; gap: 8px; margin-top: 8px; }
+.reset-progress-btn { font-size: 11px; letter-spacing: 1px; padding: 5px 14px; color: var(--ink-mute); border-color: var(--ink-mute); }
+.reset-confirm-row { display: flex; gap: 10px; }
 .menu-footer { display: flex; flex-direction: column; align-items: center; gap: 12px; margin-top: 4px; }
 .how-to-play-btn { font-size: 13px; letter-spacing: 1px; padding: 8px 22px; }
 .credits-link {
