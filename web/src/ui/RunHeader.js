@@ -7,6 +7,7 @@ import { DataRepository } from "../core/DataRepository.js";
 export class RunHeader {
   constructor() {
     this.root = el("header", { class: "run-header" });
+    this.onHelpClick = null;
     this.hide();
   }
 
@@ -47,6 +48,12 @@ export class RunHeader {
         resource(run.morale, "CREW MORALE", false),
       ]),
       this.debtChip(run.debt),
+      el("button", {
+        class: "btn rh-help-btn",
+        text: "?",
+        title: "Screen help",
+        onClick: () => this.onHelpClick?.(),
+      }),
     ]);
 
     this.root.appendChild(primary);
