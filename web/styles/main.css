@@ -411,11 +411,58 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   background: linear-gradient(90deg, var(--gold), rgb(204, 122, 58));
   -webkit-background-clip: text; background-clip: text; color: transparent; }
 .subtitle { color: var(--ink-dim); letter-spacing: 3px; text-transform: uppercase; font-size: 14px; }
+.menu-footer { display: flex; flex-direction: column; align-items: center; gap: 12px; margin-top: 4px; }
+.how-to-play-btn { font-size: 13px; letter-spacing: 1px; padding: 8px 22px; }
 .credits-link {
-  margin-top: 16px; font-size: 11px; letter-spacing: 2px; text-transform: uppercase;
+  font-size: 11px; letter-spacing: 2px; text-transform: uppercase;
   color: var(--ink-mute); text-decoration: none; border-bottom: 1px dotted var(--rule-strong);
 }
 .credits-link:hover { color: var(--ink-dim); }
+
+/* ---- How to Play modal ---- */
+.tutorial-backdrop {
+  position: fixed; inset: 0; z-index: 200;
+  background: rgba(10, 9, 14, 0.82);
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+}
+.tutorial-modal {
+  background: var(--bg-panel); border: 1px solid var(--rule-strong);
+  border-radius: 10px; width: 100%; max-width: 560px;
+  max-height: calc(100vh - 48px); display: flex; flex-direction: column;
+  overflow: hidden;
+}
+.tutorial-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 20px 14px; border-bottom: 1px solid var(--rule);
+}
+.tutorial-title { font-size: 18px; font-weight: 700; letter-spacing: 1px; color: var(--gold); }
+.tutorial-close { padding: 4px 10px; font-size: 14px; color: var(--ink-dim); }
+.tutorial-body {
+  padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px;
+  flex: 1;
+}
+.tutorial-intro { font-size: 15px; color: var(--ink); line-height: 1.5; }
+.tutorial-lead { font-size: 12px; letter-spacing: 2px; text-transform: uppercase; color: var(--ink-dim); }
+.tutorial-steps { display: flex; flex-direction: column; gap: 10px; }
+.tutorial-step {
+  background: var(--bg-card); border: 1px solid var(--rule);
+  border-radius: 6px; padding: 10px 14px;
+}
+.tutorial-step-head { font-weight: 700; font-size: 14px; display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.tutorial-step-num {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 20px; height: 20px; border-radius: 50%;
+  background: var(--gold); color: var(--dd-ink); font-size: 11px; font-weight: 800; flex-shrink: 0;
+}
+.tutorial-step-body { font-size: 13px; color: var(--ink-dim); line-height: 1.5; }
+.tutorial-goal { font-size: 14px; color: var(--ink); font-style: italic; text-align: center; }
+.tutorial-tip {
+  background: rgba(184, 146, 74, 0.1); border: 1px solid rgba(184, 146, 74, 0.3);
+  border-radius: 6px; padding: 10px 14px; font-size: 13px; color: var(--ink-dim); line-height: 1.5;
+}
+.tutorial-tip-label { font-weight: 700; color: var(--gold); }
+.tutorial-footer { padding: 14px 20px; border-top: 1px solid var(--rule); display: flex; justify-content: flex-end; }
 .menu-choices { display: flex; flex-direction: column; gap: 12px; min-width: 320px; }
 .difficulty-card { text-align: left; padding: 14px 18px; }
 .difficulty-card .d-name { font-weight: 700; font-size: 16px; }
