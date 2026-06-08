@@ -559,6 +559,50 @@ Then perform at least 3 manual Act 1 runs across different archetypes.
 
 ---
 
+## Baseline Harness Results (seeds 0–4, all strategies)
+
+Run: `npm run test:balance -- --seeds=5 --strategy=all` on 2026-06-08.
+
+**Overall: 1/20 wins (5%) — well below the 40–70% target.**
+
+| Seed | Greedy | Frugal | Smart | Random |
+|---:|---|---|---|---|
+| 0 | LOSS r4 | LOSS r5 | LOSS r12 | LOSS r10 |
+| 1 | LOSS r4 | **WIN r20** | LOSS r10 | LOSS r10 |
+| 2 | LOSS r4 | LOSS r13 | LOSS r7 | LOSS r6 |
+| 3 | LOSS r4 | LOSS r20 | LOSS r4 | LOSS r9 |
+| 4 | LOSS r4 | LOSS r20 | LOSS r9 | LOSS r9 |
+
+Determinism check: PASS.
+
+### Observations
+
+- **Greedy hits debt limit at round 4 every seed** — `finalDebt: 21–26`, `finalMorale: 30`. Debt limit triggering consistently within 4 rounds suggests `LoanDebtCost`, `InterestDebtDivisor`, or `DebtLimit` is the sharpest lever.
+- **Frugal seeds 3 & 4 reach round 20 but still lose on morale** — parties are small (2–4 Silver heroes) and appear to lose fights rather than go bankrupt.
+- **Smart averages ~8 rounds** — economy collapses before mid-dungeon despite relics.
+- **Party sizes are tiny across all strategies** — most runs end with 2–4 heroes, suggesting starting gold or hire costs leave the player too poor to build a party.
+
+### Hypotheses Supported
+
+| ID | Status |
+|---|---|
+| H1 — Economy too tight | **Strongly supported** — greedy dies at r4; smart rarely survives past r10 |
+| H2 — Debt recovery too weak | **Supported** — smart/frugal accumulate debt they cannot dig out of |
+| H3 — Greedy too strong | Not applicable — greedy is the worst performer |
+| H4 — Frugal too weak | **Supported** — frugal reaches late rounds but loses on combat/morale |
+| H5 — Rival ghosts punish too sharply | Unclear — need manual run data |
+| H6 — Encounter variants add noise | Inconclusive at 5 seeds |
+
+### Priority for A1-TUNE-1
+
+Based on baseline data, tune in this order:
+
+1. `DebtLimit` / `LoanDebtCost` / `InterestDebtDivisor` — greedy dying at r4 every run is the clearest signal
+2. `StartingGold` / `HireCostBonus` — party sizes suggest the economy is too tight to build a party
+3. `WinReward` / `LossReward` — frugal surviving but losing combat suggests rewards may not scale with upkeep
+
+---
+
 ## Out of Scope for This Planning Pass
 
 - No tuning constants.
