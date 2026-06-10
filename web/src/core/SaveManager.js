@@ -24,7 +24,11 @@ function makeDefaultSave(now) {
     createdAt: ts,
     updatedAt: ts,
     progression: { highestBeatenDifficulty: MIN_DIFFICULTY },
-    settings: { lastSelectedDifficulty: GameRules.DefaultDifficultyLevel },
+    settings: {
+      lastSelectedDifficulty: GameRules.DefaultDifficultyLevel,
+      animationSpeed: "normal",
+      reducedMotion: false,
+    },
   };
 }
 
@@ -47,6 +51,14 @@ function normalizeSave(raw, now) {
     ? clampDifficulty(sett.lastSelectedDifficulty)
     : base.settings.lastSelectedDifficulty;
 
+  const animationSpeed = (sett.animationSpeed === "normal" || sett.animationSpeed === "fast")
+    ? sett.animationSpeed
+    : base.settings.animationSpeed;
+
+  const reducedMotion = (typeof sett.reducedMotion === "boolean")
+    ? sett.reducedMotion
+    : base.settings.reducedMotion;
+
   const createdAt = (raw && typeof raw.createdAt === "string") ? raw.createdAt : base.createdAt;
   const updatedAt = now().toISOString();
 
@@ -55,7 +67,7 @@ function normalizeSave(raw, now) {
     createdAt,
     updatedAt,
     progression: { highestBeatenDifficulty: hbd },
-    settings: { lastSelectedDifficulty: lsd },
+    settings: { lastSelectedDifficulty: lsd, animationSpeed, reducedMotion },
   };
 }
 
@@ -137,6 +149,31 @@ export class SaveManager {
   setLastSelectedDifficulty(level) {
     this._ensureLoaded();
     this._data.settings.lastSelectedDifficulty = clampDifficulty(level);
+    this._data.updatedAt = this._now().toISOString();
+    this._write();
+  }
+
+  getAnimationSpeed() {
+    this._ensureLoaded();
+    return this._data.settings.animationSpeed;
+  }
+
+  setAnimationSpeed(value) {
+    this._ensureLoaded();
+    if (value !== "normal" && value !== "fast") return;
+    this._data.settings.animationSpeed = value;
+    this._data.updatedAt = this._now().toISOString();
+    this._write();
+  }
+
+  getReducedMotion() {
+    this._ensureLoaded();
+    return this._data.settings.reducedMotion;
+  }
+
+  setReducedMotion(value) {
+    this._ensureLoaded();
+    this._data.settings.reducedMotion = Boolean(value);
     this._data.updatedAt = this._now().toISOString();
     this._write();
   }

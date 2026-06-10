@@ -15,11 +15,15 @@ import { RivalManager } from "../run/RivalManager.js";
 import { CombatManager } from "../combat/CombatManager.js";
 import { BalanceRunLogger } from "../run/BalanceRunLogger.js";
 import { SaveManager } from "./SaveManager.js";
+import { Settings } from "./Settings.js";
 
 export class GameManager {
   constructor(saveStorage = null) {
     this._saveManager = saveStorage ? new SaveManager(saveStorage) : new SaveManager();
     this._saveManager.load();
+
+    Settings.setAnimationSpeed(this._saveManager.getAnimationSpeed());
+    Settings.setReducedMotion(this._saveManager.getReducedMotion());
 
     this._currentState = GameState.MainMenu;
     this._pendingDifficulty = GameRules.DefaultDifficultyLevel;
@@ -52,9 +56,21 @@ export class GameManager {
     this._saveManager.setLastSelectedDifficulty(level);
   }
 
+  setAnimationSpeed(value) {
+    this._saveManager.setAnimationSpeed(value);
+    Settings.setAnimationSpeed(value);
+  }
+
+  setReducedMotion(value) {
+    this._saveManager.setReducedMotion(value);
+    Settings.setReducedMotion(value);
+  }
+
   resetProgress() {
-    this._saveManager.reset();
+    const data = this._saveManager.reset();
     this._highestBeatenDifficulty = -1;
+    Settings.setAnimationSpeed(data.settings.animationSpeed);
+    Settings.setReducedMotion(data.settings.reducedMotion);
   }
 
   isDifficultyLocked(difficulty) {

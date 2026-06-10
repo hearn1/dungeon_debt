@@ -17,7 +17,7 @@ export const Settings = {
   },
 
   _applyToDOM() {
-    if (typeof document === "undefined") return;
+    if (typeof document === "undefined" || !document.documentElement) return;
     const html = document.documentElement;
     html.dataset.animationSpeed = this.animationSpeed;
     html.dataset.reducedMotion = String(this.reducedMotion);

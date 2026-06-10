@@ -154,6 +154,49 @@ console.log("\nSaveManager tests");
   sm8.setHighestBeatenDifficulty(3);
   sm8.setHighestBeatenDifficulty(1);
   check("save: setHighestBeaten never decreases", sm8.getHighestBeatenDifficulty() === 3);
+
+  // animationSpeed and reducedMotion persist across load
+  const mem9 = new MemoryStorage();
+  const sm9 = new SaveManager(mem9);
+  sm9.load();
+  check("save: default animationSpeed is normal", sm9.getAnimationSpeed() === "normal");
+  check("save: default reducedMotion is false", sm9.getReducedMotion() === false);
+  sm9.setAnimationSpeed("fast");
+  sm9.setReducedMotion(true);
+  const sm9b = new SaveManager(mem9);
+  sm9b.load();
+  check("save: animationSpeed persists across load", sm9b.getAnimationSpeed() === "fast");
+  check("save: reducedMotion persists across load", sm9b.getReducedMotion() === true);
+
+  // invalid animationSpeed is ignored
+  const mem10 = new MemoryStorage();
+  const sm10 = new SaveManager(mem10);
+  sm10.load();
+  sm10.setAnimationSpeed("fast");
+  sm10.setAnimationSpeed("turbo"); // invalid — should be ignored
+  check("save: invalid animationSpeed rejected", sm10.getAnimationSpeed() === "fast");
+
+  // corrupt animationSpeed in stored JSON falls back to default
+  const mem11 = new MemoryStorage();
+  mem11.setItem("dungeonDebt.save.v1", JSON.stringify({
+    schemaVersion: 1,
+    progression: { highestBeatenDifficulty: 0 },
+    settings: { lastSelectedDifficulty: 0, animationSpeed: "turbo", reducedMotion: "yes" },
+  }));
+  const sm11 = new SaveManager(mem11);
+  sm11.load();
+  check("save: corrupt animationSpeed falls back to normal", sm11.getAnimationSpeed() === "normal");
+  check("save: corrupt reducedMotion falls back to false", sm11.getReducedMotion() === false);
+
+  // reset() resets animationSpeed and reducedMotion to defaults
+  const mem12 = new MemoryStorage();
+  const sm12 = new SaveManager(mem12);
+  sm12.load();
+  sm12.setAnimationSpeed("fast");
+  sm12.setReducedMotion(true);
+  sm12.reset();
+  check("save: reset clears animationSpeed to normal", sm12.getAnimationSpeed() === "normal");
+  check("save: reset clears reducedMotion to false", sm12.getReducedMotion() === false);
 }
 
 console.log(failures === 0 ? "\nALL PASS" : `\n${failures} FAILURE(S)`);
