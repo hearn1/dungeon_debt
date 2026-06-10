@@ -131,9 +131,17 @@ export class RunManager {
     run.gold += rewardGold;
     run.morale += moraleChange;
 
+    run.latestRelicDebtPenalty = 0;
+    run.latestRelicMoralePenalty = 0;
     if (!combatResult.playerWon) {
-      if (hasRelic(run, RelicId.DebtPact)) run.debt += GameRules.DebtPactLossDebt;
-      if (hasRelic(run, RelicId.BloodContract)) run.morale -= GameRules.BloodContractLossMorale;
+      if (hasRelic(run, RelicId.DebtPact)) {
+        run.latestRelicDebtPenalty = GameRules.DebtPactLossDebt;
+        run.debt += GameRules.DebtPactLossDebt;
+      }
+      if (hasRelic(run, RelicId.BloodContract)) {
+        run.latestRelicMoralePenalty = GameRules.BloodContractLossMorale;
+        run.morale -= GameRules.BloodContractLossMorale;
+      }
     }
 
     if (this._payrollManager) {
