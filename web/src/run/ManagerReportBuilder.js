@@ -10,6 +10,12 @@ export function buildManagerReportLines(run, combatResult, encounter, maxLines =
     if (lines.length >= maxLines) return lines;
   }
 
+  // Priority 12: Cursed relic debt penalty
+  if (run.latestRelicDebtPenalty > 0) {
+    lines.push(`${GameRules.DebtPactRelicName}: +${run.latestRelicDebtPenalty} debt from relic penalty.`);
+    if (lines.length >= maxLines) return lines;
+  }
+
   // Priority 20: Upkeep shortfall
   if (run.latestUpkeepShortfall > 0) {
     lines.push(`Wages exceeded gold reserves. +${run.latestUpkeepShortfall} debt added.`);
@@ -31,6 +37,12 @@ export function buildManagerReportLines(run, combatResult, encounter, maxLines =
   // Priority 50: Thief escaped
   if (combatResult.survivorFlags && combatResult.survivorFlags["goblinStoleGold"] === true) {
     lines.push(`A thief escaped with the purse. -${GameRules.GoblinThiefStealGold} reward gold.`);
+    if (lines.length >= maxLines) return lines;
+  }
+
+  // Priority 55: Cursed relic morale penalty
+  if (run.latestRelicMoralePenalty > 0) {
+    lines.push(`${GameRules.BloodContractRelicName}: -${run.latestRelicMoralePenalty} morale from relic penalty.`);
     if (lines.length >= maxLines) return lines;
   }
 

@@ -1586,6 +1586,80 @@ function makeCombatResult(overrides = {}) {
   check("report: empty when no triggers", lines.length === 0);
 }
 
+// Cursed relic debt penalty line
+{
+  const run = makeRun({ latestRelicDebtPenalty: 2 });
+  const lines = buildManagerReportLines(run, makeCombatResult(), null);
+  check("report: relic debt penalty line text", lines.some(l => l.includes("Debt Pact") && l.includes("+2 debt")));
+}
+
+// Cursed relic morale penalty line
+{
+  const run = makeRun({ latestRelicMoralePenalty: 1 });
+  const lines = buildManagerReportLines(run, makeCombatResult(), null);
+  check("report: relic morale penalty line text", lines.some(l => l.includes("Blood Contract") && l.includes("-1 morale")));
+}
+
+// Priority: relic debt penalty (12) before upkeep shortfall (20)
+{
+  const run = makeRun({
+    latestRelicDebtPenalty: 2,
+    latestUpkeepShortfall: 3,
+  });
+  const lines = buildManagerReportLines(run, makeCombatResult(), null);
+  check("report: relic debt penalty first", lines[0].includes("Debt Pact"));
+  check("report: upkeep shortfall second", lines[1].includes("Wages exceeded"));
+}
+
+// Priority: relic morale penalty (55) after interest rollover but before morale loss
+{
+  const run = makeRun({
+    latestInterestAddedToDebt: 1,
+    latestRelicMoralePenalty: 1,
+    latestMoraleChange: -3,
+  });
+  const lines = buildManagerReportLines(run, makeCombatResult(), null);
+  check("report: interest rollover first", lines[0].includes("Interest"));
+  check("report: relic morale penalty second", lines[1].includes("Blood Contract"));
+  check("report: base morale loss third", lines[2].includes("loss cost 3 morale"));
+}
+
+// DebtPact loss produces relic debt penalty in Manager Report (integration)
+{
+  const gm = new GameManager();
+  gm.startRun(DifficultyLevel.Level0);
+  gm.continueFromScout();
+  const run = gm.currentRunState;
+  run.party.length = 0;
+  run.activeRelics.push(RelicId.DebtPact);
+  run.debt = 0;
+  gm.continueFromShop();
+  gm.continueFromFormation();
+  gm.selectPayrollAction(PayrollActionId.StandardPay);
+  gm.continueFromPayroll();
+  gm.resolveCombat(); // loses (no heroes)
+  check("report: DebtPact penalty line in Manager Report on loss",
+    run.latestManagerReportLines.some(l => l.includes("Debt Pact") && l.includes("debt")));
+}
+
+// BloodContract loss produces relic morale penalty in Manager Report (integration)
+{
+  const gm = new GameManager();
+  gm.startRun(DifficultyLevel.Level0);
+  gm.continueFromScout();
+  const run = gm.currentRunState;
+  run.party.length = 0;
+  run.activeRelics.push(RelicId.BloodContract);
+  run.morale = 20;
+  gm.continueFromShop();
+  gm.continueFromFormation();
+  gm.selectPayrollAction(PayrollActionId.StandardPay);
+  gm.continueFromPayroll();
+  gm.resolveCombat(); // loses (no heroes)
+  check("report: BloodContract penalty line in Manager Report on loss",
+    run.latestManagerReportLines.some(l => l.includes("Blood Contract") && l.includes("morale")));
+}
+
 // latestManagerReportLines populated on run after applyPostCombatResult
 {
   const gm = new GameManager();
