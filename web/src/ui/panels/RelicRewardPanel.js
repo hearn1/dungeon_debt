@@ -14,7 +14,7 @@ export class RelicRewardPanel {
     clear(this.root);
     const run = this.gm.currentRunState;
 
-    appendPanelHeader(this.root, "CONTRACT BONUS", "Choose a Relic Clause", "Benchmark cleared. Add one permanent clause to the guild ledger.");
+    appendPanelHeader(this.root, "CONTRACT BONUS", "Choose a Relic", "Benchmark cleared. Add one permanent relic to the guild.");
 
     const grid = el("div", { class: "card-grid" });
     for (const id of run.pendingRelicChoices) {
@@ -33,7 +33,7 @@ export class RelicRewardPanel {
       onClick: () => { this.gm.skipRelicReward(); this.onDirty?.(); },
     }, [
       el("div", { class: "d-name", text: `Skip — Take ${GameRules.RelicSkipGold} Gold` }),
-      el("div", { class: "d-desc", text: "Decline the clause. Receive gold instead." }),
+      el("div", { class: "d-desc", text: "Decline the relic. Receive gold instead." }),
     ]));
 
     this.root.appendChild(grid);

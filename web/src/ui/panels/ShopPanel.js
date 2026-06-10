@@ -21,7 +21,7 @@ export class ShopPanel {
     const run = this.gm.currentRunState;
     const shop = this.gm.shopManager;
 
-    appendPanelHeader(this.root, "RECRUITMENT", "Recruitment Office", `${run.gold} gold payroll cash · roster ${run.party.length}/${GameRules.MaxPartySize}`);
+    appendPanelHeader(this.root, "RECRUITMENT", "Recruitment Office", `Gold ${run.gold} · Roster ${run.party.length}/${GameRules.MaxPartySize}`);
 
     // Shop event area
     const ev = run.currentShopEvent;
@@ -29,7 +29,7 @@ export class ShopPanel {
       if (ev.eventId === ShopEventId.TaxAudit) {
         const eventArea = el("div", { class: "shop-event-area" });
         eventArea.appendChild(el("div", { class: "shop-event-badge", text: "Surprise Tax Audit" }));
-        eventArea.appendChild(el("div", { class: "panel-sub", text: "Settle " + GameRules.TaxAuditGoldCost + " gold from petty cash or let morale take the hit." }));
+        eventArea.appendChild(el("div", { class: "panel-sub", text: "Settle " + GameRules.TaxAuditGoldCost + " gold from reserves or let morale take the hit." }));
         const btnRow = el("div", { class: "shop-event-actions" });
         btnRow.appendChild(el("button", {
           class: "btn small", text: "Settle Audit (" + GameRules.TaxAuditGoldCost + "g)",
@@ -150,7 +150,7 @@ export class ShopPanel {
     } else if (run.gold <= 0) {
       btnText = "Need Gold to Pay Debt";
       disabled = true;
-      helperLines.push("Debt keeps generating interest after upkeep.");
+      helperLines.push("Debt keeps generating interest after wages.");
     } else {
       const debtAfter = run.debt - debtPayment;
       btnText = `Pay Debt: ${debtPayment}g (cap ${GameRules.DebtPaymentCap})`;

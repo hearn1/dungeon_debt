@@ -16,7 +16,7 @@ export class EndScreenPanel {
     this.root.className = `overlay ${victory ? "victory" : "defeat"}`;
 
     const moreActs = run && victory && run.act < GameRulesFns.totalActs;
-    appendPanelHeader(this.root, "FINAL LEDGER", victory ? "Guild Audit Closed" : "Guild Bankrupt", run ? `Cash ${run.gold} · Debt ${run.debt} · Morale ${run.morale}` : "");
+    appendPanelHeader(this.root, "FINAL LEDGER", victory ? "Guild Audit Closed" : "Guild Bankrupt", run ? `Gold ${run.gold} · Debt ${run.debt} · Morale ${run.morale}` : "");
 
     this.root.appendChild(el("h1", {
       class: "title",

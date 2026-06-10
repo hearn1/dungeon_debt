@@ -28,7 +28,7 @@ export class ScoutPanel {
     // Top cue strip — capstone signals a relic reward; rival fights show the guild.
     if (capstone) {
       this.root.appendChild(el("div", { class: "scout-cue capstone",
-        text: `★ CAPSTONE CLAUSE — choose 1 of ${GameRules.RelicChoiceCount} relic clauses after fulfillment` }));
+        text: `★ CAPSTONE RELIC — choose 1 of ${GameRules.RelicChoiceCount} relics after fulfillment` }));
     } else if (isRival) {
       const color = GameRulesFns.getRivalGuildColor(enc.rivalGuild);
       this.root.appendChild(el("div", { class: "scout-cue rival", style: { borderColor: color, color } },

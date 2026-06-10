@@ -44,7 +44,7 @@ export class RunHeader {
       ]),
       el("div", { class: "rh-spacer" }),
       el("div", { class: "rh-resources" }, [
-        resource(run.gold, "CASH", true),
+        resource(run.gold, "GOLD", true),
         resource(run.morale, "CREW MORALE", false),
       ]),
       this.debtChip(run.debt),
@@ -84,12 +84,12 @@ export class RunHeader {
     const bg = GameRulesFns.getDebtStatusBackgroundColor(debt);
     const statusLabel = GameRulesFns.getDebtStatusLabel(debt);
     const severityClass = statusLabel.toLowerCase();
-    const tooltip = "Interest is charged after upkeep: ceil(debt / interest divisor). Pay Debt in the Shop to reduce principal before the next fight.";
+    const tooltip = "Interest is charged after wages: ceil(debt / interest divisor). Pay Debt in the Shop to reduce principal before the next fight.";
 
     const children = [
       el("div", { class: "rh-debt-row" }, [
         el("div", { class: "rh-debt-val", text: String(debt), style: { color } }),
-        el("div", { class: "rh-debt-lbl", text: "LEDGER DEBT" }),
+        el("div", { class: "rh-debt-lbl", text: "DEBT" }),
       ]),
       el("div", { class: "rh-debt-tier", text: statusLabel.toUpperCase(), style: { color } }),
     ];
@@ -106,7 +106,7 @@ export class RunHeader {
   relicStrip(run) {
     const strip = el("div", { class: "rh-relics" });
     if (!run.activeRelics || run.activeRelics.length === 0) {
-      strip.appendChild(el("div", { class: "rh-relics-empty", text: "NO LEDGER CLAUSES" }));
+      strip.appendChild(el("div", { class: "rh-relics-empty", text: "NO RELICS" }));
       return strip;
     }
     for (const id of run.activeRelics) {

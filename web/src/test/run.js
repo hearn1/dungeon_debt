@@ -1495,7 +1495,7 @@ function makeCombatResult(overrides = {}) {
 {
   const run = makeRun({ latestUpkeepShortfall: 4 });
   const lines = buildManagerReportLines(run, makeCombatResult(), null);
-  check("report: upkeep shortfall line text", lines.some(l => l.includes("Upkeep exceeded cash on hand") && l.includes("+4 debt added")));
+  check("report: upkeep shortfall line text", lines.some(l => l.includes("Wages exceeded gold reserves") && l.includes("+4 debt added")));
 }
 
 // Interest rollover produces correct line
@@ -1516,7 +1516,7 @@ function makeCombatResult(overrides = {}) {
   const lines = buildManagerReportLines(run, makeCombatResult(), null);
   check("report: max 3 lines returned", lines.length === 3);
   check("report: priority 10 first", lines[0].includes("victory bonus missed"));
-  check("report: priority 20 second", lines[1].includes("Upkeep exceeded cash on hand"));
+  check("report: priority 20 second", lines[1].includes("Wages exceeded gold reserves"));
   check("report: priority 30 third", lines[2].includes("Interest could not be paid in full"));
 }
 

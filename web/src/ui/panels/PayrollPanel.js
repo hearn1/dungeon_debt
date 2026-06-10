@@ -13,8 +13,8 @@ const ACTION_PREVIEWS = {
     { label: "Risk",   value: "raises debt before the fight" },
   ],
   [PayrollActionId.CutWages]: [
-    { label: "Gold",   value: `saves up to ${GameRules.CutWagesUpkeepReduction} upkeep after combat` },
-    { label: "Debt",   value: "may prevent upkeep shortfall" },
+    { label: "Gold",   value: `saves up to ${GameRules.CutWagesUpkeepReduction} wages after combat` },
+    { label: "Debt",   value: "may prevent wage shortfall" },
     { label: "Morale", value: "no change" },
     { label: "Combat", value: `all heroes -${GameRules.CutWagesAttackPenalty} attack this fight` },
     { label: "Risk",   value: "lower combat power" },
@@ -48,7 +48,7 @@ export class PayrollPanel {
     const run = this.gm.currentRunState;
     this._selected = run.selectedPayrollAction ?? null;
 
-    appendPanelHeader(this.root, "PAYROLL", "Payroll Desk", "Choose this round's wage policy before the party enters danger.");
+    appendPanelHeader(this.root, "PAYROLL", "Payroll Desk", "Choose this round's payroll policy before the party enters danger.");
 
     const guidance = roundGuidanceCallout(run.round);
     if (guidance) this.root.appendChild(guidance);

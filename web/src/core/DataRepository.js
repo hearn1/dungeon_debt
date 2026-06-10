@@ -21,15 +21,15 @@ const C = CombatStatusId;
 const Warrior = new HeroDefinition("warrior", "Warrior", HeroRole.Tank, 2, 8, 2, "No effect.", HeroEffectId.None);
 const Knight = new HeroDefinition("knight", "Knight", HeroRole.Tank, 1, 10, 4, "Redirects the first backline hit each combat to himself.", HeroEffectId.KnightRedirect);
 const Golem = new HeroDefinition("golem", "Golem", HeroRole.Tank, 1, 14, 6, "Reduces incoming damage by 1.", HeroEffectId.GolemArmor);
-const Wizard = new HeroDefinition("wizard", "Wizard", HeroRole.Damage, 3, 4, 5, "Gains +1 attack when full upkeep is paid.", HeroEffectId.WizardScaling);
+const Wizard = new HeroDefinition("wizard", "Wizard", HeroRole.Damage, 3, 4, 5, "Gains +1 attack when full wages are paid.", HeroEffectId.WizardScaling);
 const Ninja = new HeroDefinition("ninja", "Ninja", HeroRole.Damage, 4, 3, 4, "Targets the lowest-HP enemy; +1 gold on each kill.", HeroEffectId.NinjaLowestTarget);
 const Ranger = new HeroDefinition("ranger", "Ranger", HeroRole.Damage, 3, 5, 3, "Can safely attack from the backline.", HeroEffectId.RangerBackline);
 const Priest = new HeroDefinition("priest", "Priest", HeroRole.Support, 1, 5, 4, "Heals frontmost ally for 2 each combat round.", HeroEffectId.PriestHeal);
 const Bard = new HeroDefinition("bard", "Bard", HeroRole.Support, 1, 4, 3, "+2 gold after each combat win.", HeroEffectId.BardGoldOnWin);
 const Enchanter = new HeroDefinition("enchanter", "Enchanter", HeroRole.Support, 1, 4, 3, "Adjacent Damage allies gain +1 attack this combat.", HeroEffectId.EnchanterAdjacent);
 const Squire = new HeroDefinition("squire", "Squire", HeroRole.Tank, 1, 4, 1, "No effect.", HeroEffectId.None);
-const Treasurer = new HeroDefinition("treasurer", "Treasurer", HeroRole.Economy, 0, 4, 2, "Reduces the highest-upkeep ally's upkeep by 2.", HeroEffectId.TreasurerUpkeepReduce);
-const Apprentice = new HeroDefinition("apprentice", "Apprentice", HeroRole.Economy, 1, 3, 1, "Reduces a Wizard ally's upkeep by 1.", HeroEffectId.ApprenticeWizardSupport);
+const Treasurer = new HeroDefinition("treasurer", "Treasurer", HeroRole.Economy, 0, 4, 2, "Reduces the highest-wage ally's wages by 2.", HeroEffectId.TreasurerUpkeepReduce);
+const Apprentice = new HeroDefinition("apprentice", "Apprentice", HeroRole.Economy, 1, 3, 1, "Reduces a Wizard ally's wages by 1.", HeroEffectId.ApprenticeWizardSupport);
 const Paladin = new HeroDefinition("paladin", "Paladin", HeroRole.Tank, 2, 14, 4, "Heals all living allies for 1 at the end of each combat round.", HeroEffectId.PaladinAuraHeal);
 const Cleric = new HeroDefinition("cleric", "Cleric", HeroRole.Support, 1, 8, 3, "Heals all living allies for 1 at the end of each combat round.", HeroEffectId.ClericGroupHeal);
 const Barbarian = new HeroDefinition("barbarian", "Barbarian", HeroRole.Damage, 2, 10, 3, "Gains +2 attack while at half health or below.", HeroEffectId.BarbarianRage);
@@ -45,13 +45,13 @@ const Slime = new EnemyDefinition("slime", "Slime", 1, 4, EnemyEffectId.None, "N
 const TrainingDummy = new EnemyDefinition("training_dummy", "Training Dummy", 0, 10, EnemyEffectId.None, "No effect.");
 const CaveBat = new EnemyDefinition("cave_bat", "Cave Bat", 2, 3, EnemyEffectId.None, "Starts Marked. Applies Burned on attack.", [C.Marked], [C.Burned]);
 const GoblinThief = new EnemyDefinition("goblin_thief", "Goblin Thief", 2, 4, EnemyEffectId.GoblinStealGold, "Applies Weakened on attack; steals gold if alive past combat round 3.", null, [C.Weakened]);
-const TaxCollector = new EnemyDefinition("tax_collector", "Tax Collector", 1, 8, EnemyEffectId.None, "Applies Weakened on attack. Encounter raises upkeep this round.", null, [C.Weakened]);
+const TaxCollector = new EnemyDefinition("tax_collector", "Tax Collector", 1, 8, EnemyEffectId.None, "Applies Weakened on attack. Encounter raises wages this round.", null, [C.Weakened]);
 const LazyInspector = new EnemyDefinition("lazy_inspector", "Lazy Inspector", 1, 8, EnemyEffectId.None, "Applies Weakened on attack.", null, [C.Weakened]);
 const BacklineBat = new EnemyDefinition("backline_bat", "Backline Bat", 3, 4, EnemyEffectId.BackBatBackline, "Starts Marked. Applies Burned on attack; attacks lowest-HP backline hero on combat round 2.", [C.Marked], [C.Burned]);
 const DebtWraith = new EnemyDefinition("debt_wraith", "Debt Wraith", 1, 10, EnemyEffectId.DebtWraithScales, "Applies Poisoned on attack. Attack scales with player debt at combat start.", null, [C.Poisoned]);
 const TreasureLeech = new EnemyDefinition("treasure_leech", "Treasure Leech", 1, 12, EnemyEffectId.TreasureLeechRewardDrain, "Applies Poisoned on attack. Reduces reward if alive at combat end.", null, [C.Poisoned]);
 const SplitTreasureLeech = new EnemyDefinition("split_treasure_leech", "Split Treasure Leech", 1, 8, EnemyEffectId.TreasureLeechRewardDrain, "Applies Poisoned on attack. Reduces reward if alive at combat end.", null, [C.Poisoned]);
-const DungeonAuditor = new EnemyDefinition("dungeon_auditor", "Dungeon Auditor", 3, 20, EnemyEffectId.DungeonAuditorBoss, "Starts Inspired and applies Burned on attack. Raises upkeep and deals periodic damage.", [C.Inspired], [C.Burned]);
+const DungeonAuditor = new EnemyDefinition("dungeon_auditor", "Dungeon Auditor", 3, 20, EnemyEffectId.DungeonAuditorBoss, "Starts Inspired and applies Burned on attack. Raises wages and deals periodic damage.", [C.Inspired], [C.Burned]);
 const GreedyTank = new EnemyDefinition("greedy_tank", "Greedy Tank", 3, 8, EnemyEffectId.None, "No effect.");
 const GreedyCarry = new EnemyDefinition("greedy_carry", "Greedy Carry", 4, 4, EnemyEffectId.None, "Starts Inspired and Marked.", [C.Inspired], [C.Marked]);
 const CarryProtector = new EnemyDefinition("carry_protector", "Carry Protector", 1, 10, EnemyEffectId.None, "Starts Guarded.", [C.Guarded]);
@@ -80,7 +80,7 @@ const GloomBat = createActEnemy(2, "gloom_bat", "Gloom Bat", 4, 6, EnemyEffectId
 const Act2DebtWraith = createActEnemy(2, "debt_wraith", "Debt Wraith", 2, 16, EnemyEffectId.DebtWraithScales, "Applies Poisoned on attack. Attack scales with player debt at combat start.", null, [C.Poisoned]);
 const HoardFiend = createActEnemy(2, "hoard_fiend", "Hoard Fiend", 2, 16, EnemyEffectId.TreasureLeechRewardDrain, "Applies Poisoned on attack. Reduces reward if alive at combat end.", null, [C.Poisoned]);
 const BrimstoneBrute = createActEnemy(2, "brimstone_brute", "Brimstone Brute", 6, 22, EnemyEffectId.None, "No effect.");
-const InfernalAuditor = createActEnemy(2, "infernal_auditor", "Infernal Auditor", 5, 30, EnemyEffectId.DungeonAuditorBoss, "Starts Inspired and applies Burned on attack. Raises upkeep and deals periodic damage.", [C.Inspired], [C.Burned]);
+const InfernalAuditor = createActEnemy(2, "infernal_auditor", "Infernal Auditor", 5, 30, EnemyEffectId.DungeonAuditorBoss, "Starts Inspired and applies Burned on attack. Raises wages and deals periodic damage.", [C.Inspired], [C.Burned]);
 
 // ---- Enemies (Act 3: The Mint) ----
 const Act3SlimeMint = createActEnemy(3, "act3-slime-mint", "Mint Slime", 2, 5, EnemyEffectId.None, "No effect.");
@@ -90,7 +90,7 @@ const Act3ImpMint = createActEnemy(3, "act3-imp-mint", "Mint Imp", 2, 5, EnemyEf
 const Act3SoulBrokerMint = createActEnemy(3, "act3-soul-broker-mint", "Mint Soul Broker", 2, 16, EnemyEffectId.TreasureLeechRewardDrain, "Applies Poisoned on attack. Reduces reward if alive at combat end.", null, [C.Poisoned]);
 const Act3BrimstoneMint = createActEnemy(3, "act3-brimstone-mint", "Minted Brimstone Brute", 6, 22, EnemyEffectId.None, "No effect.");
 const Act3InfernalAuditorMint = createActEnemy(3, "act3-infernal-auditor-mint", "Mint Infernal Auditor", 2, 16, EnemyEffectId.DebtWraithScales, "Applies Poisoned on attack. Attack scales with player debt at combat start.", null, [C.Poisoned]);
-const Act3Mintmaster = createActEnemy(3, "act3-mintmaster", "MintMaster", 5, 30, EnemyEffectId.DungeonAuditorBoss, "Starts Inspired and applies Burned on attack. Raises upkeep and deals periodic damage.", [C.Inspired], [C.Burned]);
+const Act3Mintmaster = createActEnemy(3, "act3-mintmaster", "MintMaster", 5, 30, EnemyEffectId.DungeonAuditorBoss, "Starts Inspired and applies Burned on attack. Raises wages and deals periodic damage.", [C.Inspired], [C.Burned]);
 
 // ---- Enemies (Act 4: The Vault) ----
 const Act4VaultSlime = createActEnemy(4, "act4-vault-slime", "Vault Slime", 2, 5, EnemyEffectId.None, "No effect.");
@@ -120,9 +120,9 @@ const EnemyDefinitions = [
 
 const PayrollActionDefinitions = [
   new PayrollActionDefinition(PayrollActionId.TakeLoan, "Take Operating Loan",
-    `Borrow now. +${GameRules.LoanGoldGain} gold and +${GameRules.LoanDebtCost} debt immediately. Use when you need a cash buffer before upkeep and interest resolve.`),
+    `Borrow now. +${GameRules.LoanGoldGain} gold and +${GameRules.LoanDebtCost} debt immediately. Use when you need a gold buffer before wages and interest resolve.`),
   new PayrollActionDefinition(PayrollActionId.CutWages, "Cut Wages",
-    `Cut payroll. Saves up to ${GameRules.CutWagesUpkeepReduction} upkeep after combat. All heroes fight at -${GameRules.CutWagesAttackPenalty} attack. Use when you cannot afford upkeep without weakening the party.`),
+    `Cut payroll. Saves up to ${GameRules.CutWagesUpkeepReduction} wages after combat. All heroes fight at -${GameRules.CutWagesAttackPenalty} attack. Use when you cannot afford wages without weakening the party.`),
   new PayrollActionDefinition(PayrollActionId.PromiseVictoryBonus, "Promise Victory Bonus",
     `Promise a win bonus. All heroes gain +${GameRules.VictoryBonusAttackBuff} attack this fight. On win: pay ${GameRules.VictoryBonusGoldCost} gold after reward (unpaid becomes debt). On loss: +${GameRules.VictoryBonusDebtOnLoss} debt. Use when you believe you can win with a damage spike.`),
   new PayrollActionDefinition(PayrollActionId.StandardPay, "Skip Payroll",
@@ -146,7 +146,7 @@ const EncounterDefinitions = [
   new EncounterDefinition(1, 1, EncounterType.Dungeon, "Slimes", "Simple enemies. Win by having enough basic stats.", "Basic stat check", [Slime, Slime, Slime], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None),
   new EncounterDefinition(1, 2, EncounterType.Dungeon, "Goblin Thieves", "If a Goblin Thief survives past combat round 3, lose 3 gold.", "Economy pressure", [GoblinThief, GoblinThief], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None),
   new EncounterDefinition(1, 3, EncounterType.RivalGhost, "Greedy Guild Ghost", "A reckless rival guild with expensive heroes. Strong now, but drowning in debt.", "Rival benchmark", [GreedyTank, GreedyTank, GreedyCarry], GameRules.WinReward, EncounterEffectId.None, RivalGuild.Greedy),
-  new EncounterDefinition(1, 4, EncounterType.Dungeon, "Tax Collector", "Your total upkeep is increased by 2 this round.", "Payroll pressure", [TaxCollector], GameRules.WinReward, EncounterEffectId.TaxCollectorUpkeep, RivalGuild.None),
+  new EncounterDefinition(1, 4, EncounterType.Dungeon, "Tax Collector", "Your total wages are increased by 2 this round.", "Payroll pressure", [TaxCollector], GameRules.WinReward, EncounterEffectId.TaxCollectorUpkeep, RivalGuild.None),
   new EncounterDefinition(1, 4, EncounterType.Dungeon, "Lazy Inspector", "A slower inspector skips the payroll audit but weakens whoever it hits.", "Status pressure", [LazyInspector], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None, "lazy_inspector"),
   new EncounterDefinition(1, 5, EncounterType.Dungeon, "Backline Bat", "Attacks your lowest-health backline hero on turn 2.", "Backline pressure", [BacklineBat, Slime], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None),
   new EncounterDefinition(1, 6, EncounterType.RivalGhost, "Carry Guild Ghost", "This rival protects a high-damage carry. Kill it quickly or survive the burst.", "Rival benchmark", [CarryProtector, CarryProtector, CarryCarry], GameRules.WinReward, EncounterEffectId.None, RivalGuild.Carry),
@@ -178,7 +178,7 @@ const EncounterDefinitions = [
   new EncounterDefinition(3, 7, EncounterType.Dungeon, "Mint Soul Broker", "If the Mint Soul Broker survives, your reward is reduced by 4 gold.", "Reward pressure", [Act3SoulBrokerMint, Act3ImpMint], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None),
   new EncounterDefinition(3, 8, EncounterType.Dungeon, "Minted Brimstone Brute", "A towering press guard. Heavy stress test before the final guild fight.", "Heavy dungeon", [Act3BrimstoneMint, Act3ImpMint, Act3ImpMint], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None),
   new EncounterDefinition(3, 9, EncounterType.RivalGhost, "Carry Guild Mint Rematch", "The Carry Guild shields a hardened champion among the counting engines.", "Rival benchmark", [Act3BrimstoneMint, Act3BrimstoneMint, Act3InfernalAuditorMint, Act3SoulBrokerMint], GameRules.WinReward, EncounterEffectId.None, RivalGuild.Carry),
-  new EncounterDefinition(3, 10, EncounterType.FinalBoss, "MintMaster", "Act 3 capstone. The MintMaster mints extra upkeep from your debt and scorches heroes every few rounds.", "Final boss", [Act3Mintmaster], GameRules.WinReward, EncounterEffectId.MintMasterOvermint, RivalGuild.None),
+  new EncounterDefinition(3, 10, EncounterType.FinalBoss, "MintMaster", "Act 3 capstone. The MintMaster mints extra wages from your debt and scorches heroes every few rounds.", "Final boss", [Act3Mintmaster], GameRules.WinReward, EncounterEffectId.MintMasterOvermint, RivalGuild.None),
 
   new EncounterDefinition(4, 1, EncounterType.Dungeon, "Vault Slime Lockbox", "The Vault hardens simple slimes into sealed ledgers.", "Basic stat check", [Act4VaultSlime, Act4VaultSlime, Act4VaultImp], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None),
   new EncounterDefinition(4, 2, EncounterType.Dungeon, "Vault Coiners", "If a Vault Coiner survives past combat round 3, lose 3 gold.", "Economy pressure", [Act4VaultCoiner, Act4VaultImp], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None),
