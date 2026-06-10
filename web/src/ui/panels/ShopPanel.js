@@ -1,6 +1,6 @@
 import { el, clear } from "../dom.js";
 import { GameRules, GameRulesFns } from "../../core/GameRules.js";
-import { heroCard, appendPanelHeader, roundGuidanceCallout } from "../components.js";
+import { heroCard, appendPanelHeader } from "../components.js";
 import { HeroTier, ShopEventId } from "../../data/enums.js";
 
 export class ShopPanel {
@@ -95,8 +95,6 @@ export class ShopPanel {
       }
       offers.appendChild(cardContainer);
     });
-    const guidance = roundGuidanceCallout(run.round);
-    if (guidance) this.root.appendChild(guidance);
     this.root.appendChild(sectionTitle("Candidate Pool"));
     this.root.appendChild(offers);
 
