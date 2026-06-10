@@ -202,8 +202,8 @@ const DifficultyMutatorDefinitions = [
   new MutatorDefinition(
     "HigherInterest",
     "Higher Interest",
-    "Interest divisor becomes 4.",
-    (settings) => { settings.interestDivisor = 4; },
+    "Interest on debt is charged at a higher rate (divisor 2).",
+    (settings) => { settings.interestDivisor = 2; },
   ),
   new MutatorDefinition(
     "LowerDebtLimit",
