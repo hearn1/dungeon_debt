@@ -885,7 +885,7 @@ console.log("Run-flow test");
   check("victorybonus-afford: gold not spent upfront", run.gold === 0);
 }
 
-// ---- Payroll: Skip Payroll is a no-op ----
+// ---- Payroll: Standard Payroll is a no-op ----
 {
   const gm = new GameManager();
   gm.startRun(DifficultyLevel.Level0);
@@ -898,11 +898,11 @@ console.log("Run-flow test");
   const debtBefore = run.debt;
   gm.selectPayrollAction(PayrollActionId.StandardPay);
   gm.continueFromPayroll();
-  check("skippayroll: gold unchanged", run.gold === goldBefore);
-  check("skippayroll: debt unchanged", run.debt === debtBefore);
-  check("skippayroll: entered Combat", gm.currentState === GameState.Combat);
+  check("standardpay: gold unchanged", run.gold === goldBefore);
+  check("standardpay: debt unchanged", run.debt === debtBefore);
+  check("standardpay: entered Combat", gm.currentState === GameState.Combat);
   gm.resolveCombat();
-  check("skippayroll: summary is no-op", run.latestPayrollSummary.includes("skipped"));
+  check("standardpay: summary is no-op", run.latestPayrollSummary.includes("Standard payroll"));
 }
 
 // ---- Payroll: CutWages reduces total upkeep ----

@@ -124,9 +124,9 @@ const PayrollActionDefinitions = [
   new PayrollActionDefinition(PayrollActionId.CutWages, "Cut Wages",
     `Cut payroll. Saves up to ${GameRules.CutWagesUpkeepReduction} wages after combat. All heroes fight at -${GameRules.CutWagesAttackPenalty} attack. Use when you cannot afford wages without weakening the party.`),
   new PayrollActionDefinition(PayrollActionId.PromiseVictoryBonus, "Promise Victory Bonus",
-    `Promise a win bonus. All heroes gain +${GameRules.VictoryBonusAttackBuff} attack this fight. On win: pay ${GameRules.VictoryBonusGoldCost} gold after reward (unpaid becomes debt). On loss: +${GameRules.VictoryBonusDebtOnLoss} debt. Use when you believe you can win with a damage spike.`),
-  new PayrollActionDefinition(PayrollActionId.StandardPay, "Skip Payroll",
-    `Safe default. No gold change, no debt, no stat change. Use when you are stable and need no extra risk.`),
+    `All heroes gain +${GameRules.VictoryBonusAttackBuff} attack this fight. Win: pay ${GameRules.VictoryBonusGoldCost} gold after reward (unpaid→debt). Lose: +${GameRules.VictoryBonusDebtOnLoss} debt. Use when a damage spike secures the win.`),
+  new PayrollActionDefinition(PayrollActionId.StandardPay, "Standard Payroll",
+    `No bonus. No penalty. No gold change, no debt, no stat change. Use when you are stable and need no extra risk.`),
 ];
 
 const RelicDefinitions = [

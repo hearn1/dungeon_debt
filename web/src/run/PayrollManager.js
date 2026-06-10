@@ -79,7 +79,7 @@ export class PayrollManager {
 
       case PayrollActionId.StandardPay:
       default:
-        runState.latestPayrollSummary = "Payroll skipped. No payroll risk taken.";
+        runState.latestPayrollSummary = "Standard payroll applied. No bonus. No penalty.";
         break;
     }
   }
