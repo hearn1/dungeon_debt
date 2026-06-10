@@ -307,7 +307,7 @@ export class MainMenuPanel {
           ["normal", "fast"],
           ["Normal", "Fast"],
           Settings.animationSpeed,
-          (v) => Settings.setAnimationSpeed(v),
+          (v) => this.gm.setAnimationSpeed(v),
         ),
         this._buildSettingRow(
           "Reduced Motion",
@@ -315,7 +315,7 @@ export class MainMenuPanel {
           ["false", "true"],
           ["Off", "On"],
           String(Settings.reducedMotion),
-          (v) => Settings.setReducedMotion(v === "true"),
+          (v) => this.gm.setReducedMotion(v === "true"),
         ),
       ]),
       el("div", { class: "tutorial-footer" }, [
