@@ -1,6 +1,6 @@
 import { el, clear } from "../dom.js";
 import { GameRules } from "../../core/GameRules.js";
-import { heroCard, appendPanelHeader, roundGuidanceCallout } from "../components.js";
+import { heroCard, appendPanelHeader } from "../components.js";
 
 export class FormationPanel {
   constructor(gm) {
@@ -24,9 +24,6 @@ export class FormationPanel {
 
     const backline = el("div", { class: "slot-row" });
     for (let s = GameRules.FrontlineSlots; s < GameRules.MaxPartySize; s++) backline.appendChild(this.slot(s, bySlot.get(s)));
-
-    const guidance = roundGuidanceCallout(run.round);
-    if (guidance) this.root.appendChild(guidance);
 
     this.root.appendChild(el("div", { class: "formation" }, [
       el("div", { class: "formation-zone" }, [

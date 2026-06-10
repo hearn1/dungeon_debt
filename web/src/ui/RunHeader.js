@@ -94,12 +94,6 @@ export class RunHeader {
       el("div", { class: "rh-debt-tier", text: statusLabel.toUpperCase(), style: { color } }),
     ];
 
-    if (severityClass === "dangerous") {
-      children.push(el("div", { class: "rh-debt-warning", text: "Interest pressure is shaping this run. Pay down principal in Shop when you can." }));
-    } else if (severityClass === "critical") {
-      children.push(el("div", { class: "rh-debt-warning critical", text: "Bankruptcy is close. Pay Debt before taking more financial risk." }));
-    }
-
     return el("div", { class: `rh-debt ${severityClass}`, style: { background: bg, borderColor: color }, title: tooltip }, children);
   }
 
