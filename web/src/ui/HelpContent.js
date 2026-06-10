@@ -7,7 +7,7 @@ const CONTENT = {
   },
   [GameState.Shop]: {
     title: "Shop / Recruitment",
-    body: "Spend cash to sign new adventurers or promote matching ones. Hiring expands your roster, but every adventurer adds wage pressure. Reroll refreshes candidates. Pay Debt converts spare cash into lower ledger debt.",
+    body: "Spend gold to sign new adventurers or promote matching ones. Hiring expands your roster, but every adventurer adds wage pressure. Reroll refreshes candidates. Pay Debt converts spare gold into lower debt.",
   },
   [GameState.Formation]: {
     title: "Formation",
@@ -15,15 +15,15 @@ const CONTENT = {
   },
   [GameState.Payroll]: {
     title: "Payroll",
-    body: "Payroll is your pre-combat risk decision. Standard Payroll is safe. Taking a loan gives cash now but adds debt. Cutting wages lowers current costs but weakens the party. Posting a victory bonus costs cash now for temporary combat power.",
+    body: "Payroll is your pre-combat risk decision. Standard Payroll is safe. Taking a loan gives gold now but adds debt. Cutting wages lowers current costs but weakens the party. Posting a victory bonus costs gold now for temporary combat power.",
   },
   [GameState.Combat]: {
     title: "Combat / Report",
     body: "Combat is automatic. Your formation, roster, payroll choice, and enemy matchup determine the result. After combat, the ledger applies payout, wages, debt interest, morale changes, and staff development.",
   },
   [GameState.RelicReward]: {
-    title: "Ledger Clause",
-    body: "Choose one ledger clause to add a permanent benefit for the rest of the run. Each clause modifies a guild mechanic in a different way.",
+    title: "Relic",
+    body: "Choose one relic to add a permanent benefit for the rest of the run. Each relic modifies a guild mechanic in a different way.",
   },
   [GameState.RivalUpdate]: {
     title: "Rival Update",

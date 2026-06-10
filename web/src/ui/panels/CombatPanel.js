@@ -287,7 +287,7 @@ export class CombatPanel {
     }
 
     summary.appendChild(row("Contract payout", `+${run.latestRewardGold}`, "pos"));
-    if (run.latestRelicRewardGold > 0) summary.appendChild(row("  (relic clause)", `+${run.latestRelicRewardGold}`, "pos"));
+    if (run.latestRelicRewardGold > 0) summary.appendChild(row("  (relic bonus)", `+${run.latestRelicRewardGold}`, "pos"));
     if (run.latestMoraleChange !== 0) summary.appendChild(row("Morale adjustment", `${run.latestMoraleChange}`, "neg"));
     summary.appendChild(row("Wages paid", `−${run.latestUpkeepPaid} / ${run.latestTotalUpkeep}`));
     if (run.latestUpkeepShortfall > 0) summary.appendChild(row("Wage shortfall → debt", `+${run.latestUpkeepShortfall}`, "neg"));
@@ -296,7 +296,7 @@ export class CombatPanel {
     if (run.latestPayrollSummary) summary.appendChild(row("Payroll policy", run.latestPayrollSummary));
     if (run.latestVeterancySummary) summary.appendChild(row("Staff development", run.latestVeterancySummary));
     summary.appendChild(el("hr", { style: { border: "none", borderTop: "1px solid var(--rule)" } }));
-    summary.appendChild(row("Cash on hand", String(run.gold)));
+    summary.appendChild(row("Gold", String(run.gold)));
 
     const debtStatusBefore = run.latestDebtStatusBefore;
     const debtStatusAfter = GameRulesFns.getDebtStatusLabel(run.debt);
@@ -305,7 +305,7 @@ export class CombatPanel {
       : debtStatusAfter;
     const isHighDebt = GameRulesFns.isHighDebtPressure(run.debt);
     const debtStatusCls = isHighDebt ? "neg" : "";
-    summary.appendChild(row("Ledger debt", String(run.debt)));
+    summary.appendChild(row("Debt", String(run.debt)));
     summary.appendChild(row("Debt status", debtStatusText, debtStatusCls));
     if (isHighDebt) {
       summary.appendChild(el("div", { class: "summary-debt-hint", text: "Interest pressure is high. Use Pay Debt in Shop to reduce principal." }));

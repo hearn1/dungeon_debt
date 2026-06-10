@@ -12,7 +12,7 @@ export function buildManagerReportLines(run, combatResult, encounter, maxLines =
 
   // Priority 20: Upkeep shortfall
   if (run.latestUpkeepShortfall > 0) {
-    lines.push(`Upkeep exceeded cash on hand. +${run.latestUpkeepShortfall} debt added.`);
+    lines.push(`Wages exceeded gold reserves. +${run.latestUpkeepShortfall} debt added.`);
     if (lines.length >= maxLines) return lines;
   }
 

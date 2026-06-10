@@ -189,7 +189,7 @@ export class MainMenuPanel {
       { num: "1", head: "Review the Contract", body: "Scout the next fight, enemy roster, and payout before spending." },
       { num: "2", head: "Recruit Adventurers", body: "Use gold to sign new heroes, promote duplicates, reroll candidates, or pay down debt." },
       { num: "3", head: "Set Formation", body: "Frontline slots are targeted first. Put durable heroes up front and fragile damage/support heroes in back." },
-      { num: "4", head: "Choose Payroll", body: "Standard pay is safe. Loans give cash but add debt. Cutting wages saves money but weakens the party. Victory bonuses cost cash for temporary power." },
+      { num: "4", head: "Choose Payroll", body: "Standard pay is safe. Loans give gold but add debt. Cutting wages saves money but weakens the party. Victory bonuses cost gold for temporary power." },
       { num: "5", head: "Watch Combat Resolve", body: "Combat is automatic. Your roster, formation, payroll choice, and matchup decide the result." },
       { num: "6", head: "Read the Ledger", body: "After combat, rewards are paid, wages are charged, debt interest applies, and morale may change." },
     ];
