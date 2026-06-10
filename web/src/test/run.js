@@ -62,12 +62,12 @@ console.log("Run-flow test");
 
   const level2 = runManager.initializeRun(DifficultyLevel.Level2, 70);
   check("difficulty: level 2 keeps level 1 gold", level2.gold === GameRules.StartingGold - 3);
-  check("difficulty: level 2 applies HigherInterest", level2.interestDivisor === 4);
+  check("difficulty: level 2 applies HigherInterest", level2.interestDivisor === 2);
   check("difficulty: level 2 keeps baseline debt limit", level2.debtLimit === GameRules.DebtLimit);
 
   const level3 = runManager.initializeRun(DifficultyLevel.Level3, 70);
   check("difficulty: level 3 keeps level 1 gold", level3.gold === GameRules.StartingGold - 3);
-  check("difficulty: level 3 keeps level 2 interest", level3.interestDivisor === 4);
+  check("difficulty: level 3 keeps level 2 interest", level3.interestDivisor === 2);
   check("difficulty: level 3 applies LowerDebtLimit", level3.debtLimit === GameRules.DebtLimit - 5);
 
   let threw = false;
@@ -122,47 +122,47 @@ console.log("Run-flow test");
     {
       level: DifficultyLevel.Level2,
       ids: ["LessStartingGold", "HigherInterest"],
-      descriptions: ["-3 starting gold.", "Interest divisor becomes 4."],
+      descriptions: ["-3 starting gold.", "Interest on debt is charged at a higher rate (divisor 2)."],
     },
     {
       level: DifficultyLevel.Level3,
       ids: ["LessStartingGold", "HigherInterest", "LowerDebtLimit"],
-      descriptions: ["-3 starting gold.", "Interest divisor becomes 4.", "-5 debt limit."],
+      descriptions: ["-3 starting gold.", "Interest on debt is charged at a higher rate (divisor 2).", "-5 debt limit."],
     },
     {
       level: DifficultyLevel.Level4,
       ids: ["LessStartingGold", "HigherInterest", "LowerDebtLimit", "InitialDebt"],
-      descriptions: ["-3 starting gold.", "Interest divisor becomes 4.", "-5 debt limit.", "Start the run with +3 debt."],
+      descriptions: ["-3 starting gold.", "Interest on debt is charged at a higher rate (divisor 2).", "-5 debt limit.", "Start the run with +3 debt."],
     },
     {
       level: DifficultyLevel.Level5,
       ids: ["LessStartingGold", "HigherInterest", "LowerDebtLimit", "InitialDebt", "ReducedMorale"],
-      descriptions: ["-3 starting gold.", "Interest divisor becomes 4.", "-5 debt limit.", "Start the run with +3 debt.", "-5 starting morale."],
+      descriptions: ["-3 starting gold.", "Interest on debt is charged at a higher rate (divisor 2).", "-5 debt limit.", "Start the run with +3 debt.", "-5 starting morale."],
     },
     {
       level: DifficultyLevel.Level6,
       ids: ["LessStartingGold", "HigherInterest", "LowerDebtLimit", "InitialDebt", "ReducedMorale", "ReducedReward"],
-      descriptions: ["-3 starting gold.", "Interest divisor becomes 4.", "-5 debt limit.", "Start the run with +3 debt.", "-5 starting morale.", "Combat win rewards reduced by 2 gold."],
+      descriptions: ["-3 starting gold.", "Interest on debt is charged at a higher rate (divisor 2).", "-5 debt limit.", "Start the run with +3 debt.", "-5 starting morale.", "Combat win rewards reduced by 2 gold."],
     },
     {
       level: DifficultyLevel.Level7,
       ids: ["LessStartingGold", "HigherInterest", "LowerDebtLimit", "InitialDebt", "ReducedMorale", "ReducedReward", "CostlyRerolls"],
-      descriptions: ["-3 starting gold.", "Interest divisor becomes 4.", "-5 debt limit.", "Start the run with +3 debt.", "-5 starting morale.", "Combat win rewards reduced by 2 gold.", "Shop rerolls cost 1 extra gold."],
+      descriptions: ["-3 starting gold.", "Interest on debt is charged at a higher rate (divisor 2).", "-5 debt limit.", "Start the run with +3 debt.", "-5 starting morale.", "Combat win rewards reduced by 2 gold.", "Shop rerolls cost 1 extra gold."],
     },
     {
       level: DifficultyLevel.Level8,
       ids: ["LessStartingGold", "HigherInterest", "LowerDebtLimit", "InitialDebt", "ReducedMorale", "ReducedReward", "CostlyRerolls", "SlowerGrowth"],
-      descriptions: ["-3 starting gold.", "Interest divisor becomes 4.", "-5 debt limit.", "Start the run with +3 debt.", "-5 starting morale.", "Combat win rewards reduced by 2 gold.", "Shop rerolls cost 1 extra gold.", "Heroes earn 1 less veterancy XP per combat."],
+      descriptions: ["-3 starting gold.", "Interest on debt is charged at a higher rate (divisor 2).", "-5 debt limit.", "Start the run with +3 debt.", "-5 starting morale.", "Combat win rewards reduced by 2 gold.", "Shop rerolls cost 1 extra gold.", "Heroes earn 1 less veterancy XP per combat."],
     },
     {
       level: DifficultyLevel.Level9,
       ids: ["LessStartingGold", "HigherInterest", "LowerDebtLimit", "InitialDebt", "ReducedMorale", "ReducedReward", "CostlyRerolls", "SlowerGrowth", "TougherEnemies"],
-      descriptions: ["-3 starting gold.", "Interest divisor becomes 4.", "-5 debt limit.", "Start the run with +3 debt.", "-5 starting morale.", "Combat win rewards reduced by 2 gold.", "Shop rerolls cost 1 extra gold.", "Heroes earn 1 less veterancy XP per combat.", "Enemies have 15% more HP."],
+      descriptions: ["-3 starting gold.", "Interest on debt is charged at a higher rate (divisor 2).", "-5 debt limit.", "Start the run with +3 debt.", "-5 starting morale.", "Combat win rewards reduced by 2 gold.", "Shop rerolls cost 1 extra gold.", "Heroes earn 1 less veterancy XP per combat.", "Enemies have 15% more HP."],
     },
     {
       level: DifficultyLevel.Level10,
       ids: ["LessStartingGold", "HigherInterest", "LowerDebtLimit", "InitialDebt", "ReducedMorale", "ReducedReward", "CostlyRerolls", "SlowerGrowth", "TougherEnemies", "BrutalContract"],
-      descriptions: ["-3 starting gold.", "Interest divisor becomes 4.", "-5 debt limit.", "Start the run with +3 debt.", "-5 starting morale.", "Combat win rewards reduced by 2 gold.", "Shop rerolls cost 1 extra gold.", "Heroes earn 1 less veterancy XP per combat.", "Enemies have 15% more HP.", "Heroes have 15% less HP and deal 15% less damage; enemies deal 15% more damage."],
+      descriptions: ["-3 starting gold.", "Interest on debt is charged at a higher rate (divisor 2).", "-5 debt limit.", "Start the run with +3 debt.", "-5 starting morale.", "Combat win rewards reduced by 2 gold.", "Shop rerolls cost 1 extra gold.", "Heroes earn 1 less veterancy XP per combat.", "Enemies have 15% more HP.", "Heroes have 15% less HP and deal 15% less damage; enemies deal 15% more damage."],
     },
   ];
 
