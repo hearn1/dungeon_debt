@@ -35,7 +35,8 @@ export class ShopManager {
     if (!run || run.gold < rerollCost) return false;
     run.gold -= rerollCost;
     run.rerollCount += 1;
-    this._fillAllOffers();
+    run.currentShopEvent = null;
+    this._fillAllOffers(true);
     return true;
   }
 
@@ -98,7 +99,7 @@ export class ShopManager {
     return true;
   }
 
-  _fillAllOffers() {
+  _fillAllOffers(skipEvent) {
     this._currentOffers.length = 0;
 
     const rng = this._runManager ? this._runManager.rng : null;
@@ -151,8 +152,8 @@ export class ShopManager {
       this._currentOffers.push(new ShopOffer(picked, hireCost, tier));
     }
 
-    // M17 — Roll a shop event (~20%).
-    this._rollShopEvent(run);
+    // M17 — Roll a shop event (~20%). Skip on reroll.
+    if (!skipEvent) this._rollShopEvent(run);
   }
 
   _rollShopEvent(run) {
