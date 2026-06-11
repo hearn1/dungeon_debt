@@ -158,6 +158,11 @@ export const GameRules = Object.freeze({
   RivalMoraleDebtPenalty: 2,
 
   CombatTurnLimit: 10,
+  // Tick-based simulation constants (issues #164/#170/#171/#172/#173).
+  CombatTicksPerRound: 4,
+  DefaultAttackIntervalTicks: 4,
+  DefaultMeleeRange: 1,
+  DefaultRangedRange: 99,
   MinimumPositiveCombatStat: 1,
   GuardedDamageDivisor: 2,
   BurnedAttackPenalty: 1,
