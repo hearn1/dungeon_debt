@@ -1,10 +1,13 @@
-// Ported from DungeonDebt/Assets/Scripts/Combat/CombatManager.cs
 import { CombatResult } from "../data/CombatResult.js";
-import { CombatLogger } from "./CombatLogger.js";
 import { CombatUnit } from "../data/CombatUnit.js";
+import { CombatUnitState } from "../data/CombatUnitState.js";
+import { CombatMatch } from "./CombatMatch.js";
+import { CombatTeam } from "./CombatTeam.js";
+import { CombatBoard } from "./CombatBoard.js";
+import { CombatLogger } from "./CombatLogger.js";
 import { HeroEffects } from "./HeroEffects.js";
 import { GameRules, GameRulesFns } from "../core/GameRules.js";
-import { HeroRole, RelicId, CombatStatusId, EncounterType } from "../data/enums.js";
+import { HeroRole, RelicId, CombatStatusId, EncounterType, HeroEffectId } from "../data/enums.js";
 import { getScaledHeroMaxHealth, getRelicAttackBonus, hasRelic } from "../run/heroStats.js";
 
 export class CombatManager {
@@ -17,12 +20,13 @@ export class CombatManager {
   startCombat(run, encounter) {
     const result = new CombatResult();
     const logger = new CombatLogger();
-    const playerUnits = buildPlayerUnits(run);
-    const enemyUnits = buildEnemyUnits(run, encounter);
 
     this._run = run;
     this._knightRedirectsRemaining = 0;
     this._redInkBrandApplied = false;
+
+    const playerUnits = buildPlayerUnits(run);
+    const enemyUnits = buildEnemyUnits(run, encounter);
 
     this._knightRedirectsRemaining = HeroEffects.onCombatStart(run, encounter, playerUnits, enemyUnits, logger);
     applyCombatStartRelicStatuses(run, playerUnits, logger);
@@ -47,36 +51,76 @@ export class CombatManager {
       return result;
     }
 
-    for (let combatRound = 1; combatRound <= GameRules.CombatTurnLimit; combatRound++) {
-      this._resolveSideActions(playerUnits, enemyUnits, combatRound, logger);
-      if (!hasLivingUnits(enemyUnits)) {
-        result.playerWon = true;
-        result.combatRoundsElapsed = combatRound;
-        logger.logFinalResult(true);
-        this._finishResult(result, playerUnits, enemyUnits, logger);
-        return result;
+    // Build the match container used by the tick loop.
+    const playerTeam = new CombatTeam(true, playerUnits);
+    const enemyTeam = new CombatTeam(false, enemyUnits);
+    const board = new CombatBoard(playerTeam, enemyTeam);
+    const match = new CombatMatch(playerTeam, enemyTeam, board);
+
+    // Timing is seeded by the build functions; ensure all units start ready at tick 0.
+    for (const u of match.allUnits) {
+      u.nextAttackAt = 0;
+    }
+
+    const maxTicks = GameRules.CombatTurnLimit * GameRules.CombatTicksPerRound;
+
+    for (let tick = 0; tick < maxTicks; tick++) {
+      match.currentTick = tick;
+      const currentRound = Math.floor(tick / GameRules.CombatTicksPerRound) + 1;
+
+      // Fire end-of-round effects when crossing a round boundary.
+      if (tick > 0 && tick % GameRules.CombatTicksPerRound === 0) {
+        const roundJustEnded = currentRound - 1;
+        HeroEffects.onEndOfCombatRound(roundJustEnded, run, encounter, playerUnits, enemyUnits, result, logger);
+        result.combatRoundsElapsed = roundJustEnded;
+
+        if (!playerTeam.hasLiving) {
+          result.playerWon = false;
+          result.combatRoundsElapsed = roundJustEnded;
+          logger.logFinalResult(false);
+          this._finishResult(result, playerUnits, enemyUnits, logger);
+          return result;
+        }
       }
 
-      this._resolveSideActions(enemyUnits, playerUnits, combatRound, logger);
-      if (!hasLivingUnits(playerUnits)) {
-        result.playerWon = false;
-        result.combatRoundsElapsed = combatRound;
-        logger.logFinalResult(false);
-        this._finishResult(result, playerUnits, enemyUnits, logger);
-        return result;
+      // Collect units ready to act this tick and execute in deterministic order.
+      const readyUnits = match.allUnits.filter(u => u.isAlive && u.nextAttackAt <= tick);
+      readyUnits.sort(combatActionOrder);
+
+      for (const unit of readyUnits) {
+        if (!unit.isAlive) continue; // may have died earlier this tick
+
+        let target = findTarget(unit, match.oppositeTeam(unit).units, currentRound);
+        if (!target) continue;
+
+        // Knight redirect only applies when an enemy hits a player backline hero.
+        if (!unit.isPlayerSide) {
+          const redirect = HeroEffects.tryRedirectToKnight(target, playerUnits, this._knightRedirectsRemaining, logger);
+          target = redirect.target;
+          this._knightRedirectsRemaining = redirect.remaining;
+          if (!target) continue;
+        }
+
+        HeroEffects.onAttack(unit, target, logger);
+        this._applyAttack(unit, target, logger);
+        unit.nextAttackAt = tick + unit.attackIntervalTicks;
+
+        if (!enemyTeam.hasLiving) {
+          result.playerWon = true;
+          result.combatRoundsElapsed = currentRound;
+          logger.logFinalResult(true);
+          this._finishResult(result, playerUnits, enemyUnits, logger);
+          return result;
+        }
+
+        if (!playerTeam.hasLiving) {
+          result.playerWon = false;
+          result.combatRoundsElapsed = currentRound;
+          logger.logFinalResult(false);
+          this._finishResult(result, playerUnits, enemyUnits, logger);
+          return result;
+        }
       }
-
-      HeroEffects.onEndOfCombatRound(combatRound, run, encounter, playerUnits, enemyUnits, result, logger);
-
-      if (!hasLivingUnits(playerUnits)) {
-        result.playerWon = false;
-        result.combatRoundsElapsed = combatRound;
-        logger.logFinalResult(false);
-        this._finishResult(result, playerUnits, enemyUnits, logger);
-        return result;
-      }
-
-      result.combatRoundsElapsed = combatRound;
     }
 
     result.playerWon = false;
@@ -84,26 +128,6 @@ export class CombatManager {
     logger.logFinalResult(false);
     this._finishResult(result, playerUnits, enemyUnits, logger);
     return result;
-  }
-
-  _resolveSideActions(attackers, defenders, combatRound, logger) {
-    for (const attacker of attackers) {
-      if (!attacker.isAlive) continue;
-
-      let defender = findTarget(attacker, defenders, combatRound);
-      if (!defender) return;
-
-      // Knight redirect only applies when an enemy hits a player backline hero.
-      if (!attacker.isPlayerSide) {
-        const redirect = HeroEffects.tryRedirectToKnight(defender, defenders, this._knightRedirectsRemaining, logger);
-        defender = redirect.target;
-        this._knightRedirectsRemaining = redirect.remaining;
-        if (!defender) return;
-      }
-
-      HeroEffects.onAttack(attacker, defender, logger);
-      this._applyAttack(attacker, defender, logger);
-    }
   }
 
   _applyAttack(attacker, defender, logger) {
@@ -183,7 +207,9 @@ export class CombatManager {
   }
 }
 
-function buildPlayerUnits(run) {
+// --- Unit construction ---------------------------------------------------------
+
+export function buildPlayerUnits(run) {
   const playerUnits = [];
   if (!run) return playerUnits;
 
@@ -193,7 +219,10 @@ function buildPlayerUnits(run) {
     const maxHealth = getScaledHeroMaxHealth(hero, run);
     const attack = GameRulesFns.scaleCombatStat(hero.attack, run.heroDamageMultiplier)
       + getRelicAttackBonus(run, hero);
-    const unit = new CombatUnit(hero.definition.displayName, attack, maxHealth, maxHealth, true, hero.formationSlot, hero, null);
+    const unitId = `p${hero.formationSlot}`;
+    const unit = new CombatUnitState(unitId, hero.definition.displayName, attack, maxHealth, maxHealth, true, hero.formationSlot, hero, null);
+    unit.attackIntervalTicks = resolveAttackInterval(unit);
+    unit.attackRange = resolveAttackRange(unit);
     if (critSlots.includes(hero.formationSlot)) {
       unit.statuses.add(CombatStatusId.CritCharged);
     }
@@ -204,7 +233,7 @@ function buildPlayerUnits(run) {
   return playerUnits;
 }
 
-function buildEnemyUnits(run, encounter) {
+export function buildEnemyUnits(run, encounter) {
   const enemyUnits = [];
   if (!encounter) return enemyUnits;
 
@@ -219,7 +248,10 @@ function buildEnemyUnits(run, encounter) {
       GameRulesFns.scaleCombatStat(enemy.health, run ? run.enemyHealthMultiplier : GameRules.NoCombatMultiplier),
       raceScale.health,
     );
-    const unit = new CombatUnit(enemy.displayName, attack, health, health, false, i, null, enemy);
+    const unitId = `e${i}`;
+    const unit = new CombatUnitState(unitId, enemy.displayName, attack, health, health, false, i, null, enemy);
+    unit.attackIntervalTicks = resolveAttackInterval(unit);
+    unit.attackRange = resolveAttackRange(unit);
     for (const status of enemy.startingStatuses) {
       unit.statuses.add(status);
     }
@@ -230,17 +262,36 @@ function buildEnemyUnits(run, encounter) {
   return enemyUnits;
 }
 
-function getRivalRaceScale(encounter) {
-  if (!encounter || encounter.type !== EncounterType.RivalGhost) {
-    return { attack: GameRules.NoCombatMultiplier, health: GameRules.NoCombatMultiplier };
-  }
+// --- Timing helpers -----------------------------------------------------------
 
-  const lead = Math.max(0, encounter.rivalLead || 0);
-  return {
-    attack: 1 + Math.min(GameRules.RivalRaceAttackLeadCap, GameRules.RivalRaceAttackLeadFactor * lead),
-    health: 1 + Math.min(GameRules.RivalRaceHpLeadCap, GameRules.RivalRaceHpLeadFactor * lead),
-  };
+function resolveAttackInterval(unit) {
+  // All units share the default interval in the MVP. Later issues may specialise this
+  // per definition for heroes/enemies with different attack speeds.
+  return GameRules.DefaultAttackIntervalTicks;
 }
+
+function resolveAttackRange(unit) {
+  if (!unit.sourceHero || !unit.sourceHero.definition) return GameRules.DefaultMeleeRange;
+  // Ranger and Ninja are designated ranged units in the MVP slot model.
+  const effectId = unit.sourceHero.definition.effectId;
+  if (effectId === HeroEffectId.RangerBackline || effectId === HeroEffectId.NinjaLowestTarget) {
+    return GameRules.DefaultRangedRange;
+  }
+  return GameRules.DefaultMeleeRange;
+}
+
+// Sort comparator: lower nextAttackAt first, then player-side first (tie-break only),
+// then lower slot, then unitId lexicographic order for full stability.
+function combatActionOrder(a, b) {
+  if (a.nextAttackAt !== b.nextAttackAt) return a.nextAttackAt - b.nextAttackAt;
+  if (a.isPlayerSide !== b.isPlayerSide) return a.isPlayerSide ? -1 : 1;
+  if (a.slot !== b.slot) return a.slot - b.slot;
+  if (a.unitId < b.unitId) return -1;
+  if (a.unitId > b.unitId) return 1;
+  return 0;
+}
+
+// --- Target selection ---------------------------------------------------------
 
 function findTarget(attacker, defenders, combatRound) {
   const overridden = HeroEffects.overrideTarget(attacker, defenders, combatRound);
@@ -260,6 +311,8 @@ function findLeftmostLivingUnit(units, minSlot, maxSlot) {
   }
   return bestTarget;
 }
+
+// --- Relic / status helpers ---------------------------------------------------
 
 function applyCombatStartRelicStatuses(run, playerUnits, logger) {
   if (!hasRelic(run, RelicId.ShieldClause)) return;
@@ -366,6 +419,8 @@ function applyStatusDamage(unit, statusId, damage, logger) {
   }
 }
 
+// --- Shared unit utilities ---------------------------------------------------
+
 function hasLivingUnits(units) {
   for (const unit of units) {
     if (unit.isAlive) return true;
@@ -388,4 +443,16 @@ function sortUnitsBySlot(units) {
     if (a.slot > b.slot) return 1;
     return 0;
   });
+}
+
+function getRivalRaceScale(encounter) {
+  if (!encounter || encounter.type !== EncounterType.RivalGhost) {
+    return { attack: GameRules.NoCombatMultiplier, health: GameRules.NoCombatMultiplier };
+  }
+
+  const lead = Math.max(0, encounter.rivalLead || 0);
+  return {
+    attack: 1 + Math.min(GameRules.RivalRaceAttackLeadCap, GameRules.RivalRaceAttackLeadFactor * lead),
+    health: 1 + Math.min(GameRules.RivalRaceHpLeadCap, GameRules.RivalRaceHpLeadFactor * lead),
+  };
 }
