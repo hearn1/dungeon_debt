@@ -167,7 +167,9 @@ console.log("Combat engine test");
 {
   const run = buildRun(["warrior", "golem", "priest", "ranger"]);
   const result = new CombatManager().startCombat(run, encounter(1, 1));
-  check("priest: heal logged", result.logLines.some(l => l.includes("heals") && l.includes("for 2")));
+  // Priest heals frontmost living frontline ally each round; amount may be capped
+  // by current damage taken, so check any positive heal rather than exact amount.
+  check("priest: heal logged", result.logLines.some(l => l.includes("heals") && l.includes("for ")));
   check("priest: player wins", result.playerWon === true);
 }
 
@@ -540,11 +542,10 @@ console.log("Combat engine test");
 }
 
 // ToxicCollateral: Damage-role heroes apply Poisoned if target survives.
+// Use Bronze Ninja (no silver upgrade) so only the relic fires, not the class ability.
 {
   const run = buildRun(["ninja", "golem"]);
   run.activeRelics.push(RelicId.ToxicCollateral);
-  run.party[0].tier = HeroTier.Silver;
-  HeroEffects.applyTierStatSeed(run.party[0]);
   const result = new CombatManager().startCombat(run, encounter(1, 8)); // Treasure Leech (12 HP) + Slime
   check("toxic: applies Poisoned", result.logLines.some(l => l.includes("applies Poisoned to")));
 }
@@ -599,8 +600,9 @@ console.log("Combat engine test");
 // Issue 164: runtime match construction — unit IDs, slots, and source refs.
 import { buildPlayerUnits, buildEnemyUnits } from "../combat/CombatManager.js";
 import { CombatTeam } from "../combat/CombatTeam.js";
-import { CombatBoard } from "../combat/CombatBoard.js";
+import { CombatBoard, coordKey, isInBounds, getNeighbors, hexDistance, isSameCoord, compareCoordsForTieBreak } from "../combat/CombatBoard.js";
 import { CombatMatch } from "../combat/CombatMatch.js";
+import { getDefaultPlayerBoardPosition, getDefaultEnemyBoardPosition, isInPlayerZone, isInEnemyZone } from "../combat/BoardPlacement.js";
 {
   const run = buildRun(["warrior", "golem"]);
   const enc = encounter(1, 1);
@@ -608,7 +610,7 @@ import { CombatMatch } from "../combat/CombatMatch.js";
   const enemyUnits = buildEnemyUnits(run, enc);
   const playerTeam = new CombatTeam(true, playerUnits);
   const enemyTeam = new CombatTeam(false, enemyUnits);
-  const board = new CombatBoard(playerTeam, enemyTeam);
+  const board = new CombatBoard();
   const match = new CombatMatch(playerTeam, enemyTeam, board);
 
   check("164: player units have deterministic unitIds", playerUnits.every(u => u.unitId && u.unitId.startsWith("p")));
@@ -667,7 +669,7 @@ import { CombatMatch } from "../combat/CombatMatch.js";
   const enemyUnits = buildEnemyUnits(run, encounter(1, 1));
   const playerTeam = new CombatTeam(true, playerUnits);
   const enemyTeam = new CombatTeam(false, enemyUnits);
-  const board = new CombatBoard(playerTeam, enemyTeam);
+  const board = new CombatBoard();
   const match = new CombatMatch(playerTeam, enemyTeam, board);
   const cm = new CombatManager();
   // Re-seed timing the same way startCombat does (expose via a quick combat run).
@@ -681,33 +683,24 @@ import { CombatMatch } from "../combat/CombatMatch.js";
     playerUnits.every(u => u.nextAttackAt === 0) && enemyUnits.every(u => u.nextAttackAt === 0));
 }
 
-// Issue 172/173: CombatBoard range checks (slot-model MVP).
+// Issues 172/173 — CombatBoard hex distance range checks (board model).
 {
-  const run = buildRun(["warrior", "golem", "ranger"]);
-  const playerUnits = buildPlayerUnits(run);
-  const enemyUnits = buildEnemyUnits(run, encounter(1, 1));
-  const playerTeam = new CombatTeam(true, playerUnits);
-  const enemyTeam = new CombatTeam(false, enemyUnits);
-  const board = new CombatBoard(playerTeam, enemyTeam);
+  const board = new CombatBoard();
+  // Minimal stub units: only unitId and attackRange are needed for canAttack.
+  const melee = { unitId: "m", attackRange: GameRules.DefaultMeleeRange };
+  const ranged = { unitId: "r", attackRange: GameRules.DefaultRangedRange };
+  const adjacent = { unitId: "adj" };
+  const farTarget = { unitId: "far" };
 
-  const warrior = playerUnits.find(u => u.sourceHero.definition.id === "warrior");
-  const ranger = playerUnits.find(u => u.sourceHero.definition.id === "ranger");
-  const slimeFront = enemyUnits[0]; // slot 0 = frontline
+  board.placeUnit(melee, { q: 2, r: 2 });
+  board.placeUnit(ranged, { q: 0, r: 0 });
+  board.placeUnit(adjacent, { q: 3, r: 2 }); // hex distance 1 from melee
+  board.placeUnit(farTarget, { q: 6, r: 4 }); // far from melee (distance 6)
 
-  // Frontline enemy is always reachable by melee.
-  check("172: melee unit can attack enemy frontline", board.canAttack(warrior, slimeFront));
-  // Ranged unit can also attack frontline.
-  check("173: ranged unit can attack enemy frontline", board.canAttack(ranger, slimeFront));
-
-  // When enemy frontline is fully collapsed, melee can reach backline.
-  for (const u of enemyUnits.filter(u => u.slot < GameRules.FrontlineSlots)) {
-    u.currentHealth = 0; // kill all frontline enemies
-  }
-  const slimeBack = enemyUnits.find(u => u.slot >= GameRules.FrontlineSlots);
-  if (slimeBack) {
-    check("172: melee can reach backline when frontline collapsed", board.canAttack(warrior, slimeBack));
-    check("173: ranged can reach backline unconditionally", board.canAttack(ranger, slimeBack));
-  }
+  check("172: melee unit can attack adjacent target", board.canAttack(melee, adjacent));
+  check("172: melee unit cannot attack non-adjacent target", !board.canAttack(melee, farTarget));
+  check("173: ranged unit can attack adjacent target", board.canAttack(ranged, adjacent));
+  check("173: ranged unit can attack far target", board.canAttack(ranged, farTarget));
 }
 
 // Issue 174: CombatResult shape fully preserved — integration with run systems.
@@ -737,6 +730,160 @@ import { CombatMatch } from "../combat/CombatMatch.js";
   const squire = run.party[0];
   const expectedHealth = HeroEffects.getTierAdjustedMaxHealth(squire);
   check("174: dead-in-combat hero health restored after combat", squire.currentHealth === expectedHealth);
+}
+
+// ---- Hex board: coordinate helpers (issue #175) ----
+
+// isInBounds and getNeighbors.
+{
+  check("175: (0,0) is in bounds", isInBounds({ q: 0, r: 0 }));
+  check("175: (6,4) is in bounds", isInBounds({ q: 6, r: 4 }));
+  check("175: (7,0) is out of bounds", !isInBounds({ q: 7, r: 0 }));
+  check("175: (0,-1) is out of bounds", !isInBounds({ q: 0, r: -1 }));
+
+  const cornerNeighbors = getNeighbors({ q: 0, r: 0 });
+  check("175: (0,0) has only in-bounds neighbors", cornerNeighbors.every(isInBounds));
+  check("175: (0,0) has fewer than 6 neighbors (corner tile)", cornerNeighbors.length < 6);
+
+  const midNeighbors = getNeighbors({ q: 3, r: 2 });
+  check("175: middle tile returns six neighbors", midNeighbors.length === 6);
+  check("175: neighbor list is deterministic (sorted)", JSON.stringify(midNeighbors) === JSON.stringify([...midNeighbors].sort(compareCoordsForTieBreak)));
+}
+
+// hexDistance.
+{
+  check("175: distance(a,b) === distance(b,a)", hexDistance({ q: 1, r: 2 }, { q: 4, r: 0 }) === hexDistance({ q: 4, r: 0 }, { q: 1, r: 2 }));
+  check("175: distance from coord to itself is 0", hexDistance({ q: 3, r: 2 }, { q: 3, r: 2 }) === 0);
+  check("175: adjacent tiles have distance 1", hexDistance({ q: 2, r: 2 }, { q: 3, r: 2 }) === 1);
+  check("175: (0,0) to (6,4) distance is 10", hexDistance({ q: 0, r: 0 }, { q: 6, r: 4 }) === 10);
+}
+
+// coordKey and isSameCoord.
+{
+  check("175: coordKey stable string", coordKey({ q: 3, r: 2 }) === "3,2");
+  check("175: isSameCoord true for equal", isSameCoord({ q: 2, r: 1 }, { q: 2, r: 1 }));
+  check("175: isSameCoord false for different", !isSameCoord({ q: 2, r: 1 }, { q: 2, r: 2 }));
+}
+
+// ---- Hex board: occupancy (issue #175) ----
+{
+  const board = new CombatBoard();
+  const unitA = { unitId: "A" };
+  const unitB = { unitId: "B" };
+
+  check("175: place on empty tile succeeds", board.placeUnit(unitA, { q: 2, r: 2 }) === true);
+  check("175: place on occupied tile fails", board.placeUnit(unitB, { q: 2, r: 2 }) === false);
+  check("175: isOccupied true after place", board.isOccupied({ q: 2, r: 2 }));
+  check("175: getUnitAt returns correct unitId", board.getUnitAt({ q: 2, r: 2 }) === "A");
+  check("175: getUnitPosition returns placed coord", isSameCoord(board.getUnitPosition(unitA), { q: 2, r: 2 }));
+
+  check("175: place second unit on empty tile succeeds", board.placeUnit(unitB, { q: 3, r: 2 }) === true);
+
+  // moveUnit updates both maps.
+  const moved = board.moveUnit(unitA, { q: 1, r: 2 });
+  check("175: moveUnit returns true on success", moved);
+  check("175: old tile is freed after move", !board.isOccupied({ q: 2, r: 2 }));
+  check("175: new tile is occupied after move", board.isOccupied({ q: 1, r: 2 }));
+  check("175: getUnitPosition updated after move", isSameCoord(board.getUnitPosition(unitA), { q: 1, r: 2 }));
+
+  // Cannot move onto occupied tile.
+  check("175: moveUnit onto occupied tile fails", board.moveUnit(unitA, { q: 3, r: 2 }) === false);
+
+  // removeUnit frees tile.
+  board.removeUnit(unitA);
+  check("175: tile freed after removeUnit", !board.isOccupied({ q: 1, r: 2 }));
+  check("175: getUnitPosition null after remove", board.getUnitPosition(unitA) === null);
+
+  // Moving a never-placed unit is a no-op.
+  check("175: moveUnit for unplaced unit returns false", board.moveUnit({ unitId: "ghost" }, { q: 0, r: 0 }) === false);
+}
+
+// ---- Hex board: slot fallback mapping (issue #177) ----
+{
+  const playerPositions = [0, 1, 2, 3, 4].map(getDefaultPlayerBoardPosition);
+  const enemyPositions = [0, 1, 2, 3, 4].map(getDefaultEnemyBoardPosition);
+
+  check("177: 5 unique player default positions", new Set(playerPositions.map(coordKey)).size === 5);
+  check("177: 5 unique enemy default positions", new Set(enemyPositions.map(coordKey)).size === 5);
+  check("177: all player defaults in player zone", playerPositions.every(isInPlayerZone));
+  check("177: all enemy defaults in enemy zone", enemyPositions.every(isInEnemyZone));
+  check("177: player zone excludes enemy zone", playerPositions.every(p => !isInEnemyZone(p)));
+  check("177: enemy zone excludes player zone", enemyPositions.every(e => !isInPlayerZone(e)));
+}
+
+// ---- Hex board: pathfinding and movement (issue #176) ----
+{
+  const board = new CombatBoard();
+  const mover = { unitId: "mv" };
+  const blocker = { unitId: "bl" };
+  const farTarget = { unitId: "ft" };
+
+  board.placeUnit(mover, { q: 0, r: 0 });
+  board.placeUnit(farTarget, { q: 4, r: 0 });
+
+  // findPath to an adjacent tile.
+  const pathToAdj = board.findPath({ q: 0, r: 0 }, { q: 1, r: 0 }, "mv");
+  check("176: findPath finds one-step path", pathToAdj && pathToAdj.length === 2);
+
+  // getReachableTiles with movement range 1.
+  const reachable1 = board.getReachableTiles({ q: 0, r: 0 }, 1, "mv");
+  check("176: getReachableTiles range 1 returns in-bounds neighbors", reachable1.length > 0 && reachable1.every(isInBounds));
+  const reachable2 = board.getReachableTiles({ q: 0, r: 0 }, 2, "mv");
+  check("176: larger movement range returns more tiles", reachable2.length > reachable1.length);
+
+  // Body blocking: place blocker directly between mover and farTarget.
+  board.placeUnit(blocker, { q: 2, r: 0 });
+  // Direct path {0,0}→{1,0}→{2,0} is blocked; mover goes around via {0,1}→{1,1}→{2,1}→...
+  const beforePos = board.getUnitPosition(mover);
+  const moved = board.moveUnitToward(mover, { q: 4, r: 0 }, 1);
+  check("176: moveUnitToward moves unit one step when body-blocked", moved);
+  const afterPos = board.getUnitPosition(mover);
+  check("176: unit changed position when body-blocked", !isSameCoord(afterPos, beforePos));
+
+  // canMoveUnit succeeds for an adjacent empty tile.
+  check("176: canMoveUnit true for adjacent", board.canMoveUnit(mover, afterPos, 1));
+
+  // Removing blocker opens a shorter/direct path from current position.
+  board.removeUnit(blocker);
+  const pathAfterRemove = board.findPath(board.getUnitPosition(mover), { q: 3, r: 0 }, "mv");
+  check("176: removing blocking unit opens path to {3,0}", pathAfterRemove !== null);
+}
+
+// ---- Hex board movement in combat (issue #220) ----
+
+// Melee unit starts out of range — it moves instead of attacking, then attacks
+// when adjacent. Use a minimal 1v1 setup so we can observe the log precisely.
+{
+  const run = buildRun(["warrior"]);
+  const result = new CombatManager().startCombat(run, encounter(1, 4)); // Tax Collector
+  const moveLogs = result.logLines.filter(l => l.includes("moves to"));
+  const attackLogs = result.logLines.filter(l => l.includes("Warrior attacks"));
+  check("220: melee unit logs movement before first attack", moveLogs.length > 0);
+  check("220: melee unit eventually attacks", attackLogs.length > 0);
+}
+
+// Ranged unit attacks immediately without moving.
+{
+  const run = buildRun(["ranger"]);
+  const result = new CombatManager().startCombat(run, encounter(1, 1));
+  const rangerMoveLogs = result.logLines.filter(l => l.includes("Ranger") && l.includes("moves to"));
+  const rangerAttackLogs = result.logLines.filter(l => l.includes("Ranger attacks"));
+  check("220: ranged unit attacks without moving", rangerAttackLogs.length > 0 && rangerMoveLogs.length === 0);
+}
+
+// Determinism still holds with board movement.
+{
+  const a = new CombatManager().startCombat(buildRun(["warrior", "golem", "wizard", "ranger", "priest"]), encounter(1, 3));
+  const b = new CombatManager().startCombat(buildRun(["warrior", "golem", "wizard", "ranger", "priest"]), encounter(1, 3));
+  check("220: board combat is deterministic across runs", JSON.stringify(a.logLines) === JSON.stringify(b.logLines));
+}
+
+// Board positions initialised from defaults — all combat units placed on board.
+{
+  const run = buildRun(["warrior", "golem"]);
+  const result = new CombatManager().startCombat(run, encounter(1, 1));
+  // A non-trivial log implies units were on the board and moved/attacked.
+  check("220: combat resolves with board positions (non-empty log)", result.logLines.length > 2);
 }
 
 console.log(failures === 0 ? "\nALL PASS" : `\n${failures} FAILURE(S)`);

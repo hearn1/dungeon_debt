@@ -9,6 +9,7 @@ import { HeroEffects } from "./HeroEffects.js";
 import { GameRules, GameRulesFns } from "../core/GameRules.js";
 import { HeroRole, RelicId, CombatStatusId, EncounterType, HeroEffectId } from "../data/enums.js";
 import { getScaledHeroMaxHealth, getRelicAttackBonus, hasRelic } from "../run/heroStats.js";
+import { resolvePlayerBoardPosition, resolveEnemyBoardPosition } from "./BoardPlacement.js";
 
 export class CombatManager {
   constructor() {
@@ -54,7 +55,8 @@ export class CombatManager {
     // Build the match container used by the tick loop.
     const playerTeam = new CombatTeam(true, playerUnits);
     const enemyTeam = new CombatTeam(false, enemyUnits);
-    const board = new CombatBoard(playerTeam, enemyTeam);
+    const board = new CombatBoard();
+    initBoardPositions(board, playerUnits, enemyUnits, encounter);
     const match = new CombatMatch(playerTeam, enemyTeam, board);
 
     // Timing is seeded by the build functions; ensure all units start ready at tick 0.
@@ -83,6 +85,11 @@ export class CombatManager {
         }
       }
 
+      // Remove dead units from board before pathfinding so they don't block movement.
+      for (const unit of match.allUnits) {
+        if (!unit.isAlive) match.board.removeUnit(unit);
+      }
+
       // Collect units ready to act this tick and execute in deterministic order.
       const readyUnits = match.allUnits.filter(u => u.isAlive && u.nextAttackAt <= tick);
       readyUnits.sort(combatActionOrder);
@@ -101,8 +108,25 @@ export class CombatManager {
           if (!target) continue;
         }
 
-        HeroEffects.onAttack(unit, target, logger);
-        this._applyAttack(unit, target, logger);
+        if (match.board.canAttack(unit, target)) {
+          // Target is in range: attack.
+          HeroEffects.onAttack(unit, target, logger);
+          this._applyAttack(unit, target, logger);
+          // Remove killed units from board immediately so same-tick pathfinding is unblocked.
+          if (!target.isAlive) match.board.removeUnit(target);
+          if (!unit.isAlive) match.board.removeUnit(unit);
+        } else {
+          // Target is out of range: move one step toward it.
+          const targetPos = match.board.getUnitPosition(target);
+          if (targetPos) {
+            const moved = match.board.moveUnitToward(unit, targetPos, GameRules.DefaultMovementRange);
+            if (moved && logger) {
+              const newPos = match.board.getUnitPosition(unit);
+              logger.logMessage(`${unit.displayName} moves to (${newPos.q},${newPos.r}).`);
+            }
+          }
+        }
+
         unit.nextAttackAt = tick + unit.attackIntervalTicks;
 
         if (!enemyTeam.hasLiving) {
@@ -204,6 +228,19 @@ export class CombatManager {
     copyUnitSnapshots(enemyUnits, result.enemyFinalUnits);
     logger.copyTo(result.logLines);
     logger.copyReplayTo(result.replayEvents);
+  }
+}
+
+// --- Board initialisation ------------------------------------------------------
+
+function initBoardPositions(board, playerUnits, enemyUnits, encounter) {
+  for (const unit of playerUnits) {
+    const pos = resolvePlayerBoardPosition(unit.sourceHero || { boardPosition: null, formationSlot: unit.slot });
+    board.placeUnit(unit, pos);
+  }
+  for (let i = 0; i < enemyUnits.length; i++) {
+    const pos = resolveEnemyBoardPosition(encounter, i);
+    board.placeUnit(enemyUnits[i], pos);
   }
 }
 
