@@ -645,9 +645,12 @@ html[data-reduced-motion="true"] *::after {
   background: rgba(201, 160, 74, 0.10); border-color: var(--gold); color: var(--gold);
 }
 .scout-cue.rival { background: var(--bg-card); }
-.round-guidance { background: rgba(201, 160, 74, 0.07); border: 1px solid rgba(201, 160, 74, 0.25); border-radius: 6px; padding: 10px 14px; margin-bottom: 14px; }
-.round-guidance-label { font-size: 11px; letter-spacing: 1.5px; color: var(--gold); text-transform: uppercase; display: block; margin-bottom: 4px; }
-.round-guidance-text { font-size: 13px; color: var(--ink-dim); margin: 0; line-height: 1.5; }
+.round-guidance { background: rgba(201, 160, 74, 0.07); border: 1px solid rgba(201, 160, 74, 0.25); border-radius: 6px; padding: 8px 12px; margin-bottom: 12px; }
+.round-guidance-head { display: flex; justify-content: space-between; align-items: center; }
+.round-guidance-label { font-size: 11px; letter-spacing: 1.5px; color: var(--gold); text-transform: uppercase; display: block; }
+.round-guidance-dismiss { background: none; border: none; color: var(--ink-dim); cursor: pointer; font-size: 14px; padding: 0 2px; line-height: 1; }
+.round-guidance-dismiss:hover { color: var(--ink); }
+.round-guidance-text { font-size: 13px; color: var(--ink-dim); margin: 4px 0 0 0; line-height: 1.5; }
 .scout-race-actions { margin-top: 16px; display: flex; flex-direction: column; gap: 6px; }
 .scout-race-header { font-size: 13px; letter-spacing: 1px; color: var(--gold); margin-bottom: 2px; }
 .scout-race-actions .btn { align-self: flex-start; }

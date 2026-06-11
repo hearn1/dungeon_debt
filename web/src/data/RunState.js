@@ -62,6 +62,9 @@ export class RunState {
     this.rerollCostModifier = 0;
     this.veteranXpModifier = 0;
 
+    // Track which rounds' guidance callouts have been dismissed this run.
+    this.seenGuidanceRounds = new Set();
+
     // M17 shop event state, cleared each shop visit.
     this.currentShopEvent = null;
     this.pendingNextRewardBonus = 0;
