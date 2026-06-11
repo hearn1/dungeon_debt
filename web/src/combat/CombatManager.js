@@ -10,6 +10,8 @@ import { GameRules, GameRulesFns } from "../core/GameRules.js";
 import { HeroRole, RelicId, CombatStatusId, EncounterType, HeroEffectId } from "../data/enums.js";
 import { getScaledHeroMaxHealth, getRelicAttackBonus, hasRelic } from "../run/heroStats.js";
 import { resolvePlayerBoardPosition, resolveEnemyBoardPosition } from "./BoardPlacement.js";
+import { selectTarget } from "./TargetingRules.js";
+import { getBasicAttackMode } from "./RoleBehavior.js";
 
 export class CombatManager {
   constructor() {
@@ -97,7 +99,7 @@ export class CombatManager {
       for (const unit of readyUnits) {
         if (!unit.isAlive) continue; // may have died earlier this tick
 
-        let target = findTarget(unit, match.oppositeTeam(unit).units, currentRound);
+        let target = findTarget(unit, match, currentRound);
         if (!target) continue;
 
         // Knight redirect only applies when an enemy hits a player backline hero.
@@ -330,16 +332,18 @@ function combatActionOrder(a, b) {
 
 // --- Target selection ---------------------------------------------------------
 
-function findTarget(attacker, defenders, combatRound) {
-  const overridden = HeroEffects.overrideTarget(attacker, defenders, combatRound);
+function findTarget(unit, match, combatRound) {
+  // Round-conditioned overrides (BackBat, etc.) stay in HeroEffects for now.
+  const overridden = HeroEffects.overrideTarget(unit, match.oppositeTeam(unit).units, combatRound);
   if (overridden) return overridden;
 
-  const frontlineTarget = findLeftmostLivingUnit(defenders, 0, GameRules.FrontlineSlots - 1);
-  if (frontlineTarget) return frontlineTarget;
-
-  return findLeftmostLivingUnit(defenders, GameRules.FrontlineSlots, GameRules.MaxPartySize - 1);
+  const mode = getBasicAttackMode(unit);
+  const target = selectTarget({ actor: unit, match, mode, currentTargetUnitId: unit.currentTargetUnitId });
+  if (target) unit.currentTargetUnitId = target.unitId;
+  return target;
 }
 
+// Slot-range helper kept for relic/status helpers that still use formation ordering.
 function findLeftmostLivingUnit(units, minSlot, maxSlot) {
   let bestTarget = null;
   for (const unit of units) {

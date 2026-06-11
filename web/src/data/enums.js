@@ -95,3 +95,13 @@ export const CombatStatusId = makeEnum(
   "Inspired",
   "CritCharged",
 );
+
+export const TargetingMode = makeEnum(
+  "NearestEnemy",
+  "LowestHealthEnemy",
+  "HighestAttackEnemy",
+  "FurthestEnemy",
+  "LowestHealthAlly",
+  "Self",
+  "CurrentTargetOrNearestEnemy",
+);
