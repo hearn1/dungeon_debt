@@ -60,8 +60,13 @@ export class ScoutPanel {
     card.appendChild(enemies);
     this.root.appendChild(card);
 
-    const guidance = roundGuidanceCallout(run.round);
-    if (guidance) this.root.appendChild(guidance);
+    if (!run.seenGuidanceRounds.has(run.round)) {
+      const guidance = roundGuidanceCallout(run.round, () => {
+        run.seenGuidanceRounds.add(run.round);
+        guidance.remove();
+      });
+      if (guidance) this.root.appendChild(guidance);
+    }
 
     const raceActions = el("div", { class: "scout-race-actions" });
     const progress = run.playerRaceProgress;

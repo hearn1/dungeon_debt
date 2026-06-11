@@ -70,17 +70,27 @@ export function appendPanelHeader(root, kicker, title, sub = "") {
 }
 
 const ROUND_HINTS = {
-  1: "Start simple: hire at least one adventurer, place them in formation, and use Standard Payroll if unsure.",
-  2: "Watch wages and debt. More adventurers make combat safer but increase payroll pressure.",
-  3: "Promotion and formation start to matter. Frontline protects backline, but some enemies can bypass it.",
+  1: "Hire an adventurer, assign them to a formation slot, and choose Standard Payroll.",
+  2: "More adventurers improve combat safety but increase wage pressure.",
+  3: "Promotions and formation positioning become critical. Frontline protects backline.",
 };
 
-// Returns a guidance callout element for rounds 1–3, or null for later rounds.
-export function roundGuidanceCallout(round) {
+// Returns a dismissible guidance callout element for rounds 1–3, or null for later rounds.
+// onDismiss is called when the user clicks the dismiss button.
+export function roundGuidanceCallout(round, onDismiss) {
   const hint = ROUND_HINTS[round];
   if (!hint) return null;
+  const dismissBtn = el("button", {
+    class: "round-guidance-dismiss",
+    text: "✕",
+    title: "Dismiss",
+    onClick: () => onDismiss?.(),
+  });
   return el("div", { class: "round-guidance" }, [
-    el("span", { class: "round-guidance-label", text: `Round ${round} Brief` }),
+    el("div", { class: "round-guidance-head" }, [
+      el("span", { class: "round-guidance-label", text: `Round ${round} Brief` }),
+      dismissBtn,
+    ]),
     el("p", { class: "round-guidance-text", text: hint }),
   ]);
 }
