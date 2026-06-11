@@ -180,14 +180,7 @@ export const HeroEffects = {
       if (best) return best;
     }
 
-    // Ninja: lowest-HP living enemy (ties: leftmost slot).
-    if (attacker.isPlayerSide
-      && attacker.sourceHero
-      && attacker.sourceHero.definition
-      && attacker.sourceHero.definition.effectId === HeroEffectId.NinjaLowestTarget) {
-      const best = findLowestHpInSlotRange(defenders, 0, Number.MAX_SAFE_INTEGER);
-      if (best) return best;
-    }
+    // Ninja targeting is now data-driven via RoleBehavior.getBasicAttackMode.
 
     return null;
   },

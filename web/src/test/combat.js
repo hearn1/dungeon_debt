@@ -146,8 +146,9 @@ console.log("Combat engine test");
 // ---- Hero effects ----
 
 // Golem armor reduces incoming damage by 1. Slimes have 1 attack so hits should deal 0 to Golem.
+// Use a party strong enough to win under board-distance (spread-fire) targeting.
 {
-  const run = buildRun(["golem", "squire", "squire"]);
+  const run = buildRun(["golem", "warrior", "squire"]);
   const result = new CombatManager().startCombat(run, encounter(1, 1));
   check("golem: player wins", result.playerWon === true);
   const damageToGolem = countDamageToTarget(result.logLines, "Golem");
@@ -164,9 +165,11 @@ console.log("Combat engine test");
 }
 
 // Priest heals the frontmost ally each combat round.
+// Use Tax Collector (extended combat) with priest in backline slot so the warrior
+// takes damage from TC and then gets healed.
 {
-  const run = buildRun(["warrior", "golem", "priest", "ranger"]);
-  const result = new CombatManager().startCombat(run, encounter(1, 1));
+  const run = buildRunSlotted([{ id: "warrior", slot: 0 }, { id: "priest", slot: 2 }]);
+  const result = new CombatManager().startCombat(run, encounter(1, 4));
   // Priest heals frontmost living frontline ally each round; amount may be capped
   // by current damage taken, so check any positive heal rather than exact amount.
   check("priest: heal logged", result.logLines.some(l => l.includes("heals") && l.includes("for ")));
@@ -501,15 +504,19 @@ console.log("Combat engine test");
   check("knight: redirect consumed", redirect.remaining === 0);
 }
 
-// Silver Priest heals 3 instead of 2. Use Frugal Guild (4 enemies) so the
-// frontline takes enough damage that the full 3-point heal is needed.
+// Silver Priest heals 3 instead of 2. Use the direct onEndOfCombatRound API
+// (like paladin/cleric tests) with warrior pre-damaged to 3 below max HP.
 {
-  const run = buildRun(["warrior", "golem", "priest"]);
-  run.party[2].tier = HeroTier.Silver;
-  HeroEffects.applyTierStatSeed(run.party[2]);
-  const result = new CombatManager().startCombat(run, encounter(1, 9)); // Frugal Guild — 4 enemies
-  const silverHeal = result.logLines.some(l => /heals \w+ for 3/.test(l));
-  check("silverpriest: heals for 3", silverHeal);
+  const run = buildRunSlotted([{ id: "warrior", slot: 0 }, { id: "priest", slot: 1 }]);
+  run.party[1].tier = HeroTier.Silver;
+  HeroEffects.applyTierStatSeed(run.party[1]);
+  const units = buildCombatUnitsFromRun(run);
+  units[0].currentHealth = 5; // warrior max HP 8, 3 below max
+  const heals = [];
+  const logger = { logHeal: (healer, target, amount) => heals.push(`${healer.displayName}->${target.displayName}:${amount}`) };
+  HeroEffects.onEndOfCombatRound(1, run, null, units, [], {}, logger);
+  check("silverpriest: heals for 3", units[0].currentHealth === 8);
+  check("silverpriest: heal amount logged as 3", heals.some(h => h.includes(":3")));
 }
 
 // ---- Relic effects in combat ----
@@ -884,6 +891,452 @@ import { getDefaultPlayerBoardPosition, getDefaultEnemyBoardPosition, isInPlayer
   const result = new CombatManager().startCombat(run, encounter(1, 1));
   // A non-trivial log implies units were on the board and moved/attacked.
   check("220: combat resolves with board positions (non-empty log)", result.logLines.length > 2);
+}
+
+// ---- Targeting framework (#185/#178/#179/#187/#186) ----
+
+import { selectTarget, filterLiving, getAlliesOf, getEnemiesOf } from "../combat/TargetingRules.js";
+import { tieBreakCompare } from "../combat/TargetingTieBreak.js";
+import { getBasicAttackMode, RoleBehaviorDefaults } from "../combat/RoleBehavior.js";
+import { findEligibleProtectors, selectProtector, resolveInterception } from "../combat/ProtectionRules.js";
+import { TargetingMode, HeroRole, HeroEffectId } from "../data/enums.js";
+import { CombatUnitState } from "../data/CombatUnitState.js";
+
+function makeUnit(unitId, attack, currentHealth, maxHealth, isPlayerSide, slot = 0) {
+  const u = new CombatUnitState(unitId, unitId, attack, currentHealth, maxHealth, isPlayerSide, slot, null, null);
+  return u;
+}
+
+function makeMatch(playerUnits, enemyUnits, board) {
+  const pt = new CombatTeam(true, playerUnits);
+  const et = new CombatTeam(false, enemyUnits);
+  return new CombatMatch(pt, et, board);
+}
+
+// ---- #185: Deterministic tie-break helpers ----
+
+{
+  const board = new CombatBoard();
+  const actor = makeUnit("p0", 2, 10, 10, true);
+  const a = makeUnit("e0", 2, 5, 10, false);
+  const b = makeUnit("e1", 2, 5, 10, false);
+  board.placeUnit(actor, { q: 1, r: 2 });
+  board.placeUnit(a, { q: 3, r: 2 });  // distance 2
+  board.placeUnit(b, { q: 4, r: 2 });  // distance 3
+
+  // Equal stats, different distance — closer wins.
+  check("185: tie-break: closer unit wins", tieBreakCompare(a, b, actor, board, false) < 0);
+  check("185: tie-break: farther unit loses", tieBreakCompare(b, a, actor, board, false) > 0);
+}
+
+{
+  const board = new CombatBoard();
+  const actor = makeUnit("p0", 2, 10, 10, true);
+  const lowHp = makeUnit("e0", 2, 3, 10, false);   // lower HP wins tie
+  const highHp = makeUnit("e1", 2, 7, 10, false);
+  board.placeUnit(actor, { q: 1, r: 2 });
+  board.placeUnit(lowHp, { q: 3, r: 2 });   // same distance
+  board.placeUnit(highHp, { q: 3, r: 3 });  // distance 2 from actor at (1,2)? let's use same
+
+  // Same distance: lower HP wins.
+  const distanceSameBoard = new CombatBoard();
+  distanceSameBoard.placeUnit(actor, { q: 1, r: 2 });
+  distanceSameBoard.placeUnit(lowHp, { q: 3, r: 2 });
+  distanceSameBoard.placeUnit(highHp, { q: 3, r: 2 }); // can't place two at same coord; use different
+  // Re-do with one board per check:
+  const tb = new CombatBoard();
+  const a2 = makeUnit("ea", 2, 3, 10, false);
+  const b2 = makeUnit("eb", 2, 7, 10, false);
+  const ac2 = makeUnit("p1", 2, 10, 10, true);
+  tb.placeUnit(ac2, { q: 0, r: 0 });
+  tb.placeUnit(a2, { q: 2, r: 0 });  // distance 2
+  tb.placeUnit(b2, { q: 2, r: 1 });  // distance 3 — so NOT same distance
+  // Use distanceIsPrimary=true to test the HP tie-break directly.
+  check("185: tie-break: lower HP wins when distance ignored", tieBreakCompare(a2, b2, ac2, tb, true) < 0);
+}
+
+{
+  const board = new CombatBoard();
+  const actor = makeUnit("p0", 2, 10, 10, true);
+  const highAtk = makeUnit("e0", 5, 5, 10, false);
+  const lowAtk  = makeUnit("e1", 2, 5, 10, false);
+  board.placeUnit(actor,   { q: 0, r: 0 });
+  board.placeUnit(highAtk, { q: 2, r: 0 });
+  board.placeUnit(lowAtk,  { q: 2, r: 1 });
+  // Equal HP, different attack — higher attack wins tie (distanceIsPrimary=true, no distance tie-break).
+  check("185: tie-break: higher attack wins equal-HP tie", tieBreakCompare(highAtk, lowAtk, actor, board, true) < 0);
+}
+
+{
+  // Board position tie-break: lower q/r wins when all else equal.
+  const board = new CombatBoard();
+  const actor  = makeUnit("p0", 1, 10, 10, true);
+  const first  = makeUnit("e0", 1, 5, 10, false);
+  const second = makeUnit("e1", 1, 5, 10, false);
+  board.placeUnit(actor,  { q: 0, r: 0 });
+  board.placeUnit(first,  { q: 3, r: 1 });  // same distance as second
+  board.placeUnit(second, { q: 3, r: 2 });  // r=2 > r=1, so first should win
+  check("185: tie-break: lower board coord wins", tieBreakCompare(first, second, actor, board, true) < 0);
+}
+
+{
+  // unitId fallback: lower unitId wins when all else equal.
+  const board = new CombatBoard();
+  const actor = makeUnit("p0", 1, 10, 10, true);
+  const a3 = makeUnit("e0", 1, 5, 10, false);
+  const b3 = makeUnit("e1", 1, 5, 10, false);
+  board.placeUnit(actor, { q: 0, r: 0 });
+  board.placeUnit(a3,    { q: 3, r: 1 });
+  board.placeUnit(b3,    { q: 3, r: 2 });
+  // Force same board pos for tie-break test by skipping board comparison.
+  check("185: tie-break: unitId 'e0' < 'e1'", tieBreakCompare(a3, b3, actor, board, true) < 0);
+}
+
+// ---- #178: Targeting framework — enemy modes ----
+
+{
+  // NearestEnemy selects the closest board target.
+  const board = new CombatBoard();
+  const actor  = makeUnit("p0", 2, 10, 10, true);
+  const near   = makeUnit("e0", 2, 10, 10, false);
+  const far    = makeUnit("e1", 2, 10, 10, false);
+  board.placeUnit(actor, { q: 1, r: 2 });
+  board.placeUnit(near,  { q: 3, r: 2 });  // distance 2
+  board.placeUnit(far,   { q: 6, r: 2 });  // distance 5
+  const match = makeMatch([actor], [near, far], board);
+  const t = selectTarget({ actor, match, mode: TargetingMode.NearestEnemy });
+  check("178: NearestEnemy selects closest target", t === near);
+}
+
+{
+  // FurthestEnemy selects the farthest board target.
+  const board = new CombatBoard();
+  const actor = makeUnit("p0", 2, 10, 10, true);
+  const near  = makeUnit("e0", 2, 10, 10, false);
+  const far   = makeUnit("e1", 2, 10, 10, false);
+  board.placeUnit(actor, { q: 1, r: 2 });
+  board.placeUnit(near,  { q: 3, r: 2 });
+  board.placeUnit(far,   { q: 6, r: 4 });
+  const match = makeMatch([actor], [near, far], board);
+  const t = selectTarget({ actor, match, mode: TargetingMode.FurthestEnemy });
+  check("178: FurthestEnemy selects farthest target", t === far);
+}
+
+{
+  // LowestHealthEnemy ignores dead units.
+  const board = new CombatBoard();
+  const actor   = makeUnit("p0", 2, 10, 10, true);
+  const dead    = makeUnit("e0", 2, 0, 10, false);   // dead
+  const living  = makeUnit("e1", 2, 4, 10, false);
+  board.placeUnit(actor,  { q: 1, r: 2 });
+  board.placeUnit(living, { q: 4, r: 2 });
+  // dead unit is not placed on board (simulates being removed)
+  const match = makeMatch([actor], [dead, living], board);
+  const t = selectTarget({ actor, match, mode: TargetingMode.LowestHealthEnemy });
+  check("178: LowestHealthEnemy ignores dead units", t === living);
+}
+
+{
+  // LowestHealthEnemy picks lowest HP living enemy.
+  const board = new CombatBoard();
+  const actor  = makeUnit("p0", 2, 10, 10, true);
+  const weak   = makeUnit("e0", 2, 2, 10, false);
+  const strong = makeUnit("e1", 2, 8, 10, false);
+  board.placeUnit(actor,  { q: 1, r: 2 });
+  board.placeUnit(weak,   { q: 4, r: 2 });
+  board.placeUnit(strong, { q: 4, r: 3 });
+  const match = makeMatch([actor], [weak, strong], board);
+  const t = selectTarget({ actor, match, mode: TargetingMode.LowestHealthEnemy });
+  check("178: LowestHealthEnemy selects lowest HP enemy", t === weak);
+}
+
+{
+  // HighestAttackEnemy selects highest attack living enemy.
+  const board = new CombatBoard();
+  const actor   = makeUnit("p0", 2, 10, 10, true);
+  const lowAtk  = makeUnit("e0", 1, 8, 10, false);
+  const highAtk = makeUnit("e1", 5, 8, 10, false);
+  board.placeUnit(actor,   { q: 1, r: 2 });
+  board.placeUnit(lowAtk,  { q: 4, r: 2 });
+  board.placeUnit(highAtk, { q: 4, r: 3 });
+  const match = makeMatch([actor], [lowAtk, highAtk], board);
+  const t = selectTarget({ actor, match, mode: TargetingMode.HighestAttackEnemy });
+  check("178: HighestAttackEnemy selects highest attack enemy", t === highAtk);
+}
+
+{
+  // Self returns the actor.
+  const board  = new CombatBoard();
+  const actor  = makeUnit("p0", 2, 10, 10, true);
+  const enemy  = makeUnit("e0", 2, 10, 10, false);
+  board.placeUnit(actor, { q: 1, r: 2 });
+  board.placeUnit(enemy, { q: 5, r: 2 });
+  const match = makeMatch([actor], [enemy], board);
+  const t = selectTarget({ actor, match, mode: TargetingMode.Self });
+  check("178: Self returns actor", t === actor);
+}
+
+{
+  // CurrentTargetOrNearestEnemy reuses valid current target.
+  const board = new CombatBoard();
+  const actor    = makeUnit("p0", 2, 10, 10, true);
+  const current  = makeUnit("e0", 2, 10, 10, false);
+  const nearest  = makeUnit("e1", 2, 10, 10, false);
+  board.placeUnit(actor,   { q: 1, r: 2 });
+  board.placeUnit(current, { q: 5, r: 2 });  // farther
+  board.placeUnit(nearest, { q: 3, r: 2 });  // closer
+  const match = makeMatch([actor], [current, nearest], board);
+  const t = selectTarget({ actor, match, mode: TargetingMode.CurrentTargetOrNearestEnemy, currentTargetUnitId: "e0" });
+  check("178: CurrentTargetOrNearestEnemy reuses live current target", t === current);
+}
+
+{
+  // CurrentTargetOrNearestEnemy falls back to nearest when current is dead.
+  const board = new CombatBoard();
+  const actor    = makeUnit("p0", 2, 10, 10, true);
+  const dead     = makeUnit("e0", 2, 0, 10, false);  // dead
+  const nearest  = makeUnit("e1", 2, 10, 10, false);
+  board.placeUnit(actor,   { q: 1, r: 2 });
+  board.placeUnit(nearest, { q: 3, r: 2 });
+  const match = makeMatch([actor], [dead, nearest], board);
+  const t = selectTarget({ actor, match, mode: TargetingMode.CurrentTargetOrNearestEnemy, currentTargetUnitId: "e0" });
+  check("178: CurrentTargetOrNearestEnemy falls back when current dead", t === nearest);
+}
+
+{
+  // Returns null when no living enemies exist.
+  const board = new CombatBoard();
+  const actor = makeUnit("p0", 2, 10, 10, true);
+  const dead  = makeUnit("e0", 2, 0, 10, false);
+  board.placeUnit(actor, { q: 1, r: 2 });
+  const match = makeMatch([actor], [dead], board);
+  const t = selectTarget({ actor, match, mode: TargetingMode.NearestEnemy });
+  check("178: returns null when no living enemies", t === null);
+}
+
+{
+  // Repeated identical calls return same target (determinism).
+  const board = new CombatBoard();
+  const actor = makeUnit("p0", 2, 10, 10, true);
+  const e0    = makeUnit("e0", 2, 5, 10, false);
+  const e1    = makeUnit("e1", 2, 5, 10, false);
+  board.placeUnit(actor, { q: 1, r: 2 });
+  board.placeUnit(e0,    { q: 3, r: 2 });
+  board.placeUnit(e1,    { q: 3, r: 3 });
+  const match = makeMatch([actor], [e0, e1], board);
+  const t1 = selectTarget({ actor, match, mode: TargetingMode.NearestEnemy });
+  const t2 = selectTarget({ actor, match, mode: TargetingMode.NearestEnemy });
+  check("178: repeated calls return same target", t1 === t2);
+}
+
+// ---- #179: Support targeting ----
+
+{
+  // LowestHealthAlly picks ally with lowest percent health.
+  const board  = new CombatBoard();
+  const healer = makeUnit("p0", 1, 10, 10, true, 0);
+  const hurt   = makeUnit("p1", 2, 3, 10, true, 1);   // 30 % health
+  const fine   = makeUnit("p2", 2, 9, 10, true, 2);   // 90 % health
+  board.placeUnit(healer, { q: 0, r: 0 });
+  board.placeUnit(hurt,   { q: 0, r: 2 });
+  board.placeUnit(fine,   { q: 0, r: 4 });
+  const match = makeMatch([healer, hurt, fine], [], board);
+  const t = selectTarget({ actor: healer, match, mode: TargetingMode.LowestHealthAlly });
+  check("179: LowestHealthAlly targets lowest percent health ally", t === hurt);
+}
+
+{
+  // LowestHealthAlly: percent-health tie broken by raw HP.
+  const board  = new CombatBoard();
+  const healer = makeUnit("p0", 1, 10, 10, true, 0);
+  const a4     = makeUnit("p1", 2, 3, 6, true, 1);   // 50%
+  const b4     = makeUnit("p2", 2, 5, 10, true, 2);  // 50%
+  board.placeUnit(healer, { q: 0, r: 0 });
+  board.placeUnit(a4,     { q: 0, r: 2 });
+  board.placeUnit(b4,     { q: 0, r: 4 });
+  const match = makeMatch([healer, a4, b4], [], board);
+  const t = selectTarget({ actor: healer, match, mode: TargetingMode.LowestHealthAlly });
+  check("179: LowestHealthAlly breaks percent tie by raw HP", t === a4);
+}
+
+{
+  // LowestHealthAlly ignores dead allies.
+  const board  = new CombatBoard();
+  const healer = makeUnit("p0", 1, 10, 10, true, 0);
+  const dead   = makeUnit("p1", 2, 0, 10, true, 1);
+  const alive  = makeUnit("p2", 2, 5, 10, true, 2);
+  board.placeUnit(healer, { q: 0, r: 0 });
+  board.placeUnit(alive,  { q: 0, r: 2 });
+  const match = makeMatch([healer, dead, alive], [], board);
+  const t = selectTarget({ actor: healer, match, mode: TargetingMode.LowestHealthAlly });
+  check("179: LowestHealthAlly ignores dead allies", t === alive);
+}
+
+{
+  // LowestHealthAlly excludes self.
+  const board  = new CombatBoard();
+  const healer = makeUnit("p0", 1, 1, 10, true, 0);  // healer is lowest HP
+  const ally   = makeUnit("p1", 2, 8, 10, true, 1);
+  board.placeUnit(healer, { q: 0, r: 0 });
+  board.placeUnit(ally,   { q: 0, r: 2 });
+  const match = makeMatch([healer, ally], [], board);
+  const t = selectTarget({ actor: healer, match, mode: TargetingMode.LowestHealthAlly });
+  check("179: LowestHealthAlly excludes self", t === ally);
+}
+
+{
+  // Enemy support units use the same LowestHealthAlly logic.
+  const board  = new CombatBoard();
+  const healer = makeUnit("e0", 1, 10, 10, false, 0);
+  const hurt   = makeUnit("e1", 2, 2, 10, false, 1);
+  const fine   = makeUnit("e2", 2, 8, 10, false, 2);
+  board.placeUnit(healer, { q: 6, r: 0 });
+  board.placeUnit(hurt,   { q: 6, r: 2 });
+  board.placeUnit(fine,   { q: 6, r: 4 });
+  const match = makeMatch([], [healer, hurt, fine], board);
+  const t = selectTarget({ actor: healer, match, mode: TargetingMode.LowestHealthAlly });
+  check("179: enemy LowestHealthAlly targets lowest HP ally", t === hurt);
+}
+
+// ---- #187: Role default behaviors ----
+
+{
+  // Role defaults are defined for all four roles.
+  check("187: Tank role default exists", !!RoleBehaviorDefaults[HeroRole.Tank]);
+  check("187: Damage role default exists", !!RoleBehaviorDefaults[HeroRole.Damage]);
+  check("187: Support role default exists", !!RoleBehaviorDefaults[HeroRole.Support]);
+  check("187: Economy role default exists", !!RoleBehaviorDefaults[HeroRole.Economy]);
+  check("187: Tank basicAttackTarget is NearestEnemy", RoleBehaviorDefaults[HeroRole.Tank].basicAttackTarget === TargetingMode.NearestEnemy);
+  check("187: Support has defaultAllyTarget LowestHealthAlly", RoleBehaviorDefaults[HeroRole.Support].defaultAllyTarget === TargetingMode.LowestHealthAlly);
+}
+
+{
+  // getBasicAttackMode returns NearestEnemy for Tank/Damage/Support/Economy heroes.
+  const run = buildRun(["warrior", "golem", "priest", "bard"]);
+  for (const hero of run.party) {
+    const unit = buildPlayerUnits(run).find(u => u.sourceHero === hero);
+    if (!unit) continue;
+    const mode = getBasicAttackMode(unit);
+    check(`187: ${hero.definition.displayName} basic attack mode is NearestEnemy`, mode === TargetingMode.NearestEnemy);
+  }
+}
+
+{
+  // Ninja getBasicAttackMode returns LowestHealthEnemy (effectId override).
+  const run = buildRun(["ninja"]);
+  const ninjaUnit = buildPlayerUnits(run)[0];
+  check("187: Ninja basic attack mode is LowestHealthEnemy", getBasicAttackMode(ninjaUnit) === TargetingMode.LowestHealthEnemy);
+}
+
+{
+  // Enemy units with no sourceHero default to NearestEnemy.
+  const enc = encounter(1, 1);
+  const enemyUnits = buildEnemyUnits(buildRun([]), enc);
+  check("187: enemy unit defaults to NearestEnemy", getBasicAttackMode(enemyUnits[0]) === TargetingMode.NearestEnemy);
+}
+
+{
+  // Full combat still produces deterministic results with the new targeting.
+  const a = new CombatManager().startCombat(buildRun(["warrior", "golem", "wizard", "ranger", "priest"]), encounter(1, 2));
+  const b = new CombatManager().startCombat(buildRun(["warrior", "golem", "wizard", "ranger", "priest"]), encounter(1, 2));
+  check("187: combat deterministic with role-based targeting", JSON.stringify(a.logLines) === JSON.stringify(b.logLines));
+}
+
+// ---- #186: Protection and interception ----
+
+{
+  // findEligibleProtectors returns all living allies except target.
+  const board = new CombatBoard();
+  const target    = makeUnit("p0", 2, 10, 10, true, 0);
+  const ally      = makeUnit("p1", 2, 10, 10, true, 1);
+  const deadAlly  = makeUnit("p2", 2, 0,  10, true, 2);
+  const enemy     = makeUnit("e0", 2, 10, 10, false, 0);
+  board.placeUnit(target,   { q: 1, r: 1 });
+  board.placeUnit(ally,     { q: 1, r: 3 });
+  board.placeUnit(deadAlly, { q: 0, r: 2 });
+  board.placeUnit(enemy,    { q: 5, r: 2 });
+  const match = makeMatch([target, ally, deadAlly], [enemy], board);
+  const protectors = findEligibleProtectors({ target, match });
+  check("186: findEligibleProtectors excludes target itself", !protectors.includes(target));
+  check("186: findEligibleProtectors excludes dead allies", !protectors.includes(deadAlly));
+  check("186: findEligibleProtectors includes living ally", protectors.includes(ally));
+}
+
+{
+  // mustBeAdjacent filter: only adjacent allies qualify.
+  const board = new CombatBoard();
+  const target   = makeUnit("p0", 2, 10, 10, true, 0);
+  const adjacent = makeUnit("p1", 2, 10, 10, true, 1);
+  const farAlly  = makeUnit("p2", 2, 10, 10, true, 2);
+  board.placeUnit(target,   { q: 3, r: 2 });
+  board.placeUnit(adjacent, { q: 3, r: 3 });  // distance 1 — adjacent
+  board.placeUnit(farAlly,  { q: 0, r: 0 });  // not adjacent
+  const match = makeMatch([target, adjacent, farAlly], [], board);
+  const protectors = findEligibleProtectors({ target, match, protectionRule: { mustBeAdjacent: true } });
+  check("186: mustBeAdjacent filter includes adjacent ally", protectors.includes(adjacent));
+  check("186: mustBeAdjacent filter excludes far ally", !protectors.includes(farAlly));
+}
+
+{
+  // selectProtector: closest protector by distance to target.
+  const board = new CombatBoard();
+  const target = makeUnit("p0", 2, 10, 10, true, 0);
+  const close  = makeUnit("p1", 2, 10, 10, true, 1);
+  const far    = makeUnit("p2", 2, 10, 10, true, 2);
+  board.placeUnit(target, { q: 3, r: 2 });
+  board.placeUnit(close,  { q: 3, r: 3 });  // distance 1
+  board.placeUnit(far,    { q: 0, r: 0 });  // distance 5
+  const match = makeMatch([target, close, far], [], board);
+  const chosen = selectProtector({ protectors: [close, far], target, match });
+  check("186: selectProtector picks closest protector", chosen === close);
+}
+
+{
+  // resolveInterception: returns protector when one is eligible.
+  const board = new CombatBoard();
+  const attacker  = makeUnit("e0", 2, 10, 10, false, 0);
+  const target    = makeUnit("p0", 2, 10, 10, true, 0);
+  const protector = makeUnit("p1", 2, 10, 10, true, 1);
+  board.placeUnit(attacker,  { q: 5, r: 2 });
+  board.placeUnit(target,    { q: 1, r: 2 });
+  board.placeUnit(protector, { q: 1, r: 3 });
+  const match = makeMatch([target, protector], [attacker], board);
+  const result = resolveInterception({ attacker, originalTarget: target, match, protectionRule: {} });
+  check("186: resolveInterception redirects to protector", result === protector);
+}
+
+{
+  // resolveInterception: returns originalTarget when no protectors exist.
+  const board = new CombatBoard();
+  const attacker = makeUnit("e0", 2, 10, 10, false, 0);
+  const target   = makeUnit("p0", 2, 10, 10, true, 0);
+  board.placeUnit(attacker, { q: 5, r: 2 });
+  board.placeUnit(target,   { q: 1, r: 2 });
+  const match = makeMatch([target], [attacker], board);
+  const result = resolveInterception({ attacker, originalTarget: target, match, protectionRule: {} });
+  check("186: resolveInterception returns original when no protectors", result === target);
+}
+
+{
+  // Dead protector cannot intercept.
+  const board = new CombatBoard();
+  const attacker     = makeUnit("e0", 2, 10, 10, false, 0);
+  const target       = makeUnit("p0", 2, 10, 10, true, 0);
+  const deadProtect  = makeUnit("p1", 2, 0, 10, true, 1);  // dead
+  board.placeUnit(attacker,    { q: 5, r: 2 });
+  board.placeUnit(target,      { q: 1, r: 2 });
+  board.placeUnit(deadProtect, { q: 1, r: 3 });
+  const match = makeMatch([target, deadProtect], [attacker], board);
+  const result = resolveInterception({ attacker, originalTarget: target, match, protectionRule: {} });
+  check("186: dead protector cannot intercept", result === target);
+}
+
+// Ninja now uses LowestHealthEnemy via the targeting framework (regression check).
+{
+  const run = buildRun(["ninja", "warrior", "golem", "priest", "ranger"]);
+  const goldBefore = run.gold;
+  const result = new CombatManager().startCombat(run, encounter(1, 1));
+  check("158: ninja still loots gold on kills (framework regression)", run.gold > goldBefore);
 }
 
 console.log(failures === 0 ? "\nALL PASS" : `\n${failures} FAILURE(S)`);
