@@ -15,5 +15,7 @@ export class HeroInstance {
     this.tier = HeroTier.Bronze;
     this.veteranXp = 0;
     this.veteranTier = 0;
+    // Explicit board position set by the Formation phase; null = use slot default.
+    this.boardPosition = null;
   }
 }

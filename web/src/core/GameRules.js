@@ -163,6 +163,13 @@ export const GameRules = Object.freeze({
   DefaultAttackIntervalTicks: 4,
   DefaultMeleeRange: 1,
   DefaultRangedRange: 99,
+
+  // Hex board constants (issue #157/#175).
+  HexBoardWidth: 7,
+  HexBoardHeight: 5,
+  PlayerDeploymentMaxQ: 1,
+  EnemyDeploymentMinQ: 5,
+  DefaultMovementRange: 1,
   MinimumPositiveCombatStat: 1,
   GuardedDamageDivisor: 2,
   BurnedAttackPenalty: 1,
