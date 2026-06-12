@@ -181,6 +181,10 @@ const DungeonMedic = new EnemyDefinition("dungeon_medic", "Dungeon Medic", 1, 5,
 const HulkingProtector = new EnemyDefinition("hulking_protector", "Hulking Protector", 1, 12, EnemyEffectId.None, "Starts Guarded.", [C.Guarded]);
 const DungeonChampion = new EnemyDefinition("dungeon_champion", "Dungeon Champion", 5, 5, EnemyEffectId.None, "Starts Inspired.", [C.Inspired]);
 
+// ---- Enemies (Boss support) ----
+const AuditorArmsman = new EnemyDefinition("auditor_armsman", "Auditor's Armsman", 2, 8, EnemyEffectId.None, "Starts Guarded. Protects the Dungeon Auditor.", [C.Guarded]);
+const AuditorAccountant = new EnemyDefinition("auditor_accountant", "Auditor's Accountant", 1, 6, EnemyEffectId.None, "Applies Weakened on attack.", null, [C.Weakened]);
+
 // ---- Enemies (Act 2 rival rematches) ----
 const Act2ShieldGrunt = createActEnemy(2, "shield_grunt", "Iron Grunt", 3, 11, EnemyEffectId.None, "Starts Guarded.", [C.Guarded]);
 const Act2PitBrawler = createActEnemy(2, "pit_brawler", "Pit Bruiser", 6, 8, EnemyEffectId.None, "No effect.");
@@ -238,6 +242,7 @@ const EnemyDefinitions = [
   LieutenantFrugalGuard, LieutenantFrugalArcher, LieutenantFrugalHealer,
   ShieldGrunt, PitBrawler,
   DungeonArcher, DungeonMedic, HulkingProtector, DungeonChampion,
+  AuditorArmsman, AuditorAccountant,
   Act2ShieldGrunt, Act2PitBrawler, Act2DungeonArcher, Act2DungeonMedic, Act2HulkingProtector, Act2DungeonChampion,
   Act2GreedyTank, Act2GreedyCarry, Act2CarryProtector, Act2CarryChampion, Act2CarrySupport, Act2FrugalGuard, Act2FrugalArcher, Act2FrugalHealer,
   Imp, SoulBroker, GloomBat, Act2DebtWraith, HoardFiend, BrimstoneBrute, InfernalAuditor,
@@ -288,7 +293,7 @@ const EncounterDefinitions = [
   new EncounterDefinition(1, 8, EncounterType.Dungeon, "Goblin Twin Bruisers", "Two smaller leeches split the local slot's total pressure across the line.", "Reward pressure", [SplitTreasureLeech, SplitTreasureLeech], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None, "goblin_twin_bruisers"),
   new EncounterDefinition(1, 9, EncounterType.RivalGhost, "Frugal Guild Ghost", "A stable rival guild with cheap heroes and strong morale.", "Rival benchmark", [FrugalGuard, FrugalGuard, FrugalArcher, FrugalHealer], GameRules.WinReward, EncounterEffectId.None, RivalGuild.Frugal, "base", [{q:5,r:0}, {q:5,r:4}, {q:6,r:0}, {q:6,r:4}]),
   new EncounterDefinition(1, 9, EncounterType.RivalGhost, "Brigand Lieutenant", "A leaner rival line trades durability for attacks that Mark your heroes.", "Rival benchmark", [LieutenantFrugalGuard, LieutenantFrugalGuard, LieutenantFrugalArcher, LieutenantFrugalHealer], GameRules.WinReward, EncounterEffectId.None, RivalGuild.Frugal, "brigand_lieutenant", [{q:5,r:1}, {q:5,r:3}, {q:6,r:0}, {q:6,r:4}]),
-  new EncounterDefinition(1, 10, EncounterType.FinalBoss, "Dungeon Auditor", "Final boss. Damages your party and adds debt pressure.", "Final boss", [DungeonAuditor], GameRules.WinReward, EncounterEffectId.FinalBossDamage, RivalGuild.None),
+  new EncounterDefinition(1, 10, EncounterType.FinalBoss, "Dungeon Auditor", "Final boss. The Auditor is flanked by armsmen and a weakening accountant. Damages your party and raises wages.", "Final boss", [AuditorArmsman, DungeonAuditor, AuditorAccountant], GameRules.WinReward, EncounterEffectId.FinalBossDamage, RivalGuild.None, "base", [{q:5,r:0}, {q:6,r:2}, {q:5,r:4}]),
 
   new EncounterDefinition(2, 1, EncounterType.Dungeon, "Imp Swarm", "The descent begins. A pack of imps boils up from the pit.", "Basic stat check", [Imp, Imp, Imp], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None),
   new EncounterDefinition(2, 2, EncounterType.Dungeon, "Soul Broker", "If a Soul Broker survives past combat round 3, lose 3 gold.", "Economy pressure", [SoulBroker, Imp], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None),
