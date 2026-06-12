@@ -2,7 +2,7 @@
 import { GameRulesFns } from "../core/GameRules.js";
 
 export class EncounterDefinition {
-  constructor(act, slot, type, displayName, scoutText, dangerCategory, enemies, baseGoldReward, encounterEffectId, rivalGuild, variantId = "base", enemyBoardPositions = null) {
+  constructor(act, slot, type, displayName, scoutText, dangerCategory, enemies, baseGoldReward, encounterEffectId, rivalGuild, variantId = "base", enemyBoardPositions = null, teamArchetype = null) {
     this.act = act;
     this.slot = slot;
     this.round = GameRulesFns.getAbsoluteRound(act, slot);
@@ -18,6 +18,8 @@ export class EncounterDefinition {
     // Optional array of {q,r} authored board positions per enemy slot (index-matched
     // to enemies[]). Null entries fall back to the default enemy deployment mapping.
     this.enemyBoardPositions = enemyBoardPositions ? Object.freeze([...enemyBoardPositions]) : null;
+    // Optional tactical identity tag (e.g. "Bruiser", "Backline", "Sustain", "Carry").
+    this.teamArchetype = teamArchetype;
     Object.freeze(this);
   }
 }

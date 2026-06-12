@@ -167,7 +167,31 @@ const LieutenantFrugalGuard = new EnemyDefinition("lieutenant_frugal_guard", "Li
 const LieutenantFrugalArcher = new EnemyDefinition("lieutenant_frugal_archer", "Lieutenant Frugal Archer", 3, 3, EnemyEffectId.None, "Applies Marked on attack.", null, [C.Marked]);
 const LieutenantFrugalHealer = new EnemyDefinition("lieutenant_frugal_healer", "Lieutenant Frugal Healer", 1, 4, EnemyEffectId.FrugalGhostHeal, "Applies Marked on attack. Heals leftmost living ally each combat round.", null, [C.Marked]);
 
+// ---- Enemies (Archetype: Bruiser) ----
+const ShieldGrunt = new EnemyDefinition("shield_grunt", "Shield Grunt", 2, 5, EnemyEffectId.None, "Starts Guarded.", [C.Guarded]);
+const PitBrawler = new EnemyDefinition("pit_brawler", "Pit Brawler", 3, 5, EnemyEffectId.None, "No effect.");
+
+// ---- Enemies (Archetype: Backline) ----
+const DungeonArcher = new EnemyDefinition("dungeon_archer", "Dungeon Archer", 3, 3, EnemyEffectId.None, "Starts Marked. Applies Burned on attack.", [C.Marked], [C.Burned]);
+
+// ---- Enemies (Archetype: Sustain) ----
+const DungeonMedic = new EnemyDefinition("dungeon_medic", "Dungeon Medic", 1, 5, EnemyEffectId.FrugalGhostHeal, "Applies Poisoned on attack. Heals leftmost living ally each combat round.", null, [C.Poisoned]);
+
+// ---- Enemies (Archetype: Carry) ----
+const HulkingProtector = new EnemyDefinition("hulking_protector", "Hulking Protector", 1, 12, EnemyEffectId.None, "Starts Guarded.", [C.Guarded]);
+const DungeonChampion = new EnemyDefinition("dungeon_champion", "Dungeon Champion", 5, 5, EnemyEffectId.None, "Starts Inspired.", [C.Inspired]);
+
+// ---- Enemies (Boss support) ----
+const AuditorArmsman = new EnemyDefinition("auditor_armsman", "Auditor's Armsman", 2, 8, EnemyEffectId.None, "Starts Guarded. Protects the Dungeon Auditor.", [C.Guarded]);
+const AuditorAccountant = new EnemyDefinition("auditor_accountant", "Auditor's Accountant", 1, 6, EnemyEffectId.None, "Applies Weakened on attack.", null, [C.Weakened]);
+
 // ---- Enemies (Act 2 rival rematches) ----
+const Act2ShieldGrunt = createActEnemy(2, "shield_grunt", "Iron Grunt", 3, 11, EnemyEffectId.None, "Starts Guarded.", [C.Guarded]);
+const Act2PitBrawler = createActEnemy(2, "pit_brawler", "Pit Bruiser", 6, 8, EnemyEffectId.None, "No effect.");
+const Act2DungeonArcher = createActEnemy(2, "dungeon_archer", "Dungeon Sniper", 5, 5, EnemyEffectId.None, "Starts Marked. Applies Burned on attack.", [C.Marked], [C.Burned]);
+const Act2DungeonMedic = createActEnemy(2, "dungeon_medic", "Dungeon Surgeon", 2, 8, EnemyEffectId.FrugalGhostHeal, "Applies Poisoned on attack. Heals leftmost living ally each combat round.", null, [C.Poisoned]);
+const Act2HulkingProtector = createActEnemy(2, "hulking_protector", "Hulking Vanguard", 2, 18, EnemyEffectId.None, "Starts Guarded.", [C.Guarded]);
+const Act2DungeonChampion = createActEnemy(2, "dungeon_champion", "Dungeon Warlord", 8, 8, EnemyEffectId.None, "Starts Inspired.", [C.Inspired]);
 const Act2GreedyTank = createActEnemy(2, "greedy_tank", "Greedy Tank", 4, 12, EnemyEffectId.None, "No effect.");
 const Act2GreedyCarry = createActEnemy(2, "greedy_carry", "Greedy Carry", 6, 7, EnemyEffectId.None, "Starts Inspired and Marked.", [C.Inspired], [C.Marked]);
 const Act2CarryProtector = createActEnemy(2, "carry_protector", "Carry Protector", 2, 14, EnemyEffectId.None, "Starts Guarded.", [C.Guarded]);
@@ -195,6 +219,11 @@ const Act3SoulBrokerMint = createActEnemy(3, "act3-soul-broker-mint", "Mint Soul
 const Act3BrimstoneMint = createActEnemy(3, "act3-brimstone-mint", "Minted Brimstone Brute", 6, 22, EnemyEffectId.None, "No effect.");
 const Act3InfernalAuditorMint = createActEnemy(3, "act3-infernal-auditor-mint", "Mint Infernal Auditor", 2, 16, EnemyEffectId.DebtWraithScales, "Applies Poisoned on attack. Attack scales with player debt at combat start.", null, [C.Poisoned]);
 const Act3Mintmaster = createActEnemy(3, "act3-mintmaster", "MintMaster", 5, 30, EnemyEffectId.DungeonAuditorBoss, "Starts Inspired and applies Burned on attack. Raises wages and deals periodic damage.", [C.Inspired], [C.Burned]);
+const Act3ShieldGrunt = createActEnemy(3, "act3-shield-grunt", "Mint Enforcer", 3, 7, EnemyEffectId.None, "Starts Guarded.", [C.Guarded]);
+const Act3DungeonArcher = createActEnemy(3, "act3-dungeon-archer", "Mint Crossbowman", 4, 4, EnemyEffectId.None, "Starts Marked. Applies Burned on attack.", [C.Marked], [C.Burned]);
+const Act3DungeonMedic = createActEnemy(3, "act3-dungeon-medic", "Mint Mender", 2, 7, EnemyEffectId.FrugalGhostHeal, "Applies Poisoned on attack. Heals leftmost living ally each combat round.", null, [C.Poisoned]);
+const Act3HulkingProtector = createActEnemy(3, "act3-hulking-protector", "Mint Vault Guard", 2, 17, EnemyEffectId.None, "Starts Guarded.", [C.Guarded]);
+const Act3DungeonChampion = createActEnemy(3, "act3-dungeon-champion", "Mint Enforcer Champion", 7, 7, EnemyEffectId.None, "Starts Inspired.", [C.Inspired]);
 
 // ---- Enemies (Act 4: The Vault) ----
 const Act4VaultSlime = createActEnemy(4, "act4-vault-slime", "Vault Slime", 2, 5, EnemyEffectId.None, "No effect.");
@@ -205,6 +234,11 @@ const Act4LedgerBroker = createActEnemy(4, "act4-ledger-broker", "Ledger Broker"
 const Act4VaultBrute = createActEnemy(4, "act4-vault-brute", "Vault Brute", 6, 22, EnemyEffectId.None, "No effect.");
 const Act4VaultAuditor = createActEnemy(4, "act4-vault-auditor", "Vault Auditor", 2, 16, EnemyEffectId.DebtWraithScales, "Applies Poisoned on attack. Attack scales with player debt at combat start.", null, [C.Poisoned]);
 const Act4BankerKing = createActEnemy(4, "act4-banker-king", "The Banker King", 5, 30, EnemyEffectId.BankerKingDebtJudgment, "Starts Inspired and applies Burned on attack. Gains attack from player debt at combat start.", [C.Inspired], [C.Burned]);
+const Act4ShieldGrunt = createActEnemy(4, "act4-shield-grunt", "Vault Enforcer", 4, 9, EnemyEffectId.None, "Starts Guarded.", [C.Guarded]);
+const Act4DungeonArcher = createActEnemy(4, "act4-dungeon-archer", "Vault Marksman", 5, 5, EnemyEffectId.None, "Starts Marked. Applies Burned on attack.", [C.Marked], [C.Burned]);
+const Act4DungeonMedic = createActEnemy(4, "act4-dungeon-medic", "Vault Surgeon", 3, 9, EnemyEffectId.FrugalGhostHeal, "Applies Poisoned on attack. Heals leftmost living ally each combat round.", null, [C.Poisoned]);
+const Act4HulkingProtector = createActEnemy(4, "act4-hulking-protector", "Vault Iron Guard", 3, 20, EnemyEffectId.None, "Starts Guarded.", [C.Guarded]);
+const Act4DungeonChampion = createActEnemy(4, "act4-dungeon-champion", "Vault Warlord", 8, 9, EnemyEffectId.None, "Starts Inspired.", [C.Inspired]);
 
 const HeroDefinitions = [
   Warrior, Knight, Golem, Wizard, Ninja, Ranger, Priest, Bard, Enchanter, Squire, Treasurer, Apprentice,
@@ -216,10 +250,16 @@ const EnemyDefinitions = [
   Slime, TrainingDummy, CaveBat, GoblinThief, TaxCollector, LazyInspector, BacklineBat, DebtWraith, TreasureLeech, SplitTreasureLeech, DungeonAuditor,
   GreedyTank, GreedyCarry, CarryProtector, CarryCarry, FrugalGuard, FrugalArcher, FrugalHealer,
   LieutenantFrugalGuard, LieutenantFrugalArcher, LieutenantFrugalHealer,
+  ShieldGrunt, PitBrawler,
+  DungeonArcher, DungeonMedic, HulkingProtector, DungeonChampion,
+  AuditorArmsman, AuditorAccountant,
+  Act2ShieldGrunt, Act2PitBrawler, Act2DungeonArcher, Act2DungeonMedic, Act2HulkingProtector, Act2DungeonChampion,
   Act2GreedyTank, Act2GreedyCarry, Act2CarryProtector, Act2CarryChampion, Act2CarrySupport, Act2FrugalGuard, Act2FrugalArcher, Act2FrugalHealer,
   Imp, SoulBroker, GloomBat, Act2DebtWraith, HoardFiend, BrimstoneBrute, InfernalAuditor,
   Act3SlimeMint, Act3GoblinCoiner, Act3BatTariff, Act3ImpMint, Act3SoulBrokerMint, Act3BrimstoneMint, Act3InfernalAuditorMint, Act3Mintmaster,
+  Act3ShieldGrunt, Act3DungeonArcher, Act3DungeonMedic, Act3HulkingProtector, Act3DungeonChampion,
   Act4VaultSlime, Act4VaultCoiner, Act4VaultBat, Act4VaultImp, Act4LedgerBroker, Act4VaultBrute, Act4VaultAuditor, Act4BankerKing,
+  Act4ShieldGrunt, Act4DungeonArcher, Act4DungeonMedic, Act4HulkingProtector, Act4DungeonChampion,
 ];
 
 const PayrollActionDefinitions = [
@@ -248,49 +288,66 @@ const RelicDefinitions = [
 
 const EncounterDefinitions = [
   new EncounterDefinition(1, 1, EncounterType.Dungeon, "Slimes", "Simple enemies. Win by having enough basic stats.", "Basic stat check", [Slime, Slime, Slime], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None),
+  new EncounterDefinition(1, 1, EncounterType.Dungeon, "Shield Grunts", "Two shielded brutes spread across the line. Your first taste of Guarded — hit each twice to break through.", "Frontline durability", [ShieldGrunt, ShieldGrunt], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None, "shield_grunts", [{q:5,r:1}, {q:5,r:3}], "Bruiser"),
   new EncounterDefinition(1, 2, EncounterType.Dungeon, "Goblin Thieves", "If a Goblin Thief survives past combat round 3, lose 3 gold.", "Economy pressure", [GoblinThief, GoblinThief], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None),
-  new EncounterDefinition(1, 3, EncounterType.RivalGhost, "Greedy Guild Ghost", "A reckless rival guild with expensive heroes. Strong now, but drowning in debt.", "Rival benchmark", [GreedyTank, GreedyTank, GreedyCarry], GameRules.WinReward, EncounterEffectId.None, RivalGuild.Greedy),
+  new EncounterDefinition(1, 2, EncounterType.Dungeon, "Dungeon Archers", "Two fragile archers hang back in the corners. They're Marked and fragile — kill them before Burned stacks up.", "Backline pressure", [DungeonArcher, DungeonArcher], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None, "dungeon_archers", [{q:6,r:0}, {q:6,r:4}], "Backline"),
+  new EncounterDefinition(1, 3, EncounterType.RivalGhost, "Greedy Guild Ghost", "A reckless rival guild with expensive heroes. Strong now, but drowning in debt.", "Rival benchmark", [GreedyTank, GreedyTank, GreedyCarry], GameRules.WinReward, EncounterEffectId.None, RivalGuild.Greedy, "base", [{q:5,r:0}, {q:5,r:4}, {q:6,r:2}]),
   new EncounterDefinition(1, 4, EncounterType.Dungeon, "Tax Collector", "Your total wages are increased by 2 this round.", "Payroll pressure", [TaxCollector], GameRules.WinReward, EncounterEffectId.TaxCollectorUpkeep, RivalGuild.None),
   new EncounterDefinition(1, 4, EncounterType.Dungeon, "Lazy Inspector", "A slower inspector skips the payroll audit but weakens whoever it hits.", "Status pressure", [LazyInspector], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None, "lazy_inspector"),
   new EncounterDefinition(1, 5, EncounterType.Dungeon, "Backline Bat", "Attacks your lowest-health backline hero on turn 2.", "Backline pressure", [BacklineBat, Slime], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None),
-  new EncounterDefinition(1, 6, EncounterType.RivalGhost, "Carry Guild Ghost", "This rival protects a high-damage carry. Kill it quickly or survive the burst.", "Rival benchmark", [CarryProtector, CarryProtector, CarryCarry], GameRules.WinReward, EncounterEffectId.None, RivalGuild.Carry),
-  new EncounterDefinition(1, 6, EncounterType.RivalGhost, "Owl Roost", "This rival protects a high-damage carry with an extra backline threat.", "Rival benchmark", [CarryProtector, CarryProtector, CarryCarry, CarryCarry], GameRules.WinReward, EncounterEffectId.None, RivalGuild.Carry, "owl_roost"),
+  new EncounterDefinition(1, 5, EncounterType.Dungeon, "Pit Brawlers", "Two aggressive brawlers charge ahead of a shielded grunt. High damage — stop them fast.", "Melee rush", [PitBrawler, PitBrawler, ShieldGrunt], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None, "pit_brawlers", [{q:5,r:1}, {q:5,r:3}, {q:6,r:2}], "Bruiser"),
+  new EncounterDefinition(1, 5, EncounterType.Dungeon, "Healing Ward", "A grunt guards a dungeon medic. Burst the medic before Poisoned accumulates or you'll be outlasted.", "Attrition fight", [ShieldGrunt, DungeonMedic], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None, "healing_ward", [{q:5,r:2}, {q:6,r:2}], "Sustain"),
+  new EncounterDefinition(1, 6, EncounterType.RivalGhost, "Carry Guild Ghost", "This rival protects a high-damage carry. Kill it quickly or survive the burst.", "Rival benchmark", [CarryProtector, CarryProtector, CarryCarry], GameRules.WinReward, EncounterEffectId.None, RivalGuild.Carry, "base", [{q:5,r:1}, {q:5,r:3}, {q:6,r:2}]),
+  new EncounterDefinition(1, 6, EncounterType.RivalGhost, "Owl Roost", "This rival protects a high-damage carry with an extra backline threat.", "Rival benchmark", [CarryProtector, CarryProtector, CarryCarry, CarryCarry], GameRules.WinReward, EncounterEffectId.None, RivalGuild.Carry, "owl_roost", [{q:5,r:0}, {q:5,r:4}, {q:6,r:1}, {q:6,r:3}]),
   new EncounterDefinition(1, 7, EncounterType.Dungeon, "Debt Wraith", "Gains attack based on your current debt.", "Debt punishment", [DebtWraith], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None),
+  new EncounterDefinition(1, 7, EncounterType.Dungeon, "Champion's Guard", "Two hulking protectors shield a powerful champion. Kill the champion before it shreds your party.", "Burst carry", [HulkingProtector, DungeonChampion, HulkingProtector], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None, "champions_guard", [{q:5,r:1}, {q:6,r:2}, {q:5,r:3}], "Carry"),
   new EncounterDefinition(1, 8, EncounterType.Dungeon, "Treasure Leech", "If Treasure Leech survives, your reward is reduced by 4 gold.", "Reward pressure", [TreasureLeech, Slime], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None),
   new EncounterDefinition(1, 8, EncounterType.Dungeon, "Goblin Twin Bruisers", "Two smaller leeches split the local slot's total pressure across the line.", "Reward pressure", [SplitTreasureLeech, SplitTreasureLeech], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None, "goblin_twin_bruisers"),
-  new EncounterDefinition(1, 9, EncounterType.RivalGhost, "Frugal Guild Ghost", "A stable rival guild with cheap heroes and strong morale.", "Rival benchmark", [FrugalGuard, FrugalGuard, FrugalArcher, FrugalHealer], GameRules.WinReward, EncounterEffectId.None, RivalGuild.Frugal),
-  new EncounterDefinition(1, 9, EncounterType.RivalGhost, "Brigand Lieutenant", "A leaner rival line trades durability for attacks that Mark your heroes.", "Rival benchmark", [LieutenantFrugalGuard, LieutenantFrugalGuard, LieutenantFrugalArcher, LieutenantFrugalHealer], GameRules.WinReward, EncounterEffectId.None, RivalGuild.Frugal, "brigand_lieutenant"),
-  new EncounterDefinition(1, 10, EncounterType.FinalBoss, "Dungeon Auditor", "Final boss. Damages your party and adds debt pressure.", "Final boss", [DungeonAuditor], GameRules.WinReward, EncounterEffectId.FinalBossDamage, RivalGuild.None),
+  new EncounterDefinition(1, 9, EncounterType.RivalGhost, "Frugal Guild Ghost", "A stable rival guild with cheap heroes and strong morale.", "Rival benchmark", [FrugalGuard, FrugalGuard, FrugalArcher, FrugalHealer], GameRules.WinReward, EncounterEffectId.None, RivalGuild.Frugal, "base", [{q:5,r:0}, {q:5,r:4}, {q:6,r:0}, {q:6,r:4}]),
+  new EncounterDefinition(1, 9, EncounterType.RivalGhost, "Brigand Lieutenant", "A leaner rival line trades durability for attacks that Mark your heroes.", "Rival benchmark", [LieutenantFrugalGuard, LieutenantFrugalGuard, LieutenantFrugalArcher, LieutenantFrugalHealer], GameRules.WinReward, EncounterEffectId.None, RivalGuild.Frugal, "brigand_lieutenant", [{q:5,r:1}, {q:5,r:3}, {q:6,r:0}, {q:6,r:4}]),
+  new EncounterDefinition(1, 10, EncounterType.FinalBoss, "Dungeon Auditor", "Final boss. The Auditor is flanked by armsmen and a weakening accountant. Damages your party and raises wages.", "Final boss", [AuditorArmsman, DungeonAuditor, AuditorAccountant], GameRules.WinReward, EncounterEffectId.FinalBossDamage, RivalGuild.None, "base", [{q:5,r:0}, {q:6,r:2}, {q:5,r:4}]),
 
   new EncounterDefinition(2, 1, EncounterType.Dungeon, "Imp Swarm", "The descent begins. A pack of imps boils up from the pit.", "Basic stat check", [Imp, Imp, Imp], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None),
+  new EncounterDefinition(2, 1, EncounterType.Dungeon, "Iron Grunt Squad", "Two hardened iron grunts hold the line. Their Guarded armor has thickened since Act 1.", "Frontline durability", [Act2ShieldGrunt, Act2ShieldGrunt], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None, "iron_grunt_squad", [{q:5,r:1}, {q:5,r:3}], "Bruiser"),
   new EncounterDefinition(2, 2, EncounterType.Dungeon, "Soul Broker", "If a Soul Broker survives past combat round 3, lose 3 gold.", "Economy pressure", [SoulBroker, Imp], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None),
-  new EncounterDefinition(2, 3, EncounterType.RivalGhost, "Frugal Guild Rematch", "The Frugal Guild returns, disciplined and resilient, its healer keeping it standing.", "Rival benchmark", [Act2FrugalGuard, Act2FrugalGuard, Act2FrugalArcher, Act2FrugalHealer], GameRules.WinReward, EncounterEffectId.None, RivalGuild.Frugal),
+  new EncounterDefinition(2, 2, EncounterType.Dungeon, "Demonic Archers", "Two demonic snipers lurk in the corners. They're Marked and fragile — but Burned stacks fast in the pit.", "Backline pressure", [Act2DungeonArcher, Act2DungeonArcher], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None, "demonic_archers", [{q:6,r:0}, {q:6,r:4}], "Backline"),
+  new EncounterDefinition(2, 3, EncounterType.RivalGhost, "Frugal Guild Rematch", "The Frugal Guild returns, disciplined and resilient, its healer keeping it standing.", "Rival benchmark", [Act2FrugalGuard, Act2FrugalGuard, Act2FrugalArcher, Act2FrugalHealer], GameRules.WinReward, EncounterEffectId.None, RivalGuild.Frugal, "base", [{q:5,r:0}, {q:5,r:4}, {q:6,r:0}, {q:6,r:4}]),
   new EncounterDefinition(2, 4, EncounterType.Dungeon, "Gloom Bat", "Attacks your lowest-health backline hero on turn 2.", "Backline pressure", [GloomBat, Imp], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None),
   new EncounterDefinition(2, 5, EncounterType.Dungeon, "Debt Wraith", "Gains attack based on your current debt. Hardened for the descent.", "Debt punishment", [Act2DebtWraith], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None),
-  new EncounterDefinition(2, 6, EncounterType.RivalGhost, "Greedy Guild Rematch", "The Greedy Guild returns for Act 2, richer and meaner. Bigger tanks, a deadlier carry.", "Rival benchmark", [Act2GreedyTank, Act2GreedyTank, Act2GreedyCarry], GameRules.WinReward, EncounterEffectId.None, RivalGuild.Greedy),
+  new EncounterDefinition(2, 5, EncounterType.Dungeon, "Infernal Ward", "A demon grunt guards a pit surgeon. Burst the surgeon before its Poisoned heals wear down your party.", "Attrition fight", [Act2ShieldGrunt, Act2DungeonMedic], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None, "infernal_ward", [{q:5,r:2}, {q:6,r:2}], "Sustain"),
+  new EncounterDefinition(2, 6, EncounterType.RivalGhost, "Greedy Guild Rematch", "The Greedy Guild returns for Act 2, richer and meaner. Bigger tanks, a deadlier carry.", "Rival benchmark", [Act2GreedyTank, Act2GreedyTank, Act2GreedyCarry], GameRules.WinReward, EncounterEffectId.None, RivalGuild.Greedy, "base", [{q:5,r:0}, {q:5,r:4}, {q:6,r:2}]),
   new EncounterDefinition(2, 7, EncounterType.Dungeon, "Hoard Fiend", "If the Hoard Fiend survives, your reward is reduced by 4 gold.", "Reward pressure", [HoardFiend, Imp], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None),
+  new EncounterDefinition(2, 7, EncounterType.Dungeon, "Demon Champion's Guard", "Two hulking vanguards protect a demonic warlord. Kill the warlord before it shreds your formation.", "Burst carry", [Act2HulkingProtector, Act2DungeonChampion, Act2HulkingProtector], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None, "demon_champions_guard", [{q:5,r:1}, {q:6,r:2}, {q:5,r:3}], "Carry"),
   new EncounterDefinition(2, 8, EncounterType.Dungeon, "Brimstone Brute", "A towering demon. Heavy stress test before the final guild fight.", "Heavy dungeon", [BrimstoneBrute, Imp, Imp], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None),
-  new EncounterDefinition(2, 9, EncounterType.RivalGhost, "Carry Guild Rematch", "The Carry Guild doubles down: a fortified front line shielding an even stronger champion.", "Rival benchmark", [Act2CarryProtector, Act2CarryProtector, Act2CarryChampion, Act2CarrySupport], GameRules.WinReward, EncounterEffectId.None, RivalGuild.Carry),
+  new EncounterDefinition(2, 9, EncounterType.RivalGhost, "Carry Guild Rematch", "The Carry Guild doubles down: a fortified front line shielding an even stronger champion.", "Rival benchmark", [Act2CarryProtector, Act2CarryProtector, Act2CarryChampion, Act2CarrySupport], GameRules.WinReward, EncounterEffectId.None, RivalGuild.Carry, "base", [{q:5,r:0}, {q:5,r:4}, {q:6,r:2}, {q:6,r:0}]),
   new EncounterDefinition(2, 10, EncounterType.FinalBoss, "Infernal Auditor", "Act 2 capstone. The Infernal Auditor tallies your debts in fire.", "Final boss", [InfernalAuditor], GameRules.WinReward, EncounterEffectId.FinalBossDamage, RivalGuild.None),
 
   new EncounterDefinition(3, 1, EncounterType.Dungeon, "Mint Slime Press", "The Mint stamps simple slimes into sharper coinage.", "Basic stat check", [Act3SlimeMint, Act3SlimeMint, Act3ImpMint], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None),
+  new EncounterDefinition(3, 1, EncounterType.Dungeon, "Mint Enforcers", "Two mint enforcers hold the production floor. Their Guarded plating is freshly minted.", "Frontline durability", [Act3ShieldGrunt, Act3ShieldGrunt], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None, "mint_enforcers", [{q:5,r:1}, {q:5,r:3}], "Bruiser"),
   new EncounterDefinition(3, 2, EncounterType.Dungeon, "Goblin Coiners", "If a Goblin Coiner survives past combat round 3, lose 3 gold.", "Economy pressure", [Act3GoblinCoiner, Act3ImpMint], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None),
+  new EncounterDefinition(3, 2, EncounterType.Dungeon, "Mint Crossbowmen", "Two crossbowmen hang back behind the presses. They're Marked — but Burned stacks can grind a party down.", "Backline pressure", [Act3DungeonArcher, Act3DungeonArcher], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None, "mint_crossbowmen", [{q:6,r:0}, {q:6,r:4}], "Backline"),
   new EncounterDefinition(3, 3, EncounterType.RivalGhost, "Frugal Guild Mint Rematch", "The Frugal Guild returns under the cold lamps of The Mint.", "Rival benchmark", [Act3SlimeMint, Act3SlimeMint, Act3GoblinCoiner, Act3SoulBrokerMint], GameRules.WinReward, EncounterEffectId.None, RivalGuild.Frugal),
   new EncounterDefinition(3, 4, EncounterType.Dungeon, "Tariff Bat", "Attacks your lowest-health backline hero on turn 2.", "Backline pressure", [Act3BatTariff, Act3ImpMint], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None),
   new EncounterDefinition(3, 5, EncounterType.Dungeon, "Mint Infernal Auditor", "Gains attack based on your current debt. The Mint records every shortage.", "Debt punishment", [Act3InfernalAuditorMint], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None),
+  new EncounterDefinition(3, 5, EncounterType.Dungeon, "Mint Mending Post", "A mint enforcer guards a Mint Mender. Burst the mender or get outlasted by Poisoned.", "Attrition fight", [Act3ShieldGrunt, Act3DungeonMedic], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None, "mint_mending_post", [{q:5,r:2}, {q:6,r:2}], "Sustain"),
   new EncounterDefinition(3, 6, EncounterType.RivalGhost, "Greedy Guild Mint Rematch", "The Greedy Guild returns plated in fresh coin and worse judgment.", "Rival benchmark", [Act3BrimstoneMint, Act3BrimstoneMint, Act3BatTariff], GameRules.WinReward, EncounterEffectId.None, RivalGuild.Greedy),
   new EncounterDefinition(3, 7, EncounterType.Dungeon, "Mint Soul Broker", "If the Mint Soul Broker survives, your reward is reduced by 4 gold.", "Reward pressure", [Act3SoulBrokerMint, Act3ImpMint], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None),
+  new EncounterDefinition(3, 7, EncounterType.Dungeon, "Mint Champion's Detail", "Two vault guards protect a mint enforcer champion. Kill the champion before it dismantles your formation.", "Burst carry", [Act3HulkingProtector, Act3DungeonChampion, Act3HulkingProtector], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None, "mint_champions_detail", [{q:5,r:1}, {q:6,r:2}, {q:5,r:3}], "Carry"),
   new EncounterDefinition(3, 8, EncounterType.Dungeon, "Minted Brimstone Brute", "A towering press guard. Heavy stress test before the final guild fight.", "Heavy dungeon", [Act3BrimstoneMint, Act3ImpMint, Act3ImpMint], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None),
   new EncounterDefinition(3, 9, EncounterType.RivalGhost, "Carry Guild Mint Rematch", "The Carry Guild shields a hardened champion among the counting engines.", "Rival benchmark", [Act3BrimstoneMint, Act3BrimstoneMint, Act3InfernalAuditorMint, Act3SoulBrokerMint], GameRules.WinReward, EncounterEffectId.None, RivalGuild.Carry),
   new EncounterDefinition(3, 10, EncounterType.FinalBoss, "MintMaster", "Act 3 capstone. The MintMaster mints extra wages from your debt and scorches heroes every few rounds.", "Final boss", [Act3Mintmaster], GameRules.WinReward, EncounterEffectId.MintMasterOvermint, RivalGuild.None),
 
   new EncounterDefinition(4, 1, EncounterType.Dungeon, "Vault Slime Lockbox", "The Vault hardens simple slimes into sealed ledgers.", "Basic stat check", [Act4VaultSlime, Act4VaultSlime, Act4VaultImp], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None),
+  new EncounterDefinition(4, 1, EncounterType.Dungeon, "Vault Enforcers", "Two iron-plated vault enforcers bar the entry hall. Their Guarded armor is the thickest yet.", "Frontline durability", [Act4ShieldGrunt, Act4ShieldGrunt], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None, "vault_enforcers", [{q:5,r:1}, {q:5,r:3}], "Bruiser"),
   new EncounterDefinition(4, 2, EncounterType.Dungeon, "Vault Coiners", "If a Vault Coiner survives past combat round 3, lose 3 gold.", "Economy pressure", [Act4VaultCoiner, Act4VaultImp], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None),
+  new EncounterDefinition(4, 2, EncounterType.Dungeon, "Vault Marksmen", "Two vault marksmen cover the rear passages. Marked and fragile — but Burned in the Vault cuts deep.", "Backline pressure", [Act4DungeonArcher, Act4DungeonArcher], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None, "vault_marksmen", [{q:6,r:0}, {q:6,r:4}], "Backline"),
   new EncounterDefinition(4, 3, EncounterType.RivalGhost, "Frugal Guild Vault Rematch", "The Frugal Guild returns to audit every step in The Vault.", "Rival benchmark", [Act4VaultSlime, Act4VaultSlime, Act4VaultCoiner, Act4LedgerBroker], GameRules.WinReward, EncounterEffectId.None, RivalGuild.Frugal),
   new EncounterDefinition(4, 4, EncounterType.Dungeon, "Vault Bat", "Attacks your lowest-health backline hero on turn 2.", "Backline pressure", [Act4VaultBat, Act4VaultImp], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None),
   new EncounterDefinition(4, 5, EncounterType.Dungeon, "Vault Auditor", "Gains attack based on your current debt. The Vault remembers every shortfall.", "Debt punishment", [Act4VaultAuditor], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None),
+  new EncounterDefinition(4, 5, EncounterType.Dungeon, "Vault Surgical Ward", "A vault enforcer shields a vault surgeon. Burst the surgeon before its Poisoned drains your party dry.", "Attrition fight", [Act4ShieldGrunt, Act4DungeonMedic], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None, "vault_surgical_ward", [{q:5,r:2}, {q:6,r:2}], "Sustain"),
   new EncounterDefinition(4, 6, EncounterType.RivalGhost, "Greedy Guild Vault Rematch", "The Greedy Guild returns with heavier locks and sharper claims.", "Rival benchmark", [Act4VaultBrute, Act4VaultBrute, Act4VaultBat], GameRules.WinReward, EncounterEffectId.None, RivalGuild.Greedy),
   new EncounterDefinition(4, 7, EncounterType.Dungeon, "Ledger Broker", "If the Ledger Broker survives, your reward is reduced by 4 gold.", "Reward pressure", [Act4LedgerBroker, Act4VaultImp], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None),
+  new EncounterDefinition(4, 7, EncounterType.Dungeon, "Vault Warlord's Guard", "Two iron vault guards protect a vault warlord. Kill the warlord before it tears through everything.", "Burst carry", [Act4HulkingProtector, Act4DungeonChampion, Act4HulkingProtector], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None, "vault_warlords_guard", [{q:5,r:1}, {q:6,r:2}, {q:5,r:3}], "Carry"),
   new EncounterDefinition(4, 8, EncounterType.Dungeon, "Vault Brute", "A sealed-vault guard. Heavy stress test before the final guild fight.", "Heavy dungeon", [Act4VaultBrute, Act4VaultImp, Act4VaultImp], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None),
   new EncounterDefinition(4, 9, EncounterType.RivalGhost, "Carry Guild Vault Rematch", "The Carry Guild shields its champion behind final-ledger muscle.", "Rival benchmark", [Act4VaultBrute, Act4VaultBrute, Act4VaultAuditor, Act4LedgerBroker], GameRules.WinReward, EncounterEffectId.None, RivalGuild.Carry),
   new EncounterDefinition(4, 10, EncounterType.FinalBoss, "The Banker King", "Act 4 capstone. The Banker King judges the run by the debt it carries.", "Final boss", [Act4BankerKing], GameRules.WinReward, EncounterEffectId.FinalBossDamage, RivalGuild.None),
