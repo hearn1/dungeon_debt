@@ -334,9 +334,9 @@ export class CombatPanel {
     // Clear the "acting" glow from the previous event.
     this._clearActing();
 
-    // Resolve actor and target by unitId (fall back to slot-based key for legacy).
-    const actorEntry  = this._unitMap.get(evt.actorUnitId)  || this._unitMap.get(this._slotKey(evt.attackerIsPlayerSide, evt.attackerSlot));
-    const targetEntry = this._unitMap.get(evt.targetUnitId) || this._unitMap.get(this._slotKey(evt.targetIsPlayerSide,  evt.targetSlot));
+    // Resolve actor and target by unitId (set by CombatLogger on all action events).
+    const actorEntry  = this._unitMap.get(evt.actorUnitId);
+    const targetEntry = this._unitMap.get(evt.targetUnitId);
 
     // Highlight the acting unit.
     if (actorEntry && (evt.kind === K.Attack || evt.kind === K.Heal)) {
@@ -505,12 +505,12 @@ export class CombatPanel {
     }
 
     // For combat actions, just update the HP and dead state.
-    const targetEntry = this._unitMap.get(evt.targetUnitId) || this._unitMap.get(this._slotKey(evt.targetIsPlayerSide, evt.targetSlot));
+    const targetEntry = this._unitMap.get(evt.targetUnitId);
     if (targetEntry) {
       const maxHp = evt.targetMaxHealth || targetEntry.maxHp || 1;
       this._updateTokenHp(targetEntry, evt.targetHealthAfter, maxHp);
       if (evt.targetHealthAfter <= 0) targetEntry.node.classList.add("dead");
-      this._updateTokenGlyphs(targetEntry.node, evt.targetStatuses, 0);
+      this._updateTokenGlyphs(targetEntry.node, evt.targetStatuses || [], 0);
     }
     if (evt.logText) this._appendLog(evt.logText);
   }
@@ -618,9 +618,6 @@ export class CombatPanel {
   _clearTimer() {
     if (this._timer) { clearInterval(this._timer); this._timer = null; }
   }
-
-  // Legacy fallback key (slot-based) for events that lack unitId.
-  _slotKey(isPlayer, slot) { return `${isPlayer ? "p" : "e"}:${slot}`; }
 }
 
 function summaryRow(label, value, cls) {
