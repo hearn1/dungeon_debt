@@ -66,6 +66,10 @@ export class CombatManager {
 
     this._match = match;
 
+    // Emit structured replay events for match start and initial unit positions.
+    logger.logCombatStart(playerUnits, enemyUnits, board);
+    logger.logRoundBoundary(1);
+
     // Fire CombatStart passives now that board positions are set (e.g. Empower, Growth).
     AbilityRunner.triggerPassives(AbilityTrigger.CombatStart, playerUnits, { match, run, logger });
 
@@ -81,11 +85,13 @@ export class CombatManager {
 
     for (let tick = 0; tick < maxTicks; tick++) {
       match.currentTick = tick;
+      logger.setTick(tick);
       const currentRound = Math.floor(tick / GameRules.CombatTicksPerRound) + 1;
 
       // Fire end-of-round effects when crossing a round boundary.
       if (tick > 0 && tick % GameRules.CombatTicksPerRound === 0) {
         const roundJustEnded = currentRound - 1;
+        logger.logRoundBoundary(currentRound);
         HeroEffects.onEndOfCombatRound(roundJustEnded, run, encounter, playerUnits, enemyUnits, result, logger);
         AbilityRunner.triggerPassives(AbilityTrigger.EndOfRound, playerUnits, { match, run, logger });
         result.combatRoundsElapsed = roundJustEnded;
@@ -133,10 +139,11 @@ export class CombatManager {
           // Target is out of range: move one step toward it.
           const targetPos = match.board.getUnitPosition(target);
           if (targetPos) {
+            const fromPos = logger ? match.board.getUnitPosition(unit) : null;
             const moved = match.board.moveUnitToward(unit, targetPos, GameRules.DefaultMovementRange);
             if (moved && logger) {
-              const newPos = match.board.getUnitPosition(unit);
-              logger.logMessage(`${unit.displayName} moves to (${newPos.q},${newPos.r}).`);
+              const toPos = match.board.getUnitPosition(unit);
+              logger.logMovement(unit, fromPos, toPos);
             }
           }
         }
@@ -268,6 +275,7 @@ export class CombatManager {
     }
     copyUnitSnapshots(playerUnits, result.playerFinalUnits);
     copyUnitSnapshots(enemyUnits, result.enemyFinalUnits);
+    logger.logCombatEnd(result.playerWon);
     logger.copyTo(result.logLines);
     logger.copyReplayTo(result.replayEvents);
   }
