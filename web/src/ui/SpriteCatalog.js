@@ -101,3 +101,11 @@ export function attackEffect(unit) {
 export function healEffect() {
   return `${BASE}/effects/heal.png`;
 }
+
+// Returns the effect sprite for an active ability cast.
+// Ability-specific art lives at assets/effects/ability-<id>.png; falls back
+// to the caster's attack effect so missing sprites never break rendering.
+export function abilityEffect(abilityId, casterUnit) {
+  // No ability-specific sprites authored yet — use the caster's attack sprite.
+  return attackEffect(casterUnit);
+}
