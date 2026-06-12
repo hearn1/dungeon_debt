@@ -17,6 +17,7 @@ export const RoleBehaviorDefaults = Object.freeze({
 // This replaces bespoke override code with a data-driven lookup.
 const _effectTargetOverrides = Object.freeze({
   [HeroEffectId.NinjaLowestTarget]: TargetingMode.LowestHealthEnemy,
+  [HeroEffectId.RangerBackline]: TargetingMode.FurthestEnemy,
 });
 
 // Returns the TargetingMode for a unit's basic attack.

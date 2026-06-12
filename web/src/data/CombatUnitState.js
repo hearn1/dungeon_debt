@@ -1,4 +1,5 @@
 import { CombatUnit } from "./CombatUnit.js";
+import { AbilityState } from "./AbilityState.js";
 
 // Runtime-only mutable state for a unit inside a tick-based simulation.
 // Extends CombatUnit with deterministic ID, timing, range, and targeting fields.
@@ -23,5 +24,8 @@ export class CombatUnitState extends CombatUnit {
     // Axial hex board position {q, r}. Set during match initialisation from
     // hero.boardPosition (or slot default). Updated by board.moveUnit.
     this.boardPosition = null;
+
+    // Runtime ability state (stacks, cooldowns, cast counts).
+    this.abilityState = new AbilityState();
   }
 }

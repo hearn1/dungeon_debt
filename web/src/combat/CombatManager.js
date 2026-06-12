@@ -6,8 +6,9 @@ import { CombatTeam } from "./CombatTeam.js";
 import { CombatBoard } from "./CombatBoard.js";
 import { CombatLogger } from "./CombatLogger.js";
 import { HeroEffects } from "./HeroEffects.js";
+import { AbilityRunner } from "./AbilityRunner.js";
 import { GameRules, GameRulesFns } from "../core/GameRules.js";
-import { HeroRole, RelicId, CombatStatusId, EncounterType, HeroEffectId } from "../data/enums.js";
+import { HeroRole, RelicId, CombatStatusId, EncounterType, HeroEffectId, AbilityTrigger } from "../data/enums.js";
 import { getScaledHeroMaxHealth, getRelicAttackBonus, hasRelic } from "../run/heroStats.js";
 import { resolvePlayerBoardPosition, resolveEnemyBoardPosition } from "./BoardPlacement.js";
 import { selectTarget } from "./TargetingRules.js";
@@ -16,6 +17,7 @@ import { getBasicAttackMode } from "./RoleBehavior.js";
 export class CombatManager {
   constructor() {
     this._run = null;
+    this._match = null;
     this._knightRedirectsRemaining = 0;
     this._redInkBrandApplied = false;
   }
@@ -25,6 +27,7 @@ export class CombatManager {
     const logger = new CombatLogger();
 
     this._run = run;
+    this._match = null;
     this._knightRedirectsRemaining = 0;
     this._redInkBrandApplied = false;
 
@@ -61,6 +64,14 @@ export class CombatManager {
     initBoardPositions(board, playerUnits, enemyUnits, encounter);
     const match = new CombatMatch(playerTeam, enemyTeam, board);
 
+    this._match = match;
+
+    // Fire CombatStart passives now that board positions are set (e.g. Empower, Growth).
+    AbilityRunner.triggerPassives(AbilityTrigger.CombatStart, playerUnits, { match, run, logger });
+
+    // Initialise active ability cooldowns so first cast happens after one full cooldown.
+    AbilityRunner.initActiveCooldowns(playerUnits);
+
     // Timing is seeded by the build functions; ensure all units start ready at tick 0.
     for (const u of match.allUnits) {
       u.nextAttackAt = 0;
@@ -76,6 +87,7 @@ export class CombatManager {
       if (tick > 0 && tick % GameRules.CombatTicksPerRound === 0) {
         const roundJustEnded = currentRound - 1;
         HeroEffects.onEndOfCombatRound(roundJustEnded, run, encounter, playerUnits, enemyUnits, result, logger);
+        AbilityRunner.triggerPassives(AbilityTrigger.EndOfRound, playerUnits, { match, run, logger });
         result.combatRoundsElapsed = roundJustEnded;
 
         if (!playerTeam.hasLiving) {
@@ -147,6 +159,22 @@ export class CombatManager {
           return result;
         }
       }
+
+      // Active ability pass: fire any active abilities whose cooldown has expired.
+      AbilityRunner.processActives(tick, playerUnits, match, run, logger);
+
+      // Clean up board after ability damage.
+      for (const unit of match.allUnits) {
+        if (!unit.isAlive) match.board.removeUnit(unit);
+      }
+
+      if (!enemyTeam.hasLiving) {
+        result.playerWon = true;
+        result.combatRoundsElapsed = currentRound;
+        logger.logFinalResult(true);
+        this._finishResult(result, playerUnits, enemyUnits, logger);
+        return result;
+      }
     }
 
     result.playerWon = false;
@@ -180,10 +208,19 @@ export class CombatManager {
     if (!defender.isAlive) {
       logger.logDeath(defender);
       HeroEffects.onKill(attacker, defender, this._run, logger);
+      AbilityRunner.triggerPassiveOn(AbilityTrigger.OnKill, attacker, defender, { match: this._match, run: this._run, logger });
     } else {
       applyAttackStatuses(attacker, defender, logger);
       HeroEffects.onSurvivingAttack(attacker, defender, logger);
       this._applyRelicAttackStatuses(attacker, defender, logger);
+    }
+
+    // AfterAttack passives fire for the attacker after any attack resolves.
+    AbilityRunner.triggerPassiveOn(AbilityTrigger.AfterAttack, attacker, defender, { match: this._match, run: this._run, logger });
+
+    // OnDamageTaken passive fires for the defender when they took damage and survived.
+    if (damage > 0 && defender.isAlive) {
+      AbilityRunner.triggerPassiveOn(AbilityTrigger.OnDamageTaken, defender, attacker, { match: this._match, run: this._run, logger });
     }
 
     applyPostAttackStatusDamage(attacker, logger);
@@ -226,6 +263,9 @@ export class CombatManager {
     }
 
     HeroEffects.onCombatEnd(result, this._run, playerUnits, enemyUnits, logger);
+    if (this._run) {
+      AbilityRunner.triggerCombatEndPassives(this._run.party, this._run, result, logger);
+    }
     copyUnitSnapshots(playerUnits, result.playerFinalUnits);
     copyUnitSnapshots(enemyUnits, result.enemyFinalUnits);
     logger.copyTo(result.logLines);

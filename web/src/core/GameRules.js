@@ -252,6 +252,66 @@ export const GameRules = Object.freeze({
   SilverTreasurerTargets: 2,
   TreasurerUpkeepReduction: 2,
 
+  // ---- Ability system (#159) ----
+  // Cooldowns are in ticks (CombatTicksPerRound = 4 ticks/round = ~1 round per tick).
+  // 8-round cooldown = 32 ticks, 10-round = 40, 6-round = 24.
+  AbilityCleaveAdjDamageMult: 0.5,       // Cleave deals 50% attack to adjacent targets
+  AbilityGuardBreakDamageBonus: 2,        // GuardBreak: flat bonus damage
+  AbilityBattleHardenedAttackPerStack: 1,
+  AbilityBattleHardenedMaxStacks: 3,
+  AbilityMomentumAttackPerStack: 1,
+  AbilityMomentumMaxStacks: 4,
+  AbilityRageAttackBonus: 2,             // Barbarian Rage: +2 attack below 50% HP
+  AbilityLeapSlamAdjDamageMult: 0.75,
+  AbilityEarthquakeDamage: 2,            // Golem Earthquake: flat AoE damage
+  AbilityPowerShotDamageBonus: 3,        // Ranger PowerShot bonus on top of attack
+  AbilityBackstabDamageBonus: 2,         // Rogue Backstab: bonus when not targeted
+  AbilityExecutorLowHpThreshold: 0.4,    // Ninja Executioner: triggers when target HP% <= this
+  AbilityExecutorDamageBonus: 2,
+  AbilityArcanePowerBonusPerCast: 1,     // Wizard ArcanePower: +1 damage per prior cast
+  AbilityArcanePowerMaxBonus: 4,
+  AbilityFireballDamage: 2,              // Wizard Fireball base damage (multiplied by attack)
+  AbilitySorcBurnDuration: 1,            // MVP: 1 = apply Burned status (duration tracked via status)
+  AbilityFlameWaveDamageMult: 0.75,
+  AbilityWarlockDebtDivisor: 6,          // Warlock DebtMagic: +1 attack per this many debt
+  AbilityWarlockDebtCap: 4,
+  AbilityWarlockCurseAttackPenalty: 1,   // Warlock Curse: reduces target attack
+  AbilityPriestHealAmount: 3,            // Priest Heal active
+  AbilityCompassionLowHpBonusHeal: 2,   // bonus when target below 50% HP
+  AbilityClericRestorationHeal: 1,       // Cleric Restoration: per-ally per-round
+  AbilityClericGreaterHealAmount: 5,
+  AbilityDruidGrowthHealthBonus: 2,      // Druid Growth: max HP bonus at combat start
+  AbilityDruidRejuvenationHeal: 2,       // Druid Rejuvenation active: per-ally
+  AbilityEnchanterEmpowerBonus: 1,       // Enchanter Empower adjacent ally attack
+  AbilityEnchanterEnchantBonus: 2,       // EnchantWeapon active: ally attack boost
+  AbilityBardBuskerGold: 2,              // Bard Busker: gold per win
+  AbilityBardInspireAmount: 1,           // Inspire: applies Inspired to all allies
+  AbilityTreasurerInvestmentGold: 1,     // Treasurer Investment: gold gained
+  AbilityTreasurerInvestmentAttack: 2,   // self attack boost
+  AbilityArtificerTinkererBonus: 0.25,   // relic effect increase (flag, handled in HeroEffects)
+  AbilityArtificerOverclockAttack: 2,    // Overclock: ally attack bonus
+  // Cooldowns in ticks
+  CooldownCleave: 24,
+  CooldownGuardBreak: 24,
+  CooldownIntercept: 32,
+  CooldownDivineShield: 32,
+  CooldownLeapSlam: 32,
+  CooldownEarthquake: 32,
+  CooldownPowerShot: 24,
+  CooldownShadowstep: 24,
+  CooldownAssassinate: 24,
+  CooldownFireball: 32,
+  CooldownFlameWave: 40,
+  CooldownCurse: 32,
+  CooldownHeal: 24,
+  CooldownGreaterHeal: 32,
+  CooldownRejuvenation: 32,
+  CooldownEnchantWeapon: 32,
+  CooldownInspire: 32,
+  CooldownInvestment: 40,
+  CooldownMimic: 40,
+  CooldownOverclock: 32,
+
   // ---- Crits (Bucket C) ----
   CritChance: 0.25,
   CritDamageMultiplier: 2,
