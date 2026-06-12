@@ -1488,5 +1488,235 @@ function makeMatch(playerUnits, enemyUnits, board) {
     wizardAfter < wizardBefore);
 }
 
+// ---- #226 Replay validation and determinism ----
+
+import { CombatReplayEventKind } from "../data/CombatReplayEvent.js";
+
+// Helper: returns an array of error strings (empty = valid).
+function validateReplayStream(events) {
+  const errors = [];
+
+  // 1. Sequence must be monotonically increasing.
+  for (let i = 1; i < events.length; i++) {
+    if (events[i].sequence <= events[i - 1].sequence) {
+      errors.push(`sequence not monotone at index ${i}: ${events[i - 1].sequence} -> ${events[i].sequence}`);
+    }
+  }
+
+  // 2. Tick must be non-negative and non-decreasing.
+  for (let i = 1; i < events.length; i++) {
+    if (events[i].tick < events[i - 1].tick) {
+      errors.push(`tick decreased at index ${i}: ${events[i - 1].tick} -> ${events[i].tick}`);
+    }
+  }
+
+  // 3. Required fields by event kind.
+  for (let i = 0; i < events.length; i++) {
+    const e = events[i];
+    switch (e.kind) {
+      case CombatReplayEventKind.UnitSpawn:
+        if (!e.actorUnitId) errors.push(`UnitSpawn[${i}] missing actorUnitId`);
+        break;
+      case CombatReplayEventKind.Movement:
+        if (!e.actorUnitId) errors.push(`Movement[${i}] missing actorUnitId`);
+        if (!e.targetCoord) errors.push(`Movement[${i}] missing targetCoord`);
+        break;
+      case CombatReplayEventKind.Attack:
+        if (!e.actorUnitId) errors.push(`Attack[${i}] missing actorUnitId`);
+        if (!e.targetUnitId) errors.push(`Attack[${i}] missing targetUnitId`);
+        break;
+      case CombatReplayEventKind.Death:
+        if (!e.targetUnitId) errors.push(`Death[${i}] missing targetUnitId`);
+        break;
+      case CombatReplayEventKind.AbilityCast:
+        if (!e.actorUnitId) errors.push(`AbilityCast[${i}] missing actorUnitId`);
+        if (!e.abilityId) errors.push(`AbilityCast[${i}] missing abilityId`);
+        break;
+      case CombatReplayEventKind.PassiveTrigger:
+        if (!e.actorUnitId) errors.push(`PassiveTrigger[${i}] missing actorUnitId`);
+        if (!e.abilityId) errors.push(`PassiveTrigger[${i}] missing abilityId`);
+        break;
+      case CombatReplayEventKind.RoundBoundary:
+        if (e.amount <= 0) errors.push(`RoundBoundary[${i}] amount must be > 0`);
+        break;
+      case CombatReplayEventKind.CombatEnd:
+        if (!e.metadata || typeof e.metadata.playerWon !== "boolean") {
+          errors.push(`CombatEnd[${i}] missing metadata.playerWon`);
+        }
+        break;
+    }
+  }
+
+  // 4. Each Death event must be preceded (somewhere earlier) by a lethal Attack/StatusDamage
+  //    on the same targetUnitId (i.e. it should not appear before any damage to that unit).
+  const killedUnitIds = new Set();
+  for (const e of events) {
+    if (e.kind === CombatReplayEventKind.Death) killedUnitIds.add(e.targetUnitId);
+  }
+  for (const uid of killedUnitIds) {
+    const deathIdx = events.findIndex(e => e.kind === CombatReplayEventKind.Death && e.targetUnitId === uid);
+    const damageIdx = events.findIndex(e =>
+      (e.kind === CombatReplayEventKind.Attack || e.kind === CombatReplayEventKind.StatusDamage) &&
+      e.targetUnitId === uid && e.amount > 0);
+    if (damageIdx === -1) {
+      errors.push(`Death of ${uid} has no preceding damage event`);
+    } else if (damageIdx > deathIdx) {
+      errors.push(`Death of ${uid} appears before its damage event`);
+    }
+  }
+
+  return errors;
+}
+
+// Helper: reconstruct final HP per unitId from replay events (spawn + damage + heal).
+function reconstructHpMap(events) {
+  const hp = new Map();
+  for (const e of events) {
+    if (e.kind === CombatReplayEventKind.UnitSpawn) {
+      hp.set(e.actorUnitId, e.targetMaxHealth);
+    }
+    if (e.kind === CombatReplayEventKind.Attack || e.kind === CombatReplayEventKind.StatusDamage ||
+        e.kind === CombatReplayEventKind.Heal) {
+      if (e.targetUnitId) hp.set(e.targetUnitId, e.targetHealthAfter);
+    }
+    if (e.kind === CombatReplayEventKind.Death && e.targetUnitId) {
+      hp.set(e.targetUnitId, 0);
+    }
+  }
+  return hp;
+}
+
+// 226-A: replay stream passes validation for a standard fight.
+{
+  const run = buildRun(["warrior", "golem", "wizard", "ranger", "priest"]);
+  const result = new CombatManager().startCombat(run, encounter(1, 1));
+  const errors = validateReplayStream(result.replayEvents);
+  check("226: standard fight stream has no validation errors", errors.length === 0);
+  if (errors.length > 0) console.log("  validation errors:", errors.slice(0, 5));
+}
+
+// 226-B: CombatStart event is present and is the first event.
+{
+  const run = buildRun(["warrior", "golem"]);
+  const result = new CombatManager().startCombat(run, encounter(1, 1));
+  const firstEvt = result.replayEvents[0];
+  check("226: CombatStart is the first replay event", firstEvt && firstEvt.kind === CombatReplayEventKind.CombatStart);
+}
+
+// 226-C: UnitSpawn events are present and cover all units.
+{
+  const run = buildRun(["warrior", "golem"]);
+  const enc = encounter(1, 1); // 3 slimes
+  const result = new CombatManager().startCombat(run, enc);
+  const spawnEvts = result.replayEvents.filter(e => e.kind === CombatReplayEventKind.UnitSpawn);
+  // 2 player + 3 enemies = 5 spawns
+  check("226: UnitSpawn emitted for every unit", spawnEvts.length === 5);
+  check("226: all UnitSpawn events have actorUnitId", spawnEvts.every(e => !!e.actorUnitId));
+  check("226: UnitSpawn sourceCoord present for board unit", spawnEvts.every(e => e.sourceCoord !== null));
+}
+
+// 226-D: Movement events have sourceCoord and targetCoord.
+{
+  const run = buildRun(["warrior"]); // melee unit must move to reach enemy
+  const result = new CombatManager().startCombat(run, encounter(1, 4)); // Tax Collector
+  const moveEvts = result.replayEvents.filter(e => e.kind === CombatReplayEventKind.Movement);
+  check("226: movement events present for melee unit", moveEvts.length > 0);
+  check("226: movement events have sourceCoord", moveEvts.every(e => e.sourceCoord !== null));
+  check("226: movement events have targetCoord", moveEvts.every(e => e.targetCoord !== null));
+  check("226: movement targetCoord differs from sourceCoord",
+    moveEvts.every(e => e.targetCoord.q !== e.sourceCoord.q || e.targetCoord.r !== e.sourceCoord.r));
+}
+
+// 226-E: RoundBoundary events mark each round in extended combat.
+{
+  const run = buildRun(["warrior"]);
+  const result = new CombatManager().startCombat(run, encounter(1, 4)); // multi-round fight
+  const roundEvts = result.replayEvents.filter(e => e.kind === CombatReplayEventKind.RoundBoundary);
+  check("226: at least two RoundBoundary events for multi-round fight", roundEvts.length >= 2);
+  const roundNums = roundEvts.map(e => e.amount);
+  check("226: RoundBoundary amounts are monotonically increasing",
+    roundNums.every((r, i) => i === 0 || r > roundNums[i - 1]));
+}
+
+// 226-F: CombatEnd is the last replay event with correct outcome.
+{
+  const run = buildRun(["warrior", "golem", "wizard", "ranger", "priest"]);
+  const result = new CombatManager().startCombat(run, encounter(1, 1));
+  const lastEvt = result.replayEvents[result.replayEvents.length - 1];
+  check("226: CombatEnd is the last replay event", lastEvt && lastEvt.kind === CombatReplayEventKind.CombatEnd);
+  check("226: CombatEnd metadata.playerWon matches result", lastEvt && lastEvt.metadata.playerWon === result.playerWon);
+}
+
+// 226-G: Death event follows lethal damage event for every killed unit.
+{
+  const run = buildRun(["warrior"]);
+  const result = new CombatManager().startCombat(run, encounter(1, 1));
+  const deathEvts = result.replayEvents.filter(e => e.kind === CombatReplayEventKind.Death);
+  check("226: at least one death event in warrior vs slimes", deathEvts.length > 0);
+  const errors = validateReplayStream(result.replayEvents);
+  check("226: death ordering validation passes", errors.filter(e => e.includes("Death")).length === 0);
+}
+
+// 226-H: AbilityCast events present when active abilities fire.
+// Golem alone vs Tax Collector: Weakened loop → fight hits turn limit; Earthquake fires at tick 32.
+{
+  const run = buildRun(["golem"]);
+  const result = new CombatManager().startCombat(run, encounter(1, 4));
+  const castEvts = result.replayEvents.filter(e => e.kind === CombatReplayEventKind.AbilityCast);
+  check("226: AbilityCast events present when active abilities fire", castEvts.length > 0);
+  check("226: AbilityCast events have actorUnitId and abilityId",
+    castEvts.every(e => !!e.actorUnitId && !!e.abilityId));
+}
+
+// 226-I: PassiveTrigger events present for passive abilities.
+{
+  const run = buildRun(["warrior"]);
+  const result = new CombatManager().startCombat(run, encounter(1, 1));
+  const triggerEvts = result.replayEvents.filter(e => e.kind === CombatReplayEventKind.PassiveTrigger);
+  check("226: PassiveTrigger events present when passives fire", triggerEvts.length > 0);
+  check("226: PassiveTrigger events have actorUnitId and abilityId",
+    triggerEvts.every(e => !!e.actorUnitId && !!e.abilityId));
+}
+
+// 226-J: Full replay stream is deterministic across identical runs.
+{
+  const a = new CombatManager().startCombat(
+    buildRun(["warrior", "golem", "wizard", "ranger", "priest"]), encounter(1, 3));
+  const b = new CombatManager().startCombat(
+    buildRun(["warrior", "golem", "wizard", "ranger", "priest"]), encounter(1, 3));
+  const aStream = JSON.stringify(a.replayEvents.map(e => `${e.kind}:${e.tick}:${e.sequence}:${e.amount}`));
+  const bStream = JSON.stringify(b.replayEvents.map(e => `${e.kind}:${e.tick}:${e.sequence}:${e.amount}`));
+  check("226: full replay event stream is deterministic across runs", aStream === bStream);
+}
+
+// 226-K: HP can be reconstructed from replay events.
+{
+  const run = buildRun(["warrior", "golem", "wizard", "ranger", "priest"]);
+  const result = new CombatManager().startCombat(run, encounter(1, 1));
+  const reconstructed = reconstructHpMap(result.replayEvents);
+
+  // Every unit in finalUnits should have a matching HP in the reconstruction.
+  let allMatch = true;
+  for (const unit of [...result.playerFinalUnits, ...result.enemyFinalUnits]) {
+    const uid = unit.isPlayerSide ? `p${unit.slot}` : `e${unit.slot}`;
+    if (reconstructed.has(uid) && reconstructed.get(uid) !== unit.currentHealth) {
+      allMatch = false;
+    }
+  }
+  check("226: reconstructed HP matches final unit HP for all units", allMatch);
+}
+
+// 226-L: Validation detects missing required field (synthetic failure test).
+{
+  const run = buildRun(["warrior", "golem"]);
+  const result = new CombatManager().startCombat(run, encounter(1, 1));
+  // Inject a malformed Attack event with no actorUnitId.
+  const fakeAttack = { kind: CombatReplayEventKind.Attack, sequence: 9999, tick: 0,
+    actorUnitId: null, targetUnitId: "e0", amount: 2, targetHealthAfter: 1, targetMaxHealth: 4 };
+  const malformed = [...result.replayEvents, fakeAttack];
+  const errors = validateReplayStream(malformed);
+  check("226: validator detects missing actorUnitId on Attack", errors.some(e => e.includes("actorUnitId")));
+}
+
 console.log(failures === 0 ? "\nALL PASS" : `\n${failures} FAILURE(S)`);
 process.exit(failures === 0 ? 0 : 1);

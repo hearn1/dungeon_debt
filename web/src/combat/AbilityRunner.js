@@ -16,6 +16,7 @@ export const AbilityRunner = {
       const ability = _getPassive(unit);
       if (!ability || ability.trigger !== trigger) continue;
 
+      baseCtx.logger?.logPassiveTrigger(unit, trigger, ability.id);
       const ctx = _buildCtx(unit, null, [], baseCtx);
       ability.execute(ctx);
     }
@@ -29,6 +30,7 @@ export const AbilityRunner = {
     const ability = _getPassive(subject);
     if (!ability || ability.trigger !== trigger) return;
 
+    baseCtx.logger?.logPassiveTrigger(subject, trigger, ability.id);
     const ctx = _buildCtx(subject, other, other ? [other] : [], baseCtx);
     ability.execute(ctx);
   },
@@ -86,6 +88,7 @@ export const AbilityRunner = {
       if (!target) continue; // no valid target — skip, do not reset cooldown
 
       const targets = resolveTargets(unit, target, ability.targetShape, match);
+      logger?.logAbilityCast(unit, targets, ability.id);
       const ctx = _buildCtx(unit, target, targets, { match, run, logger });
       ability.execute(ctx);
 
