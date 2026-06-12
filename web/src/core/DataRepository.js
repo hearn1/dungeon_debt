@@ -168,16 +168,20 @@ const LieutenantFrugalArcher = new EnemyDefinition("lieutenant_frugal_archer", "
 const LieutenantFrugalHealer = new EnemyDefinition("lieutenant_frugal_healer", "Lieutenant Frugal Healer", 1, 4, EnemyEffectId.FrugalGhostHeal, "Applies Marked on attack. Heals leftmost living ally each combat round.", null, [C.Marked]);
 
 // ---- Enemies (Archetype: Bruiser) ----
-const ShieldGrunt = new EnemyDefinition("shield_grunt", "Shield Grunt", 2, 7, EnemyEffectId.None, "Starts Guarded.", [C.Guarded]);
-const PitBrawler = new EnemyDefinition("pit_brawler", "Pit Brawler", 4, 5, EnemyEffectId.None, "No effect.");
+const ShieldGrunt = new EnemyDefinition("shield_grunt", "Shield Grunt", 2, 5, EnemyEffectId.None, "Starts Guarded.", [C.Guarded]);
+const PitBrawler = new EnemyDefinition("pit_brawler", "Pit Brawler", 3, 5, EnemyEffectId.None, "No effect.");
 
 // ---- Enemies (Archetype: Backline) ----
 const DungeonArcher = new EnemyDefinition("dungeon_archer", "Dungeon Archer", 3, 3, EnemyEffectId.None, "Starts Marked. Applies Burned on attack.", [C.Marked], [C.Burned]);
+
+// ---- Enemies (Archetype: Sustain) ----
+const DungeonMedic = new EnemyDefinition("dungeon_medic", "Dungeon Medic", 1, 5, EnemyEffectId.FrugalGhostHeal, "Applies Poisoned on attack. Heals leftmost living ally each combat round.", null, [C.Poisoned]);
 
 // ---- Enemies (Act 2 rival rematches) ----
 const Act2ShieldGrunt = createActEnemy(2, "shield_grunt", "Iron Grunt", 3, 11, EnemyEffectId.None, "Starts Guarded.", [C.Guarded]);
 const Act2PitBrawler = createActEnemy(2, "pit_brawler", "Pit Bruiser", 6, 8, EnemyEffectId.None, "No effect.");
 const Act2DungeonArcher = createActEnemy(2, "dungeon_archer", "Dungeon Sniper", 5, 5, EnemyEffectId.None, "Starts Marked. Applies Burned on attack.", [C.Marked], [C.Burned]);
+const Act2DungeonMedic = createActEnemy(2, "dungeon_medic", "Dungeon Surgeon", 2, 8, EnemyEffectId.FrugalGhostHeal, "Applies Poisoned on attack. Heals leftmost living ally each combat round.", null, [C.Poisoned]);
 const Act2GreedyTank = createActEnemy(2, "greedy_tank", "Greedy Tank", 4, 12, EnemyEffectId.None, "No effect.");
 const Act2GreedyCarry = createActEnemy(2, "greedy_carry", "Greedy Carry", 6, 7, EnemyEffectId.None, "Starts Inspired and Marked.", [C.Inspired], [C.Marked]);
 const Act2CarryProtector = createActEnemy(2, "carry_protector", "Carry Protector", 2, 14, EnemyEffectId.None, "Starts Guarded.", [C.Guarded]);
@@ -227,8 +231,8 @@ const EnemyDefinitions = [
   GreedyTank, GreedyCarry, CarryProtector, CarryCarry, FrugalGuard, FrugalArcher, FrugalHealer,
   LieutenantFrugalGuard, LieutenantFrugalArcher, LieutenantFrugalHealer,
   ShieldGrunt, PitBrawler,
-  DungeonArcher,
-  Act2ShieldGrunt, Act2PitBrawler, Act2DungeonArcher,
+  DungeonArcher, DungeonMedic,
+  Act2ShieldGrunt, Act2PitBrawler, Act2DungeonArcher, Act2DungeonMedic,
   Act2GreedyTank, Act2GreedyCarry, Act2CarryProtector, Act2CarryChampion, Act2CarrySupport, Act2FrugalGuard, Act2FrugalArcher, Act2FrugalHealer,
   Imp, SoulBroker, GloomBat, Act2DebtWraith, HoardFiend, BrimstoneBrute, InfernalAuditor,
   Act3SlimeMint, Act3GoblinCoiner, Act3BatTariff, Act3ImpMint, Act3SoulBrokerMint, Act3BrimstoneMint, Act3InfernalAuditorMint, Act3Mintmaster,
@@ -261,14 +265,15 @@ const RelicDefinitions = [
 
 const EncounterDefinitions = [
   new EncounterDefinition(1, 1, EncounterType.Dungeon, "Slimes", "Simple enemies. Win by having enough basic stats.", "Basic stat check", [Slime, Slime, Slime], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None),
-  new EncounterDefinition(1, 1, EncounterType.Dungeon, "Shield Grunt Pack", "Three shielded brutes hold a wide frontline. They're durable — overwhelm them before they advance.", "Frontline durability", [ShieldGrunt, ShieldGrunt, ShieldGrunt], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None, "shield_grunt_pack", [{q:5,r:0}, {q:5,r:2}, {q:5,r:4}], "Bruiser"),
+  new EncounterDefinition(1, 1, EncounterType.Dungeon, "Shield Grunts", "Two shielded brutes spread across the line. Your first taste of Guarded — hit each twice to break through.", "Frontline durability", [ShieldGrunt, ShieldGrunt], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None, "shield_grunts", [{q:5,r:1}, {q:5,r:3}], "Bruiser"),
   new EncounterDefinition(1, 2, EncounterType.Dungeon, "Goblin Thieves", "If a Goblin Thief survives past combat round 3, lose 3 gold.", "Economy pressure", [GoblinThief, GoblinThief], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None),
-  new EncounterDefinition(1, 2, EncounterType.Dungeon, "Dungeon Archers", "A shield grunt guards two fragile archers. Kill the guard before Burned stacks punish your party.", "Backline pressure", [ShieldGrunt, DungeonArcher, DungeonArcher], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None, "dungeon_archers", [{q:5,r:2}, {q:6,r:0}, {q:6,r:4}], "Backline"),
+  new EncounterDefinition(1, 2, EncounterType.Dungeon, "Dungeon Archers", "Two fragile archers hang back in the corners. They're Marked and fragile — kill them before Burned stacks up.", "Backline pressure", [DungeonArcher, DungeonArcher], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None, "dungeon_archers", [{q:6,r:0}, {q:6,r:4}], "Backline"),
   new EncounterDefinition(1, 3, EncounterType.RivalGhost, "Greedy Guild Ghost", "A reckless rival guild with expensive heroes. Strong now, but drowning in debt.", "Rival benchmark", [GreedyTank, GreedyTank, GreedyCarry], GameRules.WinReward, EncounterEffectId.None, RivalGuild.Greedy),
   new EncounterDefinition(1, 4, EncounterType.Dungeon, "Tax Collector", "Your total wages are increased by 2 this round.", "Payroll pressure", [TaxCollector], GameRules.WinReward, EncounterEffectId.TaxCollectorUpkeep, RivalGuild.None),
   new EncounterDefinition(1, 4, EncounterType.Dungeon, "Lazy Inspector", "A slower inspector skips the payroll audit but weakens whoever it hits.", "Status pressure", [LazyInspector], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None, "lazy_inspector"),
   new EncounterDefinition(1, 5, EncounterType.Dungeon, "Backline Bat", "Attacks your lowest-health backline hero on turn 2.", "Backline pressure", [BacklineBat, Slime], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None),
   new EncounterDefinition(1, 5, EncounterType.Dungeon, "Pit Brawlers", "Two aggressive brawlers charge ahead of a shielded grunt. High damage — stop them fast.", "Melee rush", [PitBrawler, PitBrawler, ShieldGrunt], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None, "pit_brawlers", [{q:5,r:1}, {q:5,r:3}, {q:6,r:2}], "Bruiser"),
+  new EncounterDefinition(1, 5, EncounterType.Dungeon, "Healing Ward", "A grunt guards a dungeon medic. Burst the medic before Poisoned accumulates or you'll be outlasted.", "Attrition fight", [ShieldGrunt, DungeonMedic], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None, "healing_ward", [{q:5,r:2}, {q:6,r:2}], "Sustain"),
   new EncounterDefinition(1, 6, EncounterType.RivalGhost, "Carry Guild Ghost", "This rival protects a high-damage carry. Kill it quickly or survive the burst.", "Rival benchmark", [CarryProtector, CarryProtector, CarryCarry], GameRules.WinReward, EncounterEffectId.None, RivalGuild.Carry),
   new EncounterDefinition(1, 6, EncounterType.RivalGhost, "Owl Roost", "This rival protects a high-damage carry with an extra backline threat.", "Rival benchmark", [CarryProtector, CarryProtector, CarryCarry, CarryCarry], GameRules.WinReward, EncounterEffectId.None, RivalGuild.Carry, "owl_roost"),
   new EncounterDefinition(1, 7, EncounterType.Dungeon, "Debt Wraith", "Gains attack based on your current debt.", "Debt punishment", [DebtWraith], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None),
