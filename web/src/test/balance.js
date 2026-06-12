@@ -31,19 +31,25 @@ const StrategyById = Object.freeze({
 
 const options = parseOptions(process.argv.slice(2));
 const strategies = resolveStrategies(options.strategy);
+
 const firstPass = runSeedSet(options.seedCount, strategies);
 const firstTsv = BalanceRunLogger.formatSeedResults(firstPass);
+const firstCombatLog = [...BalanceRunLogger.combatRows];
+const firstCombatTsv = BalanceRunLogger.formatCombatResults(firstCombatLog);
+
 const secondPass = runSeedSet(options.seedCount, strategies);
 const secondTsv = BalanceRunLogger.formatSeedResults(secondPass);
-const deterministic = firstTsv === secondTsv;
+const secondCombatTsv = BalanceRunLogger.formatCombatResults(BalanceRunLogger.combatRows);
+const deterministic = firstTsv === secondTsv && firstCombatTsv === secondCombatTsv;
 
 const runTimestamp = getTimestampForFilename();
 const reportPath = writeTsvFile(firstTsv, runTimestamp);
+const combatPath = writeCombatTsvFile(firstCombatTsv, runTimestamp);
 const wins = firstPass.filter((result) => result.outcome === "WIN").length;
 const losses = firstPass.length - wins;
 
 if (options.report) {
-  const mdContent = buildMarkdownReport(firstPass, options, runTimestamp);
+  const mdContent = buildMarkdownReport(firstPass, firstCombatLog, options, runTimestamp);
   const mdPath = writeMarkdownFile(mdContent, runTimestamp);
   console.log(`Markdown: ${mdPath}`);
 }
@@ -53,6 +59,7 @@ console.log(`Strategies: ${strategies.map((strategy) => strategy.id).join(", ")}
 console.log(`Wins: ${wins}`);
 console.log(`Losses: ${losses}`);
 console.log(`Report: ${reportPath}`);
+console.log(`Combat: ${combatPath}`);
 console.log(`DETERMINISM CHECK: ${deterministic ? "PASS" : "FAIL"}`);
 
 process.exit(deterministic ? 0 : 1);
@@ -199,10 +206,12 @@ function createManagers() {
 }
 
 function resolveCombatRound(managers, run) {
-  const result = managers.combatManager.startCombat(run, run.currentEncounter);
-  managers.runManager.applyPostCombatResult(result, run.currentEncounter);
+  const enc = run.currentEncounter;
+  const result = managers.combatManager.startCombat(run, enc);
+  managers.runManager.applyPostCombatResult(result, enc);
   const nextState = managers.runManager.evaluateNextState();
   BalanceRunLogger.logRound(run, nextState);
+  BalanceRunLogger.logCombat(run, result, enc);
   run.selectedPayrollAction = null;
 
   if (managers.runManager.tryPreparePendingRelicReward(nextState)) {
@@ -240,6 +249,14 @@ function writeTsvFile(contents, timestamp) {
   return reportPath;
 }
 
+function writeCombatTsvFile(contents, timestamp) {
+  const reportDir = getReportDir();
+  fs.mkdirSync(reportDir, { recursive: true });
+  const combatPath = path.join(reportDir, `combat-${timestamp}.tsv`);
+  fs.writeFileSync(combatPath, contents, "utf8");
+  return combatPath;
+}
+
 function writeMarkdownFile(contents, timestamp) {
   const reportDir = getReportDir();
   fs.mkdirSync(reportDir, { recursive: true });
@@ -248,7 +265,7 @@ function writeMarkdownFile(contents, timestamp) {
   return mdPath;
 }
 
-function buildMarkdownReport(results, options, timestamp) {
+function buildMarkdownReport(results, combatLog, options, timestamp) {
   const lines = [];
   const wins = results.filter((r) => r.outcome === "WIN").length;
   const losses = results.length - wins;
@@ -340,7 +357,36 @@ function buildMarkdownReport(results, options, timestamp) {
   }
   lines.push("");
 
+  if (Array.isArray(combatLog) && combatLog.length > 0) {
+    lines.push("## Combat Outcomes");
+    lines.push("| Encounter | Combats | Win Rate | Avg Rounds | Avg Heroes Lost |");
+    lines.push("|---|---|---|---|---|");
+    const byEnc = groupBy(combatLog, (row) => row.encounterId);
+    const encIds = Object.keys(byEnc).sort();
+    for (const encId of encIds) {
+      const rows = byEnc[encId];
+      const combats = rows.length;
+      const encWins = rows.filter((r) => r.playerWon === 1).length;
+      const winRateNum = combats > 0 ? (encWins / combats) * 100 : 0;
+      const avgRounds = avg(rows.map((r) => r.combatRoundsElapsed));
+      const avgDead = avg(rows.map((r) => r.heroesLost));
+      const flag = winRateNum < 50 ? " ⚠ low" : winRateNum > 95 ? " ⚠ high" : "";
+      lines.push(`| ${encId} | ${combats} | ${winRateNum.toFixed(1)}%${flag} | ${avgRounds} | ${avgDead} |`);
+    }
+    lines.push("");
+  }
+
   return lines.join("\n");
+}
+
+function groupBy(arr, keyFn) {
+  const out = {};
+  for (const item of arr) {
+    const k = keyFn(item);
+    if (!out[k]) out[k] = [];
+    out[k].push(item);
+  }
+  return out;
 }
 
 function tallyHeroes(results) {
