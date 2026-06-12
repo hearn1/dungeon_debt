@@ -177,11 +177,17 @@ const DungeonArcher = new EnemyDefinition("dungeon_archer", "Dungeon Archer", 3,
 // ---- Enemies (Archetype: Sustain) ----
 const DungeonMedic = new EnemyDefinition("dungeon_medic", "Dungeon Medic", 1, 5, EnemyEffectId.FrugalGhostHeal, "Applies Poisoned on attack. Heals leftmost living ally each combat round.", null, [C.Poisoned]);
 
+// ---- Enemies (Archetype: Carry) ----
+const HulkingProtector = new EnemyDefinition("hulking_protector", "Hulking Protector", 1, 12, EnemyEffectId.None, "Starts Guarded.", [C.Guarded]);
+const DungeonChampion = new EnemyDefinition("dungeon_champion", "Dungeon Champion", 5, 5, EnemyEffectId.None, "Starts Inspired.", [C.Inspired]);
+
 // ---- Enemies (Act 2 rival rematches) ----
 const Act2ShieldGrunt = createActEnemy(2, "shield_grunt", "Iron Grunt", 3, 11, EnemyEffectId.None, "Starts Guarded.", [C.Guarded]);
 const Act2PitBrawler = createActEnemy(2, "pit_brawler", "Pit Bruiser", 6, 8, EnemyEffectId.None, "No effect.");
 const Act2DungeonArcher = createActEnemy(2, "dungeon_archer", "Dungeon Sniper", 5, 5, EnemyEffectId.None, "Starts Marked. Applies Burned on attack.", [C.Marked], [C.Burned]);
 const Act2DungeonMedic = createActEnemy(2, "dungeon_medic", "Dungeon Surgeon", 2, 8, EnemyEffectId.FrugalGhostHeal, "Applies Poisoned on attack. Heals leftmost living ally each combat round.", null, [C.Poisoned]);
+const Act2HulkingProtector = createActEnemy(2, "hulking_protector", "Hulking Vanguard", 2, 18, EnemyEffectId.None, "Starts Guarded.", [C.Guarded]);
+const Act2DungeonChampion = createActEnemy(2, "dungeon_champion", "Dungeon Warlord", 8, 8, EnemyEffectId.None, "Starts Inspired.", [C.Inspired]);
 const Act2GreedyTank = createActEnemy(2, "greedy_tank", "Greedy Tank", 4, 12, EnemyEffectId.None, "No effect.");
 const Act2GreedyCarry = createActEnemy(2, "greedy_carry", "Greedy Carry", 6, 7, EnemyEffectId.None, "Starts Inspired and Marked.", [C.Inspired], [C.Marked]);
 const Act2CarryProtector = createActEnemy(2, "carry_protector", "Carry Protector", 2, 14, EnemyEffectId.None, "Starts Guarded.", [C.Guarded]);
@@ -231,8 +237,8 @@ const EnemyDefinitions = [
   GreedyTank, GreedyCarry, CarryProtector, CarryCarry, FrugalGuard, FrugalArcher, FrugalHealer,
   LieutenantFrugalGuard, LieutenantFrugalArcher, LieutenantFrugalHealer,
   ShieldGrunt, PitBrawler,
-  DungeonArcher, DungeonMedic,
-  Act2ShieldGrunt, Act2PitBrawler, Act2DungeonArcher, Act2DungeonMedic,
+  DungeonArcher, DungeonMedic, HulkingProtector, DungeonChampion,
+  Act2ShieldGrunt, Act2PitBrawler, Act2DungeonArcher, Act2DungeonMedic, Act2HulkingProtector, Act2DungeonChampion,
   Act2GreedyTank, Act2GreedyCarry, Act2CarryProtector, Act2CarryChampion, Act2CarrySupport, Act2FrugalGuard, Act2FrugalArcher, Act2FrugalHealer,
   Imp, SoulBroker, GloomBat, Act2DebtWraith, HoardFiend, BrimstoneBrute, InfernalAuditor,
   Act3SlimeMint, Act3GoblinCoiner, Act3BatTariff, Act3ImpMint, Act3SoulBrokerMint, Act3BrimstoneMint, Act3InfernalAuditorMint, Act3Mintmaster,
@@ -277,6 +283,7 @@ const EncounterDefinitions = [
   new EncounterDefinition(1, 6, EncounterType.RivalGhost, "Carry Guild Ghost", "This rival protects a high-damage carry. Kill it quickly or survive the burst.", "Rival benchmark", [CarryProtector, CarryProtector, CarryCarry], GameRules.WinReward, EncounterEffectId.None, RivalGuild.Carry),
   new EncounterDefinition(1, 6, EncounterType.RivalGhost, "Owl Roost", "This rival protects a high-damage carry with an extra backline threat.", "Rival benchmark", [CarryProtector, CarryProtector, CarryCarry, CarryCarry], GameRules.WinReward, EncounterEffectId.None, RivalGuild.Carry, "owl_roost"),
   new EncounterDefinition(1, 7, EncounterType.Dungeon, "Debt Wraith", "Gains attack based on your current debt.", "Debt punishment", [DebtWraith], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None),
+  new EncounterDefinition(1, 7, EncounterType.Dungeon, "Champion's Guard", "Two hulking protectors shield a powerful champion. Kill the champion before it shreds your party.", "Burst carry", [HulkingProtector, DungeonChampion, HulkingProtector], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None, "champions_guard", [{q:5,r:1}, {q:6,r:2}, {q:5,r:3}], "Carry"),
   new EncounterDefinition(1, 8, EncounterType.Dungeon, "Treasure Leech", "If Treasure Leech survives, your reward is reduced by 4 gold.", "Reward pressure", [TreasureLeech, Slime], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None),
   new EncounterDefinition(1, 8, EncounterType.Dungeon, "Goblin Twin Bruisers", "Two smaller leeches split the local slot's total pressure across the line.", "Reward pressure", [SplitTreasureLeech, SplitTreasureLeech], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None, "goblin_twin_bruisers"),
   new EncounterDefinition(1, 9, EncounterType.RivalGhost, "Frugal Guild Ghost", "A stable rival guild with cheap heroes and strong morale.", "Rival benchmark", [FrugalGuard, FrugalGuard, FrugalArcher, FrugalHealer], GameRules.WinReward, EncounterEffectId.None, RivalGuild.Frugal),
