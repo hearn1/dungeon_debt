@@ -14,31 +14,135 @@ import {
   HeroRole, HeroEffectId, EnemyEffectId, EncounterType, EncounterEffectId,
   RivalGuild, PayrollActionId, DifficultyLevel, RelicId, CombatStatusId,
 } from "../data/enums.js";
+import {
+  BattleHardenedPassive, CleaveActive,
+  MomentumPassive, GuardBreakActive,
+  ProtectorPassive, InterceptActive,
+  HolyAuraPassive, DivineShieldActive,
+  RagePassive, LeapSlamActive,
+  StoneSkinPassive, EarthquakeActive,
+  EagleEyePassive, PowerShotActive,
+  BackstabPassive, ShadowstepActive,
+  ExecutionerPassive, AssassinateActive,
+  ArcanePowerPassive, FireballActive,
+  BurnPassive, FlameWaveActive,
+  DebtMagicPassive, CurseActive,
+  CompassionPassive, HealActive,
+  RestorationPassive, GreaterHealActive,
+  GrowthPassive, RejuvenationActive,
+  EmpowerPassive, EnchantWeaponActive,
+  BuskerPassive, InspireActive,
+  EfficientPayrollPassive, InvestmentActive,
+  StudyPassive, MimicActive,
+  TinkererPassive, OverclockActive,
+} from "../combat/HeroAbilities.js";
 
 const C = CombatStatusId;
 
 // ---- Heroes ----
-const Warrior = new HeroDefinition("warrior", "Warrior", HeroRole.Tank, 2, 8, 2, "No effect.", HeroEffectId.None);
-const Knight = new HeroDefinition("knight", "Knight", HeroRole.Tank, 1, 10, 4, "Redirects the first backline hit each combat to himself.", HeroEffectId.KnightRedirect);
-const Golem = new HeroDefinition("golem", "Golem", HeroRole.Tank, 1, 14, 6, "Reduces incoming damage by 1.", HeroEffectId.GolemArmor);
-const Wizard = new HeroDefinition("wizard", "Wizard", HeroRole.Damage, 3, 4, 5, "Gains +1 attack when full wages are paid.", HeroEffectId.WizardScaling);
-const Ninja = new HeroDefinition("ninja", "Ninja", HeroRole.Damage, 4, 3, 4, "Targets the lowest-HP enemy; +1 gold on each kill.", HeroEffectId.NinjaLowestTarget);
-const Ranger = new HeroDefinition("ranger", "Ranger", HeroRole.Damage, 3, 5, 3, "Can safely attack from the backline.", HeroEffectId.RangerBackline);
-const Priest = new HeroDefinition("priest", "Priest", HeroRole.Support, 1, 5, 4, "Heals frontmost ally for 2 each combat round.", HeroEffectId.PriestHeal);
-const Bard = new HeroDefinition("bard", "Bard", HeroRole.Support, 1, 4, 3, "+2 gold after each combat win.", HeroEffectId.BardGoldOnWin);
-const Enchanter = new HeroDefinition("enchanter", "Enchanter", HeroRole.Support, 1, 4, 3, "Adjacent Damage allies gain +1 attack this combat.", HeroEffectId.EnchanterAdjacent);
-const Squire = new HeroDefinition("squire", "Squire", HeroRole.Tank, 1, 4, 1, "No effect.", HeroEffectId.None);
-const Treasurer = new HeroDefinition("treasurer", "Treasurer", HeroRole.Economy, 0, 4, 2, "Reduces the highest-wage ally's wages by 2.", HeroEffectId.TreasurerUpkeepReduce);
-const Apprentice = new HeroDefinition("apprentice", "Apprentice", HeroRole.Economy, 1, 3, 1, "Reduces a Wizard ally's wages by 1.", HeroEffectId.ApprenticeWizardSupport);
-const Paladin = new HeroDefinition("paladin", "Paladin", HeroRole.Tank, 2, 14, 4, "Heals all living allies for 1 at the end of each combat round.", HeroEffectId.PaladinAuraHeal);
-const Cleric = new HeroDefinition("cleric", "Cleric", HeroRole.Support, 1, 8, 3, "Heals all living allies for 1 at the end of each combat round.", HeroEffectId.ClericGroupHeal);
-const Barbarian = new HeroDefinition("barbarian", "Barbarian", HeroRole.Damage, 2, 10, 3, "Gains +2 attack while at half health or below.", HeroEffectId.BarbarianRage);
-const Rogue = new HeroDefinition("rogue", "Rogue", HeroRole.Damage, 3, 7, 3, "First attack each combat deals double damage.", HeroEffectId.RogueFirstStrike);
-const Warlock = new HeroDefinition("warlock", "Warlock", HeroRole.Damage, 2, 6, 4, "Gains attack based on player debt at combat start.", HeroEffectId.WarlockDebtPact);
-const Artificer = new HeroDefinition("artificer", "Artificer", HeroRole.Economy, 1, 7, 2, "Gains attack based on owned relics at combat start.", HeroEffectId.ArtificerRelicCharge);
-const Sorcerer = new HeroDefinition("sorcerer", "Sorcerer", HeroRole.Damage, 3, 5, 4, "Applies Burned to the defender on a surviving attack.", HeroEffectId.SorcererBurned);
-const Fighter = new HeroDefinition("fighter", "Fighter", HeroRole.Tank, 2, 12, 4, "Gains +1 attack at the end of each combat round survived (stacks).", HeroEffectId.FighterTenacity);
-const Druid = new HeroDefinition("druid", "Druid", HeroRole.Support, 1, 6, 3, "Applies Inspired to the leftmost living ally (excluding self) at the end of each combat round.", HeroEffectId.DruidInspire);
+const Warrior = new HeroDefinition(
+  "warrior", "Warrior", HeroRole.Tank, 2, 8, 2,
+  "Battle Hardened: gain attack when damaged (stacks). Active: Cleave adjacent enemies.",
+  HeroEffectId.None, BattleHardenedPassive, CleaveActive);
+
+const Knight = new HeroDefinition(
+  "knight", "Knight", HeroRole.Tank, 1, 10, 4,
+  "Protector: redirects backline hits to himself. Active: Intercept grants Guarded to lowest-HP ally.",
+  HeroEffectId.KnightRedirect, ProtectorPassive, InterceptActive);
+
+const Golem = new HeroDefinition(
+  "golem", "Golem", HeroRole.Tank, 1, 14, 6,
+  "Stone Skin: reduces incoming damage by 1. Active: Earthquake damages adjacent enemies.",
+  HeroEffectId.GolemArmor, StoneSkinPassive, EarthquakeActive);
+
+const Wizard = new HeroDefinition(
+  "wizard", "Wizard", HeroRole.Damage, 3, 4, 5,
+  "Arcane Power: Fireball damage increases each cast. Active: Fireball hits nearby enemies.",
+  HeroEffectId.WizardScaling, ArcanePowerPassive, FireballActive);
+
+const Ninja = new HeroDefinition(
+  "ninja", "Ninja", HeroRole.Damage, 4, 3, 4,
+  "Executioner: bonus damage against low-HP enemies. Active: Assassinate the lowest-HP enemy.",
+  HeroEffectId.NinjaLowestTarget, ExecutionerPassive, AssassinateActive);
+
+const Ranger = new HeroDefinition(
+  "ranger", "Ranger", HeroRole.Damage, 3, 5, 3,
+  "Eagle Eye: targets furthest enemy. Active: Power Shot deals high single-target damage.",
+  HeroEffectId.RangerBackline, EagleEyePassive, PowerShotActive);
+
+const Priest = new HeroDefinition(
+  "priest", "Priest", HeroRole.Support, 1, 5, 4,
+  "Compassion: heals most-wounded ally each round; bonus when below 50% HP. Active: Heal lowest-HP ally.",
+  HeroEffectId.PriestHeal, CompassionPassive, HealActive);
+
+const Bard = new HeroDefinition(
+  "bard", "Bard", HeroRole.Support, 1, 4, 3,
+  "Busker: gain gold after each combat win. Active: Inspire grants Inspired to all allies.",
+  HeroEffectId.BardGoldOnWin, BuskerPassive, InspireActive);
+
+const Enchanter = new HeroDefinition(
+  "enchanter", "Enchanter", HeroRole.Support, 1, 4, 3,
+  "Empower: adjacent allies gain attack at combat start. Active: Enchant Weapon boosts an ally's attack.",
+  HeroEffectId.EnchanterAdjacent, EmpowerPassive, EnchantWeaponActive);
+
+const Squire = new HeroDefinition(
+  "squire", "Squire", HeroRole.Tank, 1, 4, 1,
+  "No effect.", HeroEffectId.None);
+
+const Treasurer = new HeroDefinition(
+  "treasurer", "Treasurer", HeroRole.Economy, 0, 4, 2,
+  "Efficient Payroll: reduces highest-upkeep ally's wages. Active: Investment gains gold and boosts own attack.",
+  HeroEffectId.TreasurerUpkeepReduce, EfficientPayrollPassive, InvestmentActive);
+
+const Apprentice = new HeroDefinition(
+  "apprentice", "Apprentice", HeroRole.Economy, 1, 3, 1,
+  "Study: flags bonus XP after a combat win. Active: Mimic copies an ally's active ability.",
+  HeroEffectId.ApprenticeWizardSupport, StudyPassive, MimicActive);
+
+const Paladin = new HeroDefinition(
+  "paladin", "Paladin", HeroRole.Tank, 2, 14, 4,
+  "Holy Aura: heals most-wounded ally each round. Active: Divine Shield grants Guarded to lowest-HP ally.",
+  HeroEffectId.PaladinAuraHeal, HolyAuraPassive, DivineShieldActive);
+
+const Cleric = new HeroDefinition(
+  "cleric", "Cleric", HeroRole.Support, 1, 8, 3,
+  "Restoration: small heal to all allies each round. Active: Greater Heal restores significant HP to lowest-HP ally.",
+  HeroEffectId.ClericGroupHeal, RestorationPassive, GreaterHealActive);
+
+const Barbarian = new HeroDefinition(
+  "barbarian", "Barbarian", HeroRole.Damage, 2, 10, 3,
+  "Rage: gains attack when below 50% HP. Active: Leap Slam damages the furthest enemy and adjacent foes.",
+  HeroEffectId.BarbarianRage, RagePassive, LeapSlamActive);
+
+const Rogue = new HeroDefinition(
+  "rogue", "Rogue", HeroRole.Damage, 3, 7, 3,
+  "Backstab: bonus damage when not targeted by the victim. Active: Shadowstep strikes the highest-attack enemy.",
+  HeroEffectId.RogueFirstStrike, BackstabPassive, ShadowstepActive);
+
+const Warlock = new HeroDefinition(
+  "warlock", "Warlock", HeroRole.Damage, 2, 6, 4,
+  "Debt Magic: gains attack based on player debt. Active: Curse weakens the highest-attack enemy.",
+  HeroEffectId.WarlockDebtPact, DebtMagicPassive, CurseActive);
+
+const Artificer = new HeroDefinition(
+  "artificer", "Artificer", HeroRole.Economy, 1, 7, 2,
+  "Tinkerer: relic synergies improved. Active: Overclock boosts an ally's attack, Inspired, and CritCharged.",
+  HeroEffectId.ArtificerRelicCharge, TinkererPassive, OverclockActive);
+
+const Sorcerer = new HeroDefinition(
+  "sorcerer", "Sorcerer", HeroRole.Damage, 3, 5, 4,
+  "Burn: applies Burned on each attack. Active: Flame Wave burns adjacent enemies.",
+  HeroEffectId.SorcererBurned, BurnPassive, FlameWaveActive);
+
+const Fighter = new HeroDefinition(
+  "fighter", "Fighter", HeroRole.Tank, 2, 12, 4,
+  "Momentum: gains attack after each attack (stacks). Active: Guard Break deals bonus damage.",
+  HeroEffectId.FighterTenacity, MomentumPassive, GuardBreakActive);
+
+const Druid = new HeroDefinition(
+  "druid", "Druid", HeroRole.Support, 1, 6, 3,
+  "Growth: allies gain max HP at combat start. Active: Rejuvenation heals all allies.",
+  HeroEffectId.DruidInspire, GrowthPassive, RejuvenationActive);
 
 // ---- Enemies (Act 1) ----
 const Slime = new EnemyDefinition("slime", "Slime", 1, 4, EnemyEffectId.None, "No effect.");

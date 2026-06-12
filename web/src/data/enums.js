@@ -105,3 +105,68 @@ export const TargetingMode = makeEnum(
   "Self",
   "CurrentTargetOrNearestEnemy",
 );
+
+export const AbilityType = makeEnum("Passive", "Active");
+
+// Passive trigger points called by AbilityRunner.
+export const AbilityTrigger = makeEnum(
+  "CombatStart",
+  "AfterAttack",
+  "OnDamageTaken",
+  "OnKill",
+  "EndOfRound",
+  "CombatEnd",
+  "PreUpkeep",
+);
+
+// AoE shapes for active abilities. Single = primary target only.
+export const TargetShape = makeEnum(
+  "Single",
+  "Self",
+  "AdjacentEnemies",
+  "AllAllies",
+  "AllEnemies",
+);
+
+export const AbilityId = makeEnum(
+  // Warrior
+  "BattleHardened", "Cleave",
+  // Fighter
+  "Momentum", "GuardBreak",
+  // Knight
+  "Protector", "Intercept",
+  // Paladin
+  "HolyAura", "DivineShield",
+  // Barbarian
+  "Rage", "LeapSlam",
+  // Golem
+  "StoneSkin", "Earthquake",
+  // Ranger
+  "EagleEye", "PowerShot",
+  // Rogue
+  "Backstab", "Shadowstep",
+  // Ninja
+  "Executioner", "Assassinate",
+  // Wizard
+  "ArcanePower", "Fireball",
+  // Sorcerer
+  "Burn", "FlameWave",
+  // Warlock
+  "DebtMagic", "Curse",
+  // Priest
+  "Compassion", "Heal",
+  // Cleric
+  "Restoration", "GreaterHeal",
+  // Druid
+  "Growth", "Rejuvenation",
+  // Enchanter
+  "Empower", "EnchantWeapon",
+  // Bard
+  "Busker", "Inspire",
+  // Treasurer
+  "EfficientPayroll", "Investment",
+  // Apprentice
+  "Study", "Mimic",
+  // Artificer
+  "Tinkerer", "Overclock",
+);

@@ -4,8 +4,9 @@
 //   onCombatStart(...) returns knightRedirectsRemaining (number)
 //   tryRedirectToKnight(...) returns { target, remaining }
 
-import { HeroRole, HeroTier, HeroEffectId, EnemyEffectId, EncounterEffectId, CombatStatusId } from "../data/enums.js";
+import { HeroRole, HeroTier, HeroEffectId, EnemyEffectId, EncounterEffectId, CombatStatusId, AbilityTrigger } from "../data/enums.js";
 import { GameRules, GameRulesFns } from "../core/GameRules.js";
+import { AbilityRunner } from "./AbilityRunner.js";
 
 export const HeroEffects = {
   applyTierStatSeed(hero) {
@@ -86,11 +87,12 @@ export const HeroEffects = {
       }
     }
 
-    // Enchanter: +1 attack to adjacent Damage allies. Silver buffs all Damage allies.
+    // Enchanter: legacy path (skipped if hero has migrated passiveAbility).
     for (let i = 0; i < playerUnits.length; i++) {
       const unit = playerUnits[i];
       if (!unit.isAlive || !unit.sourceHero || !unit.sourceHero.definition) continue;
       if (unit.sourceHero.definition.effectId !== HeroEffectId.EnchanterAdjacent) continue;
+      if (unit.sourceHero.definition.passiveAbility) continue; // migrated to AbilityRunner
 
       const silver = hasSilverEffectTier(unit.sourceHero.tier);
       for (let j = 0; j < playerUnits.length; j++) {
@@ -108,12 +110,13 @@ export const HeroEffects = {
       }
     }
 
-    // Warlock: +attack based on player debt at combat start.
+    // Warlock: legacy path (skipped if hero has migrated passiveAbility).
     if (run) {
       const warlockBoost = Math.min(4, Math.floor(run.debt / 6));
       for (const unit of playerUnits) {
         if (!unit.isAlive || !unit.sourceHero || !unit.sourceHero.definition) continue;
         if (unit.sourceHero.definition.effectId === HeroEffectId.WarlockDebtPact) {
+          if (unit.sourceHero.definition.passiveAbility) continue; // migrated to AbilityRunner
           unit.attack += warlockBoost;
           if (logger && warlockBoost > 0) {
             logger.logMessage(`${unit.displayName} gains +${warlockBoost} attack from debt pact (debt ${run.debt}).`);
@@ -122,7 +125,7 @@ export const HeroEffects = {
       }
     }
 
-    // Artificer: +attack based on owned relics at combat start.
+    // Artificer: legacy path (still active — TinkererPassive is a registration no-op).
     if (run) {
       const relicCount = run.activeRelics ? run.activeRelics.length : 0;
       const artificerBoost = Math.min(4, relicCount);
@@ -210,21 +213,23 @@ export const HeroEffects = {
     if (!attacker || !attacker.isPlayerSide || !attacker.sourceHero || !attacker.sourceHero.definition) return;
     const effectId = attacker.sourceHero.definition.effectId;
 
+    // Barbarian Rage: skip if migrated to ability framework.
     if (effectId === HeroEffectId.BarbarianRage) {
+      if (attacker.sourceHero.definition.passiveAbility) return;
       if (attacker._barbarianBaseAttack === undefined) {
         attacker._barbarianBaseAttack = attacker.attack;
       }
-
       const rageActive = attacker.currentHealth * 2 <= attacker.maxHealth;
       const nextAttack = attacker._barbarianBaseAttack + (rageActive ? 2 : 0);
       if (attacker.attack === nextAttack) return;
-
       attacker.attack = nextAttack;
       if (logger && rageActive) logger.logMessage(`${attacker.displayName} rages (+2 attack).`);
       return;
     }
 
+    // Rogue First Strike: skip if migrated (replaced by Backstab passive).
     if (effectId === HeroEffectId.RogueFirstStrike) {
+      if (attacker.sourceHero.definition.passiveAbility) return;
       if (attacker._rogueBaseAttack === undefined) {
         attacker._rogueBaseAttack = attacker.attack;
       }
@@ -245,8 +250,9 @@ export const HeroEffects = {
 
     const effectId = attacker.sourceHero.definition.effectId;
 
-    // Sorcerer applies Burned natively (no Silver tier requirement).
+    // Sorcerer applies Burned natively (skip if migrated to BurnPassive ability).
     if (effectId === HeroEffectId.SorcererBurned) {
+      if (attacker.sourceHero.definition.passiveAbility) return;
       const added = defender.statuses.add(CombatStatusId.Burned);
       if (added && logger) {
         logger.logStatusChange(defender,
@@ -285,6 +291,7 @@ export const HeroEffects = {
     for (const priest of playerUnits) {
       if (!priest.isAlive || !priest.sourceHero || !priest.sourceHero.definition) continue;
       if (priest.sourceHero.definition.effectId !== HeroEffectId.PriestHeal) continue;
+      if (priest.sourceHero.definition.passiveAbility) continue; // migrated to CompassionPassive
       const amount = hasSilverEffectTier(priest.sourceHero.tier)
         ? GameRules.SilverPriestHealAmount
         : GameRules.FrontlineHealAmount;
@@ -296,6 +303,7 @@ export const HeroEffects = {
       if (!healer.isAlive || !healer.sourceHero || !healer.sourceHero.definition) continue;
       const effectId = healer.sourceHero.definition.effectId;
       if (effectId !== HeroEffectId.PaladinAuraHeal && effectId !== HeroEffectId.ClericGroupHeal) continue;
+      if (healer.sourceHero.definition.passiveAbility) continue; // migrated to HolyAura/RestorationPassive
       healAllLivingAllies(healer, playerUnits, 1, logger);
     }
 
@@ -303,6 +311,7 @@ export const HeroEffects = {
     for (const fighter of playerUnits) {
       if (!fighter.isAlive || !fighter.sourceHero || !fighter.sourceHero.definition) continue;
       if (fighter.sourceHero.definition.effectId !== HeroEffectId.FighterTenacity) continue;
+      if (fighter.sourceHero.definition.passiveAbility) continue; // migrated to MomentumPassive
       if (fighter._fighterBaseAttack === undefined) fighter._fighterBaseAttack = fighter.attack;
       if (fighter._fighterRoundsSurvived === undefined) fighter._fighterRoundsSurvived = 0;
       fighter._fighterRoundsSurvived += 1;
@@ -314,6 +323,7 @@ export const HeroEffects = {
     for (const druid of playerUnits) {
       if (!druid.isAlive || !druid.sourceHero || !druid.sourceHero.definition) continue;
       if (druid.sourceHero.definition.effectId !== HeroEffectId.DruidInspire) continue;
+      if (druid.sourceHero.definition.passiveAbility) continue; // migrated to GrowthPassive/RejuvenationActive
       const ally = findLeftmostLivingNonSelf(playerUnits, druid);
       if (!ally) continue;
       const added = ally.statuses.add(CombatStatusId.Inspired);
@@ -365,6 +375,7 @@ export const HeroEffects = {
       for (const hero of run.party) {
         if (!hero || !hero.definition) continue;
         if (hero.definition.effectId === HeroEffectId.BardGoldOnWin) {
+          if (hero.definition.passiveAbility) continue; // migrated to BuskerPassive
           const gain = hasSilverEffectTier(hero.tier) ? GameRules.SilverBardWinGold : GameRules.BronzeBardWinGold;
           run.gold += gain;
           if (logger) logger.logMessage(`${hero.definition.displayName} sings for +${gain} gold.`);
@@ -401,10 +412,17 @@ export const HeroEffects = {
       wizard.upkeepThisRound = reduced;
     }
 
-    // Treasurer: reduce the highest-upkeep ally(ies). Silver reduces top two.
+    // Treasurer: use ability framework if defined; otherwise fall back to legacy dispatch.
     for (const treasurer of run.party) {
       if (!treasurer || !treasurer.definition) continue;
       if (treasurer.definition.effectId !== HeroEffectId.TreasurerUpkeepReduce) continue;
+
+      if (treasurer.definition.passiveAbility) {
+        // Handled via AbilityRunner.triggerPreUpkeepPassives.
+        continue;
+      }
+
+      // Legacy path (kept for backward compat if ability not attached).
       const targetCount = hasSilverEffectTier(treasurer.tier)
         ? GameRules.SilverTreasurerTargets
         : GameRules.BronzeTreasurerTargets;
@@ -418,6 +436,9 @@ export const HeroEffects = {
         target.upkeepThisRound = reduced;
       }
     }
+
+    // Delegate to ability framework for PreUpkeep passives.
+    AbilityRunner.triggerPreUpkeepPassives(run.party, run);
   },
 };
 
