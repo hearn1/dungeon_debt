@@ -344,7 +344,111 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 64px;
 }
 
-/* ---- Combat ---- */
+/* ---- Combat battlefield (hex-board layout, issue #197) ---- */
+.combat-battlefield {
+  position: relative;
+  display: inline-block; /* shrink-wrap the hex-board + layers */
+  border: 1px solid var(--act-accent, var(--rule));
+  align-self: center;
+}
+.combat-battlefield.encounter-dungeon {
+  background: radial-gradient(ellipse at 50% 100%, var(--act-accent) 0%, transparent 65%);
+}
+.combat-battlefield.encounter-rival {
+  background: radial-gradient(ellipse at 50% 100%, var(--act-accent) 0%, transparent 55%);
+}
+.combat-battlefield.encounter-boss {
+  background: radial-gradient(ellipse at 50% 100%, var(--act-accent) 0%, transparent 45%);
+  box-shadow: 0 0 40px color-mix(in srgb, var(--act-accent) 20%, transparent);
+}
+
+/* Hex tile zone tints inside the battlefield. */
+.hex-tile.player-zone { background: color-mix(in srgb, var(--gold) 8%, var(--bg-panel)); }
+.hex-tile.enemy-zone  { background: color-mix(in srgb, var(--debt-critical) 8%, var(--bg-panel)); }
+.hex-tile.neutral-zone { background: var(--bg-panel); }
+
+/* Unit layer floats over the hex grid. */
+.combat-unit-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: visible;
+}
+
+/* ---- Combat token (unit on the hex board) ---- */
+.combat-token {
+  position: absolute;
+  width: 70px; height: 70px;
+  pointer-events: none;
+  overflow: visible;
+  transition: left 0.22s ease-out, top 0.22s ease-out;
+  z-index: 2;
+}
+[data-animation-speed="fast"] .combat-token { transition-duration: 80ms; }
+[data-reduced-motion="true"] .combat-token { transition: none !important; }
+
+/* Hex-shaped face: portrait clipped to hexagon. */
+.ct-face {
+  width: 70px; height: 70px;
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  background: var(--bg-card);
+  display: flex; align-items: center; justify-content: center;
+  position: relative;
+}
+.combat-token.player .ct-face { outline: none; box-shadow: inset 0 0 0 3px color-mix(in srgb, var(--gold) 60%, transparent); }
+.combat-token.enemy  .ct-face { box-shadow: inset 0 0 0 3px color-mix(in srgb, var(--debt-critical) 55%, transparent); }
+.combat-token.acting .ct-face { box-shadow: inset 0 0 0 3px var(--gold), 0 0 10px var(--gold); }
+.combat-token.dead   .ct-face { opacity: 0.22; filter: grayscale(1); }
+
+.ct-portrait { width: 52px; height: 52px; display: block; image-rendering: -webkit-optimize-contrast; }
+
+/* HP bar sits just below the hex face. */
+.ct-hpbar {
+  position: absolute;
+  bottom: -5px; left: 5px; right: 5px;
+  height: 4px;
+  background: var(--rule-faint);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.ct-hpfill { height: 100%; width: 100%; background: var(--debt-stable); transition: width 0.2s; }
+.ct-hpfill.low { background: var(--debt-critical); }
+
+/* Status glyphs in top-right corner of token, outside the clipped face. */
+.ct-glyphs {
+  position: absolute !important;
+  top: -4px; right: -4px;
+  display: flex !important;
+  flex-wrap: wrap;
+  gap: 2px;
+  z-index: 3;
+  pointer-events: none;
+  max-width: 36px;
+}
+
+/* ---- Combat controls bar ---- */
+.combat-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.combat-round-lbl {
+  font-size: 12px;
+  letter-spacing: 2px;
+  color: var(--ink-mute);
+  margin-right: auto;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Combat log hidden by default (#168). */
+.combat-log { max-height: 160px; overflow-y: auto; font-size: 13px; padding: 4px 0; }
+.combat-log.hidden { display: none; }
+.combat-log .line { color: var(--ink-dim); }
+.combat-log .line.win  { color: var(--debt-stable);   font-weight: 700; }
+.combat-log .line.loss { color: var(--debt-critical);  font-weight: 700; }
+
+/* Legacy combat-board/combat-unit classes kept for backward compat (unused by new panel). */
 .combat-board { display: flex; flex-direction: column; align-items: center; gap: 10px; position: relative; perspective: 600px; transform: rotateX(2deg); border: 1px solid var(--act-accent, var(--rule)); }
 .combat-side { display: flex; flex-direction: column; align-items: center; gap: 6px; width: 100%; }
 .combat-side-lbl { font-size: 12px; letter-spacing: 2px; color: var(--ink-mute); }
@@ -453,13 +557,6 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 }
 .combat-float.hit { color: var(--debt-critical); }
 .combat-float.heal { color: var(--debt-stable); }
-.combat-log {
-  background: var(--bg-strip); border: 1px solid var(--rule); border-radius: 8px;
-  padding: 12px; height: 220px; overflow-y: auto; font-size: 13px; line-height: 1.7;
-}
-.combat-log .line { color: var(--ink-dim); }
-.combat-log .line.win { color: var(--debt-stable); font-weight: 700; }
-.combat-log .line.loss { color: var(--debt-critical); font-weight: 700; }
 
 /* ---- Summary / reward ---- */
 .summary { background: var(--bg-panel); border: 1px solid var(--rule); border-radius: 10px; padding: 18px; display: flex; flex-direction: column; gap: 8px; }
@@ -697,52 +794,84 @@ html[data-reduced-motion="true"] *::after {
 .scout-race-done { font-size: 13px; color: var(--ink-dim); padding: 6px 0; }
 .enemy-line { display: flex; justify-content: space-between; font-size: 14px; padding: 6px 0; border-bottom: 1px solid var(--rule-faint); }
 
-/* Hit / heal flash on combat unit cards. */
-@keyframes flash-hit {
-  0% { background: rgba(196, 74, 62, 0.55); }
+/* ---- Combat token animations (issue #197 / #199) ---- */
+
+/* Hit / heal flash on the hex face of a combat token. */
+@keyframes flash-hit-token {
+  0%   { background: rgba(196, 74, 62, 0.65); }
   100% { background: var(--bg-card); }
 }
-@keyframes flash-heal {
-  0% { background: rgba(107, 155, 107, 0.55); }
+@keyframes flash-heal-token {
+  0%   { background: rgba(107, 155, 107, 0.65); }
   100% { background: var(--bg-card); }
 }
-.combat-unit.flash-hit { animation: flash-hit 380ms ease-out 1; }
+.combat-token.flash-hit  .ct-face { animation: flash-hit-token  380ms ease-out 1; }
+.combat-token.flash-heal .ct-face { animation: flash-heal-token 380ms ease-out 1; }
+
+/* Legacy flash classes for .combat-unit (kept for backward compat). */
+@keyframes flash-hit  { 0% { background: rgba(196, 74, 62, 0.55); } 100% { background: var(--bg-card); } }
+@keyframes flash-heal { 0% { background: rgba(107, 155, 107, 0.55); } 100% { background: var(--bg-card); } }
+.combat-unit.flash-hit  { animation: flash-hit  380ms ease-out 1; }
 .combat-unit.flash-heal { animation: flash-heal 380ms ease-out 1; }
 
+/* Floating damage/heal number anchored to the token's face. */
 @keyframes combat-float-up {
-  0% { opacity: 0; transform: translate(-50%, -35%) scale(0.92); }
-  18% { opacity: 1; transform: translate(-50%, -58%) scale(1); }
+  0%   { opacity: 0; transform: translate(-50%, -35%) scale(0.92); }
+  18%  { opacity: 1; transform: translate(-50%, -58%) scale(1); }
   100% { opacity: 0; transform: translate(-50%, -118%) scale(0.96); }
 }
 
-/* Melee attack lunge on the acting combat-unit card. Direction is by side
-   (player rows lunge up, enemy rows lunge down); only ~64% of the cycle is
-   spent pushing out so the snap-back lands inside STEP_MS. */
-@keyframes lunge-up {
-  0%   { transform: translateY(0);     animation-timing-function: ease-out; }
-  64%  { transform: translateY(-14px); animation-timing-function: ease-in; }
-  100% { transform: translateY(0); }
+/* Lunge: player side attacks right (toward enemy), enemy side attacks left. */
+@keyframes lunge-right {
+  0%   { transform: translateX(0);     animation-timing-function: ease-out; }
+  64%  { transform: translateX(12px);  animation-timing-function: ease-in; }
+  100% { transform: translateX(0); }
 }
-@keyframes lunge-down {
-  0%   { transform: translateY(0);     animation-timing-function: ease-out; }
-  64%  { transform: translateY(14px);  animation-timing-function: ease-in; }
-  100% { transform: translateY(0); }
+@keyframes lunge-left {
+  0%   { transform: translateX(0);     animation-timing-function: ease-out; }
+  64%  { transform: translateX(-12px); animation-timing-function: ease-in; }
+  100% { transform: translateX(0); }
 }
+.combat-token.lunging.player { animation: lunge-right 280ms 1; }
+.combat-token.lunging.enemy  { animation: lunge-left  280ms 1; }
+
+/* Legacy lunge keyframes for old .combat-unit (kept for backward compat). */
+@keyframes lunge-up   { 0% { transform: translateY(0); } 64% { transform: translateY(-14px); animation-timing-function: ease-in; } 100% { transform: translateY(0); } }
+@keyframes lunge-down { 0% { transform: translateY(0); } 64% { transform: translateY(14px);  animation-timing-function: ease-in; } 100% { transform: translateY(0); } }
 .combat-unit.lunging.player { animation: lunge-up 280ms 1; }
 .combat-unit.lunging.enemy  { animation: lunge-down 280ms 1; }
 
-/* Death fade-out on a unit that reached 0 HP during replay. */
+/* Death fade for combat tokens. */
+@keyframes death-fade-token {
+  0%   { opacity: 1;    transform: scale(1); }
+  100% { opacity: 0.22; transform: scale(0.9); }
+}
+.combat-token.dying { animation: death-fade-token 400ms ease-out forwards; }
+
+/* Legacy death fade for .combat-unit (kept for backward compat). */
 @keyframes death-fade {
   0%   { opacity: 1; transform: scale(1) translateY(0); }
   100% { opacity: 0.35; transform: scale(0.92) translateY(4px); }
 }
 .combat-unit.dying { animation: death-fade 400ms ease-out forwards; }
 
-/* ---- V2 combat board backgrounds and staging ---- */
-/* Backline row depth offset */
-.combat-row.back { transform: scale(0.95) translateY(4px); }
+/* Ability cast: bright pulse on the hex face. */
+@keyframes casting-pulse {
+  0%   { background: rgba(201, 160, 74, 0.1); }
+  40%  { background: rgba(201, 160, 74, 0.55); }
+  100% { background: var(--bg-card); }
+}
+.combat-token.casting .ct-face { animation: casting-pulse 240ms ease-out 1; }
 
-/* Encounter-type floor washes: radial gradient from bottom-center */
+/* Passive trigger: soft glow ring. */
+@keyframes passive-glow {
+  0%   { filter: drop-shadow(0 0 0px var(--gold)); }
+  50%  { filter: drop-shadow(0 0 6px var(--gold)); }
+  100% { filter: drop-shadow(0 0 0px var(--gold)); }
+}
+.combat-token.passive-glow { animation: passive-glow 320ms ease-out 1; }
+
+/* ---- Legacy V2 combat board backgrounds (unused by new panel) ---- */
 .combat-board.encounter-dungeon {
   background: radial-gradient(ellipse at 50% 100%, var(--act-accent) 0%, transparent 65%);
 }
@@ -753,6 +882,7 @@ html[data-reduced-motion="true"] *::after {
   background: radial-gradient(ellipse at 50% 100%, var(--act-accent) 0%, transparent 45%);
   box-shadow: 0 0 40px color-mix(in srgb, var(--act-accent) 20%, transparent);
 }
+.combat-row.back { transform: scale(0.95) translateY(4px); }
 
 /* ---- Economy panel feedback ---- */
 @keyframes counter-bump {
