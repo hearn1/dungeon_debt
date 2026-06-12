@@ -1746,30 +1746,21 @@ function makeCombatResult(overrides = {}) {
   check("persist: locked saved difficulty falls back to default", resolved === GameRules.DefaultDifficultyLevel);
 }
 
-console.log(failures === 0 ? "\nALL PASS" : `\n${failures} FAILURE(S)`);
-process.exit(failures === 0 ? 0 : 1);
-
 // ---- Bucket C: Crits — same seed produces same critChargedSlots ----
 {
-  const gm1 = new GameManager();
-  gm1.startRun(DifficultyLevel.Level0);
-  gm1.continueFromScout();
-  fieldKnownParty(gm1, ["warrior", "wizard", "ranger"]);
-  gm1.continueFromShop();
-  gm1.continueFromFormation();
-  gm1.selectPayrollAction(PayrollActionId.StandardPay);
-  gm1.continueFromPayroll();
-  const slots1 = [...gm1.currentRunState.critChargedSlots];
+  // Use RunManager directly with a fixed seed so the RNG sequence is reproducible.
+  const FIXED_SEED = 12345;
+  const rm1 = new RunManager();
+  const run1 = rm1.initializeRun(DifficultyLevel.Level0, FIXED_SEED);
+  fieldKnownPartyOnRun(run1, ["warrior", "wizard", "ranger"]);
+  rm1.preRollCombatStatuses(run1);
+  const slots1 = [...run1.critChargedSlots];
 
-  const gm2 = new GameManager();
-  gm2.startRun(DifficultyLevel.Level0);
-  gm2.continueFromScout();
-  fieldKnownParty(gm2, ["warrior", "wizard", "ranger"]);
-  gm2.continueFromShop();
-  gm2.continueFromFormation();
-  gm2.selectPayrollAction(PayrollActionId.StandardPay);
-  gm2.continueFromPayroll();
-  const slots2 = [...gm2.currentRunState.critChargedSlots];
+  const rm2 = new RunManager();
+  const run2 = rm2.initializeRun(DifficultyLevel.Level0, FIXED_SEED);
+  fieldKnownPartyOnRun(run2, ["warrior", "wizard", "ranger"]);
+  rm2.preRollCombatStatuses(run2);
+  const slots2 = [...run2.critChargedSlots];
 
   check("crits: same seed gives same critChargedSlots", JSON.stringify(slots1) === JSON.stringify(slots2));
   check("crits: critChargedSlots is an array", Array.isArray(slots1));
@@ -1948,11 +1939,128 @@ process.exit(failures === 0 ? 0 : 1);
     run.morale <= moraleBefore - GameRules.BloodContractLossMorale - GameRules.DungeonLossMorale);
 }
 
+// ---- Post-combat economy integration (#235) ----
+
+// 1. Loss → receives LossReward gold and loses DungeonLossMorale morale.
+{
+  const gm = new GameManager();
+  gm.startRun(DifficultyLevel.Level0);
+  gm.continueFromScout();
+  fieldKnownParty(gm, []); // empty party = guaranteed loss
+  gm.continueFromShop();
+  gm.continueFromFormation();
+  const run = gm.currentRunState;
+  run.gold = 200; // large buffer so upkeep is fully paid in gold
+  gm.selectPayrollAction(PayrollActionId.StandardPay);
+  gm.continueFromPayroll();
+  gm.resolveCombat();
+  check("economy: latestRewardGold = LossReward on loss", run.latestRewardGold === GameRules.LossReward);
+  check("economy: morale decreases by DungeonLossMorale on loss", run.latestMoraleChange === -GameRules.DungeonLossMorale);
+}
+
+// 2. Win → receives WinReward gold and no morale change. (baseline)
+{
+  const gm = new GameManager();
+  gm.startRun(DifficultyLevel.Level0);
+  gm.continueFromScout();
+  fieldKnownParty(gm, ["warrior", "golem", "wizard", "ranger", "priest"]);
+  gm.continueFromShop();
+  gm.continueFromFormation();
+  const run = gm.currentRunState;
+  run.gold = 200;
+  gm.selectPayrollAction(PayrollActionId.StandardPay);
+  gm.continueFromPayroll();
+  const result = gm.resolveCombat();
+  check("economy: win result is true", result.playerWon === true);
+  check("economy: latestRewardGold = WinReward on win", run.latestRewardGold === GameRules.WinReward);
+  check("economy: no morale change on win", run.latestMoraleChange === 0);
+}
+
+// 3. Ninja loot on kill: gold gained during combat exceeds WinReward alone.
+{
+  const gm = new GameManager();
+  gm.startRun(DifficultyLevel.Level0);
+  gm.continueFromScout();
+  fieldKnownParty(gm, ["ninja", "warrior", "golem", "ranger", "priest"]);
+  gm.continueFromShop();
+  gm.continueFromFormation();
+  const run = gm.currentRunState;
+  run.gold = 200;
+  gm.selectPayrollAction(PayrollActionId.StandardPay);
+  gm.continueFromPayroll();
+  const goldAfterPayroll = run.gold; // snapshot after upkeep, before combat
+  const resultNinja = gm.resolveCombat();
+  check("economy: ninja win", resultNinja.playerWon === true);
+  // Ninja loots gold on kills (mutates run.gold during combat) in addition to the post-combat reward.
+  // Adding back upkeep+interest (both deducted inside applyPostCombatResult) isolates combat gold.
+  const combatGoldGain = run.gold - goldAfterPayroll + run.latestUpkeepPaid + run.latestInterestPaid;
+  check("economy: ninja in-combat loot exceeds base reward", combatGoldGain > run.latestRewardGold);
+}
+
+// 4. GoblinThief survivor flag → reward reduced by GoblinThiefStealGold.
+{
+  const rm = new RunManager();
+  const run = rm.initializeRun(DifficultyLevel.Level0, 1);
+  run.gold = 200;
+  const enc = DataRepository.getEncounterPool(1, 2)[0]; // Goblin Thieves
+  run.currentEncounter = enc;
+  const mockLoss = { playerWon: false, survivorFlags: { goblinStoleGold: true }, deadHeroes: [] };
+  rm.applyPostCombatResult(mockLoss, enc);
+  // Loss reward - goblin steal, minimum 0.
+  const expected = Math.max(0, GameRules.LossReward - GameRules.GoblinThiefStealGold);
+  check("economy: goblin steal deducted from reward", run.latestRewardGold === expected);
+}
+
+// 5. TreasureLeech survivor flag → reward reduced by TreasureLeechStealGold.
+{
+  const rm = new RunManager();
+  const run = rm.initializeRun(DifficultyLevel.Level0, 1);
+  run.gold = 200;
+  const enc = DataRepository.getEncounterPool(1, 8)[0]; // Treasure Leech
+  run.currentEncounter = enc;
+  const mockWin = { playerWon: true, survivorFlags: { treasureLeechSurvived: true }, deadHeroes: [] };
+  rm.applyPostCombatResult(mockWin, enc);
+  const expected = Math.max(0, GameRules.WinReward - GameRules.TreasureLeechStealGold);
+  check("economy: leech steal deducted from reward", run.latestRewardGold === expected);
+}
+
+// 6. Bard Busker: gold granted during combat is reflected in run.gold after reward.
+{
+  const gm = new GameManager();
+  gm.startRun(DifficultyLevel.Level0);
+  gm.continueFromScout();
+  fieldKnownParty(gm, ["bard", "warrior", "golem", "ranger", "priest"]);
+  gm.continueFromShop();
+  gm.continueFromFormation();
+  const run = gm.currentRunState;
+  run.gold = 200;
+  gm.selectPayrollAction(PayrollActionId.StandardPay);
+  gm.continueFromPayroll();
+  const goldAfterPayrollBard = run.gold; // snapshot after upkeep, before combat
+  const resultBard = gm.resolveCombat();
+  check("economy: bard win", resultBard.playerWon === true);
+  // Bard's Busker passive awards gold on win (mutates run.gold during combat, separate from reward).
+  const bardCombatGain = run.gold - goldAfterPayrollBard + run.latestUpkeepPaid + run.latestInterestPaid;
+  check("economy: bard in-combat gold exceeds base reward", bardCombatGain > run.latestRewardGold);
+}
+
 // ---- helpers ----
 
 // Bypass shop RNG entirely by inserting HeroInstances built from known
 // definitions. Tier-seed each one so attack/upkeep match the live values a
 // hired hero would have. Used for deterministic combat-outcome assertions.
+function fieldKnownPartyOnRun(run, heroIds, tier = HeroTier.Bronze) {
+  run.party.length = 0;
+  heroIds.forEach((id, slot) => {
+    const def = DataRepository.allHeroes.find((h) => h.id === id);
+    const hero = new HeroInstance(def, slot);
+    hero.tier = tier;
+    HeroEffects.applyTierStatSeed(hero);
+    hero.currentHealth = HeroEffects.getTierAdjustedMaxHealth(hero);
+    run.party.push(hero);
+  });
+}
+
 function fieldKnownParty(gm, heroIds, tier = HeroTier.Bronze) {
   const run = gm.currentRunState;
   run.party.length = 0;
@@ -2188,3 +2296,6 @@ function hasClass(node, className) {
 function textContentOf(node) {
   return node && node.textContent ? node.textContent : "";
 }
+
+console.log(failures === 0 ? "\nALL PASS" : `\n${failures} FAILURE(S)`);
+process.exit(failures === 0 ? 0 : 1);
