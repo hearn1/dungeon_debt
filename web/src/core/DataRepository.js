@@ -167,7 +167,13 @@ const LieutenantFrugalGuard = new EnemyDefinition("lieutenant_frugal_guard", "Li
 const LieutenantFrugalArcher = new EnemyDefinition("lieutenant_frugal_archer", "Lieutenant Frugal Archer", 3, 3, EnemyEffectId.None, "Applies Marked on attack.", null, [C.Marked]);
 const LieutenantFrugalHealer = new EnemyDefinition("lieutenant_frugal_healer", "Lieutenant Frugal Healer", 1, 4, EnemyEffectId.FrugalGhostHeal, "Applies Marked on attack. Heals leftmost living ally each combat round.", null, [C.Marked]);
 
+// ---- Enemies (Archetype: Bruiser) ----
+const ShieldGrunt = new EnemyDefinition("shield_grunt", "Shield Grunt", 2, 7, EnemyEffectId.None, "Starts Guarded.", [C.Guarded]);
+const PitBrawler = new EnemyDefinition("pit_brawler", "Pit Brawler", 4, 5, EnemyEffectId.None, "No effect.");
+
 // ---- Enemies (Act 2 rival rematches) ----
+const Act2ShieldGrunt = createActEnemy(2, "shield_grunt", "Iron Grunt", 3, 11, EnemyEffectId.None, "Starts Guarded.", [C.Guarded]);
+const Act2PitBrawler = createActEnemy(2, "pit_brawler", "Pit Bruiser", 6, 8, EnemyEffectId.None, "No effect.");
 const Act2GreedyTank = createActEnemy(2, "greedy_tank", "Greedy Tank", 4, 12, EnemyEffectId.None, "No effect.");
 const Act2GreedyCarry = createActEnemy(2, "greedy_carry", "Greedy Carry", 6, 7, EnemyEffectId.None, "Starts Inspired and Marked.", [C.Inspired], [C.Marked]);
 const Act2CarryProtector = createActEnemy(2, "carry_protector", "Carry Protector", 2, 14, EnemyEffectId.None, "Starts Guarded.", [C.Guarded]);
@@ -216,6 +222,8 @@ const EnemyDefinitions = [
   Slime, TrainingDummy, CaveBat, GoblinThief, TaxCollector, LazyInspector, BacklineBat, DebtWraith, TreasureLeech, SplitTreasureLeech, DungeonAuditor,
   GreedyTank, GreedyCarry, CarryProtector, CarryCarry, FrugalGuard, FrugalArcher, FrugalHealer,
   LieutenantFrugalGuard, LieutenantFrugalArcher, LieutenantFrugalHealer,
+  ShieldGrunt, PitBrawler,
+  Act2ShieldGrunt, Act2PitBrawler,
   Act2GreedyTank, Act2GreedyCarry, Act2CarryProtector, Act2CarryChampion, Act2CarrySupport, Act2FrugalGuard, Act2FrugalArcher, Act2FrugalHealer,
   Imp, SoulBroker, GloomBat, Act2DebtWraith, HoardFiend, BrimstoneBrute, InfernalAuditor,
   Act3SlimeMint, Act3GoblinCoiner, Act3BatTariff, Act3ImpMint, Act3SoulBrokerMint, Act3BrimstoneMint, Act3InfernalAuditorMint, Act3Mintmaster,
@@ -248,11 +256,13 @@ const RelicDefinitions = [
 
 const EncounterDefinitions = [
   new EncounterDefinition(1, 1, EncounterType.Dungeon, "Slimes", "Simple enemies. Win by having enough basic stats.", "Basic stat check", [Slime, Slime, Slime], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None),
+  new EncounterDefinition(1, 1, EncounterType.Dungeon, "Shield Grunt Pack", "Three shielded brutes hold a wide frontline. They're durable — overwhelm them before they advance.", "Frontline durability", [ShieldGrunt, ShieldGrunt, ShieldGrunt], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None, "shield_grunt_pack", [{q:5,r:0}, {q:5,r:2}, {q:5,r:4}], "Bruiser"),
   new EncounterDefinition(1, 2, EncounterType.Dungeon, "Goblin Thieves", "If a Goblin Thief survives past combat round 3, lose 3 gold.", "Economy pressure", [GoblinThief, GoblinThief], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None),
   new EncounterDefinition(1, 3, EncounterType.RivalGhost, "Greedy Guild Ghost", "A reckless rival guild with expensive heroes. Strong now, but drowning in debt.", "Rival benchmark", [GreedyTank, GreedyTank, GreedyCarry], GameRules.WinReward, EncounterEffectId.None, RivalGuild.Greedy),
   new EncounterDefinition(1, 4, EncounterType.Dungeon, "Tax Collector", "Your total wages are increased by 2 this round.", "Payroll pressure", [TaxCollector], GameRules.WinReward, EncounterEffectId.TaxCollectorUpkeep, RivalGuild.None),
   new EncounterDefinition(1, 4, EncounterType.Dungeon, "Lazy Inspector", "A slower inspector skips the payroll audit but weakens whoever it hits.", "Status pressure", [LazyInspector], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None, "lazy_inspector"),
   new EncounterDefinition(1, 5, EncounterType.Dungeon, "Backline Bat", "Attacks your lowest-health backline hero on turn 2.", "Backline pressure", [BacklineBat, Slime], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None),
+  new EncounterDefinition(1, 5, EncounterType.Dungeon, "Pit Brawlers", "Two aggressive brawlers charge ahead of a shielded grunt. High damage — stop them fast.", "Melee rush", [PitBrawler, PitBrawler, ShieldGrunt], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None, "pit_brawlers", [{q:5,r:1}, {q:5,r:3}, {q:6,r:2}], "Bruiser"),
   new EncounterDefinition(1, 6, EncounterType.RivalGhost, "Carry Guild Ghost", "This rival protects a high-damage carry. Kill it quickly or survive the burst.", "Rival benchmark", [CarryProtector, CarryProtector, CarryCarry], GameRules.WinReward, EncounterEffectId.None, RivalGuild.Carry),
   new EncounterDefinition(1, 6, EncounterType.RivalGhost, "Owl Roost", "This rival protects a high-damage carry with an extra backline threat.", "Rival benchmark", [CarryProtector, CarryProtector, CarryCarry, CarryCarry], GameRules.WinReward, EncounterEffectId.None, RivalGuild.Carry, "owl_roost"),
   new EncounterDefinition(1, 7, EncounterType.Dungeon, "Debt Wraith", "Gains attack based on your current debt.", "Debt punishment", [DebtWraith], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None),
