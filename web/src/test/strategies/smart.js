@@ -15,6 +15,8 @@ export const SmartStrategy = Object.freeze({
   visitShop(shopManager, run) {
     if (!shopManager || !run) return;
 
+    shopManager.payDebt();
+
     while (run.party.length < GameRules.MaxPartySize) {
       const bestIndex = findBestAffordableOfferIndex(shopManager.currentOffers, run);
       const missingRoleCanImprove = hasAffordableMissingRoleOffer(shopManager.currentOffers, run);
@@ -31,7 +33,7 @@ export const SmartStrategy = Object.freeze({
 
   choosePayrollAction(run) {
     if (!run) return PayrollActionId.StandardPay;
-    if (run.party.length < 3 && run.debt + GameRules.LoanDebtCost < run.debtLimit) {
+    if (run.debt === 0 && run.party.length < 2) {
       return PayrollActionId.TakeLoan;
     }
     if (run.party.length >= GameRules.MaxPartySize && run.gold >= GameRules.VictoryBonusGoldCost + 2) {
@@ -54,6 +56,7 @@ function findBestAffordableOfferIndex(offers, run) {
   for (let i = 0; i < offers.length; i++) {
     const offer = offers[i];
     if (!offer || offer.purchased || offer.hireCost > run.gold) continue;
+    if (!isAffordableByUpkeep(offer, run)) continue;
 
     const score = scoreOffer(offer, run);
     const upkeep = HeroEffects.getTierAdjustedUpkeep(offer.hero, offer.tier);
@@ -94,6 +97,29 @@ function scoreOffer(offer, run) {
   const health = HeroEffects.getTierAdjustedMaxHealthDef(offer.hero, offer.tier);
   const upkeep = HeroEffects.getTierAdjustedUpkeep(offer.hero, offer.tier);
   return (roleNeed > 0 ? 100 : 0) + attack + health - upkeep;
+}
+
+function isAffordableByUpkeep(offer, run) {
+  if (run.party.length < 2) return true;
+  return getProjectedTotalUpkeep(offer, run) <= GameRules.WinReward;
+}
+
+function getProjectedTotalUpkeep(offer, run) {
+  let total = 0;
+  let matchedExisting = false;
+  for (const hero of run.party) {
+    if (!hero || !hero.definition) continue;
+    if (hero.definition.id === offer.hero.id) {
+      total += HeroEffects.getTierAdjustedUpkeep(offer.hero, offer.tier);
+      matchedExisting = true;
+    } else {
+      total += HeroEffects.getTierAdjustedUpkeep(hero.definition, hero.tier);
+    }
+  }
+  if (!matchedExisting) {
+    total += HeroEffects.getTierAdjustedUpkeep(offer.hero, offer.tier);
+  }
+  return total;
 }
 
 function getRoleNeed(role, run) {

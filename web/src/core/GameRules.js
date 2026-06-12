@@ -85,7 +85,7 @@ export const GameRules = Object.freeze({
   GuildNeutralColor: rgba(0.478, 0.502, 0.573),
 
   // ---- Economy / run constants ----
-  StartingGold: 15,
+  StartingGold: 18,
   StartingDebt: 0,
   StartingMorale: 30,
   DebtLimit: 20,
@@ -98,7 +98,7 @@ export const GameRules = Object.freeze({
   RerollCost: 2,
   HireCostBonus: 2,
   FireRefund: 1,
-  DebtPaymentCap: 3,
+  DebtPaymentCap: 5,
 
   WinReward: 8,
   LossReward: 4,
@@ -128,7 +128,7 @@ export const GameRules = Object.freeze({
   VeteranEndOfActFightBonusXp: 1,
   VeteranActCompleteXp: 1,
 
-  DungeonLossMorale: 6,
+  DungeonLossMorale: 4,
   RivalLossMorale: 8,
   InterestDebtDivisor: 3,
   StrainedDebtThreshold: 6,
@@ -187,8 +187,8 @@ export const GameRules = Object.freeze({
   NoCombatMultiplier: 1,
   ActStatScale: Object.freeze({
     2: Object.freeze({ enemyHealth: 1, enemyAttack: 1 }),
-    3: Object.freeze({ enemyHealth: 1.2, enemyAttack: 1.15 }),
-    4: Object.freeze({ enemyHealth: 1.45, enemyAttack: 1.35 }),
+    3: Object.freeze({ enemyHealth: 1.5, enemyAttack: 1.35 }),
+    4: Object.freeze({ enemyHealth: 1.85, enemyAttack: 1.6 }),
   }),
 
   ApprenticeStartingGold: 20,
@@ -212,7 +212,7 @@ export const GameRules = Object.freeze({
   CutWagesUpkeepReduction: 3,
   CutWagesAttackPenalty: 1,
 
-  TaxCollectorUpkeep: 2,
+  TaxCollectorUpkeep: 1,
   AuditorUpkeep: 3,
   AuditorDamageEvery: 3,
   AuditorDamage: 1,

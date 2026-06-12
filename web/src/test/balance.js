@@ -32,11 +32,13 @@ const StrategyById = Object.freeze({
 const options = parseOptions(process.argv.slice(2));
 const strategies = resolveStrategies(options.strategy);
 
+BalanceRunLogger.combatRows = [];
 const firstPass = runSeedSet(options.seedCount, strategies);
 const firstTsv = BalanceRunLogger.formatSeedResults(firstPass);
 const firstCombatLog = [...BalanceRunLogger.combatRows];
 const firstCombatTsv = BalanceRunLogger.formatCombatResults(firstCombatLog);
 
+BalanceRunLogger.combatRows = [];
 const secondPass = runSeedSet(options.seedCount, strategies);
 const secondTsv = BalanceRunLogger.formatSeedResults(secondPass);
 const secondCombatTsv = BalanceRunLogger.formatCombatResults(BalanceRunLogger.combatRows);

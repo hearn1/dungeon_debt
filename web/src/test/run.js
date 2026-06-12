@@ -269,8 +269,8 @@ console.log("Run-flow test");
     .join("|");
 
   check("actscale: act 2 reads table without stat drift", act2Imp.attack === 2 && act2Imp.health === 5);
-  check("actscale: act 3 table locked", GameRules.ActStatScale[3].enemyHealth === 1.2 && GameRules.ActStatScale[3].enemyAttack === 1.15);
-  check("actscale: act 4 table locked", GameRules.ActStatScale[4].enemyHealth === 1.45 && GameRules.ActStatScale[4].enemyAttack === 1.35);
+  check("actscale: act 3 table locked", GameRules.ActStatScale[3].enemyHealth === 1.5 && GameRules.ActStatScale[3].enemyAttack === 1.35);
+  check("actscale: act 4 table locked", GameRules.ActStatScale[4].enemyHealth === 1.85 && GameRules.ActStatScale[4].enemyAttack === 1.6);
   check("act3data: exactly thirteen act 3 enemies", act3Enemies.length === 13);
   check("act3data: exactly fourteen act 3 encounters", act3Encounters.length === 14);
   check("act3data: encounter structure mirrors act 2", act3Shape === act2Shape);
@@ -1164,7 +1164,7 @@ console.log("Run-flow test");
 
   run.debt = 10; run.gold = 10;
   shop.payDebt();
-  check("shopdebt-exact: debt=10 gold=10 -> pay 3, debt 7, gold 7", run.debt === 7 && run.gold === 7);
+  check("shopdebt-exact: debt=10 gold=10 -> pay 5, debt 5, gold 5", run.debt === 5 && run.gold === 5);
 
   run.debt = 2; run.gold = 10;
   shop.payDebt();
