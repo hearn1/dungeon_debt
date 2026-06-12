@@ -24,7 +24,7 @@ function check(name, cond) {
 console.log("Foundation smoke test");
 
 // GameRules constants + helpers
-check("StartingGold = 15", GameRules.StartingGold === 15);
+check("StartingGold = 18", GameRules.StartingGold === 18);
 check("debt label Stable @0", GameRulesFns.getDebtStatusLabel(0) === "Stable");
 check("debt label Stable @5", GameRulesFns.getDebtStatusLabel(5) === "Stable");
 check("debt label Strained @6", GameRulesFns.getDebtStatusLabel(6) === "Strained");
@@ -36,7 +36,7 @@ check("debt label Critical @19", GameRulesFns.getDebtStatusLabel(19) === "Critic
 check("debt label Critical @20", GameRulesFns.getDebtStatusLabel(20) === "Critical");
 check("high debt pressure false @11", GameRulesFns.isHighDebtPressure(11) === false);
 check("high debt pressure true @12", GameRulesFns.isHighDebtPressure(12) === true);
-check("debt payment caps at 3", GameRulesFns.calculateDebtPaymentAmount(10, 10) === 3);
+check("debt payment caps at 5", GameRulesFns.calculateDebtPaymentAmount(10, 10) === 5);
 check("debt payment limited by available gold", GameRulesFns.calculateDebtPaymentAmount(2, 10) === 2);
 check("debt payment limited by remaining debt", GameRulesFns.calculateDebtPaymentAmount(10, 2) === 2);
 check("scaleCombatStat ceil", GameRulesFns.scaleCombatStat(4, 1.25) === 5);
