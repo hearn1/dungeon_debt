@@ -1718,5 +1718,95 @@ function reconstructHpMap(events) {
   check("226: validator detects missing actorUnitId on Attack", errors.some(e => e.includes("actorUnitId")));
 }
 
+// ---- Snapshot fixtures (#233) ----
+// Run each canonical encounter (act/slot first-in-pool) against a reference
+// party and pin playerWon + round-count range + dead-hero bound. Any change
+// in combat outcome that survives the earlier pattern checks will fail here.
+
+function buildSnapshot(partyIds, act, slot, expected) {
+  const run = buildRun(partyIds);
+  const enc = encounter(act, slot);
+  const result = new CombatManager().startCombat(run, enc);
+  const label = `snap ${act}-${slot} (${enc.displayName})`;
+  check(`${label}: playerWon = ${expected.won}`, result.playerWon === expected.won);
+  check(`${label}: rounds in [${expected.minRounds},${expected.maxRounds}]`,
+    result.combatRoundsElapsed >= expected.minRounds &&
+    result.combatRoundsElapsed <= expected.maxRounds);
+  check(`${label}: deadHeroes <= ${expected.maxDead}`,
+    result.deadHeroes.length <= expected.maxDead);
+}
+
+const REF_PARTY = ["warrior", "golem", "wizard", "ranger", "priest"];
+
+buildSnapshot(REF_PARTY, 1, 1,  { won: true, minRounds: 2, maxRounds: 6,  maxDead: 1 });
+buildSnapshot(REF_PARTY, 1, 2,  { won: true, minRounds: 1, maxRounds: 5,  maxDead: 1 });
+buildSnapshot(REF_PARTY, 1, 3,  { won: true, minRounds: 3, maxRounds: 7,  maxDead: 2 });
+buildSnapshot(REF_PARTY, 1, 4,  { won: true, minRounds: 1, maxRounds: 5,  maxDead: 1 });
+buildSnapshot(REF_PARTY, 1, 5,  { won: true, minRounds: 1, maxRounds: 5,  maxDead: 1 });
+buildSnapshot(REF_PARTY, 1, 6,  { won: true, minRounds: 3, maxRounds: 7,  maxDead: 1 });
+buildSnapshot(REF_PARTY, 1, 7,  { won: true, minRounds: 1, maxRounds: 5,  maxDead: 1 });
+buildSnapshot(REF_PARTY, 1, 8,  { won: true, minRounds: 2, maxRounds: 6,  maxDead: 1 });
+buildSnapshot(REF_PARTY, 1, 9,  { won: true, minRounds: 4, maxRounds: 8,  maxDead: 2 });
+buildSnapshot(REF_PARTY, 1, 10, { won: true, minRounds: 5, maxRounds: 9,  maxDead: 3 });
+buildSnapshot(REF_PARTY, 2, 1,  { won: true, minRounds: 2, maxRounds: 6,  maxDead: 1 });
+buildSnapshot(REF_PARTY, 2, 2,  { won: true, minRounds: 2, maxRounds: 6,  maxDead: 1 });
+buildSnapshot(REF_PARTY, 2, 3,  { won: true, minRounds: 5, maxRounds: 9,  maxDead: 3 });
+buildSnapshot(REF_PARTY, 2, 4,  { won: true, minRounds: 1, maxRounds: 5,  maxDead: 1 });
+buildSnapshot(REF_PARTY, 2, 5,  { won: true, minRounds: 2, maxRounds: 6,  maxDead: 1 });
+buildSnapshot(REF_PARTY, 2, 6,  { won: true, minRounds: 4, maxRounds: 8,  maxDead: 3 });
+buildSnapshot(REF_PARTY, 2, 7,  { won: true, minRounds: 3, maxRounds: 7,  maxDead: 1 });
+buildSnapshot(REF_PARTY, 2, 8,  { won: true, minRounds: 4, maxRounds: 8,  maxDead: 3 });
+buildSnapshot(REF_PARTY, 2, 9,  { won: true, minRounds: 5, maxRounds: 9,  maxDead: 3 });
+buildSnapshot(REF_PARTY, 2, 10, { won: true, minRounds: 5, maxRounds: 9,  maxDead: 4 });
+
+// ---- Replay schema validation (#234) ----
+// Targeted checks beyond the #226 section: amount non-negative for damage
+// events, and unit IDs in events cross-referenced against start-unit lists.
+
+{
+  // amount >= 0 for all Attack and StatusDamage events.
+  const run = buildRun(["warrior", "golem", "wizard", "ranger", "priest"]);
+  const result = new CombatManager().startCombat(run, encounter(1, 7)); // Debt Wraith (has StatusDamage)
+  const damageKinds = new Set([CombatReplayEventKind.Attack, CombatReplayEventKind.StatusDamage]);
+  const negativeAmount = result.replayEvents.some(e => damageKinds.has(e.kind) && e.amount < 0);
+  check("234: no damage event has a negative amount", !negativeAmount);
+}
+
+{
+  // actorUnitId/targetUnitId in attack events all appear in the expected unit-id set.
+  // Player units are assigned "p0"…"p{n-1}", enemies "e0"…"e{n-1}" by index.
+  const run = buildRun(["warrior", "golem", "wizard", "ranger", "priest"]);
+  const enc = encounter(1, 3);
+  const result = new CombatManager().startCombat(run, enc);
+  const knownIds = new Set([
+    ...run.party.map((_, i) => `p${i}`),
+    ...enc.enemies.map((_, i) => `e${i}`),
+  ]);
+  const attackEvents = result.replayEvents.filter(e => e.kind === CombatReplayEventKind.Attack);
+  const allActorsKnown = attackEvents.every(e => !e.actorUnitId || knownIds.has(e.actorUnitId));
+  const allTargetsKnown = attackEvents.every(e => !e.targetUnitId || knownIds.has(e.targetUnitId));
+  check("234: attack actorUnitIds all appear in start-unit lists", allActorsKnown);
+  check("234: attack targetUnitIds all appear in start-unit lists", allTargetsKnown);
+}
+
+{
+  // A unit that appears in deadHeroes is not the actorUnitId of any subsequent Attack event.
+  const run = buildRun(["warrior", "golem", "wizard", "ranger", "priest"]);
+  const result = new CombatManager().startCombat(run, encounter(2, 10)); // Infernal Auditor — kills heroes
+  const deadIds = new Set(result.deadHeroes.map(h => {
+    const idx = result.playerFinalUnits.findIndex(u => u.sourceHero === h);
+    return idx >= 0 ? `p${result.playerFinalUnits[idx].slot}` : null;
+  }).filter(Boolean));
+  const deathEvents = result.replayEvents.filter(e => e.kind === CombatReplayEventKind.Death);
+  let deadActsAfterDeath = false;
+  for (const death of deathEvents) {
+    const deathIdx = result.replayEvents.indexOf(death);
+    const subsequentAttack = result.replayEvents.slice(deathIdx + 1)
+      .some(e => e.kind === CombatReplayEventKind.Attack && e.actorUnitId === death.targetUnitId);
+    if (subsequentAttack) { deadActsAfterDeath = true; break; }
+  }
+  check("234: no dead unit attacks after its Death event", !deadActsAfterDeath);
+}
+
 console.log(failures === 0 ? "\nALL PASS" : `\n${failures} FAILURE(S)`);
 process.exit(failures === 0 ? 0 : 1);
