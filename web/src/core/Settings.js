@@ -1,6 +1,7 @@
 export const Settings = {
   animationSpeed: "normal", // "normal" | "fast"
   reducedMotion: false,
+  combatLogVisible: false, // hidden by default per #168
 
   setAnimationSpeed(value) {
     this.animationSpeed = value;
@@ -10,6 +11,10 @@ export const Settings = {
   setReducedMotion(value) {
     this.reducedMotion = value;
     this._applyToDOM();
+  },
+
+  setCombatLogVisible(value) {
+    this.combatLogVisible = value;
   },
 
   get stepMs() {
