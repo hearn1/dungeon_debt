@@ -7,6 +7,7 @@
 export const BalanceRunLogger = {
   runId: null,
   rows: [],
+  combatRows: [],
   seedResultColumns: Object.freeze([
     "seed",
     "strategy",
@@ -28,6 +29,31 @@ export const BalanceRunLogger = {
   startRun(_runState) {
     this.runId = new Date().toISOString().replace(/[-:.TZ]/g, "").slice(0, 14);
     this.rows = [];
+    this.combatRows = [];
+  },
+
+  logCombat(run, combatResult, encounterDef) {
+    if (!run || !combatResult || !this.runId) return;
+    this.combatRows.push({
+      seed: run.seed ?? 0,
+      strategy: run._balanceStrategy ?? "",
+      act: run.act,
+      slot: encounterDef ? encounterDef.slot : 0,
+      encounterId: encounterDef ? (encounterDef.id || encounterDef.displayName) : "",
+      playerWon: combatResult.playerWon ? 1 : 0,
+      combatRoundsElapsed: combatResult.combatRoundsElapsed,
+      heroesLost: Array.isArray(combatResult.deadHeroes) ? combatResult.deadHeroes.length : 0,
+    });
+  },
+
+  formatCombatResults(combatLog) {
+    const rows = Array.isArray(combatLog) ? combatLog : [];
+    const columns = ["seed", "strategy", "act", "slot", "encounterId", "playerWon", "combatRoundsElapsed", "heroesLost"];
+    const lines = [columns.join("\t")];
+    for (const row of rows) {
+      lines.push(columns.map(c => sanitizeTsvValue(row[c])).join("\t"));
+    }
+    return `${lines.join("\n")}\n`;
   },
 
   logRound(runState, nextState) {
