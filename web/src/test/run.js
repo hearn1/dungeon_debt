@@ -21,6 +21,7 @@ import { FormationPanel } from "../ui/panels/FormationPanel.js";
 import { CombatPanel } from "../ui/panels/CombatPanel.js";
 import { BoardRenderer } from "../ui/board/BoardRenderer.js";
 import { BoardProjectionMode, getProjectedBoardSize, projectBoardTile } from "../ui/board/BoardProjection.js";
+import { ThreeCombatBoardScene } from "../ui/board/ThreeCombatBoardScene.js";
 import { abilityEffect, attackEffect, unitPortrait } from "../ui/SpriteCatalog.js";
 import { EnemyEffectId, HeroRole, HeroTier, PayrollActionId, EncounterType, DifficultyLevel, RivalGuild, ShopEventId, HeroEffectId, EncounterEffectId, RelicId, CombatStatusId } from "../data/enums.js";
 import { buildManagerReportLines } from "../run/ManagerReportBuilder.js";
@@ -784,11 +785,36 @@ console.log("Run-flow test");
   check("formation renderer: deployment tile count stable", countClass(formationPanel.root, "hex-tile") === 10);
 
   const combatPanel = new CombatPanel(gm);
+  combatPanel._result = gm.resolveCombat();
   combatPanel._buildBattlefield(gm.currentRunState, gm.currentRunState.currentEncounter);
-  combatPanel._boardRenderer.destroy();
+  combatPanel._threeScene.destroy();
   combatPanel._buildBattlefield(gm.currentRunState, gm.currentRunState.currentEncounter);
-  check("combat renderer: teardown before rebuild keeps one battlefield", countClass(combatPanel.root, "combat-battlefield") === 1);
-  check("combat renderer: rebuild has one unit layer", countClass(combatPanel.root, "combat-unit-layer") === 1);
+  combatPanel._log = globalThis.document.createElement("div");
+  combatPanel._initUnitsFromSpawnEvents();
+  const moveEvt = combatPanel._result.replayEvents.find((event) => event.kind === CombatReplayEventKind.Movement);
+  if (moveEvt) combatPanel._applyEvent(moveEvt);
+  const feedbackEvt = combatPanel._result.replayEvents.find((event) =>
+    (event.kind === CombatReplayEventKind.Attack || event.kind === CombatReplayEventKind.Heal) &&
+    event.actorUnitId && event.targetUnitId && event.amount > 0);
+  if (feedbackEvt) combatPanel._applyEvent(feedbackEvt);
+  check("combat renderer: teardown before rebuild keeps one Three scene", countClass(combatPanel.root, "three-combat-scene") === 1);
+  check("combat renderer: UnitSpawn mapped to Three scene units", combatPanel._threeScene.units.size > 0);
+  check("combat renderer: Movement replay updates scene unit coord",
+    !moveEvt || combatPanel._threeScene.units.get(moveEvt.actorUnitId).coord.q === moveEvt.targetCoord.q);
+  check("combat renderer: HP bars render on scene anchors", countClass(combatPanel.root, "three-hpfill") === combatPanel._threeScene.units.size);
+  check("combat renderer: feedback spawns floating numbers", !feedbackEvt || countClass(combatPanel.root, "combat-float") >= 1);
+  check("combat renderer: feedback spawns projectile/effect", !feedbackEvt || countClass(combatPanel.root, "projectile") >= 1);
+
+  const scene = new ThreeCombatBoardScene({ run: gm.currentRunState, encounter: gm.currentRunState.currentEncounter });
+  const playerWorld = scene.worldPositionFromCoord({ q: 0, r: 2 });
+  const enemyWorld = scene.worldPositionFromCoord({ q: 6, r: 2 });
+  const unit = { displayName: "Test Unit", maxHealth: 8, currentHealth: 8 };
+  scene.addUnit("p0", unit, { q: 0, r: 2 }, true);
+  check("three scene: fallback board renders all tiles", countClass(scene.root, "three-fallback-tile") === GameRules.HexBoardWidth * GameRules.HexBoardHeight);
+  check("three scene: player side is closer to camera", playerWorld.z > enemyWorld.z);
+  check("three scene: unit anchor registered", scene.units.has("p0") && countClass(scene.root, "three-unit-anchor") === 1);
+  scene.destroy();
+  check("three scene: destroy clears root nodes", scene.root.children.length === 0);
 
   const unknownHeroUnit = {
     sourceHero: { definition: { id: "missing_hero", role: HeroRole.Support } },
@@ -1576,7 +1602,9 @@ console.log("Run-flow test");
 {
   const gm = new GameManager();
   gm.startRun(DifficultyLevel.Level0);
-  const outcome = autopilot(gm, 800);
+  const outcome = autopilotWithParty(gm, ["warrior", "golem", "wizard", "ranger", "priest"], 800, {
+    stabilizeEconomy: true,
+  });
   check("20run-autopilot: run terminated", outcome.terminated);
   check("20run-autopilot: rounds advanced past 3", outcome.maxRound > 3);
   check("20run-autopilot: reached Victory or Defeat",
@@ -2424,6 +2452,7 @@ function makeFakeElement(tag) {
       this.attributes[key] = value;
     },
     addEventListener() {},
+    removeEventListener() {},
     querySelector(selector) {
       return findFirst(this, (child) => matchesSelector(child, selector));
     },

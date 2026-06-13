@@ -32,7 +32,7 @@ The game is playable end-to-end: full 20-round runs through Acts 1 and 2, all 12
 These are not up for debate. If you think one is wrong, raise it as a question — do not silently change it.
 
 - **Electron + vanilla JavaScript** — plain ES modules under `web/src/`. No bundler, no framework (React/Vue/Svelte), no transpiler. Iteration = save → reload.
-- **DOM + CSS** for all UI — no canvas, no WebGL, no Three.js. The game is turn-based cards; DOM is the right tool.
+- **DOM + CSS** for most UI. Approved exception: CombatPanel presentation may use the vendored Three.js renderer added by epic #259; combat logic, replay events, controls, overlays, and summary UI remain DOM/replay-driven. Do not add other canvas/WebGL/Three.js surfaces without asking.
 - **Python `http.server`** for browser dev (`web/serve.py`). Electron for the packaged window. Either works; pick whichever you have installed.
 - **One seeded RNG** (`mulberry32`, in `web/src/core/Rng.js`) owned by `RunManager`. Never use `Math.random()` directly.
 - **Combat is deterministic** — no RNG inside the combat resolver. Tie-breaking is leftmost-slot, not random.
@@ -89,7 +89,7 @@ Repo root also contains workflow files (not inside `web/`):
 - **Naming:** `PascalCase` for classes, `camelCase` for everything else (variables, methods, properties, function params). Private fields prefixed with `_` (e.g. `_currentRunState`).
 - **`const` by default**, `let` when reassigning, never `var`.
 - **Enums are frozen string-keyed maps** (`Object.freeze({ Foo: "Foo", Bar: "Bar" })`), defined in `web/src/data/enums.js`. The value === the key so logs read naturally.
-- **No third-party runtime dependencies.** Devs only: `electron`, `electron-builder`. Don't add Lodash, jQuery, Three.js, or anything else without asking.
+- **No third-party runtime dependencies** beyond the approved vendored Three.js CombatPanel renderer from epic #259. Devs only: `electron`, `electron-builder`. Don't add Lodash, jQuery, additional Three.js surfaces, or anything else without asking.
 - **No async/await in combat.** Combat resolves synchronously into a `CombatResult`; the log is replayed to the UI with `setInterval` if delay is needed.
 - **No exceptions for control flow.** Return values + explicit checks.
 - **`console.log` is fine** for development. Don't leave noisy logs in committed code; gate verbose logs behind `const VERBOSE = false`.
