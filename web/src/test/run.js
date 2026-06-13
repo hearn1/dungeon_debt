@@ -805,6 +805,51 @@ console.log("Run-flow test");
   globalThis.document = previousDocument;
 }
 
+// ---- #264 FormationPanel bottom-vs-top projection and drag/drop smoke ----
+{
+  const previousDocument = globalThis.document;
+  globalThis.document = createFakeDocument();
+
+  const gm = new GameManager();
+  gm.startRun(DifficultyLevel.Level0);
+  fieldKnownParty(gm, ["warrior", "wizard"]);
+  const run = gm.currentRunState;
+  const panel = new FormationPanel(gm);
+  let dirtyCount = 0;
+  panel.onDirty = () => { dirtyCount++; };
+  panel.render();
+
+  const backTile = findTileByCoord(panel.root, 0, 0);
+  const frontTile = findTileByCoord(panel.root, 1, 1);
+  check("formation projection: deployment grid uses projected layout",
+    panel._boardRenderer.board.className.includes("projected"));
+  check("formation projection: back deployment row renders lower than front row",
+    px(backTile.style.top) > px(frontTile.style.top));
+  check("formation projection: board size uses bottom-top metrics",
+    panel._boardRenderer.board.style.height === `${getProjectedBoardSize({ mode: BoardProjectionMode.BottomTop }).height}px`);
+
+  const first = run.party[0];
+  const second = run.party[1];
+  const firstOriginal = { ...first.boardPosition };
+  const secondOriginal = { ...second.boardPosition };
+  panel._dragHero = first;
+  panel._onDrop(secondOriginal, run);
+  check("formation dragdrop: dragged hero saved at destination",
+    coordsEqual(first.boardPosition, secondOriginal));
+  check("formation dragdrop: occupied destination swaps back to origin",
+    coordsEqual(second.boardPosition, firstOriginal));
+  check("formation dragdrop: dirty callback fired once", dirtyCount === 1);
+
+  const savedAfterSwap = { ...first.boardPosition };
+  panel.render();
+  check("formation save: board position persists across re-render",
+    coordsEqual(first.boardPosition, savedAfterSwap));
+  check("formation save: swapped destination tile stays occupied",
+    findTileByCoord(panel.root, savedAfterSwap.q, savedAfterSwap.r).className.includes("occupied"));
+
+  globalThis.document = previousDocument;
+}
+
 // ---- #85 Finish-first morale still works after playerRaceProgress changes ----
 {
   const gm = new GameManager();
@@ -2385,6 +2430,22 @@ function countClass(node, className) {
 function hasClass(node, className) {
   if (!node || typeof node.className !== "string") return false;
   return node.className.split(" ").includes(className);
+}
+
+function coordsEqual(a, b) {
+  return !!a && !!b && a.q === b.q && a.r === b.r;
+}
+
+function findTileByCoord(root, q, r) {
+  return findFirst(root, (node) =>
+    hasClass(node, "hex-tile") &&
+    Number(node.dataset?.q) === q &&
+    Number(node.dataset?.r) === r
+  );
+}
+
+function px(value) {
+  return Number(String(value || "0").replace("px", ""));
 }
 
 function findFirst(node, predicate) {
