@@ -144,6 +144,19 @@ export const GameRules = Object.freeze({
   VeteranRivalFightBonusXp: 1,
   VeteranEndOfActFightBonusXp: 1,
   VeteranActCompleteXp: 1,
+  EncounterVeterancyActBonus: Object.freeze({
+    1: 0,
+    2: 0,
+    3: 1,
+    4: 1,
+  }),
+  EncounterVeterancyLateSlotBonusThreshold: 8,
+  EncounterVeterancyLateSlotBonus: 1,
+  EncounterVeterancyTypeBonus: Object.freeze({
+    [EncounterType.Dungeon]: 0,
+    [EncounterType.RivalGhost]: 1,
+    [EncounterType.FinalBoss]: 1,
+  }),
 
   DungeonLossMorale: 4,
   RivalLossMorale: 8,

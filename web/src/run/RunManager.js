@@ -13,6 +13,7 @@ import { HeroEffects } from "../combat/HeroEffects.js";
 import { BalanceRunLogger } from "./BalanceRunLogger.js";
 import { buildManagerReportLines } from "./ManagerReportBuilder.js";
 import { getEncounterRewardBreakdownForEncounter } from "./EncounterReward.js";
+import { getEncounterVeterancyXpBreakdownForEncounter } from "./EncounterRewardQuality.js";
 import {
   EncounterType, EncounterEffectId, PayrollActionId, RelicId,
 } from "../data/enums.js";
@@ -87,6 +88,8 @@ export class RunManager {
     runState.usedRaceActions = new Set();
     runState.fullUpkeepPaidLastRound = false;
     runState.latestVeterancySummary = "";
+    runState.latestVeterancyContextBonusXp = 0;
+    runState.latestVeterancySurvivorXp = 0;
 
     this._currentRunState = runState;
     if (this._rivalManager) {
@@ -195,7 +198,8 @@ export class RunManager {
     run.latestDebtAfterCombat = run.debt;
     run.latestDebtStatusAfter = GameRulesFns.getDebtStatusLabel(run.debt);
 
-    const veterancySummary = awardVeterancyXp(run, combatResult, encounter);
+    const veterancyBreakdown = getEncounterVeterancyXpBreakdownForEncounter(encounter);
+    const veterancySummary = awardVeterancyXp(run, combatResult, encounter, veterancyBreakdown);
 
     run.hasLatestRewardSummary = true;
     run.latestCombatWon = combatResult.playerWon;
@@ -215,6 +219,7 @@ export class RunManager {
     run.latestInterestPaid = interestPaid;
     run.latestInterestAddedToDebt = interestAddedToDebt;
     run.latestVeterancySummary = veterancySummary;
+    run.latestVeterancyContextBonusXp = veterancyBreakdown.totalBonus;
     run.fullUpkeepPaidLastRound = (upkeepShortfall === 0);
     run.latestManagerReportLines = buildManagerReportLines(run, combatResult, encounter);
 
@@ -358,6 +363,8 @@ export class RunManager {
     }
     run.hasLatestRewardSummary = false;
     run.latestVeterancySummary = "";
+    run.latestVeterancyContextBonusXp = 0;
+    run.latestVeterancySurvivorXp = 0;
     run.latestManagerReportLines = [];
     resetPartyTierStats(run);
   }
@@ -374,6 +381,8 @@ export class RunManager {
     run.hasLatestRewardSummary = false;
     run.latestEndReason = null;
     run.latestVeterancySummary = "";
+    run.latestVeterancyContextBonusXp = 0;
+    run.latestVeterancySurvivorXp = 0;
     run.latestManagerReportLines = [];
     resetPartyTierStats(run);
   }
@@ -481,13 +490,15 @@ function calculateTotalUpkeep(run, encounter) {
   return totalUpkeep;
 }
 
-function awardVeterancyXp(run, combatResult, encounter) {
+function awardVeterancyXp(run, combatResult, encounter, veterancyBreakdown) {
   if (!run || !combatResult) return "";
 
   const awards = new Array(run.party.length).fill(0);
   let survivorAward = Math.max(0, GameRules.VeteranSurvivorXp + run.veteranXpModifier);
   if (isRivalVeterancyEncounter(encounter)) survivorAward += GameRules.VeteranRivalFightBonusXp;
   if (isEndOfActEncounter(encounter)) survivorAward += GameRules.VeteranEndOfActFightBonusXp;
+  if (veterancyBreakdown) survivorAward += veterancyBreakdown.totalBonus;
+  run.latestVeterancySurvivorXp = survivorAward;
 
   for (let i = 0; i < run.party.length; i++) {
     const hero = run.party[i];

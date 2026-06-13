@@ -27,6 +27,7 @@ import { resolveFallbackUnitVisual, resolveUnitVisual, UnitVisualState } from ".
 import { EnemyEffectId, HeroRole, HeroTier, PayrollActionId, EncounterType, DifficultyLevel, RivalGuild, ShopEventId, HeroEffectId, EncounterEffectId, RelicId, CombatStatusId } from "../data/enums.js";
 import { buildManagerReportLines } from "../run/ManagerReportBuilder.js";
 import { getEncounterReward } from "../run/EncounterReward.js";
+import { getEncounterVeterancyXpBreakdown } from "../run/EncounterRewardQuality.js";
 import { BalanceRunLogger } from "../run/BalanceRunLogger.js";
 
 let failures = 0;
@@ -2297,6 +2298,33 @@ function makeCombatResult(overrides = {}) {
   check("balance: combat row exposes contract reward",
     BalanceRunLogger.combatRows[0].contractRewardGold === getEncounterReward(4, 10, EncounterType.FinalBoss)
       && tsv.includes("contractRewardGold"));
+}
+
+// 2f. Later and special encounters add context veterancy XP without changing Act 1 baseline.
+{
+  const rm = new RunManager();
+  const run = rm.initializeRun(DifficultyLevel.Level0, 1);
+  const heroDef = DataRepository.allHeroes.find((h) => h.id === "warrior");
+  const hero = new HeroInstance(heroDef, 0);
+  run.party.push(hero);
+  run.gold = 200;
+  const act1Enc = DataRepository.encounters.find((e) => e.act === 1 && e.slot === 6 && e.type === EncounterType.RivalGhost);
+  run.currentEncounter = act1Enc;
+  const mockWin = { playerWon: true, survivorFlags: {}, deadHeroes: [] };
+  rm.applyPostCombatResult(mockWin, act1Enc);
+  check("veterancy-xp: act 1 rival keeps existing survivor+type award",
+    run.latestVeterancyContextBonusXp === 0 && hero.veteranXp === GameRules.VeteranSurvivorXp + GameRules.VeteranRivalFightBonusXp);
+
+  hero.veteranXp = 0;
+  hero.veteranTier = 0;
+  run.gold = 200;
+  const act4Enc = DataRepository.encounters.find((e) => e.act === 4 && e.slot === 10 && e.type === EncounterType.FinalBoss);
+  run.currentEncounter = act4Enc;
+  rm.applyPostCombatResult(mockWin, act4Enc);
+  const expectedContext = getEncounterVeterancyXpBreakdown(4, 10, EncounterType.FinalBoss).totalBonus;
+  check("veterancy-xp: late final boss applies context XP",
+    run.latestVeterancyContextBonusXp === expectedContext
+      && hero.veteranXp === GameRules.VeteranSurvivorXp + GameRules.VeteranEndOfActFightBonusXp + GameRules.VeteranActCompleteXp + expectedContext);
 }
 
 // 3. Ninja loot on kill: gold gained during combat exceeds WinReward alone.
