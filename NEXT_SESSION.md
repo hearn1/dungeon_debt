@@ -12,19 +12,18 @@ This file always describes the **next** session's work. Rewrite it at the end of
 
 ### One-sentence goal
 
-Epic `#257` (board renderer foundation for 2.5D formation/combat) is complete; Matt should choose the next implementation slice before any code changes.
+Epic `#258` (bottom-vs-top Formation board conversion and validation) is complete; Matt should choose the next implementation slice before any code changes.
 
 ### Why this session exists
 
-The previous session completed GitHub epic `#257` and its subissues:
+The previous session completed GitHub epic `#258` and its subissues:
 
-1. `#261` - Add shared board renderer abstraction seam
-2. `#262` - Add bottom-vs-top board projection helpers
-3. `#263` - Add board renderer lifecycle and fallback tests
+1. `#264` - Convert FormationPanel to shared bottom-vs-top board projection
+2. `#265` - Validate formation-to-combat board coordinate consistency
 
 ### Candidate next work
 
-**Likely follow-up from epic #257 / parent #256:**
+**Likely follow-up from parent `#256`:**
 
 - The next 2.5D/board-renderer issue, if Matt chooses to continue that track.
 
@@ -50,7 +49,7 @@ The previous session completed GitHub epic `#257` and its subissues:
 **Not in scope:**
 
 - Starting another implementation slice without Matt choosing it.
-- Continuing beyond V1 of `#71` automatically.
+- Continuing the 2.5D track automatically.
 - Broad refactors or cleanup.
 
 ### Files to read
@@ -59,7 +58,7 @@ The previous session completed GitHub epic `#257` and its subissues:
 AGENTS.md
 CLAUDE.md
 SESSION_PROTOCOL.md
-PROGRESS.md (latest #257, #88, #67 entries)
+PROGRESS.md (latest #258, #257, #88 entries)
 REGRESSIONS.md (Open section)
 IMPLEMENTATION_PLAN.md section 6
 NEXT_SESSION.md
@@ -80,4 +79,4 @@ No verification command until a concrete slice is selected.
 
 ### Start prompt for the next session
 
-> Read `AGENTS.md`, `CLAUDE.md`, and `SESSION_PROTOCOL.md`, then follow `NEXT_SESSION.md`. Epic `#257` is complete. Orient on the latest progress and ask Matt which slice to pick up next before planning code changes.
+> Read `AGENTS.md`, `CLAUDE.md`, and `SESSION_PROTOCOL.md`, then follow `NEXT_SESSION.md`. Epic `#258` is complete. Orient on the latest progress and ask Matt which slice to pick up next before planning code changes.
