@@ -51,6 +51,41 @@ Copy this block when adding a new entry. Paste it at the top of the Session log 
 
 <!-- Newest entries at the top. -->
 
+## 2026-06-13 - #273: Encounter scaling curve model
+
+**Milestone:** GitHub epic
+**Status:** Complete
+
+**Files added:**
+- `web/src/run/EncounterScaling.js`
+
+**Files modified:**
+- `web/src/core/GameRules.js` - added tunable act/slot encounter progression and encounter-type scale tables.
+- `web/src/combat/CombatManager.js` - applies encounter scaling while building opponent combat units.
+- `web/src/test/headless.js` - covers deterministic helper values for Acts 1-4.
+- `web/src/test/combat.js` - covers combat-time scaling, definition immutability, difficulty stacking, and representative encounter regressions.
+- `IMPLEMENTATION_PLAN.md` - documents the encounter scaling helper and combat-unit scaling contract.
+- `PROGRESS.md` - logged the epic wrap.
+- `NEXT_SESSION.md` - returned the project to the slice-selection checkpoint.
+
+**Acceptance criteria:**
+- [x] Scaling helper is deterministic and test-covered across Acts 1-4.
+- [x] Act 1 remains at baseline while Acts 2-4 gain within-act progression.
+- [x] Opponent health and attack scale during combat-unit construction without mutating definitions.
+- [x] Difficulty modifiers still stack correctly with encounter scaling.
+- [x] Representative regression tests catch removal of late-game scaling.
+- [x] Existing tests pass after every subissue commit.
+
+**Test plan:** `npm.cmd run test:headless` after `#276`, `#277`, and `#278`; all three suites passed.
+
+**Deviations from plan:**
+- None.
+
+**Follow-up flagged:**
+- None.
+
+**Next slice:** Awaiting Matt's next slice selection.
+
 ## 2026-06-13 - #260: 3D / 2.5D asset catalog and placeholder asset pass
 
 **Milestone:** GitHub epic

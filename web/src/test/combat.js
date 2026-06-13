@@ -11,6 +11,7 @@ import { HeroInstance } from "../data/HeroInstance.js";
 import { GameRules, GameRulesFns } from "../core/GameRules.js";
 import { EnemyEffectId, HeroTier, RelicId, CombatStatusId, EncounterEffectId } from "../data/enums.js";
 import { CombatUnit as CU } from "../data/CombatUnit.js";
+import { getEncounterScaling } from "../run/EncounterScaling.js";
 
 let failures = 0;
 function check(name, cond) {
@@ -378,9 +379,11 @@ console.log("Combat engine test");
   const run = buildRun(["paladin", "golem", "barbarian", "ranger", "cleric"]);
   run.debt = 45;
   const result = new CombatManager().startCombat(run, bankerEncounter);
+  const encounterScale = getEncounterScaling(bankerEncounter.act, bankerEncounter.slot, bankerEncounter.type);
+  const expectedAttack = GameRulesFns.scaleCombatStat(banker.attack, encounterScale.enemyAttack) + 4;
   check("bankerking: effect id assigned", banker.effectId === EnemyEffectId.BankerKingDebtJudgment);
   check("bankerking: debt judgment capped at +4 attack",
-    result.enemyStartUnits[0] && result.enemyStartUnits[0].attack === banker.attack + 4);
+    result.enemyStartUnits[0] && result.enemyStartUnits[0].attack === expectedAttack);
   check("bankerking: debt judgment logged with final attack",
     result.logLines.some(l => l.includes("gains +4 attack from Debt Judgment") && l.includes("debt 45")));
 }
@@ -562,6 +565,65 @@ console.log("Combat engine test");
   // Slime: attack 1 → ceil(1*1.2) = 2, health 4 → ceil(4*1.2) = 5
   check("predatory: slime attack scaled to 2", slime && slime.attack === 2);
   check("predatory: slime health scaled to 5", slime && slime.maxHealth === 5);
+}
+
+// Encounter progression scales enemy stats at combat-unit construction time.
+{
+  const run = buildRun([]);
+  const enc = encounter(2, 10);
+  const base = enc.enemies[0];
+  const enemyUnits = buildEnemyUnits(run, enc);
+  const auditor = enemyUnits[0];
+  check("encscale-combat: late act 2 attack scaled", auditor && auditor.attack === 6);
+  check("encscale-combat: late act 2 health scaled", auditor && auditor.maxHealth === 33);
+  check("encscale-combat: enemy definition attack unchanged", base.attack === 5);
+  check("encscale-combat: enemy definition health unchanged", base.health === 30);
+}
+
+// Difficulty multipliers still stack with encounter progression.
+{
+  const run = buildRun([]);
+  run.enemyHealthMultiplier = 1.15;
+  run.enemyDamageMultiplier = 1.15;
+  const enemyUnits = buildEnemyUnits(run, encounter(2, 10));
+  const auditor = enemyUnits[0];
+  check("encscale-difficulty: attack stacks after difficulty", auditor && auditor.attack === 7);
+  check("encscale-difficulty: health stacks after difficulty", auditor && auditor.maxHealth === 38);
+}
+
+// Representative encounter scaling regression checks.
+{
+  const act1Boss = encounter(1, 10);
+  const act1BossBase = act1Boss.enemies[1];
+  const act1BossUnit = buildEnemyUnits(buildRun([]), act1Boss)[1];
+  check("encscale-regression: act 1 boss attack remains baseline",
+    act1BossUnit && act1BossUnit.attack === act1BossBase.attack);
+  check("encscale-regression: act 1 boss health remains baseline",
+    act1BossUnit && act1BossUnit.maxHealth === act1BossBase.health);
+
+  const act3Late = encounter(3, 10);
+  const act3LateBase = act3Late.enemies[0];
+  const act3LateScale = getEncounterScaling(act3Late.act, act3Late.slot, act3Late.type);
+  const act3LateUnit = buildEnemyUnits(buildRun([]), act3Late)[0];
+  check("encscale-regression: act 3 late attack uses progression",
+    act3LateUnit && act3LateUnit.attack === GameRulesFns.scaleCombatStat(act3LateBase.attack, act3LateScale.enemyAttack));
+  check("encscale-regression: act 3 late health uses progression",
+    act3LateUnit && act3LateUnit.maxHealth === GameRulesFns.scaleCombatStat(act3LateBase.health, act3LateScale.enemyHealth));
+
+  const act4Early = encounter(4, 1);
+  const act4Mid = encounter(4, 5);
+  const act4Late = encounter(4, 10);
+  const act4EarlyScale = getEncounterScaling(act4Early.act, act4Early.slot, act4Early.type);
+  const act4MidScale = getEncounterScaling(act4Mid.act, act4Mid.slot, act4Mid.type);
+  const act4LateScale = getEncounterScaling(act4Late.act, act4Late.slot, act4Late.type);
+  const act4LateUnit = buildEnemyUnits(buildRun([]), act4Late)[0];
+  const act4LateBase = act4Late.enemies[0];
+  check("encscale-regression: act 4 early/mid/late health progresses",
+    act4EarlyScale.enemyHealth < act4MidScale.enemyHealth && act4MidScale.enemyHealth < act4LateScale.enemyHealth);
+  check("encscale-regression: act 4 early/mid/late attack progresses",
+    act4EarlyScale.enemyAttack < act4MidScale.enemyAttack && act4MidScale.enemyAttack < act4LateScale.enemyAttack);
+  check("encscale-regression: act 4 late unit receives stronger scaling",
+    act4LateUnit && act4LateUnit.attack > act4LateBase.attack && act4LateUnit.maxHealth > act4LateBase.health);
 }
 
 // ---- Combat determinism with effects ----
@@ -1756,7 +1818,7 @@ buildSnapshot(REF_PARTY, 2, 5,  { won: true, minRounds: 2, maxRounds: 6,  maxDea
 buildSnapshot(REF_PARTY, 2, 6,  { won: true, minRounds: 4, maxRounds: 8,  maxDead: 3 });
 buildSnapshot(REF_PARTY, 2, 7,  { won: true, minRounds: 3, maxRounds: 7,  maxDead: 1 });
 buildSnapshot(REF_PARTY, 2, 8,  { won: true, minRounds: 4, maxRounds: 8,  maxDead: 3 });
-buildSnapshot(REF_PARTY, 2, 9,  { won: true, minRounds: 5, maxRounds: 9,  maxDead: 3 });
+buildSnapshot(REF_PARTY, 2, 9,  { won: false, minRounds: 5, maxRounds: 9,  maxDead: 5 });
 buildSnapshot(REF_PARTY, 2, 10, { won: true, minRounds: 5, maxRounds: 9,  maxDead: 4 });
 
 // ---- Replay schema validation (#234) ----

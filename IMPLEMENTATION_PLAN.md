@@ -64,6 +64,7 @@ web/
     │   ├── ShopManager.js       ← Bronze/Silver offer pools; hire / fire / reroll / pay-debt; duplicate→Silver merge
     │   ├── PayrollManager.js    ← apply / applyPostCombat / revertPerCombatHeroStats
     │   ├── EncounterManager.js  ← loads encounter for current round from DataRepository
+    │   ├── EncounterScaling.js  ← deterministic act/slot/type enemy stat scaling helper
     │   ├── RivalManager.js      ← initializeRivals / advanceRivals
     │   ├── heroStats.js         ← shared relic/health helpers (used by combat AND RunManager)
     │   └── BalanceRunLogger.js  ← in-memory TSV-row buffer (Unity dev tool, kept API-compatible as a stub)
@@ -120,6 +121,7 @@ MainMenu
 - `RunState` is the single mutable bag of run-scoped data. `RunManager` writes to it; everyone else may read.
 - `HeroInstance` is the single mutable per-hero bag. `HeroEffects.applyTierStatSeed(hero)` reseeds tier-derived stats each round.
 - `CombatUnit` is a per-combat snapshot of a hero/enemy; it never persists past a fight. `CombatResult.playerStartUnits` / `playerFinalUnits` are deep snapshots for UI replay.
+- `web/src/run/EncounterScaling.js` owns deterministic act/slot/type scaling for opponent stats. `CombatManager.buildEnemyUnits` applies it to combat-unit snapshots after difficulty multipliers and before rival-race lead scaling; enemy definitions and `DataRepository` values remain unchanged.
 
 ### Combat hook points
 
