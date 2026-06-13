@@ -380,15 +380,16 @@ console.log("Combat engine test");
 // Banker King gains capped attack from player debt at combat start.
 {
   const bankerEncounter = encounter(4, 10);
-  const banker = bankerEncounter.enemies[0];
+  const banker = bankerEncounter.enemies.find((enemy) => enemy.id === "act4-banker-king");
   const run = buildRun(["paladin", "golem", "barbarian", "ranger", "cleric"]);
   run.debt = 45;
   const result = new CombatManager().startCombat(run, bankerEncounter);
   const encounterScale = getEncounterScaling(bankerEncounter.act, bankerEncounter.slot, bankerEncounter.type);
   const expectedAttack = GameRulesFns.scaleCombatStat(banker.attack, encounterScale.enemyAttack) + 4;
+  const bankerUnit = result.enemyStartUnits.find((unit) => unit.sourceEnemy && unit.sourceEnemy.id === "act4-banker-king");
   check("bankerking: effect id assigned", banker.effectId === EnemyEffectId.BankerKingDebtJudgment);
   check("bankerking: debt judgment capped at +4 attack",
-    result.enemyStartUnits[0] && result.enemyStartUnits[0].attack === expectedAttack);
+    bankerUnit && bankerUnit.attack === expectedAttack);
   check("bankerking: debt judgment logged with final attack",
     result.logLines.some(l => l.includes("gains +4 attack from Debt Judgment") && l.includes("debt 45")));
 }
@@ -583,9 +584,9 @@ function checkEncounterShape(label, enc, enemyIds, positions) {
 {
   const run = buildRun([]);
   const enc = encounter(2, 10);
-  const base = enc.enemies[0];
+  const base = enc.enemies.find((enemy) => enemy.id === "infernal_auditor");
   const enemyUnits = buildEnemyUnits(run, enc);
-  const auditor = enemyUnits[0];
+  const auditor = enemyUnits.find((unit) => unit.sourceEnemy && unit.sourceEnemy.id === "infernal_auditor");
   check("encscale-combat: late act 2 attack scaled", auditor && auditor.attack === 6);
   check("encscale-combat: late act 2 health scaled", auditor && auditor.maxHealth === 33);
   check("encscale-combat: enemy definition attack unchanged", base.attack === 5);
@@ -598,7 +599,7 @@ function checkEncounterShape(label, enc, enemyIds, positions) {
   run.enemyHealthMultiplier = 1.15;
   run.enemyDamageMultiplier = 1.15;
   const enemyUnits = buildEnemyUnits(run, encounter(2, 10));
-  const auditor = enemyUnits[0];
+  const auditor = enemyUnits.find((unit) => unit.sourceEnemy && unit.sourceEnemy.id === "infernal_auditor");
   check("encscale-difficulty: attack stacks after difficulty", auditor && auditor.attack === 7);
   check("encscale-difficulty: health stacks after difficulty", auditor && auditor.maxHealth === 38);
 }
@@ -647,6 +648,9 @@ function checkEncounterShape(label, enc, enemyIds, positions) {
   const slot7BasePositions = [{q:5,r:2}, {q:6,r:1}, {q:6,r:3}];
   const slot7CarryPositions = [{q:5,r:1}, {q:6,r:2}, {q:5,r:3}, {q:6,r:4}];
   const slot8Positions = [{q:5,r:1}, {q:5,r:3}, {q:6,r:0}, {q:6,r:4}];
+  const rivalSustainPositions = [{q:5,r:0}, {q:5,r:2}, {q:5,r:4}, {q:6,r:1}, {q:6,r:3}];
+  const rivalGreedyPositions = [{q:5,r:0}, {q:5,r:4}, {q:6,r:1}, {q:6,r:3}];
+  const bossSupportPositions = [{q:5,r:0}, {q:6,r:2}, {q:5,r:4}];
 
   checkEncounterShape("comp-act2-soul-broker", encounterByVariant(2, 2, "base"),
     ["shield_grunt", "soul_broker", "imp"], slot2Positions);
@@ -678,6 +682,25 @@ function checkEncounterShape(label, enc, enemyIds, positions) {
     ["act4-hulking-protector", "act4-ledger-broker", "act4-vault-imp"], slot7BasePositions);
   checkEncounterShape("comp-act4-vault-brute", encounterByVariant(4, 8, "base"),
     ["act4-shield-grunt", "act4-vault-brute", "act4-dungeon-archer", "act4-dungeon-medic"], slot8Positions);
+
+  checkEncounterShape("comp-act2-frugal-rival", encounterByVariant(2, 3, "base"),
+    ["frugal_guard", "frugal_guard", "frugal_archer", "frugal_healer", "dungeon_medic"], rivalSustainPositions);
+  checkEncounterShape("comp-act3-frugal-rival", encounterByVariant(3, 3, "base"),
+    ["act3-shield-grunt", "act3-shield-grunt", "act3-dungeon-archer", "act3-dungeon-medic", "act3-soul-broker-mint"], rivalSustainPositions);
+  checkEncounterShape("comp-act4-frugal-rival", encounterByVariant(4, 3, "base"),
+    ["act4-shield-grunt", "act4-shield-grunt", "act4-dungeon-archer", "act4-dungeon-medic", "act4-ledger-broker"], rivalSustainPositions);
+  checkEncounterShape("comp-act2-greedy-rival", encounterByVariant(2, 6, "base"),
+    ["greedy_tank", "greedy_tank", "greedy_carry", "dungeon_archer"], rivalGreedyPositions);
+  checkEncounterShape("comp-act3-greedy-rival", encounterByVariant(3, 6, "base"),
+    ["act3-brimstone-mint", "act3-brimstone-mint", "act3-bat-tariff", "act3-dungeon-archer"], rivalGreedyPositions);
+  checkEncounterShape("comp-act4-greedy-rival", encounterByVariant(4, 6, "base"),
+    ["act4-vault-brute", "act4-vault-brute", "act4-vault-bat", "act4-dungeon-archer"], rivalGreedyPositions);
+  checkEncounterShape("comp-act2-boss-support", encounterByVariant(2, 10, "base"),
+    ["shield_grunt", "infernal_auditor", "dungeon_archer"], bossSupportPositions);
+  checkEncounterShape("comp-act3-boss-support", encounterByVariant(3, 10, "base"),
+    ["act3-shield-grunt", "act3-mintmaster", "act3-dungeon-medic"], bossSupportPositions);
+  checkEncounterShape("comp-act4-boss-support", encounterByVariant(4, 10, "base"),
+    ["act4-shield-grunt", "act4-banker-king", "act4-dungeon-medic"], bossSupportPositions);
 }
 
 // ---- Combat determinism with effects ----
@@ -1869,11 +1892,11 @@ buildSnapshot(REF_PARTY, 2, 2,  { won: true, minRounds: 2, maxRounds: 6,  maxDea
 buildSnapshot(REF_PARTY, 2, 3,  { won: true, minRounds: 5, maxRounds: 9,  maxDead: 3 });
 buildSnapshot(REF_PARTY, 2, 4,  { won: true, minRounds: 1, maxRounds: 6,  maxDead: 1 });
 buildSnapshot(REF_PARTY, 2, 5,  { won: true, minRounds: 2, maxRounds: 7,  maxDead: 2 });
-buildSnapshot(REF_PARTY, 2, 6,  { won: true, minRounds: 4, maxRounds: 8,  maxDead: 3 });
+buildSnapshot(REF_PARTY, 2, 6,  { won: true, minRounds: 4, maxRounds: 8,  maxDead: 4 });
 buildSnapshot(REF_PARTY, 2, 7,  { won: true, minRounds: 3, maxRounds: 7,  maxDead: 3 });
 buildSnapshot(REF_PARTY, 2, 8,  { won: false, minRounds: 6, maxRounds: 9,  maxDead: 5 });
 buildSnapshot(REF_PARTY, 2, 9,  { won: false, minRounds: 5, maxRounds: 9,  maxDead: 5 });
-buildSnapshot(REF_PARTY, 2, 10, { won: true, minRounds: 5, maxRounds: 9,  maxDead: 4 });
+buildSnapshot(REF_PARTY, 2, 10, { won: false, minRounds: 5, maxRounds: 9,  maxDead: 4 });
 
 // ---- Replay schema validation (#234) ----
 // Targeted checks beyond the #226 section: amount non-negative for damage

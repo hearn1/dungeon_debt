@@ -51,6 +51,38 @@ Copy this block when adding a new entry. Paste it at the top of the Session log 
 
 <!-- Newest entries at the top. -->
 
+## 2026-06-13 - #274: Team size and composition pressure
+
+**Milestone:** GitHub epic
+**Status:** Complete
+
+**Files added:**
+- `balance-audit/findings-279-team-composition-pressure.md`
+
+**Files modified:**
+- `web/src/core/DataRepository.js` - added support, guard, sustain, and backline pieces to selected Acts 2-4 normal, rival, and boss encounters.
+- `web/src/test/combat.js` - pinned tuned encounter compositions and updated representative combat snapshots.
+- `PROGRESS.md` - logged the epic wrap.
+- `NEXT_SESSION.md` - returned the project to the slice-selection checkpoint.
+
+**Acceptance criteria:**
+- [x] Late-game encounter tuning recommendations distinguish normal, rival, boss, composition, and stat/economy candidates.
+- [x] Selected Acts 2-4 normal encounters apply more pressure through team size, support, and formation composition.
+- [x] Later Frugal/Greedy rival rematches and Act 2-4 bosses have support compositions instead of mostly solo or generic teams.
+- [x] Act 1 encounter data was not changed.
+- [x] Existing tests pass after every subissue commit.
+- [x] Balance harness remained deterministic and showed longer/harsher late fights without collapsing total wins.
+
+**Test plan:** `npm.cmd run test:headless` after `#279`, `#280`, and `#281`; `npm.cmd run test:balance -- --seeds=100 --strategy=all --report` before tuning, after `#280`, and after `#281`; all deterministic checks passed.
+
+**Deviations from plan:**
+- None.
+
+**Follow-up flagged:**
+- Some late normal encounters still show high win rates because debt-scaling/economy pressure remains structurally weak when players reach late acts with low debt. This remains outside #274's composition-only scope.
+
+**Next slice:** Awaiting Matt's next slice selection.
+
 ## 2026-06-13 - #273: Encounter scaling curve model
 
 **Milestone:** GitHub epic
