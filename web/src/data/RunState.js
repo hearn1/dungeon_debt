@@ -33,6 +33,16 @@ export class RunState {
     this.latestInterestPaid = 0;
     this.latestInterestAddedToDebt = 0;
     this.latestVeterancySummary = null;
+    this.latestVeterancyContextBonusXp = 0;
+    this.latestVeterancySurvivorXp = 0;
+    this.latestRewardQualitySummary = "";
+    this.latestRewardQualityRelicChoiceBonus = 0;
+    this.latestRewardQualityShopSilverChanceBonus = 0;
+    this.pendingShopQualitySilverChanceBonus = 0;
+    this.pendingRelicChoiceBonus = 0;
+    this.pendingRelicChoiceCount = 0;
+    this.latestShopQualitySilverChanceBonus = 0;
+    this.latestShopSilverOfferChance = 0;
     this.latestPayrollSummary = null;
     this.latestVictoryBonusLossDebt = 0;
     this.latestRelicDebtPenalty = 0;

@@ -14,6 +14,11 @@ import { BalanceRunLogger } from "./BalanceRunLogger.js";
 import { buildManagerReportLines } from "./ManagerReportBuilder.js";
 import { getEncounterRewardBreakdownForEncounter } from "./EncounterReward.js";
 import {
+  getEncounterRewardQualityBreakdownForEncounter,
+  getEncounterRewardQualitySummary,
+  getEncounterVeterancyXpBreakdownForEncounter,
+} from "./EncounterRewardQuality.js";
+import {
   EncounterType, EncounterEffectId, PayrollActionId, RelicId,
 } from "../data/enums.js";
 import {
@@ -87,6 +92,16 @@ export class RunManager {
     runState.usedRaceActions = new Set();
     runState.fullUpkeepPaidLastRound = false;
     runState.latestVeterancySummary = "";
+    runState.latestVeterancyContextBonusXp = 0;
+    runState.latestVeterancySurvivorXp = 0;
+    runState.latestRewardQualitySummary = "";
+    runState.latestRewardQualityRelicChoiceBonus = 0;
+    runState.latestRewardQualityShopSilverChanceBonus = 0;
+    runState.pendingShopQualitySilverChanceBonus = 0;
+    runState.pendingRelicChoiceBonus = 0;
+    runState.pendingRelicChoiceCount = 0;
+    runState.latestShopQualitySilverChanceBonus = 0;
+    runState.latestShopSilverOfferChance = GameRules.SilverOfferChance;
 
     this._currentRunState = runState;
     if (this._rivalManager) {
@@ -109,6 +124,9 @@ export class RunManager {
     run.latestDebtStatusBefore = GameRulesFns.getDebtStatusLabel(run.debt);
     const isRivalGhost = encounter && encounter.type === EncounterType.RivalGhost;
     const rewardBreakdown = getEncounterRewardBreakdownForEncounter(encounter);
+    const rewardQualityBreakdown = combatResult.playerWon
+      ? getEncounterRewardQualityBreakdownForEncounter(encounter)
+      : getEncounterRewardQualityBreakdownForEncounter(null);
     const contractRewardGold = combatResult.playerWon ? rewardBreakdown.totalGold : GameRules.LossReward;
     const rewardScaleBonusGold = combatResult.playerWon
       ? rewardBreakdown.actBonus + rewardBreakdown.progressBonus + rewardBreakdown.typeBonus
@@ -195,7 +213,8 @@ export class RunManager {
     run.latestDebtAfterCombat = run.debt;
     run.latestDebtStatusAfter = GameRulesFns.getDebtStatusLabel(run.debt);
 
-    const veterancySummary = awardVeterancyXp(run, combatResult, encounter);
+    const veterancyBreakdown = getEncounterVeterancyXpBreakdownForEncounter(encounter);
+    const veterancySummary = awardVeterancyXp(run, combatResult, encounter, veterancyBreakdown);
 
     run.hasLatestRewardSummary = true;
     run.latestCombatWon = combatResult.playerWon;
@@ -207,6 +226,10 @@ export class RunManager {
     run.latestRewardDrainGold = rewardDrainGold;
     run.latestRelicRewardGold = relicRewardGold;
     run.latestNextRewardBonusGold = nextRewardBonusGold;
+    run.latestRewardQualitySummary = getEncounterRewardQualitySummary(rewardQualityBreakdown);
+    run.latestRewardQualityRelicChoiceBonus = rewardQualityBreakdown.relicChoiceBonus;
+    run.latestRewardQualityShopSilverChanceBonus = rewardQualityBreakdown.shopSilverChanceBonus;
+    run.pendingShopQualitySilverChanceBonus = rewardQualityBreakdown.shopSilverChanceBonus;
     run.latestMoraleChange = moraleChange;
     run.latestTotalUpkeep = totalUpkeep;
     run.latestUpkeepPaid = upkeepPaid;
@@ -215,6 +238,7 @@ export class RunManager {
     run.latestInterestPaid = interestPaid;
     run.latestInterestAddedToDebt = interestAddedToDebt;
     run.latestVeterancySummary = veterancySummary;
+    run.latestVeterancyContextBonusXp = veterancyBreakdown.totalBonus;
     run.fullUpkeepPaidLastRound = (upkeepShortfall === 0);
     run.latestManagerReportLines = buildManagerReportLines(run, combatResult, encounter);
 
@@ -244,8 +268,11 @@ export class RunManager {
 
     if (!this._rng) this._rng = new Rng();
 
-    let choiceCount = GameRules.RelicChoiceCount;
+    let choiceCount = GameRules.RelicChoiceCount + (run.latestRewardQualityRelicChoiceBonus || 0);
+    choiceCount = Math.min(choiceCount, GameRules.RewardQualityRelicChoiceMax);
     if (choiceCount > availableRelics.length) choiceCount = availableRelics.length;
+    run.pendingRelicChoiceCount = choiceCount;
+    run.pendingRelicChoiceBonus = Math.max(0, choiceCount - GameRules.RelicChoiceCount);
 
     for (let i = 0; i < choiceCount; i++) {
       const index = this._rng.next(availableRelics.length);
@@ -358,6 +385,13 @@ export class RunManager {
     }
     run.hasLatestRewardSummary = false;
     run.latestVeterancySummary = "";
+    run.latestVeterancyContextBonusXp = 0;
+    run.latestVeterancySurvivorXp = 0;
+    run.latestRewardQualitySummary = "";
+    run.latestRewardQualityRelicChoiceBonus = 0;
+    run.latestRewardQualityShopSilverChanceBonus = 0;
+    run.latestShopQualitySilverChanceBonus = 0;
+    run.latestShopSilverOfferChance = GameRules.SilverOfferChance;
     run.latestManagerReportLines = [];
     resetPartyTierStats(run);
   }
@@ -374,6 +408,13 @@ export class RunManager {
     run.hasLatestRewardSummary = false;
     run.latestEndReason = null;
     run.latestVeterancySummary = "";
+    run.latestVeterancyContextBonusXp = 0;
+    run.latestVeterancySurvivorXp = 0;
+    run.latestRewardQualitySummary = "";
+    run.latestRewardQualityRelicChoiceBonus = 0;
+    run.latestRewardQualityShopSilverChanceBonus = 0;
+    run.latestShopQualitySilverChanceBonus = 0;
+    run.latestShopSilverOfferChance = GameRules.SilverOfferChance;
     run.latestManagerReportLines = [];
     resetPartyTierStats(run);
   }
@@ -413,6 +454,8 @@ export class RunManager {
     run.pendingRelicChoices.length = 0;
     run.hasPendingRelicReward = false;
     run.pendingRelicNextState = GameState.MainMenu;
+    run.pendingRelicChoiceBonus = 0;
+    run.pendingRelicChoiceCount = 0;
   }
 
   _canContinueToNextDevAct(run) {
@@ -481,13 +524,15 @@ function calculateTotalUpkeep(run, encounter) {
   return totalUpkeep;
 }
 
-function awardVeterancyXp(run, combatResult, encounter) {
+function awardVeterancyXp(run, combatResult, encounter, veterancyBreakdown) {
   if (!run || !combatResult) return "";
 
   const awards = new Array(run.party.length).fill(0);
   let survivorAward = Math.max(0, GameRules.VeteranSurvivorXp + run.veteranXpModifier);
   if (isRivalVeterancyEncounter(encounter)) survivorAward += GameRules.VeteranRivalFightBonusXp;
   if (isEndOfActEncounter(encounter)) survivorAward += GameRules.VeteranEndOfActFightBonusXp;
+  if (veterancyBreakdown) survivorAward += veterancyBreakdown.totalBonus;
+  run.latestVeterancySurvivorXp = survivorAward;
 
   for (let i = 0; i < run.party.length; i++) {
     const hero = run.party[i];

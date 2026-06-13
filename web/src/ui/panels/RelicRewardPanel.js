@@ -14,7 +14,10 @@ export class RelicRewardPanel {
     clear(this.root);
     const run = this.gm.currentRunState;
 
-    appendPanelHeader(this.root, "CONTRACT BONUS", "Choose a Relic", "Benchmark cleared. Add one permanent relic to the guild.");
+    const choiceSub = run.pendingRelicChoiceBonus > 0
+      ? `Benchmark cleared. Reward quality added ${run.pendingRelicChoiceBonus} extra option.`
+      : "Benchmark cleared. Add one permanent relic to the guild.";
+    appendPanelHeader(this.root, "CONTRACT BONUS", "Choose a Relic", choiceSub);
 
     const grid = el("div", { class: "card-grid" });
     for (const id of run.pendingRelicChoices) {

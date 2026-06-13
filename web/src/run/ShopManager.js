@@ -117,6 +117,7 @@ export class ShopManager {
     }
 
     const allHeroes = DataRepository.allHeroes;
+    const silverOfferChance = getSilverOfferChance(run, skipEvent);
 
     // Bronze pool: heroes not already at Diamond (can still be merged up).
     const bronzePool = [];
@@ -128,7 +129,7 @@ export class ShopManager {
     }
 
     for (let i = 0; i < GameRules.ShopOfferCount; i++) {
-      const wantSilver = rng.nextDouble() < GameRules.SilverOfferChance;
+      const wantSilver = rng.nextDouble() < silverOfferChance;
       const pool = wantSilver && silverPool.length > 0 ? silverPool : bronzePool;
       const tier = pool === silverPool ? HeroTier.Silver : HeroTier.Bronze;
 
@@ -153,6 +154,7 @@ export class ShopManager {
     }
 
     // M17 — Roll a shop event (~20%). Skip on reroll.
+    if (run && !skipEvent) run.pendingShopQualitySilverChanceBonus = 0;
     if (!skipEvent) this._rollShopEvent(run);
   }
 
@@ -298,4 +300,23 @@ function findFirstEmptyFormationSlot(run) {
     if (!occupied) return slot;
   }
   return NoEmptyFormationSlot;
+}
+
+function getSilverOfferChance(run, skipEvent) {
+  let bonus = 0;
+  if (run && !skipEvent && Number.isFinite(run.pendingShopQualitySilverChanceBonus)) {
+    bonus = Math.max(0, run.pendingShopQualitySilverChanceBonus);
+  }
+
+  const chance = Math.min(
+    GameRules.RewardQualityShopSilverChanceMax,
+    Math.max(0, GameRules.SilverOfferChance + bonus),
+  );
+
+  if (run) {
+    run.latestShopQualitySilverChanceBonus = bonus;
+    run.latestShopSilverOfferChance = chance;
+  }
+
+  return chance;
 }

@@ -65,6 +65,8 @@ web/
     │   ├── PayrollManager.js    ← apply / applyPostCombat / revertPerCombatHeroStats
     │   ├── EncounterManager.js  ← loads encounter for current round from DataRepository
     │   ├── EncounterScaling.js  ← deterministic act/slot/type enemy stat scaling helper
+    │   ├── EncounterReward.js   ← deterministic act/slot/type gold reward helper
+    │   ├── EncounterRewardQuality.js ← deterministic XP and reward-quality helper
     │   ├── RivalManager.js      ← initializeRivals / advanceRivals
     │   ├── heroStats.js         ← shared relic/health helpers (used by combat AND RunManager)
     │   └── BalanceRunLogger.js  ← in-memory TSV-row buffer (Unity dev tool, kept API-compatible as a stub)

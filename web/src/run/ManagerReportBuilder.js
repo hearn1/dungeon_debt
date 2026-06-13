@@ -64,6 +64,18 @@ export function buildManagerReportLines(run, combatResult, encounter, maxLines =
     if (lines.length >= maxLines) return lines;
   }
 
+  // Priority 76: Encounter XP scaling
+  if (run.latestVeterancyContextBonusXp > 0) {
+    lines.push(`Encounter difficulty added +${run.latestVeterancyContextBonusXp} XP to surviving heroes.`);
+    if (lines.length >= maxLines) return lines;
+  }
+
+  // Priority 77: Reward quality scaling
+  if (combatResult.playerWon && run.latestRewardQualitySummary) {
+    lines.push(`Reward quality improved: ${run.latestRewardQualitySummary}.`);
+    if (lines.length >= maxLines) return lines;
+  }
+
   // Priority 80: Rival win bonus
   if (combatResult.playerWon && encounter && encounter.type === EncounterType.RivalGhost) {
     lines.push(`Rival contract bonus made this fight +${GameRules.RivalWinBonus} gold more profitable.`);

@@ -51,6 +51,42 @@ Copy this block when adding a new entry. Paste it at the top of the Session log 
 
 <!-- Newest entries at the top. -->
 
+## 2026-06-13 - #287: Reward quality and XP scaling
+
+**Milestone:** GitHub epic
+**Status:** Complete
+
+**Files added:**
+- `web/src/run/EncounterRewardQuality.js`
+
+**Files modified:**
+- `web/src/core/GameRules.js` - added centralized XP and reward-quality tuning constants.
+- `web/src/run/RunManager.js` - applies context XP, extra relic options, and next-shop reward-quality bonuses.
+- `web/src/run/ShopManager.js` - consumes one-shot Silver offer quality boosts.
+- `web/src/data/RunState.js` - stores XP/reward-quality summary fields.
+- `web/src/run/ManagerReportBuilder.js`, `web/src/run/BalanceRunLogger.js`, `web/src/test/balance.js` - expose XP/reward-quality scaling for tuning.
+- `web/src/ui/panels/CombatPanel.js`, `web/src/ui/panels/RelicRewardPanel.js`, `web/src/ui/panels/ShopPanel.js` - show concise reward-quality visibility.
+- `web/src/test/headless.js`, `web/src/test/run.js` - added deterministic helper and integration coverage.
+- `IMPLEMENTATION_PLAN.md` - documented reward helper files in the run folder map.
+- `PROGRESS.md`, `NEXT_SESSION.md` - logged the epic wrap and returned to slice selection.
+
+**Acceptance criteria:**
+- [x] XP rewards scale by later/special encounter context while Act 1 baseline remains unchanged.
+- [x] Later/special rewards improve current systems through extra relic options and better next-shop Silver odds.
+- [x] XP and reward-quality scaling are visible in summaries, manager reports, and balance outputs.
+- [x] Existing tests pass after every subissue commit.
+- [x] Balance harness determinism check passes after report-field changes.
+
+**Test plan:** `npm.cmd run test:headless` after `#292`, `#293`, and `#294`; `npm.cmd run test:balance -- --seeds=3 --strategy=smart`; all passed.
+
+**Deviations from plan:**
+- Added `IMPLEMENTATION_PLAN.md` run-folder documentation during wrap because the reward helper surface now has two dedicated files.
+
+**Follow-up flagged:**
+- None.
+
+**Next slice:** Awaiting Matt's next slice selection.
+
 ## 2026-06-13 - #286: Encounter reward curve
 
 **Milestone:** GitHub epic

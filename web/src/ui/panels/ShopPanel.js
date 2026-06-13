@@ -66,6 +66,16 @@ export class ShopPanel {
       }
     }
 
+    if (run.latestShopQualitySilverChanceBonus > 0) {
+      const qualityArea = el("div", { class: "shop-event-area" });
+      qualityArea.appendChild(el("div", { class: "shop-event-badge", text: "Preferred Candidates" }));
+      qualityArea.appendChild(el("div", {
+        class: "panel-sub",
+        text: `Recent contract quality raised Silver offer odds to ${Math.round(run.latestShopSilverOfferChance * 100)}%.`,
+      }));
+      this.root.appendChild(qualityArea);
+    }
+
     // Offers
     const offers = el("div", { class: "card-grid" });
     shop.currentOffers.forEach((offer, i) => {

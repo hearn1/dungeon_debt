@@ -27,6 +27,7 @@ import { resolveFallbackUnitVisual, resolveUnitVisual, UnitVisualState } from ".
 import { EnemyEffectId, HeroRole, HeroTier, PayrollActionId, EncounterType, DifficultyLevel, RivalGuild, ShopEventId, HeroEffectId, EncounterEffectId, RelicId, CombatStatusId } from "../data/enums.js";
 import { buildManagerReportLines } from "../run/ManagerReportBuilder.js";
 import { getEncounterReward } from "../run/EncounterReward.js";
+import { getEncounterRewardQualityBreakdown, getEncounterVeterancyXpBreakdown } from "../run/EncounterRewardQuality.js";
 import { BalanceRunLogger } from "../run/BalanceRunLogger.js";
 
 let failures = 0;
@@ -1736,6 +1737,8 @@ function makeRun(overrides = {}) {
     latestUpkeepShortfall: 0,
     latestInterestAddedToDebt: 0,
     latestMoraleChange: 0,
+    latestRewardQualitySummary: "",
+    latestVeterancyContextBonusXp: 0,
     party: [],
   }, overrides);
 }
@@ -1810,6 +1813,20 @@ function makeCombatResult(overrides = {}) {
   const encounter = { type: EncounterType.FinalBoss };
   const lines = buildManagerReportLines(run, makeCombatResult({ playerWon: true }), encounter);
   check("report: scaled contract line", lines.some(l => l.includes("Scaled contract terms") && l.includes("+21 gold")));
+}
+
+// Encounter XP scaling report line
+{
+  const run = makeRun({ latestVeterancyContextBonusXp: 3 });
+  const lines = buildManagerReportLines(run, makeCombatResult({ playerWon: true }), null, 5);
+  check("report: XP quality line", lines.some(l => l.includes("Encounter difficulty") && l.includes("+3 XP")));
+}
+
+// Reward quality report line
+{
+  const run = makeRun({ latestRewardQualitySummary: "+2 relic option; +11% Silver offer odds next shop" });
+  const lines = buildManagerReportLines(run, makeCombatResult({ playerWon: true }), null, 5);
+  check("report: reward quality line", lines.some(l => l.includes("Reward quality improved") && l.includes("Silver offer odds")));
 }
 
 // Rival win bonus not shown on loss
@@ -2297,6 +2314,74 @@ function makeCombatResult(overrides = {}) {
   check("balance: combat row exposes contract reward",
     BalanceRunLogger.combatRows[0].contractRewardGold === getEncounterReward(4, 10, EncounterType.FinalBoss)
       && tsv.includes("contractRewardGold"));
+  check("balance: combat row exposes XP and reward quality",
+    BalanceRunLogger.combatRows[0].veterancyContextBonusXp === getEncounterVeterancyXpBreakdown(4, 10, EncounterType.FinalBoss).totalBonus
+      && BalanceRunLogger.combatRows[0].rewardQualityRelicChoiceBonus === getEncounterRewardQualityBreakdown(4, 10, EncounterType.FinalBoss).relicChoiceBonus
+      && tsv.includes("veterancyContextBonusXp")
+      && tsv.includes("rewardQualityRelicChoiceBonus")
+      && tsv.includes("rewardQualityShopSilverChanceBonus"));
+}
+
+// 2f. Later and special encounters add context veterancy XP without changing Act 1 baseline.
+{
+  const rm = new RunManager();
+  const run = rm.initializeRun(DifficultyLevel.Level0, 1);
+  const heroDef = DataRepository.allHeroes.find((h) => h.id === "warrior");
+  const hero = new HeroInstance(heroDef, 0);
+  run.party.push(hero);
+  run.gold = 200;
+  const act1Enc = DataRepository.encounters.find((e) => e.act === 1 && e.slot === 6 && e.type === EncounterType.RivalGhost);
+  run.currentEncounter = act1Enc;
+  const mockWin = { playerWon: true, survivorFlags: {}, deadHeroes: [] };
+  rm.applyPostCombatResult(mockWin, act1Enc);
+  check("veterancy-xp: act 1 rival keeps existing survivor+type award",
+    run.latestVeterancyContextBonusXp === 0 && hero.veteranXp === GameRules.VeteranSurvivorXp + GameRules.VeteranRivalFightBonusXp);
+
+  hero.veteranXp = 0;
+  hero.veteranTier = 0;
+  run.gold = 200;
+  const act4Enc = DataRepository.encounters.find((e) => e.act === 4 && e.slot === 10 && e.type === EncounterType.FinalBoss);
+  run.currentEncounter = act4Enc;
+  rm.applyPostCombatResult(mockWin, act4Enc);
+  const expectedContext = getEncounterVeterancyXpBreakdown(4, 10, EncounterType.FinalBoss).totalBonus;
+  check("veterancy-xp: late final boss applies context XP",
+    run.latestVeterancyContextBonusXp === expectedContext
+      && hero.veteranXp === GameRules.VeteranSurvivorXp + GameRules.VeteranEndOfActFightBonusXp + GameRules.VeteranActCompleteXp + expectedContext);
+}
+
+// 2g. Later and special wins improve current reward quality through relic options and next-shop odds.
+{
+  const rm = new RunManager();
+  const shop = new ShopManager(rm);
+  const run = rm.initializeRun(DifficultyLevel.Level0, 287);
+  run.gold = 200;
+  const enc = DataRepository.encounters.find((e) => e.act === 4 && e.slot === 10 && e.type === EncounterType.FinalBoss);
+  run.currentEncounter = enc;
+  const mockWin = { playerWon: true, survivorFlags: {}, deadHeroes: [] };
+  rm.applyPostCombatResult(mockWin, enc);
+  const quality = getEncounterRewardQualityBreakdown(4, 10, EncounterType.FinalBoss);
+  check("rewardquality: post-combat stores quality summary",
+    run.latestRewardQualityRelicChoiceBonus === quality.relicChoiceBonus
+      && run.latestRewardQualityShopSilverChanceBonus === quality.shopSilverChanceBonus
+      && run.latestRewardQualitySummary.includes("Silver offer odds"));
+
+  const prepared = rm.tryPreparePendingRelicReward(GameState.Victory);
+  check("rewardquality: act 4 boss relic reward prepared", prepared === true);
+  check("rewardquality: relic choices use quality bonus",
+    run.pendingRelicChoices.length === GameRules.RewardQualityRelicChoiceMax
+      && run.pendingRelicChoiceBonus === GameRules.RewardQualityRelicChoiceMax - GameRules.RelicChoiceCount);
+
+  run.pendingShopQualitySilverChanceBonus = quality.shopSilverChanceBonus;
+  shop.generateOffers();
+  check("rewardquality: next shop consumes quality bonus",
+    run.latestShopQualitySilverChanceBonus === quality.shopSilverChanceBonus
+      && Math.abs(run.latestShopSilverOfferChance - (GameRules.SilverOfferChance + quality.shopSilverChanceBonus)) < 0.00001
+      && run.pendingShopQualitySilverChanceBonus === 0);
+
+  const first = collectQualityShopTierSequence(287, 1);
+  const second = collectQualityShopTierSequence(287, 1);
+  check("rewardquality: boosted shop rolls are deterministic", first.join(",") === second.join(","));
+  check("rewardquality: shop silver odds cap applies", first.appliedChance === GameRules.RewardQualityShopSilverChanceMax);
 }
 
 // 3. Ninja loot on kill: gold gained during combat exceeds WinReward alone.
@@ -2413,6 +2498,17 @@ function collectShopEventSequence(seed) {
     }
   }
 
+  return sequence;
+}
+
+function collectQualityShopTierSequence(seed, bonus) {
+  const runManager = new RunManager();
+  const shop = new ShopManager(runManager);
+  const run = runManager.initializeRun(DifficultyLevel.Level0, seed);
+  run.pendingShopQualitySilverChanceBonus = bonus;
+  shop.generateOffers();
+  const sequence = shop.currentOffers.map((offer) => offer ? offer.tier : "none");
+  sequence.appliedChance = run.latestShopSilverOfferChance;
   return sequence;
 }
 
