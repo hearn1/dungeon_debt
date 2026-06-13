@@ -12,21 +12,21 @@ This file always describes the **next** session's work. Rewrite it at the end of
 
 ### One-sentence goal
 
-Epic `#260` (3D / 2.5D asset catalog and placeholder asset pass) is complete; Matt should choose the next implementation slice before any code changes.
+Epic `#273` (Encounter scaling curve model) is complete; Matt should choose the next implementation slice before any code changes.
 
 ### Why this session exists
 
-The previous session completed GitHub epic `#260` and its subissues:
+The previous session completed GitHub epic `#273` and its subissues:
 
-1. `#269` - Add visual asset catalog for 3D / 2.5D units
-2. `#270` - Add unit visual state mapping and fallback animations
-3. `#271` - Review placeholder visual options for first 2.5D pass
+1. `#276` - Add encounter scaling helper for act and slot progression
+2. `#277` - Wire encounter scaling into opponent stat construction
+3. `#278` - Add scaling regression tests for representative encounters
 
 ### Candidate next work
 
-**Likely follow-up from parent `#256`:**
+**Likely follow-up from parent `#272`:**
 
-- The next 2.5D/board-renderer issue, if Matt chooses to continue that track.
+- The next encounter/balance-model issue, if Matt chooses to continue that track.
 
 **Available paused regression polish:**
 
@@ -50,7 +50,7 @@ The previous session completed GitHub epic `#260` and its subissues:
 **Not in scope:**
 
 - Starting another implementation slice without Matt choosing it.
-- Continuing the 2.5D track automatically.
+- Continuing the encounter-scaling track automatically.
 - Broad refactors or cleanup.
 
 ### Files to read
@@ -59,7 +59,7 @@ The previous session completed GitHub epic `#260` and its subissues:
 AGENTS.md
 CLAUDE.md
 SESSION_PROTOCOL.md
-PROGRESS.md (latest #260, #259, #258 entries)
+PROGRESS.md (latest #273, #260, #259 entries)
 REGRESSIONS.md (Open section)
 IMPLEMENTATION_PLAN.md section 6
 NEXT_SESSION.md
@@ -80,4 +80,4 @@ No verification command until a concrete slice is selected.
 
 ### Start prompt for the next session
 
-> Read `AGENTS.md`, `CLAUDE.md`, and `SESSION_PROTOCOL.md`, then follow `NEXT_SESSION.md`. Epic `#260` is complete. Orient on the latest progress and ask Matt which slice to pick up next before planning code changes.
+> Read `AGENTS.md`, `CLAUDE.md`, and `SESSION_PROTOCOL.md`, then follow `NEXT_SESSION.md`. Epic `#273` is complete. Orient on the latest progress and ask Matt which slice to pick up next before planning code changes.
