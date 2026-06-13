@@ -12,15 +12,15 @@ This file always describes the **next** session's work. Rewrite it at the end of
 
 ### One-sentence goal
 
-Epic `#273` (Encounter scaling curve model) is complete; Matt should choose the next implementation slice before any code changes.
+Epic `#274` (Team size and composition pressure) is complete; Matt should choose the next implementation slice before any code changes.
 
 ### Why this session exists
 
-The previous session completed GitHub epic `#273` and its subissues:
+The previous session completed GitHub epic `#274` and its subissues:
 
-1. `#276` - Add encounter scaling helper for act and slot progression
-2. `#277` - Wire encounter scaling into opponent stat construction
-3. `#278` - Add scaling regression tests for representative encounters
+1. `#279` - Identify late-game encounters that are too easy after latest audit
+2. `#280` - Tune Act 2-4 encounter compositions and team sizes
+3. `#281` - Tune boss and rival support compositions for late acts
 
 ### Candidate next work
 
@@ -50,7 +50,7 @@ The previous session completed GitHub epic `#273` and its subissues:
 **Not in scope:**
 
 - Starting another implementation slice without Matt choosing it.
-- Continuing the encounter-scaling track automatically.
+- Continuing the encounter/balance track automatically.
 - Broad refactors or cleanup.
 
 ### Files to read
@@ -59,7 +59,7 @@ The previous session completed GitHub epic `#273` and its subissues:
 AGENTS.md
 CLAUDE.md
 SESSION_PROTOCOL.md
-PROGRESS.md (latest #273, #260, #259 entries)
+PROGRESS.md (latest #274, #273, #260 entries)
 REGRESSIONS.md (Open section)
 IMPLEMENTATION_PLAN.md section 6
 NEXT_SESSION.md
@@ -80,4 +80,4 @@ No verification command until a concrete slice is selected.
 
 ### Start prompt for the next session
 
-> Read `AGENTS.md`, `CLAUDE.md`, and `SESSION_PROTOCOL.md`, then follow `NEXT_SESSION.md`. Epic `#273` is complete. Orient on the latest progress and ask Matt which slice to pick up next before planning code changes.
+> Read `AGENTS.md`, `CLAUDE.md`, and `SESSION_PROTOCOL.md`, then follow `NEXT_SESSION.md`. Epic `#274` is complete. Orient on the latest progress and ask Matt which slice to pick up next before planning code changes.
