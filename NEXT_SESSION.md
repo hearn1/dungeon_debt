@@ -12,22 +12,22 @@ This file always describes the **next** session's work. Rewrite it at the end of
 
 ### One-sentence goal
 
-Epic `#287` (Reward quality and XP scaling) is complete; Matt should choose the next implementation slice before any code changes.
+Epic `#288` (Shop, debt, and price scaling) is complete; Matt should choose the next implementation slice before any code changes.
 
 ### Why this session exists
 
-The previous session completed GitHub epic `#287` and its subissues:
+The previous session completed GitHub epic `#288` and its subissues:
 
-1. `#292` - Add encounter XP scaling by act and difficulty context
-2. `#293` - Add reward quality weighting by act and encounter type
-3. `#294` - Add reward quality tests and report visibility
+1. `#295` - Review act-aware shop price and reroll scaling
+2. `#296` - Review act-aware debt payment and debt pressure scaling
+3. `#297` - Run reward economy audit after scaling changes
 
 ### Candidate next work
 
-**Likely follow-up from parent `#285`:**
+**Likely follow-up from epic `#288`:**
 
-- The next reward/economy tuning issue, if Matt chooses to continue that track.
-- Follow-up tuning from balance reports now that gold, XP, and reward-quality scaling are visible.
+- Implement act-aware reroll and premium-tier shop surcharges using the recommendations in `balance-audit/findings-295-shop-price-scaling.md`.
+- Rerun the reward economy audit after shop-sink tuning before changing debt math.
 
 **Available paused regression polish:**
 
@@ -35,9 +35,9 @@ The previous session completed GitHub epic `#287` and its subissues:
 
 **Available follow-up issue slices:**
 
+- Later reward/economy tuning follow-ups from parent `#285`, if Matt chooses one.
 - Later `#72` balance harness slices, if Matt explicitly chooses one.
 - Later `#71` visual slices V2-V6, if Matt explicitly chooses one.
-- Later `#67` campaign-expansion slices or economy/balance tuning, if Matt explicitly chooses one.
 - Later expansion follow-ups from the issue bodies, if Matt explicitly chooses one.
 
 ### Scope
@@ -51,7 +51,7 @@ The previous session completed GitHub epic `#287` and its subissues:
 **Not in scope:**
 
 - Starting another implementation slice without Matt choosing it.
-- Continuing the encounter/balance track automatically.
+- Applying the `#288` shop/debt recommendations automatically.
 - Broad refactors or cleanup.
 
 ### Files to read
@@ -60,10 +60,13 @@ The previous session completed GitHub epic `#287` and its subissues:
 AGENTS.md
 CLAUDE.md
 SESSION_PROTOCOL.md
-PROGRESS.md (latest #287, #286, #275 entries)
+PROGRESS.md (latest #288, #287, #286 entries)
 REGRESSIONS.md (Open section)
 IMPLEMENTATION_PLAN.md section 6
 NEXT_SESSION.md
+balance-audit/findings-295-shop-price-scaling.md
+balance-audit/findings-296-debt-pressure-scaling.md
+balance-audit/findings-297-reward-economy-audit.md
 ```
 
 ### Files to modify
@@ -81,4 +84,4 @@ No verification command until a concrete slice is selected.
 
 ### Start prompt for the next session
 
-> Read `AGENTS.md`, `CLAUDE.md`, and `SESSION_PROTOCOL.md`, then follow `NEXT_SESSION.md`. Epic `#287` is complete. Orient on the latest progress and ask Matt which slice to pick up next before planning code changes.
+> Read `AGENTS.md`, `CLAUDE.md`, and `SESSION_PROTOCOL.md`, then follow `NEXT_SESSION.md`. Epic `#288` is complete. Orient on the latest progress and ask Matt which slice to pick up next before planning code changes.

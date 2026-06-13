@@ -51,6 +51,39 @@ Copy this block when adding a new entry. Paste it at the top of the Session log 
 
 <!-- Newest entries at the top. -->
 
+## 2026-06-13 - #288: Shop, debt, and price scaling
+
+**Milestone:** GitHub epic
+**Status:** Complete
+
+**Files added:**
+- `balance-audit/findings-295-shop-price-scaling.md`
+- `balance-audit/findings-296-debt-pressure-scaling.md`
+- `balance-audit/findings-297-reward-economy-audit.md`
+
+**Files modified:**
+- `web/src/run/BalanceRunLogger.js` - added deterministic economy rows and TSV formatting for shop/settlement pressure.
+- `web/src/test/balance.js` - writes economy TSV output and adds economy-pressure markdown tables.
+- `web/src/test/run.js` - verifies economy rows expose settlement pressure fields.
+- `PROGRESS.md`, `NEXT_SESSION.md` - logged the epic wrap and returned to slice selection.
+
+**Acceptance criteria:**
+- [x] Shop cost findings identify reroll and premium-tier scaling candidates with concrete helper/constant names.
+- [x] Debt pressure findings identify repayment, interest, limit, payroll, and debt-facing encounter recommendations without gameplay changes.
+- [x] Reward economy audit findings document late-game gold, debt, morale, shop spend, payout, upkeep, and interest pressure.
+- [x] Existing tests pass after every subissue commit.
+- [x] Balance harness determinism check passes after report-field changes.
+
+**Test plan:** `npm.cmd run test:headless` after `#295`, `#296`, and `#297`; `npm.cmd run test:balance -- --seeds=3 --strategy=all --report`; `npm.cmd run test:balance -- --seeds=100 --strategy=all --report`; all passed.
+
+**Deviations from plan:**
+- No gameplay tuning was implemented because `#295` and `#296` were explicitly recommendation-only.
+
+**Follow-up flagged:**
+- Implement act-aware reroll and premium-tier shop surcharges first; then rerun the economy audit before changing debt math.
+
+**Next slice:** Awaiting Matt's next slice selection.
+
 ## 2026-06-13 - #287: Reward quality and XP scaling
 
 **Milestone:** GitHub epic
