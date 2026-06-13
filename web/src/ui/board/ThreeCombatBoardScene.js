@@ -1,6 +1,7 @@
 import * as THREE from "../../../vendor/three.module.js";
 import { GameRules } from "../../core/GameRules.js";
 import { el, clear } from "../dom.js";
+import { resolveUnitVisual, UnitVisualState } from "../UnitVisualCatalog.js";
 import { BoardVisualSide, getBoardVisualSide } from "./BoardProjection.js";
 
 const SCENE_WIDTH = 760;
@@ -39,6 +40,7 @@ export class ThreeCombatBoardScene {
     this.units = new Map();
     this.isWebGlActive = false;
     this._raf = null;
+    this._stateTimers = new Map();
 
     this._initThree();
     this._buildBoard();
@@ -48,11 +50,13 @@ export class ThreeCombatBoardScene {
   addUnit(unitId, unit, coord, isPlayerSide) {
     if (!unitId || !coord) return null;
     const side = isPlayerSide ? BoardVisualSide.Player : BoardVisualSide.Opponent;
+    const visual = resolveUnitVisual(unit);
     const entry = {
       unit,
+      visual,
       coord: { q: coord.q, r: coord.r },
-      group: this.isWebGlActive ? this._buildUnitMesh(isPlayerSide) : null,
-      overlay: this._buildUnitOverlay(unit, isPlayerSide),
+      group: this.isWebGlActive ? this._buildUnitMesh(isPlayerSide, visual) : null,
+      overlay: this._buildUnitOverlay(unit, isPlayerSide, visual),
       isPlayerSide,
       maxHp: unit?.maxHealth || 1,
       currentHp: unit?.currentHealth || unit?.maxHealth || 1,
@@ -62,17 +66,26 @@ export class ThreeCombatBoardScene {
     if (entry.group) this.scene.add(entry.group);
     this.unitLayer.appendChild(entry.overlay);
     this.units.set(unitId, entry);
+    this.setUnitVisualState(unitId, UnitVisualState.Idle);
     this.moveUnit(unitId, coord, { instant: true });
     return entry;
   }
 
-  _buildUnitOverlay(unit, isPlayerSide) {
+  _buildUnitOverlay(unit, isPlayerSide, visual) {
     const overlay = el("div", {
-      class: `three-unit-anchor ${isPlayerSide ? "player" : "enemy"}`,
+      class: `three-unit-anchor ${isPlayerSide ? "player" : "enemy"} ${visual.cssClass}`,
       title: unit?.displayName || "",
+      dataset: {
+        visualGroup: visual.group,
+        visualKind: visual.kind,
+        visualState: UnitVisualState.Idle,
+      },
     });
+    overlay.style.setProperty("--unit-visual-color", `#${visual.color.toString(16).padStart(6, "0")}`);
 
-    overlay.appendChild(el("div", { class: "three-unit-pin" }));
+    overlay.appendChild(el("div", { class: "three-unit-pin" }, [
+      el("img", { class: "three-unit-portrait", src: visual.portraitUrl, alt: "" }),
+    ]));
     overlay.appendChild(el("div", { class: "three-unit-name", text: unit?.displayName || "" }));
     overlay.appendChild(el("div", { class: "ct-hpbar three-hpbar" }, [
       el("div", { class: "ct-hpfill three-hpfill" }),
@@ -89,6 +102,30 @@ export class ThreeCombatBoardScene {
     const screen = this.screenPositionFromCoord(coord);
     entry.overlay.style.left = `${screen.x}%`;
     entry.overlay.style.top = `${screen.y}%`;
+    this._render();
+  }
+
+  setUnitVisualState(unitId, state, { durationMs = 0 } = {}) {
+    const entry = this.units.get(unitId);
+    if (!entry) return;
+    this._clearStateTimer(unitId);
+
+    const classes = Object.values(UnitVisualState).map((value) => `visual-state-${value}`);
+    entry.overlay.classList.remove(...classes);
+    entry.overlay.classList.add(`visual-state-${state}`);
+    entry.overlay.dataset.visualState = state;
+
+    if (entry.group) {
+      const isDeath = state === UnitVisualState.Death;
+      const isAttack = state === UnitVisualState.Attack || state === UnitVisualState.Cast;
+      entry.group.position.y = isDeath ? 0.08 : isAttack ? 0.34 : 0.22;
+      entry.group.scale.set(isAttack ? 1.16 : 1, isAttack ? 1.16 : 1, isAttack ? 1.16 : 1);
+    }
+
+    if (durationMs > 0 && state !== UnitVisualState.Death) {
+      const timer = setTimeout(() => this.setUnitVisualState(unitId, UnitVisualState.Idle), durationMs);
+      this._stateTimers.set(unitId, timer);
+    }
     this._render();
   }
 
@@ -121,6 +158,7 @@ export class ThreeCombatBoardScene {
   markUnitDefeated(unitId) {
     const entry = this.units.get(unitId);
     if (!entry) return;
+    this.setUnitVisualState(unitId, UnitVisualState.Death);
     entry.overlay.classList.add("dead");
     if (entry.group) {
       entry.group.traverse((child) => {
@@ -136,6 +174,8 @@ export class ThreeCombatBoardScene {
     if (this._raf !== null && typeof cancelAnimationFrame === "function") {
       cancelAnimationFrame(this._raf);
     }
+    for (const timer of this._stateTimers.values()) clearTimeout(timer);
+    this._stateTimers.clear();
     this._raf = null;
     this.units.clear();
     if (this.renderer) {
@@ -238,8 +278,8 @@ export class ThreeCombatBoardScene {
     }
   }
 
-  _buildUnitMesh(isPlayerSide) {
-    const color = isPlayerSide ? COLORS.playerUnit : COLORS.enemyUnit;
+  _buildUnitMesh(isPlayerSide, visual) {
+    const color = visual?.color || (isPlayerSide ? COLORS.playerUnit : COLORS.enemyUnit);
     const group = new THREE.Group();
     const base = new THREE.Mesh(
       new THREE.CylinderGeometry(0.33, 0.4, 0.22, 18),
@@ -252,6 +292,13 @@ export class ThreeCombatBoardScene {
     body.position.y = 0.46;
     group.add(base, body);
     return group;
+  }
+
+  _clearStateTimer(unitId) {
+    const timer = this._stateTimers.get(unitId);
+    if (!timer) return;
+    clearTimeout(timer);
+    this._stateTimers.delete(unitId);
   }
 
   _render() {

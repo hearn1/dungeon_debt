@@ -6,6 +6,7 @@ import { statusGlyphs, appendPanelHeader } from "../components.js";
 import { unitPortrait, attackEffect, healEffect, abilityEffect } from "../SpriteCatalog.js";
 import { Settings } from "../../core/Settings.js";
 import { ThreeCombatBoardScene } from "../board/ThreeCombatBoardScene.js";
+import { UnitVisualState } from "../UnitVisualCatalog.js";
 
 const TOKEN = 70;         // combat token width/height (fits inside TILE)
 const TOKEN_HALF = TOKEN / 2;
@@ -281,12 +282,14 @@ export class CombatPanel {
   _handleMovement(evt) {
     const entry = this._unitMap.get(evt.actorUnitId);
     if (!entry || !evt.targetCoord) return;
+    this._threeScene?.setUnitVisualState(evt.actorUnitId, UnitVisualState.Move, { durationMs: this._stepMs });
     this._moveToken(entry, evt.targetCoord);
   }
 
   _handleAbilityCast(evt) {
     const caster = this._unitMap.get(evt.actorUnitId);
     if (caster) {
+      this._threeScene?.setUnitVisualState(evt.actorUnitId, UnitVisualState.Cast, { durationMs: this._stepMs });
       this._threeScene?.pulseUnit(evt.actorUnitId, "casting");
       caster.node.classList.remove("casting");
       void caster.node.offsetWidth;
@@ -305,6 +308,7 @@ export class CombatPanel {
   _handlePassiveTrigger(evt) {
     const entry = this._unitMap.get(evt.actorUnitId);
     if (entry) {
+      this._threeScene?.setUnitVisualState(evt.actorUnitId, UnitVisualState.Passive, { durationMs: this._stepMs });
       this._threeScene?.pulseUnit(evt.actorUnitId, "passive-glow");
       entry.node.classList.remove("passive-glow");
       void entry.node.offsetWidth;
@@ -326,6 +330,7 @@ export class CombatPanel {
 
     // Highlight the acting unit.
     if (actorEntry && (evt.kind === K.Attack || evt.kind === K.Heal)) {
+      this._threeScene?.setUnitVisualState(evt.actorUnitId, evt.kind === K.Heal ? UnitVisualState.Cast : UnitVisualState.Attack, { durationMs: this._stepMs });
       this._threeScene?.setActiveUnit(evt.actorUnitId);
       actorEntry.node.classList.add("acting");
 
@@ -368,6 +373,7 @@ export class CombatPanel {
       // Flash.
       if (isDamage || isHeal) {
         const cls = isHeal ? "flash-heal" : "flash-hit";
+        this._threeScene?.setUnitVisualState(evt.targetUnitId, UnitVisualState.Hit, { durationMs: this._stepMs });
         targetEntry.node.classList.remove(cls);
         void targetEntry.node.offsetWidth;
         targetEntry.node.classList.add(cls);
@@ -483,6 +489,7 @@ export class CombatPanel {
     if (evt.kind === K.Movement) {
       const entry = this._unitMap.get(evt.actorUnitId);
       if (entry && evt.targetCoord) {
+        this._threeScene?.setUnitVisualState(evt.actorUnitId, UnitVisualState.Idle);
         // Instant move: suppress CSS transition temporarily.
         entry.node.style.transition = "none";
         this._moveToken(entry, evt.targetCoord);
@@ -500,6 +507,8 @@ export class CombatPanel {
       if (evt.targetHealthAfter <= 0) {
         this._threeScene?.markUnitDefeated(evt.targetUnitId);
         targetEntry.node.classList.add("dead");
+      } else if (evt.kind === K.Attack || evt.kind === K.Heal || evt.kind === K.StatusDamage) {
+        this._threeScene?.setUnitVisualState(evt.targetUnitId, UnitVisualState.Idle);
       }
       this._updateTokenGlyphs(targetEntry.node, evt.targetStatuses || [], evt.targetPoisonDamage || 0);
     }

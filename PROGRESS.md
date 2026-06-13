@@ -51,6 +51,44 @@ Copy this block when adding a new entry. Paste it at the top of the Session log 
 
 <!-- Newest entries at the top. -->
 
+## 2026-06-13 - #260: 3D / 2.5D asset catalog and placeholder asset pass
+
+**Milestone:** GitHub epic
+**Status:** Complete
+
+**Files added:**
+- `web/src/ui/UnitVisualCatalog.js`
+- `web/docs/UNIT_VISUALS.md`
+
+**Files modified:**
+- `web/src/ui/board/ThreeCombatBoardScene.js` - resolves units through the visual catalog and tracks fallback visual states on scene anchors.
+- `web/src/ui/panels/CombatPanel.js` - maps replay movement, attack/heal, hit, death, cast, and passive events to visual states.
+- `web/src/ui/panels/FormationPanel.js` - renders deployment tokens with catalog metadata and PNG fallback portraits.
+- `web/styles/main.css` - added catalog-backed Formation/Combat marker styling and fallback state animations.
+- `web/src/test/run.js` - added catalog fallback, Formation wiring, Three scene visual metadata, and replay state smoke coverage.
+- `IMPLEMENTATION_PLAN.md` - documents the unit visual catalog and placeholder documentation surface.
+- `PROGRESS.md` - logged the epic wrap.
+- `NEXT_SESSION.md` - returned the project to the slice-selection checkpoint.
+
+**Acceptance criteria:**
+- [x] Hero and opponent units resolve through the new visual catalog.
+- [x] Missing visuals fall back to safe placeholders and existing PNG portrait URLs.
+- [x] Hero role placeholders are wired through Formation and Combat.
+- [x] Replay movement, attack, hit, death, cast, and passive events have deterministic fallback visual states without combat math changes.
+- [x] Placeholder recommendation, repo paths, lookup order, fallback behavior, and licensing guidance are documented.
+- [x] Existing tests pass after every subissue commit.
+- [x] Browser smoke confirms Formation catalog tokens, Combat Three scene placeholders, hit/death feedback, summary rendering, and zero console warnings/errors.
+
+**Test plan:** `npm.cmd run test:headless` after `#269`, `#270`, and `#271`; browser preview via `python web/serve.py` confirmed catalog-backed Formation and Combat visuals with zero console warnings/errors.
+
+**Deviations from plan:**
+- None.
+
+**Follow-up flagged:**
+- Future art passes can add real model/sprite assets under the documented `web/assets/units/...` paths without adding fields to gameplay definitions.
+
+**Next slice:** Awaiting Matt's next slice selection.
+
 ## 2026-06-13 - #259: Three.js combat replay board conversion
 
 **Milestone:** GitHub epic

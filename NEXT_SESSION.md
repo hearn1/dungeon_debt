@@ -12,15 +12,15 @@ This file always describes the **next** session's work. Rewrite it at the end of
 
 ### One-sentence goal
 
-Epic `#259` (Three.js combat replay board conversion) is complete; Matt should choose the next implementation slice before any code changes.
+Epic `#260` (3D / 2.5D asset catalog and placeholder asset pass) is complete; Matt should choose the next implementation slice before any code changes.
 
 ### Why this session exists
 
-The previous session completed GitHub epic `#259` and its subissues:
+The previous session completed GitHub epic `#260` and its subissues:
 
-1. `#266` - Add Three.js combat board scene bootstrap
-2. `#267` - Map combat replay events to the 2.5D board renderer
-3. `#268` - Recreate combat overlays, effects, speed, and skip behavior in the 2.5D renderer
+1. `#269` - Add visual asset catalog for 3D / 2.5D units
+2. `#270` - Add unit visual state mapping and fallback animations
+3. `#271` - Review placeholder visual options for first 2.5D pass
 
 ### Candidate next work
 
@@ -55,11 +55,11 @@ The previous session completed GitHub epic `#259` and its subissues:
 
 ### Files to read
 
-```
+```text
 AGENTS.md
 CLAUDE.md
 SESSION_PROTOCOL.md
-PROGRESS.md (latest #259, #258, #257 entries)
+PROGRESS.md (latest #260, #259, #258 entries)
 REGRESSIONS.md (Open section)
 IMPLEMENTATION_PLAN.md section 6
 NEXT_SESSION.md
@@ -80,4 +80,4 @@ No verification command until a concrete slice is selected.
 
 ### Start prompt for the next session
 
-> Read `AGENTS.md`, `CLAUDE.md`, and `SESSION_PROTOCOL.md`, then follow `NEXT_SESSION.md`. Epic `#259` is complete. Orient on the latest progress and ask Matt which slice to pick up next before planning code changes.
+> Read `AGENTS.md`, `CLAUDE.md`, and `SESSION_PROTOCOL.md`, then follow `NEXT_SESSION.md`. Epic `#260` is complete. Orient on the latest progress and ask Matt which slice to pick up next before planning code changes.

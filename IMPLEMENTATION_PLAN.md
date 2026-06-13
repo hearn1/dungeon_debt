@@ -32,6 +32,7 @@ web/
 ├── serve.py                     ← Python static dev server (port 5173)
 ├── package.json
 ├── styles/main.css              ← design tokens + component CSS
+├── docs/UNIT_VISUALS.md         ← 2.5D unit visual catalog conventions and placeholder plan
 ├── vendor/                      ← vendored Three.js ES modules (approved #259 exception)
 └── src/
     ├── main.js                  ← renderer entry: new GameManager() → new UIManager(gm, root)
@@ -75,6 +76,7 @@ web/
     │   ├── RunHeader.js         ← persistent top chrome (act seal, round progress, gold/morale, debt chip, relics)
     │   ├── dom.js               ← el(), clear(), two() helpers
     │   ├── components.js        ← heroCard(), hpBar(), statusPills()
+    │   ├── UnitVisualCatalog.js ← presentation lookup for 2.5D unit placeholders + PNG fallbacks
     │   ├── board/               ← board projection plus Combat's Three.js scene host
     │   └── panels/
     │       ├── MainMenuPanel.js
@@ -111,6 +113,7 @@ MainMenu
 - `GameManager.changeState(s)` is the only legal state setter. It emits to `onStateChanged` listeners; `UIManager` is the only listener in production.
 - `GameManager.resolveCombat()` runs `CombatManager.startCombat(run, encounter)` then `runManager.applyPostCombatResult(result, encounter)` and returns the result. The Combat panel calls this once on entry.
 - `web/src/ui/board/` owns presentation-only board rendering/projection helpers. It may project `CombatBoard` / `BoardPlacement` coordinates for Formation and Combat, and `ThreeCombatBoardScene` may render Combat replay presentation through the vendored Three.js module. It must not mutate authored board data, replay events, targeting, or combat math.
+- `web/src/ui/UnitVisualCatalog.js` owns presentation-only unit visual lookup for Formation and Combat. It resolves hero/opponent/fallback placeholder metadata and keeps `SpriteCatalog` PNG URLs as fallback detail. It must not add visual fields to gameplay definitions.
 
 ### Data ownership
 
@@ -199,6 +202,7 @@ The next session brief is in `NEXT_SESSION.md`.
   - `web/assets/enemies/<enemyId>.png` — per-enemy portrait. Falls back to `enemy-default.png`.
   - `web/assets/effects/<heroId|enemyId>.png` (future per-character) → `role-<role>.png` (hero-role fallback) → `enemy-generic.png` (any non-player) → `effect-default.png`. `heal.png` is shared by every Heal event.
 - **Sprite-catalog seam:** `web/src/ui/SpriteCatalog.js` resolves an id (or a `CombatUnit`) to a URL. `DataRepository` stays data-only; no portrait fields on `HeroDefinition` / `EnemyDefinition`.
+- **Unit-visual seam:** `web/src/ui/UnitVisualCatalog.js` resolves 2.5D placeholder metadata for board units, preserving `SpriteCatalog` PNG URLs as fallback. Naming conventions and placeholder guidance live in `web/docs/UNIT_VISUALS.md`.
 - **Attribution:** every CC BY asset is credited in `web/ATTRIBUTION.md`. A "Art credits" link surfaces it from the Main Menu.
 
 ## 7 · Things explicitly *not* in scope (carry-over from Unity-era scope control)

@@ -4,6 +4,7 @@ import { heroCard, appendPanelHeader } from "../components.js";
 import { isInPlayerZone, getDefaultPlayerBoardPosition } from "../../combat/BoardPlacement.js";
 import { BoardRenderer } from "../board/BoardRenderer.js";
 import { BoardProjectionMode, getProjectedBoardSize, projectBoardTile } from "../board/BoardProjection.js";
+import { resolveUnitVisual } from "../UnitVisualCatalog.js";
 
 export class FormationPanel {
   constructor(gm) {
@@ -91,7 +92,19 @@ export class FormationPanel {
     });
 
     if (hero) {
-      const card = el("div", { class: "hex-hero-token", draggable: true });
+      const visual = resolveUnitVisual(hero);
+      const card = el("div", {
+        class: `hex-hero-token ${visual.cssClass}`,
+        draggable: true,
+        dataset: {
+          visualGroup: visual.group,
+          visualKind: visual.kind,
+        },
+      });
+      card.style.setProperty("--unit-visual-color", `#${visual.color.toString(16).padStart(6, "0")}`);
+      card.appendChild(el("div", { class: "hex-hero-visual" }, [
+        el("img", { class: "hex-hero-portrait", src: visual.portraitUrl, alt: "" }),
+      ]));
       card.appendChild(el("div", { class: "hex-hero-name", text: hero.definition.displayName }));
 
       card.addEventListener("dragstart", (e) => {
