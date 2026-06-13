@@ -5,6 +5,7 @@ import { HeroRole, EnemyEffectId, EncounterType } from "../../data/enums.js";
 import { statusGlyphs, appendPanelHeader } from "../components.js";
 import { unitPortrait, attackEffect, healEffect, abilityEffect } from "../SpriteCatalog.js";
 import { Settings } from "../../core/Settings.js";
+import { BoardRenderer } from "../board/BoardRenderer.js";
 
 // Hex tile dimensions matching the existing .hex-board/.hex-col CSS.
 const TILE = 72;
@@ -29,6 +30,7 @@ export class CombatPanel {
     this._unitMap = new Map();
     this._log = null;
     this._board = null;
+    this._boardRenderer = null;
     this._projectileLayer = null;
     this._roundLabel = null;
   }
@@ -36,6 +38,8 @@ export class CombatPanel {
   render() {
     clear(this.root);
     this._clearTimer();
+    this._boardRenderer?.destroy();
+    this._boardRenderer = null;
     this._unitMap = new Map();
 
     const run = this.gm.currentRunState;
@@ -79,28 +83,24 @@ export class CombatPanel {
     const W = GameRules.HexBoardWidth;
     const H = GameRules.HexBoardHeight;
 
-    const wrap = el("div", { class: "combat-battlefield" });
+    const renderer = new BoardRenderer({ rootClass: "combat-battlefield" });
+    const wrap = renderer.root;
 
     // Build the 7 × 5 hex grid (all columns).
-    const hexGrid = el("div", { class: "hex-board" });
-    for (let q = 0; q < W; q++) {
-      const col = el("div", { class: "hex-col" });
-      for (let r = 0; r < H; r++) {
+    renderer.renderColumnGrid({
+      qEnd: W - 1,
+      rEnd: H,
+      buildTile: ({ q }) => {
         const zoneClass = q <= GameRules.PlayerDeploymentMaxQ ? "combat-tile player-zone"
           : q >= GameRules.EnemyDeploymentMinQ             ? "combat-tile enemy-zone"
           : "combat-tile neutral-zone";
-        col.appendChild(el("div", { class: `hex-tile ${zoneClass}` }));
-      }
-      hexGrid.appendChild(col);
-    }
+        return el("div", { class: `hex-tile ${zoneClass}` });
+      },
+    });
 
     // Overlay layers: units sit in an absolute layer so they can move smoothly.
-    this._unitLayerNode = el("div", { class: "combat-unit-layer" });
-    this._projectileLayer = el("div", { class: "projectile-layer" });
-
-    wrap.appendChild(hexGrid);
-    wrap.appendChild(this._unitLayerNode);
-    wrap.appendChild(this._projectileLayer);
+    this._unitLayerNode = renderer.addLayer("units", "combat-unit-layer");
+    this._projectileLayer = renderer.addLayer("projectiles", "projectile-layer");
 
     // Encounter-type visual accent.
     const encClass = encounter?.type === EncounterType.RivalGhost ? "encounter-rival"
@@ -109,6 +109,7 @@ export class CombatPanel {
     wrap.classList.add(encClass);
     wrap.style.setProperty("--act-accent", GameRulesFns.getActAccentColor(run.act));
 
+    this._boardRenderer = renderer;
     this._board = wrap;
     this.root.appendChild(wrap);
   }
