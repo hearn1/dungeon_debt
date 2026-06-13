@@ -18,7 +18,13 @@ export class RunState {
     this.hasLatestRewardSummary = false;
     this.latestCombatWon = false;
     this.latestRewardGold = 0;
+    this.latestContractRewardGold = 0;
+    this.latestRewardScaleBonusGold = 0;
+    this.latestRivalRewardGold = 0;
+    this.latestDifficultyRewardGold = 0;
+    this.latestRewardDrainGold = 0;
     this.latestRelicRewardGold = 0;
+    this.latestNextRewardBonusGold = 0;
     this.latestMoraleChange = 0;
     this.latestTotalUpkeep = 0;
     this.latestUpkeepPaid = 0;

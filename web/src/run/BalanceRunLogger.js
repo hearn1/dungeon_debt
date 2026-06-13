@@ -40,6 +40,7 @@ export const BalanceRunLogger = {
       slot: encounterDef ? encounterDef.slot : 0,
       type: encounterDef ? encounterDef.type : "",
       encounterId: encounterDef ? (encounterDef.id || encounterDef.displayName) : "",
+      contractRewardGold: run.latestContractRewardGold,
       playerWon: combatResult.playerWon ? 1 : 0,
       combatRoundsElapsed: combatResult.combatRoundsElapsed,
       heroesLost: Array.isArray(combatResult.deadHeroes) ? combatResult.deadHeroes.length : 0,
@@ -48,7 +49,7 @@ export const BalanceRunLogger = {
 
   formatCombatResults(combatLog) {
     const rows = Array.isArray(combatLog) ? combatLog : [];
-    const columns = ["seed", "strategy", "act", "slot", "encounterId", "playerWon", "combatRoundsElapsed", "heroesLost"];
+    const columns = ["seed", "strategy", "act", "slot", "encounterId", "playerWon", "combatRoundsElapsed", "heroesLost", "contractRewardGold"];
     const lines = [columns.join("\t")];
     for (const row of rows) {
       lines.push(columns.map(c => sanitizeTsvValue(row[c])).join("\t"));

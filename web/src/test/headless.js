@@ -12,6 +12,7 @@ import { CombatStatusState } from "../data/CombatStatusState.js";
 import { CombatUnit } from "../data/CombatUnit.js";
 import { BoardProjectionMode, BoardVisualSide, getBoardVisualSide, getProjectedBoardSize, projectBoardTile, projectUnitPosition } from "../ui/board/BoardProjection.js";
 import { getEncounterScaling } from "../run/EncounterScaling.js";
+import { getEncounterReward, getEncounterRewardBreakdown } from "../run/EncounterReward.js";
 import { EncounterType } from "../data/enums.js";
 import { BalanceChallengeFlag, classifyEncounterChallenge, getBalanceTargetBand } from "./BalanceTargets.js";
 
@@ -65,6 +66,20 @@ check("encscale: act 3 late stronger than act 2 mid", act3Late.enemyHealth > act
 check("encscale: act 4 early starts baseline", act4Early.enemyHealth === 1 && act4Early.enemyAttack === 1);
 check("encscale: act 4 late uses strongest progression", act4Late.enemyHealth === 1.24 && act4Late.enemyAttack === 1.16);
 check("encscale: deterministic for same inputs", JSON.stringify(act4Late) === JSON.stringify(act4LateRepeat));
+
+// Encounter reward curve
+const act1NormalReward = getEncounterRewardBreakdown(1, 1, EncounterType.Dungeon);
+const act1LateNormalReward = getEncounterReward(1, 10, EncounterType.Dungeon);
+const act2MidNormalReward = getEncounterReward(2, 5, EncounterType.Dungeon);
+const act3RivalReward = getEncounterRewardBreakdown(3, 6, EncounterType.RivalGhost);
+const act4BossReward = getEncounterRewardBreakdown(4, 10, EncounterType.FinalBoss);
+const act4BossRepeat = getEncounterRewardBreakdown(4, 10, EncounterType.FinalBoss);
+check("encreward: act 1 normal baseline", act1NormalReward.totalGold === GameRules.WinReward);
+check("encreward: act 1 normal stays flat", act1LateNormalReward === GameRules.WinReward);
+check("encreward: act 2 mid normal scales above baseline", act2MidNormalReward === 12);
+check("encreward: act 3 rival includes type bonus", act3RivalReward.typeBonus === 3 && act3RivalReward.totalGold === 19);
+check("encreward: act 4 boss is visibly stronger", act4BossReward.typeBonus === 7 && act4BossReward.totalGold === 29);
+check("encreward: deterministic for same inputs", JSON.stringify(act4BossReward) === JSON.stringify(act4BossRepeat));
 
 // Balance report target bands
 const act1DungeonTarget = getBalanceTargetBand(1, 2, EncounterType.Dungeon);
