@@ -190,6 +190,17 @@ export const GameRules = Object.freeze({
     3: Object.freeze({ enemyHealth: 1.5, enemyAttack: 1.35 }),
     4: Object.freeze({ enemyHealth: 1.85, enemyAttack: 1.6 }),
   }),
+  EncounterProgressionScale: Object.freeze({
+    1: Object.freeze({ enemyHealthStart: 1, enemyHealthEnd: 1, enemyAttackStart: 1, enemyAttackEnd: 1 }),
+    2: Object.freeze({ enemyHealthStart: 1, enemyHealthEnd: 1.08, enemyAttackStart: 1, enemyAttackEnd: 1.06 }),
+    3: Object.freeze({ enemyHealthStart: 1, enemyHealthEnd: 1.16, enemyAttackStart: 1, enemyAttackEnd: 1.1 }),
+    4: Object.freeze({ enemyHealthStart: 1, enemyHealthEnd: 1.24, enemyAttackStart: 1, enemyAttackEnd: 1.16 }),
+  }),
+  EncounterTypeScale: Object.freeze({
+    [EncounterType.Dungeon]: Object.freeze({ enemyHealth: 1, enemyAttack: 1 }),
+    [EncounterType.RivalGhost]: Object.freeze({ enemyHealth: 1, enemyAttack: 1 }),
+    [EncounterType.FinalBoss]: Object.freeze({ enemyHealth: 1, enemyAttack: 1 }),
+  }),
 
   ApprenticeStartingGold: 20,
   ApprenticeStartingMorale: 36,

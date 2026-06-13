@@ -11,6 +11,8 @@ import { HeroInstance } from "../data/HeroInstance.js";
 import { CombatStatusState } from "../data/CombatStatusState.js";
 import { CombatUnit } from "../data/CombatUnit.js";
 import { BoardProjectionMode, BoardVisualSide, getBoardVisualSide, getProjectedBoardSize, projectBoardTile, projectUnitPosition } from "../ui/board/BoardProjection.js";
+import { getEncounterScaling } from "../run/EncounterScaling.js";
+import { EncounterType } from "../data/enums.js";
 
 let failures = 0;
 function check(name, cond) {
@@ -46,6 +48,22 @@ check("act final round act2 = 20", GameRulesFns.getActFinalRound(2) === 20);
 check("absolute round act2 slot1 = 11", GameRulesFns.getAbsoluteRound(2, 1) === 11);
 check("veteran tier @5 = 2", GameRulesFns.getVeteranTierForXp(5) === 2);
 check("role color is css rgba", GameRulesFns.getRoleColor(HeroRole.Tank).startsWith("rgba("));
+
+// Encounter scaling curve
+const act1Early = getEncounterScaling(1, 1, EncounterType.Dungeon);
+const act1Late = getEncounterScaling(1, 10, EncounterType.FinalBoss);
+const act2Mid = getEncounterScaling(2, 5, EncounterType.Dungeon);
+const act3Late = getEncounterScaling(3, 10, EncounterType.FinalBoss);
+const act4Early = getEncounterScaling(4, 1, EncounterType.Dungeon);
+const act4Late = getEncounterScaling(4, 10, EncounterType.FinalBoss);
+const act4LateRepeat = getEncounterScaling(4, 10, EncounterType.FinalBoss);
+check("encscale: act 1 early baseline", act1Early.enemyHealth === 1 && act1Early.enemyAttack === 1);
+check("encscale: act 1 late stays baseline", act1Late.enemyHealth === 1 && act1Late.enemyAttack === 1);
+check("encscale: act 2 mid progresses modestly", act2Mid.enemyHealth === 1.036 && act2Mid.enemyAttack === 1.027);
+check("encscale: act 3 late stronger than act 2 mid", act3Late.enemyHealth > act2Mid.enemyHealth && act3Late.enemyAttack > act2Mid.enemyAttack);
+check("encscale: act 4 early starts baseline", act4Early.enemyHealth === 1 && act4Early.enemyAttack === 1);
+check("encscale: act 4 late uses strongest progression", act4Late.enemyHealth === 1.24 && act4Late.enemyAttack === 1.16);
+check("encscale: deterministic for same inputs", JSON.stringify(act4Late) === JSON.stringify(act4LateRepeat));
 
 // Board projection helpers
 const playerCorner = projectBoardTile({ q: 0, r: 0 }, { mode: BoardProjectionMode.BottomTop });
