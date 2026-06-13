@@ -11,6 +11,7 @@ import { HeroInstance } from "../data/HeroInstance.js";
 import { GameRules, GameRulesFns } from "../core/GameRules.js";
 import { EnemyEffectId, HeroTier, RelicId, CombatStatusId, EncounterEffectId } from "../data/enums.js";
 import { CombatUnit as CU } from "../data/CombatUnit.js";
+import { getEncounterScaling } from "../run/EncounterScaling.js";
 
 let failures = 0;
 function check(name, cond) {
@@ -378,9 +379,11 @@ console.log("Combat engine test");
   const run = buildRun(["paladin", "golem", "barbarian", "ranger", "cleric"]);
   run.debt = 45;
   const result = new CombatManager().startCombat(run, bankerEncounter);
+  const encounterScale = getEncounterScaling(bankerEncounter.act, bankerEncounter.slot, bankerEncounter.type);
+  const expectedAttack = GameRulesFns.scaleCombatStat(banker.attack, encounterScale.enemyAttack) + 4;
   check("bankerking: effect id assigned", banker.effectId === EnemyEffectId.BankerKingDebtJudgment);
   check("bankerking: debt judgment capped at +4 attack",
-    result.enemyStartUnits[0] && result.enemyStartUnits[0].attack === banker.attack + 4);
+    result.enemyStartUnits[0] && result.enemyStartUnits[0].attack === expectedAttack);
   check("bankerking: debt judgment logged with final attack",
     result.logLines.some(l => l.includes("gains +4 attack from Debt Judgment") && l.includes("debt 45")));
 }
@@ -562,6 +565,30 @@ console.log("Combat engine test");
   // Slime: attack 1 → ceil(1*1.2) = 2, health 4 → ceil(4*1.2) = 5
   check("predatory: slime attack scaled to 2", slime && slime.attack === 2);
   check("predatory: slime health scaled to 5", slime && slime.maxHealth === 5);
+}
+
+// Encounter progression scales enemy stats at combat-unit construction time.
+{
+  const run = buildRun([]);
+  const enc = encounter(2, 10);
+  const base = enc.enemies[0];
+  const enemyUnits = buildEnemyUnits(run, enc);
+  const auditor = enemyUnits[0];
+  check("encscale-combat: late act 2 attack scaled", auditor && auditor.attack === 6);
+  check("encscale-combat: late act 2 health scaled", auditor && auditor.maxHealth === 33);
+  check("encscale-combat: enemy definition attack unchanged", base.attack === 5);
+  check("encscale-combat: enemy definition health unchanged", base.health === 30);
+}
+
+// Difficulty multipliers still stack with encounter progression.
+{
+  const run = buildRun([]);
+  run.enemyHealthMultiplier = 1.15;
+  run.enemyDamageMultiplier = 1.15;
+  const enemyUnits = buildEnemyUnits(run, encounter(2, 10));
+  const auditor = enemyUnits[0];
+  check("encscale-difficulty: attack stacks after difficulty", auditor && auditor.attack === 7);
+  check("encscale-difficulty: health stacks after difficulty", auditor && auditor.maxHealth === 38);
 }
 
 // ---- Combat determinism with effects ----
@@ -1756,7 +1783,7 @@ buildSnapshot(REF_PARTY, 2, 5,  { won: true, minRounds: 2, maxRounds: 6,  maxDea
 buildSnapshot(REF_PARTY, 2, 6,  { won: true, minRounds: 4, maxRounds: 8,  maxDead: 3 });
 buildSnapshot(REF_PARTY, 2, 7,  { won: true, minRounds: 3, maxRounds: 7,  maxDead: 1 });
 buildSnapshot(REF_PARTY, 2, 8,  { won: true, minRounds: 4, maxRounds: 8,  maxDead: 3 });
-buildSnapshot(REF_PARTY, 2, 9,  { won: true, minRounds: 5, maxRounds: 9,  maxDead: 3 });
+buildSnapshot(REF_PARTY, 2, 9,  { won: false, minRounds: 5, maxRounds: 9,  maxDead: 5 });
 buildSnapshot(REF_PARTY, 2, 10, { won: true, minRounds: 5, maxRounds: 9,  maxDead: 4 });
 
 // ---- Replay schema validation (#234) ----

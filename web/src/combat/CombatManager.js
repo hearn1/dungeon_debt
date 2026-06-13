@@ -10,6 +10,7 @@ import { AbilityRunner } from "./AbilityRunner.js";
 import { GameRules, GameRulesFns } from "../core/GameRules.js";
 import { HeroRole, RelicId, CombatStatusId, EncounterType, HeroEffectId, AbilityTrigger } from "../data/enums.js";
 import { getScaledHeroMaxHealth, getRelicAttackBonus, hasRelic } from "../run/heroStats.js";
+import { getEncounterScaling } from "../run/EncounterScaling.js";
 import { resolvePlayerBoardPosition, resolveEnemyBoardPosition } from "./BoardPlacement.js";
 import { selectTarget } from "./TargetingRules.js";
 import { getBasicAttackMode } from "./RoleBehavior.js";
@@ -324,15 +325,23 @@ export function buildEnemyUnits(run, encounter) {
   const enemyUnits = [];
   if (!encounter) return enemyUnits;
 
+  const encounterScale = getEncounterScaling(encounter.act, encounter.slot, encounter.type);
+
   for (let i = 0; i < encounter.enemies.length; i++) {
     const enemy = encounter.enemies[i];
     const raceScale = getRivalRaceScale(encounter);
     const attack = GameRulesFns.scaleCombatStat(
-      GameRulesFns.scaleCombatStat(enemy.attack, run ? run.enemyDamageMultiplier : GameRules.NoCombatMultiplier),
+      GameRulesFns.scaleCombatStat(
+        GameRulesFns.scaleCombatStat(enemy.attack, run ? run.enemyDamageMultiplier : GameRules.NoCombatMultiplier),
+        encounterScale.enemyAttack,
+      ),
       raceScale.attack,
     );
     const health = GameRulesFns.scaleCombatStat(
-      GameRulesFns.scaleCombatStat(enemy.health, run ? run.enemyHealthMultiplier : GameRules.NoCombatMultiplier),
+      GameRulesFns.scaleCombatStat(
+        GameRulesFns.scaleCombatStat(enemy.health, run ? run.enemyHealthMultiplier : GameRules.NoCombatMultiplier),
+        encounterScale.enemyHealth,
+      ),
       raceScale.health,
     );
     const unitId = `e${i}`;
