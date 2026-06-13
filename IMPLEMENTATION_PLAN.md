@@ -16,7 +16,7 @@ Dungeon Debt was originally built in Unity (uGUI, C#) across 20+ milestones (M1�
 
 - **Runtime:** Electron 42 (Chromium-based desktop window), or any modern browser served by `web/serve.py` (Python `http.server`).
 - **Language:** Plain ES modules. No bundler, no TypeScript, no JSX.
-- **UI:** DOM + CSS. Design tokens live in `web/src/core/GameRules.js` as CSS `rgba()` strings and in `web/styles/main.css` as CSS custom properties.
+- **UI:** DOM + CSS for the app shell and panels. Approved exception: CombatPanel renders its tactical board through a vendored Three.js scene under `web/src/ui/board/`, while replay controls, HP/status/floating overlays, logs, and reward summary remain DOM-driven. Design tokens live in `web/src/core/GameRules.js` as CSS `rgba()` strings and in `web/styles/main.css` as CSS custom properties.
 - **State:** A single `GameManager` instance in the renderer process. `SaveManager` (`web/src/core/SaveManager.js`) persists SaveData v1 (difficulty progression + last selected difficulty) via `localStorage`. Current-run state is not persisted.
 - **RNG:** One seeded `mulberry32` PRNG (`web/src/core/Rng.js`) owned by `RunManager`. Combat itself is RNG-free.
 - **Tests:** Three headless Node scripts under `web/src/test/` exercise the foundation, combat engine, and run-flow state machine. No browser tests; UI is verified by manual reload + console-error check.
@@ -32,6 +32,7 @@ web/
 ├── serve.py                     ← Python static dev server (port 5173)
 ├── package.json
 ├── styles/main.css              ← design tokens + component CSS
+├── vendor/                      ← vendored Three.js ES modules (approved #259 exception)
 └── src/
     ├── main.js                  ← renderer entry: new GameManager() → new UIManager(gm, root)
     ├── core/
@@ -74,7 +75,7 @@ web/
     │   ├── RunHeader.js         ← persistent top chrome (act seal, round progress, gold/morale, debt chip, relics)
     │   ├── dom.js               ← el(), clear(), two() helpers
     │   ├── components.js        ← heroCard(), hpBar(), statusPills()
-    │   ├── board/               ← shared board renderer/projection seam for Formation + Combat
+    │   ├── board/               ← board projection plus Combat's Three.js scene host
     │   └── panels/
     │       ├── MainMenuPanel.js
     │       ├── ScoutPanel.js
@@ -109,7 +110,7 @@ MainMenu
 
 - `GameManager.changeState(s)` is the only legal state setter. It emits to `onStateChanged` listeners; `UIManager` is the only listener in production.
 - `GameManager.resolveCombat()` runs `CombatManager.startCombat(run, encounter)` then `runManager.applyPostCombatResult(result, encounter)` and returns the result. The Combat panel calls this once on entry.
-- `web/src/ui/board/` owns presentation-only board rendering/projection helpers. It may project `CombatBoard` / `BoardPlacement` coordinates for Formation and Combat, but it must not mutate authored board data, replay events, targeting, or combat math.
+- `web/src/ui/board/` owns presentation-only board rendering/projection helpers. It may project `CombatBoard` / `BoardPlacement` coordinates for Formation and Combat, and `ThreeCombatBoardScene` may render Combat replay presentation through the vendored Three.js module. It must not mutate authored board data, replay events, targeting, or combat math.
 
 ### Data ownership
 

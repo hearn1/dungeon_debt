@@ -51,6 +51,44 @@ Copy this block when adding a new entry. Paste it at the top of the Session log 
 
 <!-- Newest entries at the top. -->
 
+## 2026-06-13 - #259: Three.js combat replay board conversion
+
+**Milestone:** GitHub epic
+**Status:** Complete
+
+**Files added:**
+- `web/src/ui/board/ThreeCombatBoardScene.js`
+- `web/vendor/three.core.js`
+- `web/vendor/three.module.js`
+
+**Files modified:**
+- `web/src/ui/panels/CombatPanel.js` - routes replay-driven combat presentation through the Three scene while preserving controls, skip, speed, log, and summary paths.
+- `web/styles/main.css` - added Three board host, unit overlay, HP/status/floating feedback, and projectile/effect styling.
+- `web/src/test/run.js` - added Three scene lifecycle, replay mapping, HP, floating feedback, and projectile smoke coverage.
+- `web/package.json` - includes `vendor/**/*` in packaged Electron builds.
+- `CLAUDE.md` - records the approved CombatPanel-only Three.js exception.
+- `IMPLEMENTATION_PLAN.md` - documents the vendored Three renderer and board-scene contract.
+- `PROGRESS.md` - logged the epic wrap.
+- `NEXT_SESSION.md` - returned the project to the slice-selection checkpoint.
+
+**Acceptance criteria:**
+- [x] Combat is visually presented on an angled bottom-vs-top Three.js board.
+- [x] Existing deterministic combat tests pass after every subissue commit.
+- [x] Replay events drive unit spawn, movement, action/cast/passive, hit/heal feedback, HP/status overlays, defeat state, and report output without changing combat generation.
+- [x] Normal/fast speed, skip-to-report, and reduced-motion/instant paths remain functional.
+- [x] Missing WebGL support falls back to a DOM board instead of breaking combat.
+- [x] Browser smoke confirms the Three canvas, unit overlays, HP bars, fast speed, skip-to-report, and zero console warnings/errors.
+
+**Test plan:** `npm.cmd run test:headless` after `#266`, `#267`, and `#268`; browser preview via `python web/serve.py` confirmed visible Three combat board, screenshot-rendered units/HP, speed toggle, skip-to-report, and zero console warnings/errors.
+
+**Deviations from plan:**
+- Added `CLAUDE.md` to wrap docs so the approved #259 Three.js exception does not conflict with future session orientation.
+
+**Follow-up flagged:**
+- None.
+
+**Next slice:** Awaiting Matt's next slice selection.
+
 ## 2026-06-13 - #258: Bottom-vs-top formation board conversion
 
 **Milestone:** GitHub epic
