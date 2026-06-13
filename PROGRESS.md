@@ -51,6 +51,37 @@ Copy this block when adding a new entry. Paste it at the top of the Session log 
 
 <!-- Newest entries at the top. -->
 
+## 2026-06-13 - #258: Bottom-vs-top formation board conversion
+
+**Milestone:** GitHub epic
+**Status:** Complete
+
+**Files added:**
+- None
+
+**Files modified:**
+- `web/src/test/run.js` - added deterministic FormationPanel projection, drag/drop persistence, and formation-to-combat spawn consistency coverage.
+- `PROGRESS.md` - logged the epic wrap.
+- `NEXT_SESSION.md` - returned the project to the slice-selection checkpoint.
+
+**Acceptance criteria:**
+- [x] Player formation visually reads from the bottom of the projected board.
+- [x] Opposing side spawn positions project above player positions in combat.
+- [x] Drag/drop and saved `boardPosition` data remain stable across Formation re-renders and panel transitions.
+- [x] Combat `UnitSpawn` coordinates match representative Formation positions and authored enemy board positions.
+- [x] Existing tests pass after each subissue commit.
+- [x] Browser smoke confirms Formation and Combat render with no console warnings/errors.
+
+**Test plan:** `npm.cmd run test:headless` after `#264` and after `#265`; browser preview via `python web/serve.py` confirmed projected Formation and Combat boards, player tokens below enemy tokens, and zero console warnings/errors.
+
+**Deviations from plan:**
+- No production code change was needed because epic `#257` had already landed the shared bottom-vs-top renderer path; this slice locked the behavior with focused validation.
+
+**Follow-up flagged:**
+- None.
+
+**Next slice:** Awaiting Matt's next slice selection.
+
 ## 2026-06-13 - #257: Board renderer foundation for 2.5D formation/combat
 
 **Milestone:** GitHub epic

@@ -11,6 +11,7 @@ import { RunManager } from "../run/RunManager.js";
 import { EncounterManager } from "../run/EncounterManager.js";
 import { ShopManager } from "../run/ShopManager.js";
 import { ShopOffer } from "../data/ShopOffer.js";
+import { CombatReplayEventKind } from "../data/CombatReplayEvent.js";
 import { HeroInstance } from "../data/HeroInstance.js";
 import { HeroEffects } from "../combat/HeroEffects.js";
 import { CombatManager } from "../combat/CombatManager.js";
@@ -801,6 +802,102 @@ console.log("Run-flow test");
   check("sprite fallback: unknown enemy portrait falls back default", unitPortrait(unknownEnemyUnit).endsWith("enemy-default.png"));
   check("sprite fallback: unknown hero attack falls back by role", attackEffect(unknownHeroUnit).endsWith("role-support.png"));
   check("sprite fallback: missing ability falls back to caster attack", abilityEffect("missing_ability", unknownHeroUnit) === attackEffect(unknownHeroUnit));
+
+  globalThis.document = previousDocument;
+}
+
+// ---- #264 FormationPanel bottom-vs-top projection and drag/drop smoke ----
+{
+  const previousDocument = globalThis.document;
+  globalThis.document = createFakeDocument();
+
+  const gm = new GameManager();
+  gm.startRun(DifficultyLevel.Level0);
+  fieldKnownParty(gm, ["warrior", "wizard"]);
+  const run = gm.currentRunState;
+  const panel = new FormationPanel(gm);
+  let dirtyCount = 0;
+  panel.onDirty = () => { dirtyCount++; };
+  panel.render();
+
+  const backTile = findTileByCoord(panel.root, 0, 0);
+  const frontTile = findTileByCoord(panel.root, 1, 1);
+  check("formation projection: deployment grid uses projected layout",
+    panel._boardRenderer.board.className.includes("projected"));
+  check("formation projection: back deployment row renders lower than front row",
+    px(backTile.style.top) > px(frontTile.style.top));
+  check("formation projection: board size uses bottom-top metrics",
+    panel._boardRenderer.board.style.height === `${getProjectedBoardSize({ mode: BoardProjectionMode.BottomTop }).height}px`);
+
+  const first = run.party[0];
+  const second = run.party[1];
+  const firstOriginal = { ...first.boardPosition };
+  const secondOriginal = { ...second.boardPosition };
+  panel._dragHero = first;
+  panel._onDrop(secondOriginal, run);
+  check("formation dragdrop: dragged hero saved at destination",
+    coordsEqual(first.boardPosition, secondOriginal));
+  check("formation dragdrop: occupied destination swaps back to origin",
+    coordsEqual(second.boardPosition, firstOriginal));
+  check("formation dragdrop: dirty callback fired once", dirtyCount === 1);
+
+  const savedAfterSwap = { ...first.boardPosition };
+  panel.render();
+  check("formation save: board position persists across re-render",
+    coordsEqual(first.boardPosition, savedAfterSwap));
+  check("formation save: swapped destination tile stays occupied",
+    findTileByCoord(panel.root, savedAfterSwap.q, savedAfterSwap.r).className.includes("occupied"));
+
+  globalThis.document = previousDocument;
+}
+
+// ---- #265 Formation-to-combat board coordinate consistency ----
+{
+  const previousDocument = globalThis.document;
+  globalThis.document = createFakeDocument();
+
+  const gm = new GameManager();
+  gm.startRun(DifficultyLevel.Level0);
+  gm.continueFromScout();
+  fieldKnownParty(gm, ["warrior", "wizard", "ranger"]);
+  const run = gm.currentRunState;
+  run.gold = 200;
+  run.currentEncounter = DataRepository.encounters.find((encounter) =>
+    encounter.act === 1 && encounter.slot === 1 && encounter.variantId === "shield_grunts"
+  );
+  run.party[0].boardPosition = { q: 1, r: 1 };
+  run.party[1].boardPosition = { q: 0, r: 0 };
+  run.party[2].boardPosition = { q: 0, r: 4 };
+
+  gm.continueFromShop();
+  const panel = new FormationPanel(gm);
+  panel.render();
+  const formationPositions = run.party.map((hero) => ({ ...hero.boardPosition }));
+  const formationTile = findTileByCoord(panel.root, formationPositions[1].q, formationPositions[1].r);
+  const projectedTile = projectBoardTile(formationPositions[1], { mode: BoardProjectionMode.BottomTop });
+  check("formation-combat: formation tile uses same projection as combat helper",
+    px(formationTile.style.left) === projectedTile.x && px(formationTile.style.top) === projectedTile.y);
+
+  gm.continueFromFormation();
+  gm.selectPayrollAction(PayrollActionId.StandardPay);
+  gm.continueFromPayroll();
+  const result = gm.resolveCombat();
+  const spawns = result.replayEvents.filter((event) => event.kind === CombatReplayEventKind.UnitSpawn);
+  const playerSlot1Spawn = spawns.find((event) => event.attackerIsPlayerSide && event.attackerSlot === 1);
+  const playerSlot2Spawn = spawns.find((event) => event.attackerIsPlayerSide && event.attackerSlot === 2);
+  const enemySlot0Spawn = spawns.find((event) => !event.attackerIsPlayerSide && event.attackerSlot === 0);
+
+  check("formation-combat: player back-left spawn matches formation position",
+    coordsEqual(playerSlot1Spawn.sourceCoord, formationPositions[1]));
+  check("formation-combat: player back-right spawn matches formation position",
+    coordsEqual(playerSlot2Spawn.sourceCoord, formationPositions[2]));
+  check("formation-combat: player positions stable after panel transition",
+    run.party.every((hero, index) => coordsEqual(hero.boardPosition, formationPositions[index])));
+  check("formation-combat: authored enemy spawn position preserved",
+    coordsEqual(enemySlot0Spawn.sourceCoord, run.currentEncounter.enemyBoardPositions[0]));
+  check("formation-combat: opponent projection remains above player projection",
+    projectBoardTile(enemySlot0Spawn.sourceCoord, { mode: BoardProjectionMode.BottomTop }).y <
+    projectBoardTile(playerSlot1Spawn.sourceCoord, { mode: BoardProjectionMode.BottomTop }).y);
 
   globalThis.document = previousDocument;
 }
@@ -2385,6 +2482,22 @@ function countClass(node, className) {
 function hasClass(node, className) {
   if (!node || typeof node.className !== "string") return false;
   return node.className.split(" ").includes(className);
+}
+
+function coordsEqual(a, b) {
+  return !!a && !!b && a.q === b.q && a.r === b.r;
+}
+
+function findTileByCoord(root, q, r) {
+  return findFirst(root, (node) =>
+    hasClass(node, "hex-tile") &&
+    Number(node.dataset?.q) === q &&
+    Number(node.dataset?.r) === r
+  );
+}
+
+function px(value) {
+  return Number(String(value || "0").replace("px", ""));
 }
 
 function findFirst(node, predicate) {
