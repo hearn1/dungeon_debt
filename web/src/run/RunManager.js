@@ -12,6 +12,7 @@ import { DataRepository } from "../core/DataRepository.js";
 import { HeroEffects } from "../combat/HeroEffects.js";
 import { BalanceRunLogger } from "./BalanceRunLogger.js";
 import { buildManagerReportLines } from "./ManagerReportBuilder.js";
+import { getEncounterRewardBreakdownForEncounter } from "./EncounterReward.js";
 import {
   EncounterType, EncounterEffectId, PayrollActionId, RelicId,
 } from "../data/enums.js";
@@ -107,7 +108,8 @@ export class RunManager {
     run.latestDebtBeforeCombat = run.debt;
     run.latestDebtStatusBefore = GameRulesFns.getDebtStatusLabel(run.debt);
     const isRivalGhost = encounter && encounter.type === EncounterType.RivalGhost;
-    let rewardGold = combatResult.playerWon ? GameRules.WinReward : GameRules.LossReward;
+    const rewardBreakdown = getEncounterRewardBreakdownForEncounter(encounter);
+    let rewardGold = combatResult.playerWon ? rewardBreakdown.totalGold : GameRules.LossReward;
     if (combatResult.playerWon && isRivalGhost) rewardGold += GameRules.RivalWinBonus;
     if (combatResult.playerWon && run.rewardGoldModifier !== 0) rewardGold = Math.max(0, rewardGold + run.rewardGoldModifier);
 

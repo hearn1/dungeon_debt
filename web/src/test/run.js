@@ -26,6 +26,7 @@ import { abilityEffect, attackEffect, unitPortrait } from "../ui/SpriteCatalog.j
 import { resolveFallbackUnitVisual, resolveUnitVisual, UnitVisualState } from "../ui/UnitVisualCatalog.js";
 import { EnemyEffectId, HeroRole, HeroTier, PayrollActionId, EncounterType, DifficultyLevel, RivalGuild, ShopEventId, HeroEffectId, EncounterEffectId, RelicId, CombatStatusId } from "../data/enums.js";
 import { buildManagerReportLines } from "../run/ManagerReportBuilder.js";
+import { getEncounterReward } from "../run/EncounterReward.js";
 
 let failures = 0;
 function check(name, cond) {
@@ -2188,6 +2189,31 @@ function makeCombatResult(overrides = {}) {
   check("economy: win result is true", result.playerWon === true);
   check("economy: latestRewardGold = WinReward on win", run.latestRewardGold === GameRules.WinReward);
   check("economy: no morale change on win", run.latestMoraleChange === 0);
+}
+
+// 2b. Later-act wins use the scaled encounter reward helper.
+{
+  const rm = new RunManager();
+  const run = rm.initializeRun(DifficultyLevel.Level0, 1);
+  run.gold = 200;
+  const enc = DataRepository.encounters.find((e) => e.act === 4 && e.slot === 10 && e.type === EncounterType.FinalBoss);
+  run.currentEncounter = enc;
+  const mockWin = { playerWon: true, survivorFlags: {}, deadHeroes: [] };
+  rm.applyPostCombatResult(mockWin, enc);
+  check("economy: act 4 boss win uses scaled reward", run.latestRewardGold === getEncounterReward(4, 10, EncounterType.FinalBoss));
+}
+
+// 2c. Rival wins keep the existing rival bonus layered on top of the scaled reward.
+{
+  const rm = new RunManager();
+  const run = rm.initializeRun(DifficultyLevel.Level0, 1);
+  run.gold = 200;
+  const enc = DataRepository.encounters.find((e) => e.act === 3 && e.slot === 6 && e.type === EncounterType.RivalGhost);
+  run.currentEncounter = enc;
+  const mockWin = { playerWon: true, survivorFlags: {}, deadHeroes: [] };
+  rm.applyPostCombatResult(mockWin, enc);
+  check("economy: rival win keeps bonus after scaled reward",
+    run.latestRewardGold === getEncounterReward(3, 6, EncounterType.RivalGhost) + GameRules.RivalWinBonus);
 }
 
 // 3. Ninja loot on kill: gold gained during combat exceeds WinReward alone.
