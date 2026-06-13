@@ -1603,7 +1603,9 @@ console.log("Run-flow test");
 {
   const gm = new GameManager();
   gm.startRun(DifficultyLevel.Level0);
-  const outcome = autopilot(gm, 800);
+  const outcome = autopilotWithParty(gm, ["warrior", "golem", "wizard", "ranger", "priest"], 800, {
+    stabilizeEconomy: true,
+  });
   check("20run-autopilot: run terminated", outcome.terminated);
   check("20run-autopilot: rounds advanced past 3", outcome.maxRound > 3);
   check("20run-autopilot: reached Victory or Defeat",
