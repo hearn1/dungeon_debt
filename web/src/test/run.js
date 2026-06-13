@@ -22,6 +22,7 @@ import { CombatPanel } from "../ui/panels/CombatPanel.js";
 import { BoardRenderer } from "../ui/board/BoardRenderer.js";
 import { BoardProjectionMode, getProjectedBoardSize, projectBoardTile } from "../ui/board/BoardProjection.js";
 import { ThreeCombatBoardScene } from "../ui/board/ThreeCombatBoardScene.js";
+import { CombatReplayEventKind } from "../data/CombatReplayEvent.js";
 import { abilityEffect, attackEffect, unitPortrait } from "../ui/SpriteCatalog.js";
 import { EnemyEffectId, HeroRole, HeroTier, PayrollActionId, EncounterType, DifficultyLevel, RivalGuild, ShopEventId, HeroEffectId, EncounterEffectId, RelicId, CombatStatusId } from "../data/enums.js";
 import { buildManagerReportLines } from "../run/ManagerReportBuilder.js";
@@ -785,11 +786,18 @@ console.log("Run-flow test");
   check("formation renderer: deployment tile count stable", countClass(formationPanel.root, "hex-tile") === 10);
 
   const combatPanel = new CombatPanel(gm);
+  combatPanel._result = gm.resolveCombat();
   combatPanel._buildBattlefield(gm.currentRunState, gm.currentRunState.currentEncounter);
-  combatPanel._boardRenderer.destroy();
+  combatPanel._threeScene.destroy();
   combatPanel._buildBattlefield(gm.currentRunState, gm.currentRunState.currentEncounter);
-  check("combat renderer: teardown before rebuild keeps one battlefield", countClass(combatPanel.root, "combat-battlefield") === 1);
-  check("combat renderer: rebuild has one unit layer", countClass(combatPanel.root, "combat-unit-layer") === 1);
+  combatPanel._log = globalThis.document.createElement("div");
+  combatPanel._initUnitsFromSpawnEvents();
+  const moveEvt = combatPanel._result.replayEvents.find((event) => event.kind === CombatReplayEventKind.Movement);
+  if (moveEvt) combatPanel._applyEvent(moveEvt);
+  check("combat renderer: teardown before rebuild keeps one Three scene", countClass(combatPanel.root, "three-combat-scene") === 1);
+  check("combat renderer: UnitSpawn mapped to Three scene units", combatPanel._threeScene.units.size > 0);
+  check("combat renderer: Movement replay updates scene unit coord",
+    !moveEvt || combatPanel._threeScene.units.get(moveEvt.actorUnitId).coord.q === moveEvt.targetCoord.q);
 
   const scene = new ThreeCombatBoardScene({ run: gm.currentRunState, encounter: gm.currentRunState.currentEncounter });
   const playerWorld = scene.worldPositionFromCoord({ q: 0, r: 2 });

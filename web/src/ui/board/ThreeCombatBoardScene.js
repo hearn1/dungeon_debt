@@ -74,6 +74,47 @@ export class ThreeCombatBoardScene {
     const screen = this.screenPositionFromCoord(coord);
     entry.overlay.style.left = `${screen.x}%`;
     entry.overlay.style.top = `${screen.y}%`;
+    this._render();
+  }
+
+  setActiveUnit(unitId) {
+    this.clearActiveUnits();
+    const entry = this.units.get(unitId);
+    if (!entry) return;
+    entry.overlay.classList.add("acting");
+    if (entry.group) entry.group.scale.set(1.18, 1.18, 1.18);
+    this._render();
+  }
+
+  clearActiveUnits() {
+    for (const entry of this.units.values()) {
+      entry.overlay.classList.remove("acting");
+      if (entry.group) entry.group.scale.set(1, 1, 1);
+    }
+    this._render();
+  }
+
+  pulseUnit(unitId, className) {
+    const entry = this.units.get(unitId);
+    if (!entry) return;
+    entry.overlay.classList.remove(className);
+    void entry.overlay.offsetWidth;
+    entry.overlay.classList.add(className);
+    this._render();
+  }
+
+  markUnitDefeated(unitId) {
+    const entry = this.units.get(unitId);
+    if (!entry) return;
+    entry.overlay.classList.add("dead");
+    if (entry.group) {
+      entry.group.traverse((child) => {
+        if (child.material) child.material.color.setHex(COLORS.defeated);
+      });
+      entry.group.position.y = 0.08;
+      entry.group.scale.set(0.82, 0.82, 0.82);
+    }
+    this._render();
   }
 
   destroy() {

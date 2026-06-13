@@ -414,6 +414,20 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 }
 .three-unit-anchor.player { color: var(--gold); }
 .three-unit-anchor.enemy { color: var(--debt-critical); }
+.three-unit-anchor.acting {
+  background: currentColor;
+  box-shadow: 0 0 18px currentColor;
+}
+.three-unit-anchor.dead {
+  opacity: 0.28;
+  filter: grayscale(1);
+}
+.three-unit-anchor.flash-hit { animation: flash-hit-token 380ms ease-out 1; }
+.three-unit-anchor.flash-heal { animation: flash-heal-token 380ms ease-out 1; }
+.three-unit-anchor.lunging.player { animation: lunge-up 280ms 1; }
+.three-unit-anchor.lunging.enemy { animation: lunge-down 280ms 1; }
+.three-unit-anchor.casting { animation: casting-pulse 240ms ease-out 1; }
+.three-unit-anchor.passive-glow { animation: passive-glow 320ms ease-out 1; }
 
 /* Hex tile zone tints inside the battlefield. */
 .hex-tile.player-zone { background: color-mix(in srgb, var(--gold) 8%, var(--bg-panel)); }

@@ -5,8 +5,7 @@ import { HeroRole, EnemyEffectId, EncounterType } from "../../data/enums.js";
 import { statusGlyphs, appendPanelHeader } from "../components.js";
 import { unitPortrait, attackEffect, healEffect, abilityEffect } from "../SpriteCatalog.js";
 import { Settings } from "../../core/Settings.js";
-import { BoardRenderer } from "../board/BoardRenderer.js";
-import { BoardProjectionMode, getProjectedBoardSize, projectBoardTile, projectUnitPosition } from "../board/BoardProjection.js";
+import { ThreeCombatBoardScene } from "../board/ThreeCombatBoardScene.js";
 
 const TOKEN = 70;         // combat token width/height (fits inside TILE)
 const TOKEN_HALF = TOKEN / 2;
@@ -27,6 +26,7 @@ export class CombatPanel {
     this._log = null;
     this._board = null;
     this._boardRenderer = null;
+    this._threeScene = null;
     this._projectileLayer = null;
     this._roundLabel = null;
   }
@@ -36,6 +36,8 @@ export class CombatPanel {
     this._clearTimer();
     this._boardRenderer?.destroy();
     this._boardRenderer = null;
+    this._threeScene?.destroy();
+    this._threeScene = null;
     this._unitMap = new Map();
 
     const run = this.gm.currentRunState;
@@ -76,33 +78,10 @@ export class CombatPanel {
   // ---- Battlefield construction ----
 
   _buildBattlefield(run, encounter) {
-    const W = GameRules.HexBoardWidth;
-    const H = GameRules.HexBoardHeight;
+    const scene = new ThreeCombatBoardScene({ run, encounter });
+    const wrap = scene.root;
 
-    const renderer = new BoardRenderer({ rootClass: "combat-battlefield" });
-    const wrap = renderer.root;
-
-    // Build the 7 × 5 hex grid (all columns).
-    const coords = [];
-    for (let q = 0; q < W; q++) {
-      for (let r = 0; r < H; r++) coords.push({ q, r });
-    }
-    const projectionOptions = { mode: BoardProjectionMode.BottomTop };
-    renderer.renderProjectedGrid({
-      coords,
-      getBoardSize: () => getProjectedBoardSize(projectionOptions),
-      projectTile: (coord) => projectBoardTile(coord, projectionOptions),
-      buildTile: ({ q }) => {
-        const zoneClass = q <= GameRules.PlayerDeploymentMaxQ ? "combat-tile player-zone"
-          : q >= GameRules.EnemyDeploymentMinQ             ? "combat-tile enemy-zone"
-          : "combat-tile neutral-zone";
-        return el("div", { class: `hex-tile ${zoneClass}` });
-      },
-    });
-
-    // Overlay layers: units sit in an absolute layer so they can move smoothly.
-    this._unitLayerNode = renderer.addLayer("units", "combat-unit-layer");
-    this._projectileLayer = renderer.addLayer("projectiles", "projectile-layer");
+    this._projectileLayer = null;
 
     // Encounter-type visual accent.
     const encClass = encounter?.type === EncounterType.RivalGhost ? "encounter-rival"
@@ -111,7 +90,7 @@ export class CombatPanel {
     wrap.classList.add(encClass);
     wrap.style.setProperty("--act-accent", GameRulesFns.getActAccentColor(run.act));
 
-    this._boardRenderer = renderer;
+    this._threeScene = scene;
     this._board = wrap;
     this.root.appendChild(wrap);
   }
@@ -173,14 +152,14 @@ export class CombatPanel {
       const unit = pool.find(u => u.slot === evt.attackerSlot && u.isPlayerSide === evt.attackerIsPlayerSide);
       if (!unit) continue;
 
-      const token = this._buildToken(unit, evt.attackerIsPlayerSide);
-      this._placeToken(token, evt.sourceCoord);
-      this._unitLayerNode.appendChild(token);
+      const sceneEntry = this._threeScene?.addUnit(evt.actorUnitId, unit, evt.sourceCoord, evt.attackerIsPlayerSide);
+      if (!sceneEntry) continue;
       this._unitMap.set(evt.actorUnitId, {
-        node: token,
+        node: sceneEntry.overlay,
         coord: { q: evt.sourceCoord.q, r: evt.sourceCoord.r },
         unit,
         maxHp: evt.amount || unit.maxHealth,
+        sceneEntry,
       });
     }
   }
@@ -211,19 +190,16 @@ export class CombatPanel {
   }
 
   _placeToken(token, coord) {
-    const pos = projectUnitPosition(coord, {
-      mode: BoardProjectionMode.BottomTop,
-      tokenSize: TOKEN,
-    });
-    const x = pos.x;
-    const y = pos.y;
-    token.style.left = `${x}px`;
-    token.style.top  = `${y}px`;
+    const pos = this._threeScene?.screenPositionFromCoord(coord) || { x: 50, y: 50 };
+    token.style.left = `${pos.x}%`;
+    token.style.top  = `${pos.y}%`;
   }
 
   _moveToken(entry, newCoord) {
     entry.coord = { q: newCoord.q, r: newCoord.r };
-    this._placeToken(entry.node, newCoord);
+    const unitId = this._unitIdForEntry(entry);
+    if (unitId) this._threeScene?.moveUnit(unitId, newCoord);
+    else this._placeToken(entry.node, newCoord);
   }
 
   _updateTokenHp(entry, hp, maxHp) {
@@ -247,12 +223,9 @@ export class CombatPanel {
   // ---- Event-driven pixel centre of a unit (for projectiles) ----
 
   _tokenCenter(coord) {
-    const pos = projectUnitPosition(coord, {
-      mode: BoardProjectionMode.BottomTop,
-      tokenSize: TOKEN,
-    });
-    const x = pos.x + TOKEN_HALF;
-    const y = pos.y + TOKEN_HALF;
+    const pos = this._threeScene?.screenPositionFromCoord(coord) || { x: 50, y: 50 };
+    const x = (pos.x / 100) * 760 + TOKEN_HALF;
+    const y = (pos.y / 100) * 430 + TOKEN_HALF;
     return { x, y };
   }
 
@@ -314,6 +287,7 @@ export class CombatPanel {
   _handleAbilityCast(evt) {
     const caster = this._unitMap.get(evt.actorUnitId);
     if (caster) {
+      this._threeScene?.pulseUnit(evt.actorUnitId, "casting");
       caster.node.classList.remove("casting");
       void caster.node.offsetWidth;
       caster.node.classList.add("casting");
@@ -331,6 +305,7 @@ export class CombatPanel {
   _handlePassiveTrigger(evt) {
     const entry = this._unitMap.get(evt.actorUnitId);
     if (entry) {
+      this._threeScene?.pulseUnit(evt.actorUnitId, "passive-glow");
       entry.node.classList.remove("passive-glow");
       void entry.node.offsetWidth;
       entry.node.classList.add("passive-glow");
@@ -351,16 +326,17 @@ export class CombatPanel {
 
     // Highlight the acting unit.
     if (actorEntry && (evt.kind === K.Attack || evt.kind === K.Heal)) {
+      this._threeScene?.setActiveUnit(evt.actorUnitId);
       actorEntry.node.classList.add("acting");
 
       // Lunge for melee attackers.
       if (evt.kind === K.Attack && this._shouldLunge(actorEntry.unit)) {
         const sideCls = actorEntry.unit.isPlayerSide ? "player" : "enemy";
-        actorEntry.node.classList.remove("lunging", "player", "enemy");
+        actorEntry.node.classList.remove("lunging");
         void actorEntry.node.offsetWidth;
         actorEntry.node.classList.add("lunging", sideCls);
         const n = actorEntry.node;
-        setTimeout(() => n.classList.remove("lunging", "player", "enemy"), this._stepMs);
+        setTimeout(() => n.classList.remove("lunging"), this._stepMs);
       }
     }
 
@@ -379,6 +355,7 @@ export class CombatPanel {
       // Death.
       if (evt.targetHealthAfter <= 0 && targetEntry.node.dataset.died !== "1") {
         targetEntry.node.dataset.died = "1";
+        this._threeScene?.markUnitDefeated(evt.targetUnitId);
         targetEntry.node.classList.remove("dead");
         targetEntry.node.classList.add("dying");
         const n = targetEntry.node;
@@ -520,7 +497,10 @@ export class CombatPanel {
     if (targetEntry) {
       const maxHp = evt.targetMaxHealth || targetEntry.maxHp || 1;
       this._updateTokenHp(targetEntry, evt.targetHealthAfter, maxHp);
-      if (evt.targetHealthAfter <= 0) targetEntry.node.classList.add("dead");
+      if (evt.targetHealthAfter <= 0) {
+        this._threeScene?.markUnitDefeated(evt.targetUnitId);
+        targetEntry.node.classList.add("dead");
+      }
       this._updateTokenGlyphs(targetEntry.node, evt.targetStatuses || [], 0);
     }
     if (evt.logText) this._appendLog(evt.logText);
@@ -623,7 +603,15 @@ export class CombatPanel {
   // ---- Utility ----
 
   _clearActing() {
+    this._threeScene?.clearActiveUnits();
     for (const { node } of this._unitMap.values()) node.classList.remove("acting");
+  }
+
+  _unitIdForEntry(targetEntry) {
+    for (const [unitId, entry] of this._unitMap.entries()) {
+      if (entry === targetEntry) return unitId;
+    }
+    return "";
   }
 
   _clearTimer() {
