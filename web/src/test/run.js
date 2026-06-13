@@ -2320,6 +2320,14 @@ function makeCombatResult(overrides = {}) {
       && tsv.includes("veterancyContextBonusXp")
       && tsv.includes("rewardQualityRelicChoiceBonus")
       && tsv.includes("rewardQualityShopSilverChanceBonus"));
+  BalanceRunLogger.economyRows = [];
+  BalanceRunLogger.logRound(run, GameState.RivalUpdate);
+  const economyTsv = BalanceRunLogger.formatEconomyResults(BalanceRunLogger.economyRows);
+  check("balance: economy row exposes settlement pressure",
+    BalanceRunLogger.economyRows[0].contractRewardGold === getEncounterReward(4, 10, EncounterType.FinalBoss)
+      && BalanceRunLogger.economyRows[0].totalUpkeep === run.latestTotalUpkeep
+      && economyTsv.includes("contractRewardGold")
+      && economyTsv.includes("interestAddedToDebt"));
 }
 
 // 2f. Later and special encounters add context veterancy XP without changing Act 1 baseline.

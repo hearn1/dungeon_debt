@@ -34,25 +34,33 @@ const options = parseOptions(process.argv.slice(2));
 const strategies = resolveStrategies(options.strategy);
 
 BalanceRunLogger.combatRows = [];
+BalanceRunLogger.economyRows = [];
 const firstPass = runSeedSet(options.seedCount, strategies);
 const firstTsv = BalanceRunLogger.formatSeedResults(firstPass);
 const firstCombatLog = [...BalanceRunLogger.combatRows];
 const firstCombatTsv = BalanceRunLogger.formatCombatResults(firstCombatLog);
+const firstEconomyLog = [...BalanceRunLogger.economyRows];
+const firstEconomyTsv = BalanceRunLogger.formatEconomyResults(firstEconomyLog);
 
 BalanceRunLogger.combatRows = [];
+BalanceRunLogger.economyRows = [];
 const secondPass = runSeedSet(options.seedCount, strategies);
 const secondTsv = BalanceRunLogger.formatSeedResults(secondPass);
 const secondCombatTsv = BalanceRunLogger.formatCombatResults(BalanceRunLogger.combatRows);
-const deterministic = firstTsv === secondTsv && firstCombatTsv === secondCombatTsv;
+const secondEconomyTsv = BalanceRunLogger.formatEconomyResults(BalanceRunLogger.economyRows);
+const deterministic = firstTsv === secondTsv
+  && firstCombatTsv === secondCombatTsv
+  && firstEconomyTsv === secondEconomyTsv;
 
 const runTimestamp = getTimestampForFilename();
 const reportPath = writeTsvFile(firstTsv, runTimestamp);
 const combatPath = writeCombatTsvFile(firstCombatTsv, runTimestamp);
+const economyPath = writeEconomyTsvFile(firstEconomyTsv, runTimestamp);
 const wins = firstPass.filter((result) => result.outcome === "WIN").length;
 const losses = firstPass.length - wins;
 
 if (options.report) {
-  const mdContent = buildMarkdownReport(firstPass, firstCombatLog, options, runTimestamp);
+  const mdContent = buildMarkdownReport(firstPass, firstCombatLog, firstEconomyLog, options, runTimestamp);
   const mdPath = writeMarkdownFile(mdContent, runTimestamp);
   console.log(`Markdown: ${mdPath}`);
 }
@@ -63,6 +71,7 @@ console.log(`Wins: ${wins}`);
 console.log(`Losses: ${losses}`);
 console.log(`Report: ${reportPath}`);
 console.log(`Combat: ${combatPath}`);
+console.log(`Economy: ${economyPath}`);
 console.log(`DETERMINISM CHECK: ${deterministic ? "PASS" : "FAIL"}`);
 
 process.exit(deterministic ? 0 : 1);
@@ -125,6 +134,7 @@ function runSeedSet(count, selectedStrategies) {
 function runSingleSeed(seed, strategy) {
   const managers = createManagers();
   const run = managers.runManager.initializeRun(GameRules.DefaultDifficultyPreset, seed);
+  run._balanceSeed = seed;
   run._balanceStrategy = strategy.id;
   const context = createStrategyContext(strategy, seed);
   let state = GameState.Scout;
@@ -142,8 +152,10 @@ function runSingleSeed(seed, strategy) {
         break;
 
       case GameState.Shop:
+        const beforeShop = snapshotShopState(run);
         managers.shopManager.generateOffers();
         strategy.visitShop(managers.shopManager, run, context);
+        BalanceRunLogger.logShop(run, beforeShop, snapshotShopState(run));
         state = GameState.Formation;
         break;
 
@@ -261,6 +273,14 @@ function writeCombatTsvFile(contents, timestamp) {
   return combatPath;
 }
 
+function writeEconomyTsvFile(contents, timestamp) {
+  const reportDir = getReportDir();
+  fs.mkdirSync(reportDir, { recursive: true });
+  const economyPath = path.join(reportDir, `economy-${timestamp}.tsv`);
+  fs.writeFileSync(economyPath, contents, "utf8");
+  return economyPath;
+}
+
 function writeMarkdownFile(contents, timestamp) {
   const reportDir = getReportDir();
   fs.mkdirSync(reportDir, { recursive: true });
@@ -269,7 +289,7 @@ function writeMarkdownFile(contents, timestamp) {
   return mdPath;
 }
 
-function buildMarkdownReport(results, combatLog, options, timestamp) {
+function buildMarkdownReport(results, combatLog, economyLog, options, timestamp) {
   const lines = [];
   const wins = results.filter((r) => r.outcome === "WIN").length;
   const losses = results.length - wins;
@@ -348,6 +368,10 @@ function buildMarkdownReport(results, combatLog, options, timestamp) {
   lines.push(`- Act 2 losses (rounds > ${act1Threshold}): ${act2Losses}`);
   lines.push("");
 
+  if (Array.isArray(economyLog) && economyLog.length > 0) {
+    appendEconomySummary(lines, economyLog);
+  }
+
   const byGold = [...results].sort((a, b) => b.finalGold - a.finalGold);
   lines.push("## Top 5 Outlier Seeds");
   lines.push("**Highest final gold:**");
@@ -387,6 +411,54 @@ function buildMarkdownReport(results, combatLog, options, timestamp) {
   }
 
   return lines.join("\n");
+}
+
+function snapshotShopState(run) {
+  return {
+    gold: run.gold,
+    debt: run.debt,
+    morale: run.morale,
+    partySize: run.party.length,
+    rerollCount: run.rerollCount,
+  };
+}
+
+function appendEconomySummary(lines, economyLog) {
+  const shopRows = economyLog.filter((row) => row.phase === "shop");
+  const combatRows = economyLog.filter((row) => row.phase === "combat");
+  const acts = [...new Set(economyLog.map((row) => Number(row.act)))].sort((a, b) => a - b);
+
+  lines.push("## Economy Pressure Summary");
+  lines.push("| Act | Shops | Avg Gold Before Shop | Avg Gold After Shop | Avg Shop Gold Delta | Avg Debt Paid | Debt Payment Rate | Avg Rerolls | Avg Debt After Shop |");
+  lines.push("|---|---:|---:|---:|---:|---:|---:|---:|---:|");
+  for (const act of acts) {
+    const rows = shopRows.filter((row) => Number(row.act) === act);
+    if (rows.length <= 0) continue;
+    const debtPaymentRows = rows.filter((row) => (row.debtPaid || 0) > 0).length;
+    lines.push(`| ${act} | ${rows.length} | ${avg(rows.map((row) => row.goldBefore || 0))} | ${avg(rows.map((row) => row.goldAfter || 0))} | ${avg(rows.map((row) => row.netGoldDelta || 0))} | ${avg(rows.map((row) => row.debtPaid || 0))} | ${pct(debtPaymentRows, rows.length)} | ${avg(rows.map((row) => row.rerollsUsed || 0))} | ${avg(rows.map((row) => row.debtAfter || 0))} |`);
+  }
+  lines.push("");
+
+  lines.push("## Reward / Debt Settlement Summary");
+  lines.push("| Act | Combats | Avg Reward | Avg Contract Reward | Avg Gold After Settlement | Avg Debt Before Combat | Avg Debt After Settlement | Avg Upkeep | Avg Upkeep Shortfall | Avg Interest | Avg Interest To Debt |");
+  lines.push("|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|");
+  for (const act of acts) {
+    const rows = combatRows.filter((row) => Number(row.act) === act);
+    if (rows.length <= 0) continue;
+    lines.push(`| ${act} | ${rows.length} | ${avg(rows.map((row) => row.rewardGold || 0))} | ${avg(rows.map((row) => row.contractRewardGold || 0))} | ${avg(rows.map((row) => row.goldAfter || 0))} | ${avg(rows.map((row) => row.debtBefore || 0))} | ${avg(rows.map((row) => row.debtAfter || 0))} | ${avg(rows.map((row) => row.totalUpkeep || 0))} | ${avg(rows.map((row) => row.upkeepShortfall || 0))} | ${avg(rows.map((row) => row.interestCharged || 0))} | ${avg(rows.map((row) => row.interestAddedToDebt || 0))} |`);
+  }
+  lines.push("");
+
+  lines.push("## Act Boundary Economy");
+  lines.push("| Act | Start Samples | Avg Start Gold | Avg Start Debt | Avg Start Morale | End Samples | Avg End Gold | Avg End Debt | Avg End Morale |");
+  lines.push("|---|---:|---:|---:|---:|---:|---:|---:|---:|");
+  for (const act of acts) {
+    const startRows = shopRows.filter((row) => Number(row.act) === act && Number(row.slot) === 1);
+    const finalSlot = GameRulesFns.getRoundsInAct(act);
+    const endRows = combatRows.filter((row) => Number(row.act) === act && Number(row.slot) === finalSlot);
+    lines.push(`| ${act} | ${startRows.length} | ${avg(startRows.map((row) => row.goldBefore || 0))} | ${avg(startRows.map((row) => row.debtBefore || 0))} | ${avg(startRows.map((row) => row.moraleBefore || 0))} | ${endRows.length} | ${avg(endRows.map((row) => row.goldAfter || 0))} | ${avg(endRows.map((row) => row.debtAfter || 0))} | ${avg(endRows.map((row) => row.moraleAfter || 0))} |`);
+  }
+  lines.push("");
 }
 
 function summarizeCombatLog(combatLog) {
