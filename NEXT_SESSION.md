@@ -12,22 +12,22 @@ This file always describes the **next** session's work. Rewrite it at the end of
 
 ### One-sentence goal
 
-Epic `#286` (Encounter reward curve) is complete; Matt should choose the next implementation slice before any code changes.
+Epic `#287` (Reward quality and XP scaling) is complete; Matt should choose the next implementation slice before any code changes.
 
 ### Why this session exists
 
-The previous session completed GitHub epic `#286` and its subissues:
+The previous session completed GitHub epic `#287` and its subissues:
 
-1. `#289` - Add encounter reward helper for act, slot, and encounter type
-2. `#290` - Wire scaled gold rewards into post-combat payout
-3. `#291` - Add reward curve tests and payout visibility
+1. `#292` - Add encounter XP scaling by act and difficulty context
+2. `#293` - Add reward quality weighting by act and encounter type
+3. `#294` - Add reward quality tests and report visibility
 
 ### Candidate next work
 
 **Likely follow-up from parent `#285`:**
 
 - The next reward/economy tuning issue, if Matt chooses to continue that track.
-- Follow-up tuning from balance reports now that scaled payouts are visible by encounter.
+- Follow-up tuning from balance reports now that gold, XP, and reward-quality scaling are visible.
 
 **Available paused regression polish:**
 
@@ -35,10 +35,10 @@ The previous session completed GitHub epic `#286` and its subissues:
 
 **Available follow-up issue slices:**
 
-- Later `#72` balance harness slices, especially Phase 3 markdown/report aggregation, only if Matt explicitly chooses one.
-- Later `#71` visual slices V2-V6, only if Matt explicitly chooses one.
-- Later `#67` campaign-expansion slices, especially normal-player access for Acts 3-4 or economy/balance tuning, only if Matt explicitly chooses one.
-- Later expansion follow-ups from the issue bodies, only if Matt explicitly chooses one.
+- Later `#72` balance harness slices, if Matt explicitly chooses one.
+- Later `#71` visual slices V2-V6, if Matt explicitly chooses one.
+- Later `#67` campaign-expansion slices or economy/balance tuning, if Matt explicitly chooses one.
+- Later expansion follow-ups from the issue bodies, if Matt explicitly chooses one.
 
 ### Scope
 
@@ -60,7 +60,7 @@ The previous session completed GitHub epic `#286` and its subissues:
 AGENTS.md
 CLAUDE.md
 SESSION_PROTOCOL.md
-PROGRESS.md (latest #286, #275, #274 entries)
+PROGRESS.md (latest #287, #286, #275 entries)
 REGRESSIONS.md (Open section)
 IMPLEMENTATION_PLAN.md section 6
 NEXT_SESSION.md
@@ -81,4 +81,4 @@ No verification command until a concrete slice is selected.
 
 ### Start prompt for the next session
 
-> Read `AGENTS.md`, `CLAUDE.md`, and `SESSION_PROTOCOL.md`, then follow `NEXT_SESSION.md`. Epic `#286` is complete. Orient on the latest progress and ask Matt which slice to pick up next before planning code changes.
+> Read `AGENTS.md`, `CLAUDE.md`, and `SESSION_PROTOCOL.md`, then follow `NEXT_SESSION.md`. Epic `#287` is complete. Orient on the latest progress and ask Matt which slice to pick up next before planning code changes.
