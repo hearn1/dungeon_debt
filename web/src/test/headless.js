@@ -13,6 +13,7 @@ import { CombatUnit } from "../data/CombatUnit.js";
 import { BoardProjectionMode, BoardVisualSide, getBoardVisualSide, getProjectedBoardSize, projectBoardTile, projectUnitPosition } from "../ui/board/BoardProjection.js";
 import { getEncounterScaling } from "../run/EncounterScaling.js";
 import { EncounterType } from "../data/enums.js";
+import { BalanceChallengeFlag, classifyEncounterChallenge, getBalanceTargetBand } from "./BalanceTargets.js";
 
 let failures = 0;
 function check(name, cond) {
@@ -64,6 +65,42 @@ check("encscale: act 3 late stronger than act 2 mid", act3Late.enemyHealth > act
 check("encscale: act 4 early starts baseline", act4Early.enemyHealth === 1 && act4Early.enemyAttack === 1);
 check("encscale: act 4 late uses strongest progression", act4Late.enemyHealth === 1.24 && act4Late.enemyAttack === 1.16);
 check("encscale: deterministic for same inputs", JSON.stringify(act4Late) === JSON.stringify(act4LateRepeat));
+
+// Balance report target bands
+const act1DungeonTarget = getBalanceTargetBand(1, 2, EncounterType.Dungeon);
+const lateBossTarget = getBalanceTargetBand(4, 10, EncounterType.FinalBoss);
+const lateEasy = classifyEncounterChallenge({
+  act: 4,
+  slot: 8,
+  type: EncounterType.Dungeon,
+  combats: 40,
+  winRate: 100,
+  avgRounds: 3.8,
+  avgHeroesLost: 0.1,
+});
+const lateHard = classifyEncounterChallenge({
+  act: 3,
+  slot: 10,
+  type: EncounterType.FinalBoss,
+  combats: 40,
+  winRate: 35,
+  avgRounds: 11,
+  avgHeroesLost: 3.5,
+});
+const act1Target = classifyEncounterChallenge({
+  act: 1,
+  slot: 2,
+  type: EncounterType.Dungeon,
+  combats: 40,
+  winRate: 78,
+  avgRounds: 5,
+  avgHeroesLost: 0.8,
+});
+check("targets: Act 1 dungeon uses distinct band", act1DungeonTarget.id === "act1-dungeon");
+check("targets: late boss uses boss band", lateBossTarget.id === "late-boss");
+check("targets: easy late dungeon flags low challenge", lateEasy.flag === BalanceChallengeFlag.LowChallenge);
+check("targets: hard late boss flags high challenge", lateHard.flag === BalanceChallengeFlag.HighChallenge);
+check("targets: Act 1 target encounter stays on target", act1Target.flag === BalanceChallengeFlag.OnTarget);
 
 // Board projection helpers
 const playerCorner = projectBoardTile({ q: 0, r: 0 }, { mode: BoardProjectionMode.BottomTop });

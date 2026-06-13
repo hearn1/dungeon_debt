@@ -15,6 +15,7 @@ import { EncounterManager } from "../run/EncounterManager.js";
 import { RivalManager } from "../run/RivalManager.js";
 import { CombatManager } from "../combat/CombatManager.js";
 import { BalanceRunLogger } from "../run/BalanceRunLogger.js";
+import { BalanceChallengeFlag, classifyEncounterChallenge, formatTargetBandLabel } from "./BalanceTargets.js";
 import { GreedyStrategy } from "./strategies/greedy.js";
 import { FrugalStrategy } from "./strategies/frugal.js";
 import { SmartStrategy } from "./strategies/smart.js";
@@ -124,6 +125,7 @@ function runSeedSet(count, selectedStrategies) {
 function runSingleSeed(seed, strategy) {
   const managers = createManagers();
   const run = managers.runManager.initializeRun(GameRules.DefaultDifficultyPreset, seed);
+  run._balanceStrategy = strategy.id;
   const context = createStrategyContext(strategy, seed);
   let state = GameState.Scout;
   let maxRound = run.round;
@@ -360,25 +362,81 @@ function buildMarkdownReport(results, combatLog, options, timestamp) {
   lines.push("");
 
   if (Array.isArray(combatLog) && combatLog.length > 0) {
+    const summaries = summarizeCombatLog(combatLog);
+    const challengeCounts = summarizeChallengeFlags(summaries);
+
+    lines.push("## Challenge Flag Summary");
+    lines.push("| Act | Encounters | Low Challenge | High Challenge | On Target | Low Sample |");
+    lines.push("|---|---:|---:|---:|---:|---:|");
+    for (const act of Object.keys(challengeCounts).sort((a, b) => Number(a) - Number(b))) {
+      const counts = challengeCounts[act];
+      lines.push(`| ${act} | ${counts.total} | ${counts.lowChallenge} | ${counts.highChallenge} | ${counts.onTarget} | ${counts.lowSample} |`);
+    }
+    lines.push("");
+
     lines.push("## Combat Outcomes");
-    lines.push("| Encounter | Combats | Win Rate | Avg Rounds | Avg Heroes Lost |");
-    lines.push("|---|---|---|---|---|");
-    const byEnc = groupBy(combatLog, (row) => row.encounterId);
-    const encIds = Object.keys(byEnc).sort();
-    for (const encId of encIds) {
-      const rows = byEnc[encId];
-      const combats = rows.length;
-      const encWins = rows.filter((r) => r.playerWon === 1).length;
-      const winRateNum = combats > 0 ? (encWins / combats) * 100 : 0;
-      const avgRounds = avg(rows.map((r) => r.combatRoundsElapsed));
-      const avgDead = avg(rows.map((r) => r.heroesLost));
-      const flag = winRateNum < 50 ? " ⚠ low" : winRateNum > 95 ? " ⚠ high" : "";
-      lines.push(`| ${encId} | ${combats} | ${winRateNum.toFixed(1)}%${flag} | ${avgRounds} | ${avgDead} |`);
+    lines.push("| Encounter | Combats | Win Rate | Avg Rounds | Avg Heroes Lost | Act | Slot | Type | Target Band | Flag | Reasons |");
+    lines.push("|---|---:|---:|---:|---:|---:|---:|---|---|---|---|");
+    for (const summary of summaries) {
+      const classification = classifyEncounterChallenge(summary);
+      lines.push(
+        `| ${summary.encounterId} | ${summary.combats} | ${summary.winRate.toFixed(1)}% | ${summary.avgRounds.toFixed(2)} | ${summary.avgHeroesLost.toFixed(2)} | ${summary.act} | ${summary.slot} | ${summary.type} | ${formatTargetBandLabel(classification.band)} | ${classification.label} | ${classification.reasons.join("; ") || "-"} |`
+      );
     }
     lines.push("");
   }
 
   return lines.join("\n");
+}
+
+function summarizeCombatLog(combatLog) {
+  const byEncounter = groupBy(combatLog, (row) => [
+    row.act ?? 0,
+    row.slot ?? 0,
+    row.type ?? "",
+    row.encounterId ?? "",
+  ].join("|"));
+
+  return Object.values(byEncounter)
+    .map((rows) => {
+      const first = rows[0] || {};
+      const combats = rows.length;
+      const wins = rows.filter((r) => r.playerWon === 1).length;
+      return {
+        encounterId: first.encounterId || "",
+        act: Number(first.act ?? 0),
+        slot: Number(first.slot ?? 0),
+        type: first.type || "",
+        combats,
+        winRate: combats > 0 ? (wins / combats) * 100 : 0,
+        avgRounds: Number(avg(rows.map((r) => r.combatRoundsElapsed))),
+        avgHeroesLost: Number(avg(rows.map((r) => r.heroesLost))),
+      };
+    })
+    .sort(compareEncounterSummaries);
+}
+
+function summarizeChallengeFlags(summaries) {
+  const counts = {};
+  for (const summary of summaries) {
+    const act = String(summary.act);
+    if (!counts[act]) {
+      counts[act] = { total: 0, lowChallenge: 0, highChallenge: 0, onTarget: 0, lowSample: 0 };
+    }
+    const classification = classifyEncounterChallenge(summary);
+    counts[act].total += 1;
+    if (classification.flag === BalanceChallengeFlag.LowChallenge) counts[act].lowChallenge += 1;
+    else if (classification.flag === BalanceChallengeFlag.HighChallenge) counts[act].highChallenge += 1;
+    else if (classification.flag === BalanceChallengeFlag.LowSample) counts[act].lowSample += 1;
+    else counts[act].onTarget += 1;
+  }
+  return counts;
+}
+
+function compareEncounterSummaries(a, b) {
+  if (a.act !== b.act) return a.act - b.act;
+  if (a.slot !== b.slot) return a.slot - b.slot;
+  return a.encounterId.localeCompare(b.encounterId);
 }
 
 function groupBy(arr, keyFn) {

@@ -38,6 +38,7 @@ export const BalanceRunLogger = {
       strategy: run._balanceStrategy ?? "",
       act: run.act,
       slot: encounterDef ? encounterDef.slot : 0,
+      type: encounterDef ? encounterDef.type : "",
       encounterId: encounterDef ? (encounterDef.id || encounterDef.displayName) : "",
       playerWon: combatResult.playerWon ? 1 : 0,
       combatRoundsElapsed: combatResult.combatRoundsElapsed,
