@@ -51,6 +51,40 @@ Copy this block when adding a new entry. Paste it at the top of the Session log 
 
 <!-- Newest entries at the top. -->
 
+## 2026-06-13 - #275: Harness targets and late-game validation
+
+**Milestone:** GitHub epic
+**Status:** Complete
+
+**Files added:**
+- `web/src/test/BalanceTargets.js`
+- `balance-audit/findings-284-post-scaling-validation.md`
+
+**Files modified:**
+- `web/src/test/headless.js` - added deterministic target-band classification coverage.
+- `web/src/test/balance.js` - added act/slot/type challenge flag summaries to markdown balance reports.
+- `web/src/run/BalanceRunLogger.js` - carries encounter type in combat rows and now receives populated strategy ids from the harness.
+- `PROGRESS.md` - logged the epic wrap.
+- `NEXT_SESSION.md` - returned the project to the slice-selection checkpoint.
+
+**Acceptance criteria:**
+- [x] Target bands distinguish Act 1 from Acts 2-4 and normal, rival, and boss encounters.
+- [x] Markdown balance reports identify low/high challenge encounters with act, slot, type, target band, and reasons.
+- [x] Act 1 impact remains visible in the same report.
+- [x] Post-scaling findings document before/after late-game results and recommendations.
+- [x] Existing tests pass after every subissue commit.
+- [x] Balance harness determinism check passes for the post-scaling audit.
+
+**Test plan:** `npm.cmd run test:headless` after `#282`, `#283`, and `#284`; `npm.cmd run test:balance -- --seeds=2 --strategy=all --report` for report smoke; `npm.cmd run test:balance -- --seeds=100 --strategy=all --report` for the audit; all passed.
+
+**Deviations from plan:**
+- `BalanceRunLogger` records encounter type in memory for markdown reporting but preserves the existing combat TSV columns.
+
+**Follow-up flagged:**
+- Late Acts 2-4 still mostly flag low challenge by target bands. Composition improved fight duration and attrition, but follow-up tuning is still needed for late normal and boss encounters.
+
+**Next slice:** Awaiting Matt's next slice selection.
+
 ## 2026-06-13 - #274: Team size and composition pressure
 
 **Milestone:** GitHub epic
