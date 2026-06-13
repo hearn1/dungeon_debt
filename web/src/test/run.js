@@ -21,6 +21,7 @@ import { FormationPanel } from "../ui/panels/FormationPanel.js";
 import { CombatPanel } from "../ui/panels/CombatPanel.js";
 import { BoardRenderer } from "../ui/board/BoardRenderer.js";
 import { BoardProjectionMode, getProjectedBoardSize, projectBoardTile } from "../ui/board/BoardProjection.js";
+import { ThreeCombatBoardScene } from "../ui/board/ThreeCombatBoardScene.js";
 import { abilityEffect, attackEffect, unitPortrait } from "../ui/SpriteCatalog.js";
 import { EnemyEffectId, HeroRole, HeroTier, PayrollActionId, EncounterType, DifficultyLevel, RivalGuild, ShopEventId, HeroEffectId, EncounterEffectId, RelicId, CombatStatusId } from "../data/enums.js";
 import { buildManagerReportLines } from "../run/ManagerReportBuilder.js";
@@ -789,6 +790,17 @@ console.log("Run-flow test");
   combatPanel._buildBattlefield(gm.currentRunState, gm.currentRunState.currentEncounter);
   check("combat renderer: teardown before rebuild keeps one battlefield", countClass(combatPanel.root, "combat-battlefield") === 1);
   check("combat renderer: rebuild has one unit layer", countClass(combatPanel.root, "combat-unit-layer") === 1);
+
+  const scene = new ThreeCombatBoardScene({ run: gm.currentRunState, encounter: gm.currentRunState.currentEncounter });
+  const playerWorld = scene.worldPositionFromCoord({ q: 0, r: 2 });
+  const enemyWorld = scene.worldPositionFromCoord({ q: 6, r: 2 });
+  const unit = { displayName: "Test Unit", maxHealth: 8, currentHealth: 8 };
+  scene.addUnit("p0", unit, { q: 0, r: 2 }, true);
+  check("three scene: fallback board renders all tiles", countClass(scene.root, "three-fallback-tile") === GameRules.HexBoardWidth * GameRules.HexBoardHeight);
+  check("three scene: player side is closer to camera", playerWorld.z > enemyWorld.z);
+  check("three scene: unit anchor registered", scene.units.has("p0") && countClass(scene.root, "three-unit-anchor") === 1);
+  scene.destroy();
+  check("three scene: destroy clears root nodes", scene.root.children.length === 0);
 
   const unknownHeroUnit = {
     sourceHero: { definition: { id: "missing_hero", role: HeroRole.Support } },

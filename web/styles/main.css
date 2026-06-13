@@ -364,6 +364,57 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   box-shadow: 0 0 40px color-mix(in srgb, var(--act-accent) 20%, transparent);
 }
 
+/* ---- Three.js combat battlefield ---- */
+.three-combat-scene {
+  position: relative;
+  width: min(100%, 760px);
+  height: 430px;
+  align-self: center;
+  border: 1px solid var(--act-accent, var(--rule));
+  background: radial-gradient(ellipse at 50% 100%, color-mix(in srgb, var(--act-accent, var(--gold)) 20%, transparent) 0%, var(--bg-strip) 72%);
+  overflow: hidden;
+}
+.three-combat-canvas-host,
+.three-combat-canvas,
+.three-combat-fallback,
+.three-combat-overlay {
+  position: absolute;
+  inset: 0;
+}
+.three-combat-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.three-combat-overlay {
+  pointer-events: none;
+}
+.three-combat-fallback {
+  background: linear-gradient(180deg, rgba(44, 51, 63, 0.42), rgba(14, 13, 18, 0.94));
+}
+.three-fallback-tile {
+  position: absolute;
+  width: 58px;
+  height: 50px;
+  transform: translate(-50%, -50%) skewX(-11deg) rotate(30deg);
+  border: 1px solid var(--rule);
+  background: var(--bg-card);
+}
+.three-fallback-tile.player { background: color-mix(in srgb, var(--gold) 14%, var(--bg-card)); }
+.three-fallback-tile.opponent { background: color-mix(in srgb, var(--debt-critical) 14%, var(--bg-card)); }
+.three-fallback-tile.neutral { background: color-mix(in srgb, var(--bg-card) 82%, var(--rule)); }
+.three-unit-anchor {
+  position: absolute;
+  width: 28px;
+  height: 28px;
+  transform: translate(-50%, -70%);
+  border: 2px solid currentColor;
+  background: rgba(14, 13, 18, 0.8);
+  box-shadow: 0 0 10px currentColor;
+}
+.three-unit-anchor.player { color: var(--gold); }
+.three-unit-anchor.enemy { color: var(--debt-critical); }
+
 /* Hex tile zone tints inside the battlefield. */
 .hex-tile.player-zone { background: color-mix(in srgb, var(--gold) 8%, var(--bg-panel)); }
 .hex-tile.enemy-zone  { background: color-mix(in srgb, var(--debt-critical) 8%, var(--bg-panel)); }
