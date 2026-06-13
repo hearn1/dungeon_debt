@@ -51,6 +51,42 @@ Copy this block when adding a new entry. Paste it at the top of the Session log 
 
 <!-- Newest entries at the top. -->
 
+## 2026-06-13 - #257: Board renderer foundation for 2.5D formation/combat
+
+**Milestone:** GitHub epic
+**Status:** Complete
+
+**Files added:**
+- `web/src/ui/board/BoardRenderer.js`
+- `web/src/ui/board/BoardProjection.js`
+
+**Files modified:**
+- `web/src/ui/panels/FormationPanel.js` - routes deployment board rendering through the shared renderer/projection seam.
+- `web/src/ui/panels/CombatPanel.js` - routes combat battlefield grid/token positioning through the shared renderer/projection seam.
+- `web/src/test/headless.js` - added deterministic projection assertions.
+- `web/src/test/run.js` - added renderer lifecycle, panel re-render, and sprite fallback coverage.
+- `web/styles/main.css` - added projected hex-board positioning support.
+- `IMPLEMENTATION_PLAN.md` - documented the new `ui/board` renderer foundation.
+- `NEXT_SESSION.md` - returned the project to the slice-selection checkpoint.
+
+**Acceptance criteria:**
+- [x] Formation and Combat call through a shared board renderer/projection abstraction.
+- [x] Player deployment visually maps to the lower side and opponents to the upper side.
+- [x] Combat math, replay events, targeting, and board source data were not changed.
+- [x] Renderer lifecycle, fallback, and re-render safety have headless coverage.
+- [x] `npm.cmd run test:headless` passes after each subissue.
+- [x] Browser smoke confirms Formation and Combat render, Combat reaches the report, and console warnings/errors are zero.
+
+**Test plan:** `npm.cmd run test:headless`; browser preview via `python web/serve.py` - all pass.
+
+**Deviations from plan:**
+- None.
+
+**Follow-up flagged:**
+- Future 2.5D/Three.js renderer work can build on `web/src/ui/board/` without changing combat source-of-truth data.
+
+**Next slice:** Awaiting Matt's next slice selection.
+
 ## 2026-05-29 - #88: Visual V3 attack and impact feedback
 
 **Milestone:** GitHub visual follow-up

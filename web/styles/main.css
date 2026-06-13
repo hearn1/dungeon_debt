@@ -308,6 +308,8 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 .hex-board-wrap { display: flex; flex-direction: column; align-items: center; gap: 8px; }
 .hex-board-label { font-size: 11px; letter-spacing: 2px; color: var(--ink-mute); }
 .hex-board { display: flex; flex-direction: row; gap: 6px; align-items: flex-start; }
+.hex-board.projected { display: block; position: relative; }
+.hex-board.projected .hex-tile { position: absolute; }
 .hex-col { display: flex; flex-direction: column; gap: 6px; }
 /* Odd q-columns are offset down by half a tile for the staggered hex look. */
 .hex-col:nth-child(even) { margin-top: 38px; }

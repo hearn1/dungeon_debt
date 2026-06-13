@@ -10,6 +10,7 @@ import { HeroDefinition } from "../data/HeroDefinition.js";
 import { HeroInstance } from "../data/HeroInstance.js";
 import { CombatStatusState } from "../data/CombatStatusState.js";
 import { CombatUnit } from "../data/CombatUnit.js";
+import { BoardProjectionMode, BoardVisualSide, getBoardVisualSide, getProjectedBoardSize, projectBoardTile, projectUnitPosition } from "../ui/board/BoardProjection.js";
 
 let failures = 0;
 function check(name, cond) {
@@ -45,6 +46,21 @@ check("act final round act2 = 20", GameRulesFns.getActFinalRound(2) === 20);
 check("absolute round act2 slot1 = 11", GameRulesFns.getAbsoluteRound(2, 1) === 11);
 check("veteran tier @5 = 2", GameRulesFns.getVeteranTierForXp(5) === 2);
 check("role color is css rgba", GameRulesFns.getRoleColor(HeroRole.Tank).startsWith("rgba("));
+
+// Board projection helpers
+const playerCorner = projectBoardTile({ q: 0, r: 0 }, { mode: BoardProjectionMode.BottomTop });
+const enemyCorner = projectBoardTile({ q: GameRules.HexBoardWidth - 1, r: 0 }, { mode: BoardProjectionMode.BottomTop });
+const playerUnit = projectUnitPosition({ q: 0, r: 0 }, { mode: BoardProjectionMode.BottomTop });
+const playerLeftRight = projectBoardTile({ q: 0, r: 0 }, { mode: BoardProjectionMode.LeftRight });
+const enemyLeftRight = projectBoardTile({ q: GameRules.HexBoardWidth - 1, r: 0 }, { mode: BoardProjectionMode.LeftRight });
+const boardSize = getProjectedBoardSize({ mode: BoardProjectionMode.BottomTop });
+check("projection: player side maps below opponent", playerCorner.y > enemyCorner.y);
+check("projection: left-right keeps enemy to the right", enemyLeftRight.x > playerLeftRight.x);
+check("projection: unit position is inset inside tile", playerUnit.x === playerCorner.x + 1 && playerUnit.y === playerCorner.y + 1);
+check("projection: player visual side detected", getBoardVisualSide({ q: 0, r: 2 }) === BoardVisualSide.Player);
+check("projection: opponent visual side detected", getBoardVisualSide({ q: 6, r: 2 }) === BoardVisualSide.Opponent);
+check("projection: neutral visual side detected", getBoardVisualSide({ q: 3, r: 2 }) === BoardVisualSide.Neutral);
+check("projection: bottom-top board is taller than wide", boardSize.height > boardSize.width);
 
 // Rng determinism
 const a = new Rng(12345);

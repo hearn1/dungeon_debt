@@ -16,6 +16,11 @@ import { HeroEffects } from "../combat/HeroEffects.js";
 import { CombatManager } from "../combat/CombatManager.js";
 import { RivalUpdatePanel } from "../ui/panels/RivalUpdatePanel.js";
 import { ScoutPanel } from "../ui/panels/ScoutPanel.js";
+import { FormationPanel } from "../ui/panels/FormationPanel.js";
+import { CombatPanel } from "../ui/panels/CombatPanel.js";
+import { BoardRenderer } from "../ui/board/BoardRenderer.js";
+import { BoardProjectionMode, getProjectedBoardSize, projectBoardTile } from "../ui/board/BoardProjection.js";
+import { abilityEffect, attackEffect, unitPortrait } from "../ui/SpriteCatalog.js";
 import { EnemyEffectId, HeroRole, HeroTier, PayrollActionId, EncounterType, DifficultyLevel, RivalGuild, ShopEventId, HeroEffectId, EncounterEffectId, RelicId, CombatStatusId } from "../data/enums.js";
 import { buildManagerReportLines } from "../run/ManagerReportBuilder.js";
 
@@ -746,6 +751,57 @@ console.log("Run-flow test");
   check("raceactions-scout-ui: bribe guide button present", text.includes("Expedite with Guide"));
   panel.render();
   check("raceactions-scout-ui: re-render stable", textContentOf(panel.root).includes("RACE"));
+  globalThis.document = previousDocument;
+}
+
+// ---- #263 Board renderer lifecycle and asset fallback smoke ----
+{
+  const previousDocument = globalThis.document;
+  globalThis.document = createFakeDocument();
+
+  const renderer = new BoardRenderer({ labelText: "TEST BOARD" });
+  renderer.renderProjectedGrid({
+    coords: [{ q: 0, r: 0 }, { q: 6, r: 4 }],
+    getBoardSize: () => getProjectedBoardSize({ mode: BoardProjectionMode.BottomTop }),
+    projectTile: (coord) => projectBoardTile(coord, { mode: BoardProjectionMode.BottomTop }),
+    buildTile: () => globalThis.document.createElement("div"),
+  });
+  renderer.addLayer("units", "combat-unit-layer");
+  check("boardrenderer: projected grid renders tiles", renderer.board.children.length === 2);
+  check("boardrenderer: named layer registered", renderer.getLayer("units") !== null);
+  renderer.destroy();
+  check("boardrenderer: destroy clears layers", renderer.layers.size === 0);
+  check("boardrenderer: destroy clears root nodes", renderer.root.children.length === 0);
+
+  const gm = new GameManager();
+  gm.startRun(DifficultyLevel.Level0);
+  fieldKnownParty(gm, ["warrior", "wizard"]);
+  const formationPanel = new FormationPanel(gm);
+  formationPanel.render();
+  formationPanel.render();
+  check("formation renderer: re-render keeps one board", countClass(formationPanel.root, "hex-board") === 1);
+  check("formation renderer: deployment tile count stable", countClass(formationPanel.root, "hex-tile") === 10);
+
+  const combatPanel = new CombatPanel(gm);
+  combatPanel._buildBattlefield(gm.currentRunState, gm.currentRunState.currentEncounter);
+  combatPanel._boardRenderer.destroy();
+  combatPanel._buildBattlefield(gm.currentRunState, gm.currentRunState.currentEncounter);
+  check("combat renderer: teardown before rebuild keeps one battlefield", countClass(combatPanel.root, "combat-battlefield") === 1);
+  check("combat renderer: rebuild has one unit layer", countClass(combatPanel.root, "combat-unit-layer") === 1);
+
+  const unknownHeroUnit = {
+    sourceHero: { definition: { id: "missing_hero", role: HeroRole.Support } },
+    sourceEnemy: null,
+  };
+  const unknownEnemyUnit = {
+    sourceHero: null,
+    sourceEnemy: { id: "missing_enemy" },
+  };
+  check("sprite fallback: unknown hero portrait falls back by role", unitPortrait(unknownHeroUnit).endsWith("role-support.png"));
+  check("sprite fallback: unknown enemy portrait falls back default", unitPortrait(unknownEnemyUnit).endsWith("enemy-default.png"));
+  check("sprite fallback: unknown hero attack falls back by role", attackEffect(unknownHeroUnit).endsWith("role-support.png"));
+  check("sprite fallback: missing ability falls back to caster attack", abilityEffect("missing_ability", unknownHeroUnit) === attackEffect(unknownHeroUnit));
+
   globalThis.document = previousDocument;
 }
 
@@ -2239,27 +2295,65 @@ function createFakeDocument() {
 }
 
 function makeFakeElement(tag) {
+  const style = {
+    setProperty(key, value) {
+      this[key] = value;
+    },
+  };
   const node = {
     tag,
     children: [],
-    style: {},
+    style,
     dataset: {},
     attributes: {},
     className: "",
     _textContent: "",
+    parentNode: null,
     appendChild(child) {
+      if (child && typeof child === "object") child.parentNode = this;
       this.children.push(child);
       return child;
     },
     removeChild(child) {
       const index = this.children.indexOf(child);
       if (index >= 0) this.children.splice(index, 1);
+      if (child && typeof child === "object") child.parentNode = null;
       return child;
+    },
+    remove() {
+      if (this.parentNode) this.parentNode.removeChild(this);
     },
     setAttribute(key, value) {
       this.attributes[key] = value;
     },
     addEventListener() {},
+    querySelector(selector) {
+      return findFirst(this, (child) => matchesSelector(child, selector));
+    },
+  };
+
+  node.classList = {
+    add(...classes) {
+      const set = new Set(node.className.split(" ").filter(Boolean));
+      for (const cls of classes) set.add(cls);
+      node.className = [...set].join(" ");
+    },
+    remove(...classes) {
+      const removeSet = new Set(classes);
+      node.className = node.className.split(" ").filter((cls) => cls && !removeSet.has(cls)).join(" ");
+    },
+    toggle(cls, force) {
+      const has = this.contains(cls);
+      if (force === true || (!has && force !== false)) {
+        this.add(cls);
+        return true;
+      }
+      if (has && force !== true) this.remove(cls);
+      return false;
+    },
+    contains(cls) {
+      return node.className.split(" ").includes(cls);
+    },
   };
 
   Object.defineProperty(node, "firstChild", {
@@ -2291,6 +2385,22 @@ function countClass(node, className) {
 function hasClass(node, className) {
   if (!node || typeof node.className !== "string") return false;
   return node.className.split(" ").includes(className);
+}
+
+function findFirst(node, predicate) {
+  if (!node || !node.children) return null;
+  for (const child of node.children) {
+    if (predicate(child)) return child;
+    const nested = findFirst(child, predicate);
+    if (nested) return nested;
+  }
+  return null;
+}
+
+function matchesSelector(node, selector) {
+  if (!node || typeof selector !== "string") return false;
+  if (selector.startsWith(".")) return hasClass(node, selector.slice(1));
+  return node.tag === selector;
 }
 
 function textContentOf(node) {

@@ -2,6 +2,8 @@ import { el, clear } from "../dom.js";
 import { GameRules } from "../../core/GameRules.js";
 import { heroCard, appendPanelHeader } from "../components.js";
 import { isInPlayerZone, getDefaultPlayerBoardPosition } from "../../combat/BoardPlacement.js";
+import { BoardRenderer } from "../board/BoardRenderer.js";
+import { BoardProjectionMode, getProjectedBoardSize, projectBoardTile } from "../board/BoardProjection.js";
 
 export class FormationPanel {
   constructor(gm) {
@@ -9,10 +11,13 @@ export class FormationPanel {
     this.root = el("div", { class: "panel" });
     this.onDirty = null;
     this._dragHero = null; // HeroInstance currently being dragged
+    this._boardRenderer = null;
   }
 
   render() {
     clear(this.root);
+    this._boardRenderer?.destroy();
+    this._boardRenderer = null;
     const run = this.gm.currentRunState;
 
     appendPanelHeader(this.root, "DEPLOYMENT", "Formation Orders", "Drag heroes onto hex tiles before combat begins.");
@@ -32,8 +37,10 @@ export class FormationPanel {
   }
 
   _buildHexBoard(run) {
-    const wrap = el("div", { class: "hex-board-wrap" });
-    const board = el("div", { class: "hex-board" });
+    const renderer = new BoardRenderer({
+      labelText: "DEPLOYMENT ZONE  (drag to rearrange)",
+    });
+    this._boardRenderer = renderer;
 
     // Build a position→hero lookup for the current deployment.
     const heroAtKey = new Map();
@@ -43,22 +50,23 @@ export class FormationPanel {
       }
     }
 
-    // Render the player deployment zone: q = 0..PlayerDeploymentMaxQ, r = 0..HexBoardHeight-1.
+    const coords = [];
     for (let q = 0; q <= GameRules.PlayerDeploymentMaxQ; q++) {
-      const col = el("div", { class: "hex-col" });
-      for (let r = 0; r < GameRules.HexBoardHeight; r++) {
-        const coord = { q, r };
-        const key = `${q},${r}`;
-        const hero = heroAtKey.get(key);
-        const tile = this._buildTile(coord, hero, run);
-        col.appendChild(tile);
-      }
-      board.appendChild(col);
+      for (let r = 0; r < GameRules.HexBoardHeight; r++) coords.push({ q, r });
     }
+    const projectionOptions = { mode: BoardProjectionMode.BottomTop };
+    renderer.renderProjectedGrid({
+      coords,
+      getBoardSize: () => getProjectedBoardSize(projectionOptions),
+      projectTile: (coord) => projectBoardTile(coord, projectionOptions),
+      buildTile: (coord) => {
+        const key = `${coord.q},${coord.r}`;
+        const hero = heroAtKey.get(key);
+        return this._buildTile(coord, hero, run);
+      },
+    });
 
-    wrap.appendChild(el("div", { class: "hex-board-label", text: "DEPLOYMENT ZONE  (drag to rearrange)" }));
-    wrap.appendChild(board);
-    return wrap;
+    return renderer.root;
   }
 
   _buildTile(coord, hero, run) {
