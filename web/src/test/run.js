@@ -22,7 +22,6 @@ import { CombatPanel } from "../ui/panels/CombatPanel.js";
 import { BoardRenderer } from "../ui/board/BoardRenderer.js";
 import { BoardProjectionMode, getProjectedBoardSize, projectBoardTile } from "../ui/board/BoardProjection.js";
 import { ThreeCombatBoardScene } from "../ui/board/ThreeCombatBoardScene.js";
-import { CombatReplayEventKind } from "../data/CombatReplayEvent.js";
 import { abilityEffect, attackEffect, unitPortrait } from "../ui/SpriteCatalog.js";
 import { EnemyEffectId, HeroRole, HeroTier, PayrollActionId, EncounterType, DifficultyLevel, RivalGuild, ShopEventId, HeroEffectId, EncounterEffectId, RelicId, CombatStatusId } from "../data/enums.js";
 import { buildManagerReportLines } from "../run/ManagerReportBuilder.js";
