@@ -11,6 +11,7 @@ import { RunManager } from "../run/RunManager.js";
 import { EncounterManager } from "../run/EncounterManager.js";
 import { ShopManager } from "../run/ShopManager.js";
 import { ShopOffer } from "../data/ShopOffer.js";
+import { CombatReplayEventKind } from "../data/CombatReplayEvent.js";
 import { HeroInstance } from "../data/HeroInstance.js";
 import { HeroEffects } from "../combat/HeroEffects.js";
 import { CombatManager } from "../combat/CombatManager.js";
@@ -846,6 +847,57 @@ console.log("Run-flow test");
     coordsEqual(first.boardPosition, savedAfterSwap));
   check("formation save: swapped destination tile stays occupied",
     findTileByCoord(panel.root, savedAfterSwap.q, savedAfterSwap.r).className.includes("occupied"));
+
+  globalThis.document = previousDocument;
+}
+
+// ---- #265 Formation-to-combat board coordinate consistency ----
+{
+  const previousDocument = globalThis.document;
+  globalThis.document = createFakeDocument();
+
+  const gm = new GameManager();
+  gm.startRun(DifficultyLevel.Level0);
+  gm.continueFromScout();
+  fieldKnownParty(gm, ["warrior", "wizard", "ranger"]);
+  const run = gm.currentRunState;
+  run.gold = 200;
+  run.currentEncounter = DataRepository.encounters.find((encounter) =>
+    encounter.act === 1 && encounter.slot === 1 && encounter.variantId === "shield_grunts"
+  );
+  run.party[0].boardPosition = { q: 1, r: 1 };
+  run.party[1].boardPosition = { q: 0, r: 0 };
+  run.party[2].boardPosition = { q: 0, r: 4 };
+
+  gm.continueFromShop();
+  const panel = new FormationPanel(gm);
+  panel.render();
+  const formationPositions = run.party.map((hero) => ({ ...hero.boardPosition }));
+  const formationTile = findTileByCoord(panel.root, formationPositions[1].q, formationPositions[1].r);
+  const projectedTile = projectBoardTile(formationPositions[1], { mode: BoardProjectionMode.BottomTop });
+  check("formation-combat: formation tile uses same projection as combat helper",
+    px(formationTile.style.left) === projectedTile.x && px(formationTile.style.top) === projectedTile.y);
+
+  gm.continueFromFormation();
+  gm.selectPayrollAction(PayrollActionId.StandardPay);
+  gm.continueFromPayroll();
+  const result = gm.resolveCombat();
+  const spawns = result.replayEvents.filter((event) => event.kind === CombatReplayEventKind.UnitSpawn);
+  const playerSlot1Spawn = spawns.find((event) => event.attackerIsPlayerSide && event.attackerSlot === 1);
+  const playerSlot2Spawn = spawns.find((event) => event.attackerIsPlayerSide && event.attackerSlot === 2);
+  const enemySlot0Spawn = spawns.find((event) => !event.attackerIsPlayerSide && event.attackerSlot === 0);
+
+  check("formation-combat: player back-left spawn matches formation position",
+    coordsEqual(playerSlot1Spawn.sourceCoord, formationPositions[1]));
+  check("formation-combat: player back-right spawn matches formation position",
+    coordsEqual(playerSlot2Spawn.sourceCoord, formationPositions[2]));
+  check("formation-combat: player positions stable after panel transition",
+    run.party.every((hero, index) => coordsEqual(hero.boardPosition, formationPositions[index])));
+  check("formation-combat: authored enemy spawn position preserved",
+    coordsEqual(enemySlot0Spawn.sourceCoord, run.currentEncounter.enemyBoardPositions[0]));
+  check("formation-combat: opponent projection remains above player projection",
+    projectBoardTile(enemySlot0Spawn.sourceCoord, { mode: BoardProjectionMode.BottomTop }).y <
+    projectBoardTile(playerSlot1Spawn.sourceCoord, { mode: BoardProjectionMode.BottomTop }).y);
 
   globalThis.document = previousDocument;
 }
