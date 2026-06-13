@@ -1737,6 +1737,8 @@ function makeRun(overrides = {}) {
     latestUpkeepShortfall: 0,
     latestInterestAddedToDebt: 0,
     latestMoraleChange: 0,
+    latestRewardQualitySummary: "",
+    latestVeterancyContextBonusXp: 0,
     party: [],
   }, overrides);
 }
@@ -1811,6 +1813,20 @@ function makeCombatResult(overrides = {}) {
   const encounter = { type: EncounterType.FinalBoss };
   const lines = buildManagerReportLines(run, makeCombatResult({ playerWon: true }), encounter);
   check("report: scaled contract line", lines.some(l => l.includes("Scaled contract terms") && l.includes("+21 gold")));
+}
+
+// Encounter XP scaling report line
+{
+  const run = makeRun({ latestVeterancyContextBonusXp: 3 });
+  const lines = buildManagerReportLines(run, makeCombatResult({ playerWon: true }), null, 5);
+  check("report: XP quality line", lines.some(l => l.includes("Encounter difficulty") && l.includes("+3 XP")));
+}
+
+// Reward quality report line
+{
+  const run = makeRun({ latestRewardQualitySummary: "+2 relic option; +11% Silver offer odds next shop" });
+  const lines = buildManagerReportLines(run, makeCombatResult({ playerWon: true }), null, 5);
+  check("report: reward quality line", lines.some(l => l.includes("Reward quality improved") && l.includes("Silver offer odds")));
 }
 
 // Rival win bonus not shown on loss
@@ -2298,6 +2314,12 @@ function makeCombatResult(overrides = {}) {
   check("balance: combat row exposes contract reward",
     BalanceRunLogger.combatRows[0].contractRewardGold === getEncounterReward(4, 10, EncounterType.FinalBoss)
       && tsv.includes("contractRewardGold"));
+  check("balance: combat row exposes XP and reward quality",
+    BalanceRunLogger.combatRows[0].veterancyContextBonusXp === getEncounterVeterancyXpBreakdown(4, 10, EncounterType.FinalBoss).totalBonus
+      && BalanceRunLogger.combatRows[0].rewardQualityRelicChoiceBonus === getEncounterRewardQualityBreakdown(4, 10, EncounterType.FinalBoss).relicChoiceBonus
+      && tsv.includes("veterancyContextBonusXp")
+      && tsv.includes("rewardQualityRelicChoiceBonus")
+      && tsv.includes("rewardQualityShopSilverChanceBonus"));
 }
 
 // 2f. Later and special encounters add context veterancy XP without changing Act 1 baseline.

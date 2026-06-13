@@ -375,12 +375,12 @@ function buildMarkdownReport(results, combatLog, options, timestamp) {
     lines.push("");
 
     lines.push("## Combat Outcomes");
-    lines.push("| Encounter | Combats | Win Rate | Avg Rounds | Avg Heroes Lost | Avg Contract Reward | Act | Slot | Type | Target Band | Flag | Reasons |");
-    lines.push("|---|---:|---:|---:|---:|---:|---:|---:|---|---|---|---|");
+    lines.push("| Encounter | Combats | Win Rate | Avg Rounds | Avg Heroes Lost | Avg Contract Reward | Avg XP Bonus | Avg Relic Option Bonus | Avg Silver Odds Bonus | Act | Slot | Type | Target Band | Flag | Reasons |");
+    lines.push("|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|---|---|---|");
     for (const summary of summaries) {
       const classification = classifyEncounterChallenge(summary);
       lines.push(
-        `| ${summary.encounterId} | ${summary.combats} | ${summary.winRate.toFixed(1)}% | ${summary.avgRounds.toFixed(2)} | ${summary.avgHeroesLost.toFixed(2)} | ${summary.avgContractReward.toFixed(2)} | ${summary.act} | ${summary.slot} | ${summary.type} | ${formatTargetBandLabel(classification.band)} | ${classification.label} | ${classification.reasons.join("; ") || "-"} |`
+        `| ${summary.encounterId} | ${summary.combats} | ${summary.winRate.toFixed(1)}% | ${summary.avgRounds.toFixed(2)} | ${summary.avgHeroesLost.toFixed(2)} | ${summary.avgContractReward.toFixed(2)} | ${summary.avgVeterancyContextBonusXp.toFixed(2)} | ${summary.avgRewardQualityRelicChoiceBonus.toFixed(2)} | ${summary.avgRewardQualityShopSilverChanceBonus.toFixed(2)} | ${summary.act} | ${summary.slot} | ${summary.type} | ${formatTargetBandLabel(classification.band)} | ${classification.label} | ${classification.reasons.join("; ") || "-"} |`
       );
     }
     lines.push("");
@@ -412,6 +412,9 @@ function summarizeCombatLog(combatLog) {
         avgRounds: Number(avg(rows.map((r) => r.combatRoundsElapsed))),
         avgHeroesLost: Number(avg(rows.map((r) => r.heroesLost))),
         avgContractReward: Number(avg(rows.map((r) => r.contractRewardGold || 0))),
+        avgVeterancyContextBonusXp: Number(avg(rows.map((r) => r.veterancyContextBonusXp || 0))),
+        avgRewardQualityRelicChoiceBonus: Number(avg(rows.map((r) => r.rewardQualityRelicChoiceBonus || 0))),
+        avgRewardQualityShopSilverChanceBonus: Number(avg(rows.map((r) => r.rewardQualityShopSilverChanceBonus || 0))),
       };
     })
     .sort(compareEncounterSummaries);
