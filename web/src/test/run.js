@@ -27,7 +27,7 @@ import { resolveFallbackUnitVisual, resolveUnitVisual, UnitVisualState } from ".
 import { EnemyEffectId, HeroRole, HeroTier, PayrollActionId, EncounterType, DifficultyLevel, RivalGuild, ShopEventId, HeroEffectId, EncounterEffectId, RelicId, CombatStatusId } from "../data/enums.js";
 import { buildManagerReportLines } from "../run/ManagerReportBuilder.js";
 import { getEncounterReward } from "../run/EncounterReward.js";
-import { getEncounterVeterancyXpBreakdown } from "../run/EncounterRewardQuality.js";
+import { getEncounterRewardQualityBreakdown, getEncounterVeterancyXpBreakdown } from "../run/EncounterRewardQuality.js";
 import { BalanceRunLogger } from "../run/BalanceRunLogger.js";
 
 let failures = 0;
@@ -2327,6 +2327,41 @@ function makeCombatResult(overrides = {}) {
       && hero.veteranXp === GameRules.VeteranSurvivorXp + GameRules.VeteranEndOfActFightBonusXp + GameRules.VeteranActCompleteXp + expectedContext);
 }
 
+// 2g. Later and special wins improve current reward quality through relic options and next-shop odds.
+{
+  const rm = new RunManager();
+  const shop = new ShopManager(rm);
+  const run = rm.initializeRun(DifficultyLevel.Level0, 287);
+  run.gold = 200;
+  const enc = DataRepository.encounters.find((e) => e.act === 4 && e.slot === 10 && e.type === EncounterType.FinalBoss);
+  run.currentEncounter = enc;
+  const mockWin = { playerWon: true, survivorFlags: {}, deadHeroes: [] };
+  rm.applyPostCombatResult(mockWin, enc);
+  const quality = getEncounterRewardQualityBreakdown(4, 10, EncounterType.FinalBoss);
+  check("rewardquality: post-combat stores quality summary",
+    run.latestRewardQualityRelicChoiceBonus === quality.relicChoiceBonus
+      && run.latestRewardQualityShopSilverChanceBonus === quality.shopSilverChanceBonus
+      && run.latestRewardQualitySummary.includes("Silver offer odds"));
+
+  const prepared = rm.tryPreparePendingRelicReward(GameState.Victory);
+  check("rewardquality: act 4 boss relic reward prepared", prepared === true);
+  check("rewardquality: relic choices use quality bonus",
+    run.pendingRelicChoices.length === GameRules.RewardQualityRelicChoiceMax
+      && run.pendingRelicChoiceBonus === GameRules.RewardQualityRelicChoiceMax - GameRules.RelicChoiceCount);
+
+  run.pendingShopQualitySilverChanceBonus = quality.shopSilverChanceBonus;
+  shop.generateOffers();
+  check("rewardquality: next shop consumes quality bonus",
+    run.latestShopQualitySilverChanceBonus === quality.shopSilverChanceBonus
+      && Math.abs(run.latestShopSilverOfferChance - (GameRules.SilverOfferChance + quality.shopSilverChanceBonus)) < 0.00001
+      && run.pendingShopQualitySilverChanceBonus === 0);
+
+  const first = collectQualityShopTierSequence(287, 1);
+  const second = collectQualityShopTierSequence(287, 1);
+  check("rewardquality: boosted shop rolls are deterministic", first.join(",") === second.join(","));
+  check("rewardquality: shop silver odds cap applies", first.appliedChance === GameRules.RewardQualityShopSilverChanceMax);
+}
+
 // 3. Ninja loot on kill: gold gained during combat exceeds WinReward alone.
 {
   const gm = new GameManager();
@@ -2441,6 +2476,17 @@ function collectShopEventSequence(seed) {
     }
   }
 
+  return sequence;
+}
+
+function collectQualityShopTierSequence(seed, bonus) {
+  const runManager = new RunManager();
+  const shop = new ShopManager(runManager);
+  const run = runManager.initializeRun(DifficultyLevel.Level0, seed);
+  run.pendingShopQualitySilverChanceBonus = bonus;
+  shop.generateOffers();
+  const sequence = shop.currentOffers.map((offer) => offer ? offer.tier : "none");
+  sequence.appliedChance = run.latestShopSilverOfferChance;
   return sequence;
 }
 

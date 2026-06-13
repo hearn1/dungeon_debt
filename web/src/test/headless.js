@@ -13,7 +13,7 @@ import { CombatUnit } from "../data/CombatUnit.js";
 import { BoardProjectionMode, BoardVisualSide, getBoardVisualSide, getProjectedBoardSize, projectBoardTile, projectUnitPosition } from "../ui/board/BoardProjection.js";
 import { getEncounterScaling } from "../run/EncounterScaling.js";
 import { getEncounterReward, getEncounterRewardBreakdown } from "../run/EncounterReward.js";
-import { getEncounterVeterancyXpBreakdown } from "../run/EncounterRewardQuality.js";
+import { getEncounterRewardQualityBreakdown, getEncounterRewardQualitySummary, getEncounterVeterancyXpBreakdown } from "../run/EncounterRewardQuality.js";
 import { EncounterType } from "../data/enums.js";
 import { BalanceChallengeFlag, classifyEncounterChallenge, getBalanceTargetBand } from "./BalanceTargets.js";
 
@@ -93,6 +93,17 @@ check("rewardquality-xp: late act 2 dungeon gains context XP", act2LateDungeonXp
 check("rewardquality-xp: act 3 dungeon gains act XP", act3EarlyDungeonXp.actBonus === 1 && act3EarlyDungeonXp.totalBonus === 1);
 check("rewardquality-xp: act 4 boss stacks act, late-slot, and type XP", act4BossXp.totalBonus === 3);
 check("rewardquality-xp: deterministic for same inputs", JSON.stringify(act4BossXp) === JSON.stringify(act4BossXpRepeat));
+
+// Encounter reward quality curve
+const act1RewardQuality = getEncounterRewardQualityBreakdown(1, 10, EncounterType.FinalBoss);
+const act3RivalQuality = getEncounterRewardQualityBreakdown(3, 6, EncounterType.RivalGhost);
+const act4BossQuality = getEncounterRewardQualityBreakdown(4, 10, EncounterType.FinalBoss);
+const act4BossQualityRepeat = getEncounterRewardQualityBreakdown(4, 10, EncounterType.FinalBoss);
+check("rewardquality: act 1 keeps current reward quality", act1RewardQuality.relicChoiceBonus === 0 && act1RewardQuality.shopSilverChanceBonus === 0);
+check("rewardquality: act 3 rival adds option and shop odds", act3RivalQuality.relicChoiceBonus === 1 && Math.abs(act3RivalQuality.shopSilverChanceBonus - 0.07) < 0.00001);
+check("rewardquality: act 4 boss adds stronger quality", act4BossQuality.relicChoiceBonus === 2 && Math.abs(act4BossQuality.shopSilverChanceBonus - 0.11) < 0.00001);
+check("rewardquality: summary mentions both rewards", getEncounterRewardQualitySummary(act4BossQuality).includes("relic option") && getEncounterRewardQualitySummary(act4BossQuality).includes("Silver offer odds"));
+check("rewardquality: deterministic for same inputs", JSON.stringify(act4BossQuality) === JSON.stringify(act4BossQualityRepeat));
 
 // Balance report target bands
 const act1DungeonTarget = getBalanceTargetBand(1, 2, EncounterType.Dungeon);

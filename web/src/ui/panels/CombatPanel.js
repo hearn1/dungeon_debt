@@ -573,6 +573,7 @@ export class CombatPanel {
     if (run.latestInterestAddedToDebt > 0) summary.appendChild(summaryRow("Unpaid interest → debt", `+${run.latestInterestAddedToDebt}`, "neg"));
     if (run.latestPayrollSummary) summary.appendChild(summaryRow("Payroll policy", run.latestPayrollSummary));
     if (run.latestVeterancySummary) summary.appendChild(summaryRow("Staff development", run.latestVeterancySummary));
+    if (run.latestRewardQualitySummary) summary.appendChild(summaryRow("Reward quality", run.latestRewardQualitySummary, "pos"));
     summary.appendChild(el("hr", { style: { border: "none", borderTop: "1px solid var(--rule)" } }));
     summary.appendChild(summaryRow("Gold", String(run.gold)));
 
