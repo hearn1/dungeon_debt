@@ -12,28 +12,21 @@ This file always describes the **next** session's work. Rewrite it at the end of
 
 ### One-sentence goal
 
-The GitHub expansion issue wave `#66`-`#73` is complete, including the #67 Act 4 dev-gated Vault follow-up, #72 Phase 2 strategy-variants follow-up, #73 Bargain Stall clear-on-leave follow-up, #82 cumulative difficulty-description follow-up, #83 final-run unlock follow-up, and #88 Visual V3 attack/impact feedback follow-up; Matt should choose the next implementation slice before any code changes.
+Epic `#257` (board renderer foundation for 2.5D formation/combat) is complete; Matt should choose the next implementation slice before any code changes.
 
 ### Why this session exists
 
-The recommended conflict-aware order has been completed:
+The previous session completed GitHub epic `#257` and its subissues:
 
-1. `#72` - Balance harness Phase 1
-2. `#73` - Encounter variants Bucket A
-3. `#66` - Gold hero tier
-4. `#69` - Paladin, Cleric, Barbarian
-5. `#70` - Difficulty levels 0-3
-6. `#67` - Act 3 dev-flag content
-7. `#68` - Rival Race mechanic
-8. `#71` - Visual identity V1
-9. `#73` - Bargain Stall follow-up: clear event state when leaving Shop
-10. `#82` - Difficulty level descriptions show cumulative mutators, including locked levels
-11. `#83` - Difficulty unlocks advance only after final-run victory
-12. `#72` - Balance harness Phase 2 strategy variants
-13. `#67` - Act 4 dev-gated Vault follow-up with Banker King Debt Judgment
-14. `#88` - Visual V3 attack and impact feedback
+1. `#261` - Add shared board renderer abstraction seam
+2. `#262` - Add bottom-vs-top board projection helpers
+3. `#263` - Add board renderer lifecycle and fallback tests
 
 ### Candidate next work
+
+**Likely follow-up from epic #257 / parent #256:**
+
+- The next 2.5D/board-renderer issue, if Matt chooses to continue that track.
 
 **Available paused regression polish:**
 
@@ -66,7 +59,7 @@ The recommended conflict-aware order has been completed:
 AGENTS.md
 CLAUDE.md
 SESSION_PROTOCOL.md
-PROGRESS.md (latest #71, #68, #67 entries)
+PROGRESS.md (latest #257, #88, #67 entries)
 REGRESSIONS.md (Open section)
 IMPLEMENTATION_PLAN.md section 6
 NEXT_SESSION.md
@@ -87,4 +80,4 @@ No verification command until a concrete slice is selected.
 
 ### Start prompt for the next session
 
-> Read `AGENTS.md`, `CLAUDE.md`, and `SESSION_PROTOCOL.md`, then follow `NEXT_SESSION.md`. The GitHub expansion issue wave is complete. Orient on the latest progress and ask Matt which slice to pick up next before planning code changes.
+> Read `AGENTS.md`, `CLAUDE.md`, and `SESSION_PROTOCOL.md`, then follow `NEXT_SESSION.md`. Epic `#257` is complete. Orient on the latest progress and ask Matt which slice to pick up next before planning code changes.

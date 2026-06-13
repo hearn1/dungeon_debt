@@ -74,6 +74,7 @@ web/
     │   ├── RunHeader.js         ← persistent top chrome (act seal, round progress, gold/morale, debt chip, relics)
     │   ├── dom.js               ← el(), clear(), two() helpers
     │   ├── components.js        ← heroCard(), hpBar(), statusPills()
+    │   ├── board/               ← shared board renderer/projection seam for Formation + Combat
     │   └── panels/
     │       ├── MainMenuPanel.js
     │       ├── ScoutPanel.js
@@ -108,6 +109,7 @@ MainMenu
 
 - `GameManager.changeState(s)` is the only legal state setter. It emits to `onStateChanged` listeners; `UIManager` is the only listener in production.
 - `GameManager.resolveCombat()` runs `CombatManager.startCombat(run, encounter)` then `runManager.applyPostCombatResult(result, encounter)` and returns the result. The Combat panel calls this once on entry.
+- `web/src/ui/board/` owns presentation-only board rendering/projection helpers. It may project `CombatBoard` / `BoardPlacement` coordinates for Formation and Combat, but it must not mutate authored board data, replay events, targeting, or combat math.
 
 ### Data ownership
 
