@@ -23,6 +23,7 @@ import { BoardRenderer } from "../ui/board/BoardRenderer.js";
 import { BoardProjectionMode, getProjectedBoardSize, projectBoardTile } from "../ui/board/BoardProjection.js";
 import { ThreeCombatBoardScene } from "../ui/board/ThreeCombatBoardScene.js";
 import { abilityEffect, attackEffect, unitPortrait } from "../ui/SpriteCatalog.js";
+import { resolveFallbackUnitVisual, resolveUnitVisual, UnitVisualState } from "../ui/UnitVisualCatalog.js";
 import { EnemyEffectId, HeroRole, HeroTier, PayrollActionId, EncounterType, DifficultyLevel, RivalGuild, ShopEventId, HeroEffectId, EncounterEffectId, RelicId, CombatStatusId } from "../data/enums.js";
 import { buildManagerReportLines } from "../run/ManagerReportBuilder.js";
 
@@ -828,6 +829,23 @@ console.log("Run-flow test");
   check("sprite fallback: unknown enemy portrait falls back default", unitPortrait(unknownEnemyUnit).endsWith("enemy-default.png"));
   check("sprite fallback: unknown hero attack falls back by role", attackEffect(unknownHeroUnit).endsWith("role-support.png"));
   check("sprite fallback: missing ability falls back to caster attack", abilityEffect("missing_ability", unknownHeroUnit) === attackEffect(unknownHeroUnit));
+
+  const heroVisual = resolveUnitVisual(unknownHeroUnit);
+  const enemyVisual = resolveUnitVisual(unknownEnemyUnit);
+  const fallbackVisual = resolveFallbackUnitVisual();
+  check("unit visual catalog: hero resolves by role group",
+    heroVisual.sourceType === "hero" && heroVisual.group === "hero-support" && heroVisual.portraitUrl.endsWith("role-support.png"));
+  check("unit visual catalog: opponent resolves to safe enemy placeholder",
+    enemyVisual.sourceType === "opponent" && enemyVisual.group === "enemy-default" && enemyVisual.portraitUrl.endsWith("enemy-default.png"));
+  check("unit visual catalog: missing unit resolves fallback placeholder",
+    fallbackVisual.sourceType === "fallback" && fallbackVisual.group === "fallback-unit" && fallbackVisual.portraitUrl.endsWith("enemy-default.png"));
+  check("unit visual catalog: required state fallbacks are defined",
+    heroVisual.states[UnitVisualState.Idle] === "bob" &&
+    heroVisual.states[UnitVisualState.Move] === "translate" &&
+    heroVisual.states[UnitVisualState.Attack] === "lunge" &&
+    heroVisual.states[UnitVisualState.Hit] === "flash" &&
+    heroVisual.states[UnitVisualState.Death] === "fade" &&
+    heroVisual.states[UnitVisualState.Cast] === "pulse");
 
   globalThis.document = previousDocument;
 }
