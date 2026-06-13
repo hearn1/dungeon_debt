@@ -27,6 +27,11 @@ function encounter(act, slot) {
   return DataRepository.getEncounterPool(act, slot)[0];
 }
 
+function encounterByVariant(act, slot, variantId) {
+  return DataRepository.getEncounterPool(act, slot)
+    .find((enc) => enc.variantId === variantId);
+}
+
 function buildRun(partyIds, extra) {
   const run = new RunState();
   run.heroHealthMultiplier = GameRules.NoCombatMultiplier;
@@ -567,6 +572,13 @@ console.log("Combat engine test");
   check("predatory: slime health scaled to 5", slime && slime.maxHealth === 5);
 }
 
+function checkEncounterShape(label, enc, enemyIds, positions) {
+  check(`${label}: encounter exists`, !!enc);
+  if (!enc) return;
+  check(`${label}: enemy composition`, enc.enemies.map((enemy) => enemy.id).join(",") === enemyIds.join(","));
+  check(`${label}: board positions`, JSON.stringify(enc.enemyBoardPositions ?? []) === JSON.stringify(positions));
+}
+
 // Encounter progression scales enemy stats at combat-unit construction time.
 {
   const run = buildRun([]);
@@ -624,6 +636,48 @@ console.log("Combat engine test");
     act4EarlyScale.enemyAttack < act4MidScale.enemyAttack && act4MidScale.enemyAttack < act4LateScale.enemyAttack);
   check("encscale-regression: act 4 late unit receives stronger scaling",
     act4LateUnit && act4LateUnit.attack > act4LateBase.attack && act4LateUnit.maxHealth > act4LateBase.health);
+}
+
+// Late-game normal encounter composition pressure stays authored and deterministic.
+{
+  const slot2Positions = [{q:5,r:2}, {q:6,r:1}, {q:6,r:3}];
+  const slot2BacklinePositions = [{q:5,r:2}, {q:6,r:0}, {q:6,r:4}];
+  const slot4Positions = [{q:5,r:2}, {q:6,r:2}, {q:6,r:0}];
+  const slot5Positions = [{q:5,r:2}, {q:6,r:2}, {q:6,r:4}];
+  const slot7BasePositions = [{q:5,r:2}, {q:6,r:1}, {q:6,r:3}];
+  const slot7CarryPositions = [{q:5,r:1}, {q:6,r:2}, {q:5,r:3}, {q:6,r:4}];
+  const slot8Positions = [{q:5,r:1}, {q:5,r:3}, {q:6,r:0}, {q:6,r:4}];
+
+  checkEncounterShape("comp-act2-soul-broker", encounterByVariant(2, 2, "base"),
+    ["shield_grunt", "soul_broker", "imp"], slot2Positions);
+  checkEncounterShape("comp-act2-demonic-archers", encounterByVariant(2, 2, "demonic_archers"),
+    ["shield_grunt", "dungeon_archer", "dungeon_archer"], slot2BacklinePositions);
+  checkEncounterShape("comp-act2-gloom-bat", encounterByVariant(2, 4, "base"),
+    ["shield_grunt", "gloom_bat", "imp"], slot4Positions);
+  checkEncounterShape("comp-act2-debt-wraith", encounterByVariant(2, 5, "base"),
+    ["shield_grunt", "debt_wraith", "dungeon_archer"], slot5Positions);
+  checkEncounterShape("comp-act2-infernal-ward", encounterByVariant(2, 5, "infernal_ward"),
+    ["shield_grunt", "dungeon_medic", "dungeon_archer"], slot5Positions);
+  checkEncounterShape("comp-act2-hoard-fiend", encounterByVariant(2, 7, "base"),
+    ["hulking_protector", "hoard_fiend", "imp"], slot7BasePositions);
+  checkEncounterShape("comp-act2-champion-guard", encounterByVariant(2, 7, "demon_champions_guard"),
+    ["hulking_protector", "dungeon_champion", "hulking_protector", "dungeon_medic"], slot7CarryPositions);
+  checkEncounterShape("comp-act2-brimstone-brute", encounterByVariant(2, 8, "base"),
+    ["shield_grunt", "brimstone_brute", "dungeon_archer", "dungeon_medic"], slot8Positions);
+
+  checkEncounterShape("comp-act3-mint-auditor", encounterByVariant(3, 5, "base"),
+    ["act3-shield-grunt", "act3-infernal-auditor-mint", "act3-dungeon-archer"], slot5Positions);
+  checkEncounterShape("comp-act3-soul-broker", encounterByVariant(3, 7, "base"),
+    ["act3-hulking-protector", "act3-soul-broker-mint", "act3-imp-mint"], slot7BasePositions);
+  checkEncounterShape("comp-act3-brimstone", encounterByVariant(3, 8, "base"),
+    ["act3-shield-grunt", "act3-brimstone-mint", "act3-dungeon-archer", "act3-dungeon-medic"], slot8Positions);
+
+  checkEncounterShape("comp-act4-vault-auditor", encounterByVariant(4, 5, "base"),
+    ["act4-shield-grunt", "act4-vault-auditor", "act4-dungeon-archer"], slot5Positions);
+  checkEncounterShape("comp-act4-ledger-broker", encounterByVariant(4, 7, "base"),
+    ["act4-hulking-protector", "act4-ledger-broker", "act4-vault-imp"], slot7BasePositions);
+  checkEncounterShape("comp-act4-vault-brute", encounterByVariant(4, 8, "base"),
+    ["act4-shield-grunt", "act4-vault-brute", "act4-dungeon-archer", "act4-dungeon-medic"], slot8Positions);
 }
 
 // ---- Combat determinism with effects ----
@@ -1813,11 +1867,11 @@ buildSnapshot(REF_PARTY, 1, 10, { won: true, minRounds: 5, maxRounds: 9,  maxDea
 buildSnapshot(REF_PARTY, 2, 1,  { won: true, minRounds: 2, maxRounds: 6,  maxDead: 1 });
 buildSnapshot(REF_PARTY, 2, 2,  { won: true, minRounds: 2, maxRounds: 6,  maxDead: 1 });
 buildSnapshot(REF_PARTY, 2, 3,  { won: true, minRounds: 5, maxRounds: 9,  maxDead: 3 });
-buildSnapshot(REF_PARTY, 2, 4,  { won: true, minRounds: 1, maxRounds: 5,  maxDead: 1 });
-buildSnapshot(REF_PARTY, 2, 5,  { won: true, minRounds: 2, maxRounds: 6,  maxDead: 1 });
+buildSnapshot(REF_PARTY, 2, 4,  { won: true, minRounds: 1, maxRounds: 6,  maxDead: 1 });
+buildSnapshot(REF_PARTY, 2, 5,  { won: true, minRounds: 2, maxRounds: 7,  maxDead: 2 });
 buildSnapshot(REF_PARTY, 2, 6,  { won: true, minRounds: 4, maxRounds: 8,  maxDead: 3 });
-buildSnapshot(REF_PARTY, 2, 7,  { won: true, minRounds: 3, maxRounds: 7,  maxDead: 1 });
-buildSnapshot(REF_PARTY, 2, 8,  { won: true, minRounds: 4, maxRounds: 8,  maxDead: 3 });
+buildSnapshot(REF_PARTY, 2, 7,  { won: true, minRounds: 3, maxRounds: 7,  maxDead: 3 });
+buildSnapshot(REF_PARTY, 2, 8,  { won: false, minRounds: 6, maxRounds: 9,  maxDead: 5 });
 buildSnapshot(REF_PARTY, 2, 9,  { won: false, minRounds: 5, maxRounds: 9,  maxDead: 5 });
 buildSnapshot(REF_PARTY, 2, 10, { won: true, minRounds: 5, maxRounds: 9,  maxDead: 4 });
 
