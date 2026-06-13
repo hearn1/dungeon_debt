@@ -3,6 +3,7 @@ import { GameRules } from "../../core/GameRules.js";
 import { heroCard, appendPanelHeader } from "../components.js";
 import { isInPlayerZone, getDefaultPlayerBoardPosition } from "../../combat/BoardPlacement.js";
 import { BoardRenderer } from "../board/BoardRenderer.js";
+import { BoardProjectionMode, getProjectedBoardSize, projectBoardTile } from "../board/BoardProjection.js";
 
 export class FormationPanel {
   constructor(gm) {
@@ -49,9 +50,15 @@ export class FormationPanel {
       }
     }
 
-    renderer.renderColumnGrid({
-      qEnd: GameRules.PlayerDeploymentMaxQ,
-      rEnd: GameRules.HexBoardHeight,
+    const coords = [];
+    for (let q = 0; q <= GameRules.PlayerDeploymentMaxQ; q++) {
+      for (let r = 0; r < GameRules.HexBoardHeight; r++) coords.push({ q, r });
+    }
+    const projectionOptions = { mode: BoardProjectionMode.BottomTop };
+    renderer.renderProjectedGrid({
+      coords,
+      getBoardSize: () => getProjectedBoardSize(projectionOptions),
+      projectTile: (coord) => projectBoardTile(coord, projectionOptions),
       buildTile: (coord) => {
         const key = `${coord.q},${coord.r}`;
         const hero = heroAtKey.get(key);

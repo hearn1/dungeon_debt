@@ -8,6 +8,7 @@ export class BoardRenderer {
   } = {}) {
     this.root = el("div", { class: rootClass });
     this.board = el("div", { class: boardClass });
+    this._boardClass = boardClass;
     this.layers = new Map();
 
     if (labelText) {
@@ -24,6 +25,24 @@ export class BoardRenderer {
         col.appendChild(buildTile({ q, r }));
       }
       this.board.appendChild(col);
+    }
+    return this.board;
+  }
+
+  renderProjectedGrid({ coords, getBoardSize, projectTile, buildTile }) {
+    clear(this.board);
+    this.board.className = `${this._boardClass} projected`;
+
+    const size = getBoardSize();
+    this.board.style.width = `${size.width}px`;
+    this.board.style.height = `${size.height}px`;
+
+    for (const coord of coords) {
+      const tile = buildTile(coord);
+      const position = projectTile(coord);
+      tile.style.left = `${position.x}px`;
+      tile.style.top = `${position.y}px`;
+      this.board.appendChild(tile);
     }
     return this.board;
   }

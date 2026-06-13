@@ -6,12 +6,8 @@ import { statusGlyphs, appendPanelHeader } from "../components.js";
 import { unitPortrait, attackEffect, healEffect, abilityEffect } from "../SpriteCatalog.js";
 import { Settings } from "../../core/Settings.js";
 import { BoardRenderer } from "../board/BoardRenderer.js";
+import { BoardProjectionMode, getProjectedBoardSize, projectBoardTile, projectUnitPosition } from "../board/BoardProjection.js";
 
-// Hex tile dimensions matching the existing .hex-board/.hex-col CSS.
-const TILE = 72;
-const GAP  = 6;
-const STEP = TILE + GAP; // 78 px per column/row step
-const ODD  = 38;          // margin-top added to even-nth-child columns (q=1,3,5)
 const TOKEN = 70;         // combat token width/height (fits inside TILE)
 const TOKEN_HALF = TOKEN / 2;
 
@@ -87,9 +83,15 @@ export class CombatPanel {
     const wrap = renderer.root;
 
     // Build the 7 × 5 hex grid (all columns).
-    renderer.renderColumnGrid({
-      qEnd: W - 1,
-      rEnd: H,
+    const coords = [];
+    for (let q = 0; q < W; q++) {
+      for (let r = 0; r < H; r++) coords.push({ q, r });
+    }
+    const projectionOptions = { mode: BoardProjectionMode.BottomTop };
+    renderer.renderProjectedGrid({
+      coords,
+      getBoardSize: () => getProjectedBoardSize(projectionOptions),
+      projectTile: (coord) => projectBoardTile(coord, projectionOptions),
       buildTile: ({ q }) => {
         const zoneClass = q <= GameRules.PlayerDeploymentMaxQ ? "combat-tile player-zone"
           : q >= GameRules.EnemyDeploymentMinQ             ? "combat-tile enemy-zone"
@@ -209,8 +211,12 @@ export class CombatPanel {
   }
 
   _placeToken(token, coord) {
-    const x = coord.q * STEP + Math.floor((TILE - TOKEN) / 2);
-    const y = coord.r * STEP + Math.floor((TILE - TOKEN) / 2) + (coord.q % 2 === 1 ? ODD : 0);
+    const pos = projectUnitPosition(coord, {
+      mode: BoardProjectionMode.BottomTop,
+      tokenSize: TOKEN,
+    });
+    const x = pos.x;
+    const y = pos.y;
     token.style.left = `${x}px`;
     token.style.top  = `${y}px`;
   }
@@ -241,8 +247,12 @@ export class CombatPanel {
   // ---- Event-driven pixel centre of a unit (for projectiles) ----
 
   _tokenCenter(coord) {
-    const x = coord.q * STEP + TOKEN_HALF + Math.floor((TILE - TOKEN) / 2);
-    const y = coord.r * STEP + TOKEN_HALF + Math.floor((TILE - TOKEN) / 2) + (coord.q % 2 === 1 ? ODD : 0);
+    const pos = projectUnitPosition(coord, {
+      mode: BoardProjectionMode.BottomTop,
+      tokenSize: TOKEN,
+    });
+    const x = pos.x + TOKEN_HALF;
+    const y = pos.y + TOKEN_HALF;
     return { x, y };
   }
 
