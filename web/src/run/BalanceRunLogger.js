@@ -8,6 +8,7 @@ export const BalanceRunLogger = {
   runId: null,
   rows: [],
   combatRows: [],
+  economyRows: [],
   seedResultColumns: Object.freeze([
     "seed",
     "strategy",
@@ -34,7 +35,7 @@ export const BalanceRunLogger = {
   logCombat(run, combatResult, encounterDef) {
     if (!run || !combatResult || !this.runId) return;
     this.combatRows.push({
-      seed: run.seed ?? 0,
+      seed: getRunSeed(run),
       strategy: run._balanceStrategy ?? "",
       act: run.act,
       slot: encounterDef ? encounterDef.slot : 0,
@@ -48,6 +49,30 @@ export const BalanceRunLogger = {
       playerWon: combatResult.playerWon ? 1 : 0,
       combatRoundsElapsed: combatResult.combatRoundsElapsed,
       heroesLost: Array.isArray(combatResult.deadHeroes) ? combatResult.deadHeroes.length : 0,
+    });
+  },
+
+  logShop(run, beforeShop, afterShop) {
+    if (!run || !this.runId || !beforeShop || !afterShop) return;
+    this.economyRows.push({
+      phase: "shop",
+      seed: getRunSeed(run),
+      strategy: run._balanceStrategy ?? "",
+      act: run.act,
+      slot: getEncounterSlot(run),
+      round: run.round,
+      encounterId: getEncounterId(run.currentEncounter),
+      goldBefore: beforeShop.gold,
+      goldAfter: afterShop.gold,
+      debtBefore: beforeShop.debt,
+      debtAfter: afterShop.debt,
+      moraleBefore: beforeShop.morale,
+      moraleAfter: afterShop.morale,
+      partySizeBefore: beforeShop.partySize,
+      partySizeAfter: afterShop.partySize,
+      rerollsUsed: Math.max(0, afterShop.rerollCount - beforeShop.rerollCount),
+      debtPaid: Math.max(0, beforeShop.debt - afterShop.debt),
+      netGoldDelta: afterShop.gold - beforeShop.gold,
     });
   },
 
@@ -77,6 +102,68 @@ export const BalanceRunLogger = {
       nextState,
       endReason: runState.latestEndReason ?? "",
     });
+    this.economyRows.push({
+      phase: "combat",
+      seed: getRunSeed(runState),
+      strategy: runState._balanceStrategy ?? "",
+      act: runState.act,
+      slot: getEncounterSlot(runState),
+      round: runState.round,
+      encounterId: getEncounterId(encounter),
+      playerWon: runState.latestCombatWon ? 1 : 0,
+      rewardGold: runState.latestRewardGold,
+      contractRewardGold: runState.latestContractRewardGold,
+      rewardScaleBonusGold: runState.latestRewardScaleBonusGold,
+      totalUpkeep: runState.latestTotalUpkeep,
+      upkeepShortfall: runState.latestUpkeepShortfall,
+      interestCharged: runState.latestInterestCharged,
+      interestAddedToDebt: runState.latestInterestAddedToDebt,
+      goldAfter: runState.gold,
+      debtBefore: runState.latestDebtBeforeCombat,
+      debtAfter: runState.debt,
+      moraleAfter: runState.morale,
+      nextState,
+      endReason: runState.latestEndReason ?? "",
+    });
+  },
+
+  formatEconomyResults(economyLog) {
+    const rows = Array.isArray(economyLog) ? economyLog : [];
+    const columns = [
+      "phase",
+      "seed",
+      "strategy",
+      "act",
+      "slot",
+      "round",
+      "encounterId",
+      "goldBefore",
+      "goldAfter",
+      "debtBefore",
+      "debtAfter",
+      "moraleBefore",
+      "moraleAfter",
+      "partySizeBefore",
+      "partySizeAfter",
+      "rerollsUsed",
+      "debtPaid",
+      "netGoldDelta",
+      "playerWon",
+      "rewardGold",
+      "contractRewardGold",
+      "rewardScaleBonusGold",
+      "totalUpkeep",
+      "upkeepShortfall",
+      "interestCharged",
+      "interestAddedToDebt",
+      "nextState",
+      "endReason",
+    ];
+    const lines = [columns.join("\t")];
+    for (const row of rows) {
+      lines.push(columns.map(c => sanitizeTsvValue(row[c])).join("\t"));
+    }
+    return `${lines.join("\n")}\n`;
   },
 
   formatSeedResults(seedResults) {
@@ -91,6 +178,20 @@ export const BalanceRunLogger = {
     return `${lines.join("\n")}\n`;
   },
 };
+
+function getRunSeed(run) {
+  if (!run) return 0;
+  return run._balanceSeed ?? run.seed ?? 0;
+}
+
+function getEncounterSlot(run) {
+  const encounter = run ? run.currentEncounter : null;
+  return encounter ? encounter.slot : 0;
+}
+
+function getEncounterId(encounter) {
+  return encounter ? (encounter.id || encounter.displayName) : "";
+}
 
 function formatSeedResultRow(result) {
   const row = {
