@@ -51,6 +51,43 @@ Copy this block when adding a new entry. Paste it at the top of the Session log 
 
 <!-- Newest entries at the top. -->
 
+## 2026-06-13 - #286: Encounter reward curve
+
+**Milestone:** GitHub epic
+**Status:** Complete
+
+**Files added:**
+- `web/src/run/EncounterReward.js`
+
+**Files modified:**
+- `web/src/core/GameRules.js` - added centralized reward curve constants.
+- `web/src/run/RunManager.js` - wired scaled win payouts into post-combat settlement.
+- `web/src/data/RunState.js` - stores payout breakdown fields for UI/reporting.
+- `web/src/run/ManagerReportBuilder.js` - reports scaled contract reward context.
+- `web/src/run/BalanceRunLogger.js` - exposes contract reward in combat rows.
+- `web/src/ui/panels/ScoutPanel.js` - previews scaled contract payouts.
+- `web/src/ui/panels/CombatPanel.js` - shows concise payout breakdown rows.
+- `web/src/test/headless.js`, `web/src/test/run.js`, `web/src/test/balance.js` - added reward helper, payout, UI, and report coverage.
+- `PROGRESS.md` - logged the epic wrap.
+- `NEXT_SESSION.md` - returned the project to the slice-selection checkpoint.
+
+**Acceptance criteria:**
+- [x] Gold rewards scale by act, slot, and encounter type.
+- [x] Boss/rival encounters provide stronger payouts.
+- [x] Existing loss rewards and reward bonus systems still compose.
+- [x] Scout, Combat summary, manager report, and balance output make scaled rewards visible.
+- [x] Existing tests pass after every subissue commit.
+
+**Test plan:** `npm.cmd run test:headless` after `#289`, `#290`, and `#291`; `npm.cmd run test:balance -- --seeds=2 --strategy=all --report`; Browser smoke via `python web/serve.py` at `http://localhost:5173`; all passed with zero browser console warnings/errors.
+
+**Deviations from plan:**
+- Added a small `PROGRESS.md` / `NEXT_SESSION.md` wrap commit after the three subissue commits to satisfy the repo session protocol.
+
+**Follow-up flagged:**
+- None.
+
+**Next slice:** Awaiting Matt's next slice selection.
+
 ## 2026-06-13 - #275: Harness targets and late-game validation
 
 **Milestone:** GitHub epic
