@@ -81,7 +81,7 @@ export class CombatPanel {
     const scene = new ThreeCombatBoardScene({ run, encounter });
     const wrap = scene.root;
 
-    this._projectileLayer = null;
+    this._projectileLayer = scene.effectLayer;
 
     // Encounter-type visual accent.
     const encClass = encounter?.type === EncounterType.RivalGhost ? "encounter-rival"
@@ -224,8 +224,8 @@ export class CombatPanel {
 
   _tokenCenter(coord) {
     const pos = this._threeScene?.screenPositionFromCoord(coord) || { x: 50, y: 50 };
-    const x = (pos.x / 100) * 760 + TOKEN_HALF;
-    const y = (pos.y / 100) * 430 + TOKEN_HALF;
+    const x = (pos.x / 100) * 760;
+    const y = (pos.y / 100) * 430;
     return { x, y };
   }
 
@@ -349,7 +349,7 @@ export class CombatPanel {
       this._updateTokenHp(targetEntry, evt.targetHealthAfter, maxHp);
 
       // Update status glyphs.
-      const pd = targetEntry.unit?.statuses?.poisonDamage ?? 0;
+      const pd = evt.targetPoisonDamage ?? targetEntry.unit?.statuses?.poisonDamage ?? 0;
       this._updateTokenGlyphs(targetEntry.node, evt.targetStatuses, pd);
 
       // Death.
@@ -501,7 +501,7 @@ export class CombatPanel {
         this._threeScene?.markUnitDefeated(evt.targetUnitId);
         targetEntry.node.classList.add("dead");
       }
-      this._updateTokenGlyphs(targetEntry.node, evt.targetStatuses || [], 0);
+      this._updateTokenGlyphs(targetEntry.node, evt.targetStatuses || [], evt.targetPoisonDamage || 0);
     }
     if (evt.logText) this._appendLog(evt.logText);
   }

@@ -26,8 +26,12 @@ export class ThreeCombatBoardScene {
     this.root = el("div", { class: "three-combat-scene" });
     this.canvasHost = el("div", { class: "three-combat-canvas-host" });
     this.overlay = el("div", { class: "three-combat-overlay" });
+    this.effectLayer = el("div", { class: "three-effect-layer" });
+    this.unitLayer = el("div", { class: "three-unit-layer" });
     this.root.appendChild(this.canvasHost);
     this.root.appendChild(this.overlay);
+    this.overlay.appendChild(this.effectLayer);
+    this.overlay.appendChild(this.unitLayer);
 
     this.renderer = null;
     this.scene = null;
@@ -48,10 +52,7 @@ export class ThreeCombatBoardScene {
       unit,
       coord: { q: coord.q, r: coord.r },
       group: this.isWebGlActive ? this._buildUnitMesh(isPlayerSide) : null,
-      overlay: el("div", {
-        class: `three-unit-anchor ${isPlayerSide ? "player" : "enemy"}`,
-        title: unit?.displayName || "",
-      }),
+      overlay: this._buildUnitOverlay(unit, isPlayerSide),
       isPlayerSide,
       maxHp: unit?.maxHealth || 1,
       currentHp: unit?.currentHealth || unit?.maxHealth || 1,
@@ -59,10 +60,24 @@ export class ThreeCombatBoardScene {
     };
 
     if (entry.group) this.scene.add(entry.group);
-    this.overlay.appendChild(entry.overlay);
+    this.unitLayer.appendChild(entry.overlay);
     this.units.set(unitId, entry);
     this.moveUnit(unitId, coord, { instant: true });
     return entry;
+  }
+
+  _buildUnitOverlay(unit, isPlayerSide) {
+    const overlay = el("div", {
+      class: `three-unit-anchor ${isPlayerSide ? "player" : "enemy"}`,
+      title: unit?.displayName || "",
+    });
+
+    overlay.appendChild(el("div", { class: "three-unit-pin" }));
+    overlay.appendChild(el("div", { class: "three-unit-name", text: unit?.displayName || "" }));
+    overlay.appendChild(el("div", { class: "ct-hpbar three-hpbar" }, [
+      el("div", { class: "ct-hpfill three-hpfill" }),
+    ]));
+    return overlay;
   }
 
   moveUnit(unitId, coord, _options = {}) {

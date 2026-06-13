@@ -794,10 +794,17 @@ console.log("Run-flow test");
   combatPanel._initUnitsFromSpawnEvents();
   const moveEvt = combatPanel._result.replayEvents.find((event) => event.kind === CombatReplayEventKind.Movement);
   if (moveEvt) combatPanel._applyEvent(moveEvt);
+  const feedbackEvt = combatPanel._result.replayEvents.find((event) =>
+    (event.kind === CombatReplayEventKind.Attack || event.kind === CombatReplayEventKind.Heal) &&
+    event.actorUnitId && event.targetUnitId && event.amount > 0);
+  if (feedbackEvt) combatPanel._applyEvent(feedbackEvt);
   check("combat renderer: teardown before rebuild keeps one Three scene", countClass(combatPanel.root, "three-combat-scene") === 1);
   check("combat renderer: UnitSpawn mapped to Three scene units", combatPanel._threeScene.units.size > 0);
   check("combat renderer: Movement replay updates scene unit coord",
     !moveEvt || combatPanel._threeScene.units.get(moveEvt.actorUnitId).coord.q === moveEvt.targetCoord.q);
+  check("combat renderer: HP bars render on scene anchors", countClass(combatPanel.root, "three-hpfill") === combatPanel._threeScene.units.size);
+  check("combat renderer: feedback spawns floating numbers", !feedbackEvt || countClass(combatPanel.root, "combat-float") >= 1);
+  check("combat renderer: feedback spawns projectile/effect", !feedbackEvt || countClass(combatPanel.root, "projectile") >= 1);
 
   const scene = new ThreeCombatBoardScene({ run: gm.currentRunState, encounter: gm.currentRunState.currentEncounter });
   const playerWorld = scene.worldPositionFromCoord({ q: 0, r: 2 });
@@ -2444,6 +2451,7 @@ function makeFakeElement(tag) {
       this.attributes[key] = value;
     },
     addEventListener() {},
+    removeEventListener() {},
     querySelector(selector) {
       return findFirst(this, (child) => matchesSelector(child, selector));
     },

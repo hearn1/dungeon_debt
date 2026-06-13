@@ -389,6 +389,13 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 .three-combat-overlay {
   pointer-events: none;
 }
+.three-effect-layer,
+.three-unit-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: visible;
+}
 .three-combat-fallback {
   background: linear-gradient(180deg, rgba(44, 51, 63, 0.42), rgba(14, 13, 18, 0.94));
 }
@@ -405,16 +412,47 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 .three-fallback-tile.neutral { background: color-mix(in srgb, var(--bg-card) 82%, var(--rule)); }
 .three-unit-anchor {
   position: absolute;
-  width: 28px;
-  height: 28px;
-  transform: translate(-50%, -70%);
-  border: 2px solid currentColor;
-  background: rgba(14, 13, 18, 0.8);
-  box-shadow: 0 0 10px currentColor;
+  width: 78px;
+  min-height: 82px;
+  transform: translate(-50%, -76%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  overflow: visible;
+  transition: left 0.22s ease-out, top 0.22s ease-out;
 }
 .three-unit-anchor.player { color: var(--gold); }
 .three-unit-anchor.enemy { color: var(--debt-critical); }
-.three-unit-anchor.acting {
+.three-unit-pin {
+  width: 30px;
+  height: 30px;
+  transform: rotate(45deg) skew(-8deg, -8deg);
+  border: 2px solid currentColor;
+  background: rgba(14, 13, 18, 0.84);
+  box-shadow: 0 0 10px currentColor;
+}
+.three-unit-name {
+  max-width: 78px;
+  padding: 1px 5px;
+  background: rgba(14, 13, 18, 0.78);
+  border: 1px solid color-mix(in srgb, currentColor 55%, transparent);
+  color: var(--ink);
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 1.2;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.three-hpbar {
+  position: static;
+  width: 58px;
+  height: 5px;
+  border: 1px solid rgba(14, 13, 18, 0.9);
+}
+.three-unit-anchor.acting .three-unit-pin {
   background: currentColor;
   box-shadow: 0 0 18px currentColor;
 }
