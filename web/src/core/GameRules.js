@@ -103,6 +103,23 @@ export const GameRules = Object.freeze({
   WinReward: 8,
   LossReward: 4,
   RivalWinBonus: 2,
+  EncounterRewardActBonus: Object.freeze({
+    1: 0,
+    2: 2,
+    3: 4,
+    4: 6,
+  }),
+  EncounterRewardProgression: Object.freeze({
+    1: Object.freeze({ start: 0, end: 0 }),
+    2: Object.freeze({ start: 0, end: 4 }),
+    3: Object.freeze({ start: 1, end: 6 }),
+    4: Object.freeze({ start: 2, end: 8 }),
+  }),
+  EncounterRewardTypeBonus: Object.freeze({
+    [EncounterType.Dungeon]: 0,
+    [EncounterType.RivalGhost]: 3,
+    [EncounterType.FinalBoss]: 7,
+  }),
   RelicChoiceCount: 3,
   BladeCharterAttackBonus: 1,
   IronOathHealthBonus: 1,
