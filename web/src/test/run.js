@@ -27,6 +27,7 @@ import { resolveFallbackUnitVisual, resolveUnitVisual, UnitVisualState } from ".
 import { EnemyEffectId, HeroRole, HeroTier, PayrollActionId, EncounterType, DifficultyLevel, RivalGuild, ShopEventId, HeroEffectId, EncounterEffectId, RelicId, CombatStatusId } from "../data/enums.js";
 import { buildManagerReportLines } from "../run/ManagerReportBuilder.js";
 import { getEncounterReward } from "../run/EncounterReward.js";
+import { BalanceRunLogger } from "../run/BalanceRunLogger.js";
 
 let failures = 0;
 function check(name, cond) {
@@ -747,6 +748,7 @@ console.log("Run-flow test");
   globalThis.document = createFakeDocument();
   const gm = new GameManager();
   gm.startRun(DifficultyLevel.Level0);
+  const run = gm.currentRunState;
   const panel = new ScoutPanel(gm);
   panel.render();
   const text = textContentOf(panel.root);
@@ -755,6 +757,13 @@ console.log("Run-flow test");
   check("raceactions-scout-ui: bribe guide button present", text.includes("Expedite with Guide"));
   panel.render();
   check("raceactions-scout-ui: re-render stable", textContentOf(panel.root).includes("RACE"));
+  const boss = DataRepository.encounters.find((e) => e.act === 4 && e.slot === 10 && e.type === EncounterType.FinalBoss);
+  run.act = 4;
+  run.round = 40;
+  run.currentEncounter = boss;
+  panel.render();
+  const bossText = textContentOf(panel.root);
+  check("reward-ui: scout shows scaled boss payout", bossText.includes("+29g") && bossText.includes("scaled"));
   globalThis.document = previousDocument;
 }
 
@@ -816,6 +825,35 @@ console.log("Run-flow test");
     !moveEvt || movedStateAfterMove === UnitVisualState.Move);
   check("combat renderer: action feedback sets target hit state",
     !feedbackEvt || combatPanel._threeScene.units.get(feedbackEvt.targetUnitId).overlay.dataset.visualState === UnitVisualState.Hit);
+
+  const summaryRun = gm.currentRunState;
+  summaryRun.latestRewardGold = 31;
+  summaryRun.latestContractRewardGold = 29;
+  summaryRun.latestRewardScaleBonusGold = 21;
+  summaryRun.latestRivalRewardGold = 0;
+  summaryRun.latestDifficultyRewardGold = -2;
+  summaryRun.latestRewardDrainGold = 0;
+  summaryRun.latestRelicRewardGold = 1;
+  summaryRun.latestNextRewardBonusGold = 3;
+  summaryRun.latestMoraleChange = 0;
+  summaryRun.latestTotalUpkeep = 0;
+  summaryRun.latestUpkeepPaid = 0;
+  summaryRun.latestUpkeepShortfall = 0;
+  summaryRun.latestInterestPaid = 0;
+  summaryRun.latestInterestCharged = 0;
+  summaryRun.latestInterestAddedToDebt = 0;
+  summaryRun.latestManagerReportLines = ["Scaled contract terms added +21 gold for this fight's act and threat."];
+  const summaryPanel = new CombatPanel({
+    currentRunState: summaryRun,
+    continueAfterReward() {},
+  });
+  summaryPanel._result = { playerWon: true, combatRoundsElapsed: 5 };
+  summaryPanel._actions = globalThis.document.createElement("div");
+  summaryPanel.root.appendChild(summaryPanel._actions);
+  summaryPanel._renderSummary();
+  const summaryText = textContentOf(summaryPanel.root);
+  check("reward-ui: combat summary shows scaling breakdown",
+    summaryText.includes("act / threat scaling") && summaryText.includes("+21") && summaryText.includes("difficulty modifier"));
 
   const scene = new ThreeCombatBoardScene({ run: gm.currentRunState, encounter: gm.currentRunState.currentEncounter });
   const playerWorld = scene.worldPositionFromCoord({ q: 0, r: 2 });
@@ -1766,6 +1804,14 @@ function makeCombatResult(overrides = {}) {
   check("report: rival win bonus line", lines.some(l => l.includes("Rival contract bonus")));
 }
 
+// Scaled contract reward
+{
+  const run = makeRun({ latestRewardScaleBonusGold: 21 });
+  const encounter = { type: EncounterType.FinalBoss };
+  const lines = buildManagerReportLines(run, makeCombatResult({ playerWon: true }), encounter);
+  check("report: scaled contract line", lines.some(l => l.includes("Scaled contract terms") && l.includes("+21 gold")));
+}
+
 // Rival win bonus not shown on loss
 {
   const run = makeRun();
@@ -2201,6 +2247,8 @@ function makeCombatResult(overrides = {}) {
   const mockWin = { playerWon: true, survivorFlags: {}, deadHeroes: [] };
   rm.applyPostCombatResult(mockWin, enc);
   check("economy: act 4 boss win uses scaled reward", run.latestRewardGold === getEncounterReward(4, 10, EncounterType.FinalBoss));
+  check("economy: act 4 boss reward breakdown stored",
+    run.latestContractRewardGold === getEncounterReward(4, 10, EncounterType.FinalBoss) && run.latestRewardScaleBonusGold === 21);
 }
 
 // 2c. Rival wins keep the existing rival bonus layered on top of the scaled reward.
@@ -2214,6 +2262,41 @@ function makeCombatResult(overrides = {}) {
   rm.applyPostCombatResult(mockWin, enc);
   check("economy: rival win keeps bonus after scaled reward",
     run.latestRewardGold === getEncounterReward(3, 6, EncounterType.RivalGhost) + GameRules.RivalWinBonus);
+}
+
+// 2d. Difficulty, relic, and merchant reward bonuses compose after scaling.
+{
+  const rm = new RunManager();
+  const run = rm.initializeRun(DifficultyLevel.Level6, 1);
+  run.gold = 200;
+  run.activeRelics.push(RelicId.GuildDividend);
+  run.pendingNextRewardBonus = 5;
+  const enc = DataRepository.encounters.find((e) => e.act === 4 && e.slot === 10 && e.type === EncounterType.FinalBoss);
+  run.currentEncounter = enc;
+  const mockWin = { playerWon: true, survivorFlags: {}, deadHeroes: [] };
+  rm.applyPostCombatResult(mockWin, enc);
+  check("economy: reward bonuses compose after scaled reward",
+    run.latestRewardGold === getEncounterReward(4, 10, EncounterType.FinalBoss) - 2 + GameRules.GuildDividendRewardGold + 5);
+  check("economy: reward bonus breakdown stored",
+    run.latestDifficultyRewardGold === -2 && run.latestRelicRewardGold === GameRules.GuildDividendRewardGold && run.latestNextRewardBonusGold === 5);
+}
+
+// 2e. Balance combat rows expose the scaled contract reward.
+{
+  const rm = new RunManager();
+  const run = rm.initializeRun(DifficultyLevel.Level0, 1);
+  run.gold = 200;
+  const enc = DataRepository.encounters.find((e) => e.act === 4 && e.slot === 10 && e.type === EncounterType.FinalBoss);
+  run.currentEncounter = enc;
+  const mockWin = { playerWon: true, survivorFlags: {}, deadHeroes: [], combatRoundsElapsed: 4 };
+  rm.applyPostCombatResult(mockWin, enc);
+  BalanceRunLogger.combatRows = [];
+  BalanceRunLogger.startRun(run);
+  BalanceRunLogger.logCombat(run, mockWin, enc);
+  const tsv = BalanceRunLogger.formatCombatResults(BalanceRunLogger.combatRows);
+  check("balance: combat row exposes contract reward",
+    BalanceRunLogger.combatRows[0].contractRewardGold === getEncounterReward(4, 10, EncounterType.FinalBoss)
+      && tsv.includes("contractRewardGold"));
 }
 
 // 3. Ninja loot on kill: gold gained during combat exceeds WinReward alone.
@@ -2502,6 +2585,13 @@ function makeFakeElement(tag) {
       const index = this.children.indexOf(child);
       if (index >= 0) this.children.splice(index, 1);
       if (child && typeof child === "object") child.parentNode = null;
+      return child;
+    },
+    insertBefore(child, referenceChild) {
+      if (child && typeof child === "object") child.parentNode = this;
+      const index = this.children.indexOf(referenceChild);
+      if (index >= 0) this.children.splice(index, 0, child);
+      else this.children.push(child);
       return child;
     },
     remove() {

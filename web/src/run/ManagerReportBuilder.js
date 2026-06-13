@@ -58,6 +58,12 @@ export function buildManagerReportLines(run, combatResult, encounter, maxLines =
     if (lines.length >= maxLines) return lines;
   }
 
+  // Priority 75: Scaled contract reward
+  if (combatResult.playerWon && run.latestRewardScaleBonusGold > 0) {
+    lines.push(`Scaled contract terms added +${run.latestRewardScaleBonusGold} gold for this fight's act and threat.`);
+    if (lines.length >= maxLines) return lines;
+  }
+
   // Priority 80: Rival win bonus
   if (combatResult.playerWon && encounter && encounter.type === EncounterType.RivalGhost) {
     lines.push(`Rival contract bonus made this fight +${GameRules.RivalWinBonus} gold more profitable.`);

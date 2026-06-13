@@ -109,22 +109,38 @@ export class RunManager {
     run.latestDebtStatusBefore = GameRulesFns.getDebtStatusLabel(run.debt);
     const isRivalGhost = encounter && encounter.type === EncounterType.RivalGhost;
     const rewardBreakdown = getEncounterRewardBreakdownForEncounter(encounter);
-    let rewardGold = combatResult.playerWon ? rewardBreakdown.totalGold : GameRules.LossReward;
-    if (combatResult.playerWon && isRivalGhost) rewardGold += GameRules.RivalWinBonus;
-    if (combatResult.playerWon && run.rewardGoldModifier !== 0) rewardGold = Math.max(0, rewardGold + run.rewardGoldModifier);
+    const contractRewardGold = combatResult.playerWon ? rewardBreakdown.totalGold : GameRules.LossReward;
+    const rewardScaleBonusGold = combatResult.playerWon
+      ? rewardBreakdown.actBonus + rewardBreakdown.progressBonus + rewardBreakdown.typeBonus
+      : 0;
+    let rewardGold = contractRewardGold;
+    let rivalRewardGold = 0;
+    if (combatResult.playerWon && isRivalGhost) {
+      rivalRewardGold = GameRules.RivalWinBonus;
+      rewardGold += rivalRewardGold;
+    }
+    let difficultyRewardGold = 0;
+    if (combatResult.playerWon && run.rewardGoldModifier !== 0) {
+      const beforeDifficulty = rewardGold;
+      rewardGold = Math.max(0, rewardGold + run.rewardGoldModifier);
+      difficultyRewardGold = rewardGold - beforeDifficulty;
+    }
 
     const lossMorale = isRivalGhost ? GameRules.RivalLossMorale : GameRules.DungeonLossMorale;
     const moraleChange = combatResult.playerWon ? 0 : -lossMorale;
 
+    const beforeDrain = rewardGold;
     if (combatResult.survivorFlags) {
       if (combatResult.survivorFlags["goblinStoleGold"]) rewardGold -= GameRules.GoblinThiefStealGold;
       if (combatResult.survivorFlags["treasureLeechSurvived"]) rewardGold -= GameRules.TreasureLeechStealGold;
     }
     if (rewardGold < 0) rewardGold = 0;
+    const rewardDrainGold = beforeDrain - rewardGold;
 
     const relicRewardGold = hasRelic(run, RelicId.GuildDividend) ? GameRules.GuildDividendRewardGold : 0;
     rewardGold += relicRewardGold;
 
+    const nextRewardBonusGold = run.pendingNextRewardBonus > 0 ? run.pendingNextRewardBonus : 0;
     if (run.pendingNextRewardBonus > 0) {
       rewardGold += run.pendingNextRewardBonus;
       run.pendingNextRewardBonus = 0;
@@ -184,7 +200,13 @@ export class RunManager {
     run.hasLatestRewardSummary = true;
     run.latestCombatWon = combatResult.playerWon;
     run.latestRewardGold = rewardGold;
+    run.latestContractRewardGold = contractRewardGold;
+    run.latestRewardScaleBonusGold = rewardScaleBonusGold;
+    run.latestRivalRewardGold = rivalRewardGold;
+    run.latestDifficultyRewardGold = difficultyRewardGold;
+    run.latestRewardDrainGold = rewardDrainGold;
     run.latestRelicRewardGold = relicRewardGold;
+    run.latestNextRewardBonusGold = nextRewardBonusGold;
     run.latestMoraleChange = moraleChange;
     run.latestTotalUpkeep = totalUpkeep;
     run.latestUpkeepPaid = upkeepPaid;

@@ -2,6 +2,7 @@ import { el, clear } from "../dom.js";
 import { appendPanelHeader, roundGuidanceCallout } from "../components.js";
 import { GameRules, GameRulesFns } from "../../core/GameRules.js";
 import { EncounterType } from "../../data/enums.js";
+import { getEncounterRewardBreakdownForEncounter } from "../../run/EncounterReward.js";
 
 export class ScoutPanel {
   constructor(gm) {
@@ -24,6 +25,8 @@ export class ScoutPanel {
     const capstone = GameRulesFns.isCapstoneEncounter(enc);
     const isRival = enc.type === EncounterType.RivalGhost && !capstone;
     const isBoss = enc.type === EncounterType.FinalBoss;
+    const rewardBreakdown = getEncounterRewardBreakdownForEncounter(enc);
+    const previewRewardGold = rewardBreakdown.totalGold + (isRival ? GameRules.RivalWinBonus : 0);
 
     // Top cue strip — capstone signals a relic reward; rival fights show the guild.
     if (capstone) {
@@ -46,7 +49,7 @@ export class ScoutPanel {
     // Reward preview.
     card.appendChild(el("div", { class: "scout-reward-row" }, [
       el("span", { class: "panel-sub", text: "CONTRACT PAYOUT" }),
-      el("span", { class: "uc-cost", text: `+${enc.baseGoldReward}g${isRival ? ` (+${GameRules.RivalWinBonus} rival bonus)` : ""}` }),
+      el("span", { class: "uc-cost", text: `+${previewRewardGold}g${formatRewardPreview(rewardBreakdown, isRival)}` }),
     ]));
 
     const enemies = el("div", {});
@@ -99,4 +102,12 @@ export class ScoutPanel {
       el("button", { class: "btn primary", text: "Send to Recruitment →", onClick: () => this.gm.continueFromScout() }),
     ]));
   }
+}
+
+function formatRewardPreview(rewardBreakdown, isRival) {
+  const parts = [];
+  const scaleBonus = rewardBreakdown.actBonus + rewardBreakdown.progressBonus + rewardBreakdown.typeBonus;
+  if (scaleBonus > 0) parts.push(`+${scaleBonus} scaled`);
+  if (isRival) parts.push(`+${GameRules.RivalWinBonus} rival`);
+  return parts.length > 0 ? ` (${parts.join(", ")})` : "";
 }

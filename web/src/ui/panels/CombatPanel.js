@@ -548,7 +548,24 @@ export class CombatPanel {
     }
 
     summary.appendChild(summaryRow("Contract payout", `+${run.latestRewardGold}`, "pos"));
+    if (run.latestContractRewardGold !== run.latestRewardGold) {
+      summary.appendChild(summaryRow("  (contract value)", `+${run.latestContractRewardGold}`, "pos"));
+    }
+    if (run.latestRewardScaleBonusGold > 0) {
+      summary.appendChild(summaryRow("  (act / threat scaling)", `+${run.latestRewardScaleBonusGold}`, "pos"));
+    }
+    if (run.latestRivalRewardGold > 0) {
+      summary.appendChild(summaryRow("  (rival bonus)", `+${run.latestRivalRewardGold}`, "pos"));
+    }
+    if (run.latestDifficultyRewardGold !== 0) {
+      const cls = run.latestDifficultyRewardGold > 0 ? "pos" : "neg";
+      summary.appendChild(summaryRow("  (difficulty modifier)", signedNumber(run.latestDifficultyRewardGold), cls));
+    }
+    if (run.latestRewardDrainGold > 0) {
+      summary.appendChild(summaryRow("  (reward drain)", `-${run.latestRewardDrainGold}`, "neg"));
+    }
     if (run.latestRelicRewardGold > 0) summary.appendChild(summaryRow("  (relic bonus)", `+${run.latestRelicRewardGold}`, "pos"));
+    if (run.latestNextRewardBonusGold > 0) summary.appendChild(summaryRow("  (merchant bonus)", `+${run.latestNextRewardBonusGold}`, "pos"));
     if (run.latestMoraleChange !== 0) summary.appendChild(summaryRow("Morale adjustment", `${run.latestMoraleChange}`, "neg"));
     summary.appendChild(summaryRow("Wages paid", `−${run.latestUpkeepPaid} / ${run.latestTotalUpkeep}`));
     if (run.latestUpkeepShortfall > 0) summary.appendChild(summaryRow("Wage shortfall → debt", `+${run.latestUpkeepShortfall}`, "neg"));
@@ -633,4 +650,8 @@ function summaryRow(label, value, cls) {
     el("span", { class: "panel-sub", text: label }),
     el("span", { class: cls || "", text: value }),
   ]);
+}
+
+function signedNumber(value) {
+  return value > 0 ? `+${value}` : String(value);
 }
