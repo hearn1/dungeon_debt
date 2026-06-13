@@ -784,6 +784,9 @@ console.log("Run-flow test");
   formationPanel.render();
   check("formation renderer: re-render keeps one board", countClass(formationPanel.root, "hex-board") === 1);
   check("formation renderer: deployment tile count stable", countClass(formationPanel.root, "hex-tile") === 10);
+  check("formation renderer: unit visuals wired through catalog", countClass(formationPanel.root, "hex-hero-visual") === 2);
+  check("formation renderer: visual metadata stored on tokens",
+    countVisualGroups(formationPanel.root, "hero-tank") >= 1 && countVisualGroups(formationPanel.root, "hero-damage") >= 1);
 
   const combatPanel = new CombatPanel(gm);
   combatPanel._result = gm.resolveCombat();
@@ -794,6 +797,9 @@ console.log("Run-flow test");
   combatPanel._initUnitsFromSpawnEvents();
   const moveEvt = combatPanel._result.replayEvents.find((event) => event.kind === CombatReplayEventKind.Movement);
   if (moveEvt) combatPanel._applyEvent(moveEvt);
+  const movedStateAfterMove = moveEvt
+    ? combatPanel._threeScene.units.get(moveEvt.actorUnitId).overlay.dataset.visualState
+    : "";
   const feedbackEvt = combatPanel._result.replayEvents.find((event) =>
     (event.kind === CombatReplayEventKind.Attack || event.kind === CombatReplayEventKind.Heal) &&
     event.actorUnitId && event.targetUnitId && event.amount > 0);
@@ -805,15 +811,24 @@ console.log("Run-flow test");
   check("combat renderer: HP bars render on scene anchors", countClass(combatPanel.root, "three-hpfill") === combatPanel._threeScene.units.size);
   check("combat renderer: feedback spawns floating numbers", !feedbackEvt || countClass(combatPanel.root, "combat-float") >= 1);
   check("combat renderer: feedback spawns projectile/effect", !feedbackEvt || countClass(combatPanel.root, "projectile") >= 1);
+  check("combat renderer: movement sets visual move state",
+    !moveEvt || movedStateAfterMove === UnitVisualState.Move);
+  check("combat renderer: action feedback sets target hit state",
+    !feedbackEvt || combatPanel._threeScene.units.get(feedbackEvt.targetUnitId).overlay.dataset.visualState === UnitVisualState.Hit);
 
   const scene = new ThreeCombatBoardScene({ run: gm.currentRunState, encounter: gm.currentRunState.currentEncounter });
   const playerWorld = scene.worldPositionFromCoord({ q: 0, r: 2 });
   const enemyWorld = scene.worldPositionFromCoord({ q: 6, r: 2 });
   const unit = { displayName: "Test Unit", maxHealth: 8, currentHealth: 8 };
   scene.addUnit("p0", unit, { q: 0, r: 2 }, true);
+  scene.setUnitVisualState("p0", UnitVisualState.Attack);
   check("three scene: fallback board renders all tiles", countClass(scene.root, "three-fallback-tile") === GameRules.HexBoardWidth * GameRules.HexBoardHeight);
   check("three scene: player side is closer to camera", playerWorld.z > enemyWorld.z);
   check("three scene: unit anchor registered", scene.units.has("p0") && countClass(scene.root, "three-unit-anchor") === 1);
+  check("three scene: unit visual resolved and portrait rendered",
+    scene.units.get("p0").visual.group === "fallback-unit" && countClass(scene.root, "three-unit-portrait") === 1);
+  check("three scene: explicit visual state stored on overlay",
+    scene.units.get("p0").overlay.dataset.visualState === UnitVisualState.Attack);
   scene.destroy();
   check("three scene: destroy clears root nodes", scene.root.children.length === 0);
 
@@ -2523,6 +2538,14 @@ function countClass(node, className) {
   let count = hasClass(node, className) ? 1 : 0;
   if (!node.children) return count;
   for (const child of node.children) count += countClass(child, className);
+  return count;
+}
+
+function countVisualGroups(node, visualGroup) {
+  if (!node) return 0;
+  let count = node.dataset?.visualGroup === visualGroup ? 1 : 0;
+  if (!node.children) return count;
+  for (const child of node.children) count += countVisualGroups(child, visualGroup);
   return count;
 }
 
