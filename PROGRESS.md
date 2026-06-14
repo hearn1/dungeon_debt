@@ -51,6 +51,42 @@ Copy this block when adding a new entry. Paste it at the top of the Session log 
 
 <!-- Newest entries at the top. -->
 
+## 2026-06-14 - #311: Combat V2 replay and presentation
+
+**Milestone:** GitHub epic
+**Status:** Complete
+
+**Files added:**
+- `web/docs/COMBAT_V2_REPLAY.md`
+
+**Files modified:**
+- `web/src/data/CombatReplayEvent.js` - added replay phase, group, sequence, cooldown snapshot, and attack/ability start event surfaces.
+- `web/src/combat/CombatLogger.js` - stamps deterministic replay phases/groups and cooldown snapshots.
+- `web/src/combat/CombatManager.js` - emits grouped movement, attack/ability start, hit resolution, death, and round-effect replay events.
+- `web/src/ui/panels/CombatPanel.js` - advances replay one group per visual step, coordinates windups/hit/death presentation, action bars, skip, and reduced-motion instant paths.
+- `web/src/ui/board/ThreeCombatBoardScene.js` - renders compact action/ability timeline bars on combat unit anchors.
+- `web/styles/main.css` - styles timeline bars and fast/reduced-motion replay presentation states.
+- `web/src/test/combat.js`, `web/src/test/run.js` - added replay validation, grouped presentation, action bar, skip, and reduced-motion coverage.
+- `IMPLEMENTATION_PLAN.md`, `PROGRESS.md`, `NEXT_SESSION.md` - documented the replay contract and session wrap.
+
+**Acceptance criteria:**
+- [x] Replay events carry deterministic `phase`, `groupId`, and `groupSequence` metadata.
+- [x] Replay validation covers grouped events, same-tick lethal trades, dead-unit prevention, and malformed phase/movement cases.
+- [x] Combat presentation advances grouped same-tick events together instead of one event at a time.
+- [x] Unit action and ability bars update from replay cooldown snapshots.
+- [x] Normal, fast, skip-to-report, and reduced-motion replay paths remain functional.
+- [x] Replay behavior and durable UI contracts are documented.
+
+**Test plan:** `npm.cmd run test:headless` after each subissue commit; Browser smoke at `http://localhost:5173` for normal replay, fast speed plus skip-to-report, and reduced-motion summary path; all passed.
+
+**Deviations from plan:**
+- During final browser smoke, added a small reduced-motion replay-index reset and regression test so instant replay paths always start from a clean event index on render.
+
+**Follow-up flagged:**
+- No new regressions filed. Existing `R005-3` death fade polish remains available if Matt chooses a visual polish slice.
+
+**Next slice:** Awaiting Matt's next selected slice.
+
 ## 2026-06-14 - #310: Combat V2 simulation foundation
 
 **Milestone:** GitHub epic
