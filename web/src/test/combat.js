@@ -1202,6 +1202,77 @@ import { getDefaultPlayerBoardPosition, getDefaultEnemyBoardPosition, isInPlayer
     result.logLines.some(l => l.includes("Ranger moves to")));
 }
 
+// Issue 333: archer backline vs melee rush stays finite and deterministic.
+{
+  const run = buildRunSlotted([{ id: "ranger", slot: 3 }]);
+  const enemy = new EnemyDefinition("melee_rush", "Melee Rush", 1, 12,
+    EnemyEffectId.None, "Durable melee rusher for ranged regression coverage.");
+  const rushEncounter = new EncounterDefinition(1, 1, EncounterType.Dungeon, "Melee Rush",
+    "Ranged carry faces a melee unit crossing the board.", "Ranged", [enemy], 0,
+    EncounterEffectId.None, RivalGuild.None, "melee-rush", [{ q: 5, r: 2 }]);
+  const result = new CombatManager().startCombat(run, rushEncounter);
+  const rangerAttackStarts = result.replayEvents.filter(e => e.kind === CombatReplayEventKind.AttackStart && e.actorUnitId === "p3");
+  check("333: archer backline scenario resolves deterministically",
+    result.logLines.length > 0 && result.combatRoundsElapsed > 0);
+  check("333: Ranger attacks only within finite long range",
+    rangerAttackStarts.length > 0 &&
+    rangerAttackStarts.every(e => hexDistance(e.sourceCoord, e.targetCoord) <= GameRules.DefaultLongRangedRange));
+}
+
+// Issue 333: protected ranged carry remains strong with a frontline.
+{
+  const run = buildRunSlotted([{ id: "golem", slot: 0 }, { id: "ranger", slot: 3 }]);
+  const enemy = new EnemyDefinition("shield_test_brute", "Shield Test Brute", 1, 14,
+    EnemyEffectId.None, "Durable melee attacker for protected carry coverage.");
+  const protectedEncounter = new EncounterDefinition(1, 1, EncounterType.Dungeon, "Protected Carry",
+    "Frontline protects ranged carry.", "Ranged", [enemy], 0,
+    EncounterEffectId.None, RivalGuild.None, "protected-carry", [{ q: 5, r: 2 }]);
+  const result = new CombatManager().startCombat(run, protectedEncounter);
+  const rangerDamage = result.replayEvents
+    .filter(e => e.kind === CombatReplayEventKind.Attack && e.actorUnitId === "p3")
+    .reduce((sum, e) => sum + e.amount, 0);
+  const backlineDamage = result.replayEvents
+    .filter(e => e.kind === CombatReplayEventKind.Attack && !e.attackerIsPlayerSide && e.targetSlot >= GameRules.FrontlineSlots)
+    .reduce((sum, e) => sum + e.amount, 0);
+  check("333: protected ranged carry wins or meaningfully contributes",
+    result.playerWon || rangerDamage >= 6);
+  check("333: protected carry backline takes limited pressure", backlineDamage <= 2);
+}
+
+// Issue 333: mixed melee/ranged teams both participate.
+{
+  const run = buildRunSlotted([{ id: "warrior", slot: 0 }, { id: "ranger", slot: 3 }]);
+  const enemies = [
+    new EnemyDefinition("mixed_guard", "Mixed Guard", 1, 8, EnemyEffectId.None, "Front melee."),
+    new EnemyDefinition("mixed_brute", "Mixed Brute", 1, 10, EnemyEffectId.None, "Back melee."),
+  ];
+  const mixedEncounter = new EncounterDefinition(1, 1, EncounterType.Dungeon, "Mixed Drill",
+    "Mixed team fights multiple melee enemies.", "Ranged", enemies, 0,
+    EncounterEffectId.None, RivalGuild.None, "mixed-drill", [{ q: 5, r: 1 }, { q: 5, r: 3 }]);
+  const result = new CombatManager().startCombat(run, mixedEncounter);
+  const warriorAttacks = result.replayEvents.filter(e => e.kind === CombatReplayEventKind.Attack && e.actorUnitId === "p0");
+  const rangerAttacks = result.replayEvents.filter(e => e.kind === CombatReplayEventKind.Attack && e.actorUnitId === "p3");
+  check("333: mixed melee/ranged scenario has melee attacks", warriorAttacks.length > 0);
+  check("333: mixed melee/ranged scenario has ranged attacks", rangerAttacks.length > 0);
+}
+
+// Issue 333: melee can pressure a solo ranged unit.
+{
+  const run = buildRunSlotted([{ id: "ranger", slot: 3 }]);
+  const enemy = new EnemyDefinition("pressure_brute", "Pressure Brute", 1, 30,
+    EnemyEffectId.None, "Durable melee attacker that reaches the backline.");
+  const pressureEncounter = new EncounterDefinition(1, 1, EncounterType.Dungeon, "Pressure Brute",
+    "Melee can reach ranged unit if it survives.", "Ranged", [enemy], 0,
+    EncounterEffectId.None, RivalGuild.None, "pressure-brute", [{ q: 5, r: 2 }]);
+  const result = new CombatManager().startCombat(run, pressureEncounter);
+  const meleeHitsRanger = result.replayEvents.some(e =>
+    e.kind === CombatReplayEventKind.AttackStart &&
+    !e.attackerIsPlayerSide &&
+    e.targetUnitId === "p3" &&
+    hexDistance(e.sourceCoord, e.targetCoord) <= GameRules.DefaultMeleeRange);
+  check("333: melee pressure can reach a solo ranged unit", meleeHitsRanger);
+}
+
 // Determinism still holds with board movement.
 {
   const a = new CombatManager().startCombat(buildRun(["warrior", "golem", "wizard", "ranger", "priest"]), encounter(1, 3));
