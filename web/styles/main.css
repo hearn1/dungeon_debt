@@ -1135,6 +1135,8 @@ html[data-reduced-motion="true"] *::after {
 .report-field:focus { outline: none; border-color: var(--gold); }
 .report-textarea { min-height: 70px; resize: vertical; }
 .report-hint { font-size: 12px; color: var(--ink-dim); }
+.report-debug-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.report-copy-status { font-size: 12px; color: var(--ink-dim); }
 
 /* Debt chip critical-tier pulse: financial threat signal. */
 @keyframes debt-pulse {

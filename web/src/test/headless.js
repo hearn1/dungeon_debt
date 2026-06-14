@@ -18,6 +18,7 @@ import { EncounterType } from "../data/enums.js";
 import { BalanceChallengeFlag, classifyEncounterChallenge, getBalanceTargetBand } from "./BalanceTargets.js";
 import { FeedbackReportBuilder } from "../ui/FeedbackReportBuilder.js";
 import { AppInfo } from "../core/AppInfo.js";
+import { DebugLogBuffer } from "../core/DebugLogBuffer.js";
 
 let failures = 0;
 function check(name, cond) {
@@ -356,6 +357,55 @@ console.log("\nSaveManager tests");
   check("buildGitHubUrl encodes title param", url.includes("title="));
   check("buildGitHubUrl encodes body param", url.includes("body="));
   check("buildGitHubUrl encodes spaces", url.includes("Test+title") || url.includes("Test%20title"));
+
+  // buildDebugReport — no run
+  const debugNoRun = FeedbackReportBuilder.buildDebugReport(null, "Main Menu");
+  check("buildDebugReport includes version", debugNoRun.includes(AppInfo.version));
+  check("buildDebugReport includes screen label", debugNoRun.includes("Main Menu"));
+  check("buildDebugReport includes Generated timestamp", debugNoRun.includes("Generated:"));
+  check("buildDebugReport says no active run", debugNoRun.includes("No active run"));
+
+  // buildDebugReport — with run
+  const debugWithRun = FeedbackReportBuilder.buildDebugReport({
+    act: 1, round: 3, gold: 20, debt: 0, morale: 5,
+    difficultyDisplayName: "Standard",
+    party: [{ definition: { displayName: "Lyra", role: "Ranger" }, tier: "Bronze" }],
+    activeRelics: [],
+    currentEncounter: { displayName: "Rat Cave" },
+    hasLatestRewardSummary: false,
+  }, "Scout");
+  check("buildDebugReport with run includes act", debugWithRun.includes("Act: 1"));
+  check("buildDebugReport with run includes hero", debugWithRun.includes("Lyra"));
+  check("buildDebugReport with run includes encounter", debugWithRun.includes("Rat Cave"));
+}
+
+// DebugLogBuffer
+{
+  console.log("\nDebugLogBuffer");
+
+  DebugLogBuffer.clear();
+  check("starts empty after clear", DebugLogBuffer.getEntries().length === 0);
+
+  // Manually push entries via _push (install() is not called in headless)
+  DebugLogBuffer._push("warn", ["test warning"]);
+  DebugLogBuffer._push("error", ["test error"]);
+  const entries = DebugLogBuffer.getEntries();
+  check("captures warn entry", entries.some(e => e.level === "warn" && e.text.includes("test warning")));
+  check("captures error entry", entries.some(e => e.level === "error" && e.text.includes("test error")));
+  check("entries have ts field", entries.every(e => typeof e.ts === "string"));
+
+  // Cap at MAX_ENTRIES (100)
+  DebugLogBuffer.clear();
+  for (let i = 0; i < 110; i++) DebugLogBuffer._push("warn", [`entry ${i}`]);
+  check("caps at 100 entries", DebugLogBuffer.getEntries().length === 100);
+  check("retains most recent entries", DebugLogBuffer.getEntries().at(-1).text.includes("entry 109"));
+
+  // getEntries returns a copy (snapshot is not live)
+  DebugLogBuffer.clear();
+  DebugLogBuffer._push("warn", ["snap test"]);
+  const snap1 = DebugLogBuffer.getEntries();
+  DebugLogBuffer._push("warn", ["extra"]);
+  check("getEntries returns snapshot copy", snap1.length === 1 && DebugLogBuffer.getEntries().length === 2);
 }
 
 console.log(failures === 0 ? "\nALL PASS" : `\n${failures} FAILURE(S)`);
