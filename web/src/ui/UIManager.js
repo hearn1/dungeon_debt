@@ -4,6 +4,7 @@ import { el, clear } from "./dom.js";
 import { GameState } from "../core/GameState.js";
 import { RunHeader } from "./RunHeader.js";
 import { HelpContent } from "./HelpContent.js";
+import { FeedbackReporter } from "./FeedbackReporter.js";
 import { MainMenuPanel } from "./panels/MainMenuPanel.js";
 import { ScoutPanel } from "./panels/ScoutPanel.js";
 import { ShopPanel } from "./panels/ShopPanel.js";
@@ -19,6 +20,19 @@ const HEADER_STATES = new Set([
   GameState.Payroll, GameState.Combat, GameState.RelicReward, GameState.RivalUpdate,
 ]);
 
+const STATE_SCREEN_LABELS = {
+  [GameState.MainMenu]: "Main Menu",
+  [GameState.Scout]: "Scout",
+  [GameState.Shop]: "Shop",
+  [GameState.Formation]: "Formation",
+  [GameState.Payroll]: "Payroll",
+  [GameState.Combat]: "Combat",
+  [GameState.RelicReward]: "Relic Reward",
+  [GameState.RivalUpdate]: "Rival Update",
+  [GameState.Victory]: "Victory",
+  [GameState.Defeat]: "Defeat",
+};
+
 export class UIManager {
   constructor(gm, rootEl) {
     this.gm = gm;
@@ -26,10 +40,12 @@ export class UIManager {
     this.header.onHelpClick = () => this._showHelp();
     this.stage = el("div", { class: "stage" });
     this._currentState = null;
+    this._reporter = new FeedbackReporter(gm);
 
     clear(rootEl);
     rootEl.appendChild(this.header.root);
     rootEl.appendChild(this.stage);
+    rootEl.appendChild(this._buildReportBtn());
 
     const refresh = () => this.header.refresh(this.gm.currentRunState);
     this.panels = {
@@ -58,6 +74,7 @@ export class UIManager {
     // StartRun is a transient bootstrap state; Scout follows immediately.
     if (state === GameState.StartRun) return;
     this._currentState = state;
+    this._reporter.setCurrentScreen(STATE_SCREEN_LABELS[state] || state);
     this._closeHelp();
 
     if (HEADER_STATES.has(state)) this.header.refresh(this.gm.currentRunState);
@@ -103,5 +120,14 @@ export class UIManager {
 
   _closeHelp() {
     document.getElementById("run-help-modal")?.remove();
+  }
+
+  _buildReportBtn() {
+    return el("button", {
+      class: "btn report-issue-fab",
+      text: "Report Issue",
+      title: "Report a bug or feedback",
+      onClick: () => this._reporter.open(),
+    });
   }
 }

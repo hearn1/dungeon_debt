@@ -16,6 +16,8 @@ import { getEncounterReward, getEncounterRewardBreakdown } from "../run/Encounte
 import { getEncounterRewardQualityBreakdown, getEncounterRewardQualitySummary, getEncounterVeterancyXpBreakdown } from "../run/EncounterRewardQuality.js";
 import { EncounterType } from "../data/enums.js";
 import { BalanceChallengeFlag, classifyEncounterChallenge, getBalanceTargetBand } from "./BalanceTargets.js";
+import { FeedbackReportBuilder } from "../ui/FeedbackReportBuilder.js";
+import { AppInfo } from "../core/AppInfo.js";
 
 let failures = 0;
 function check(name, cond) {
@@ -307,6 +309,53 @@ console.log("\nSaveManager tests");
   sm12.reset();
   check("save: reset clears animationSpeed to normal", sm12.getAnimationSpeed() === "normal");
   check("save: reset clears reducedMotion to false", sm12.getReducedMotion() === false);
+}
+
+// FeedbackReportBuilder
+{
+  console.log("\nFeedbackReportBuilder");
+
+  check("AppInfo version is a semver string", /^\d+\.\d+\.\d+$/.test(AppInfo.version));
+  check("AppInfo repoIssuesUrl contains github", AppInfo.repoIssuesUrl.includes("github.com"));
+
+  const title = FeedbackReportBuilder.buildIssueTitle("crash on round 5");
+  check("buildIssueTitle includes description", title.includes("crash on round 5"));
+  check("buildIssueTitle has Feedback/Bug prefix", title.startsWith("Feedback/Bug Report:"));
+
+  const titleEmpty = FeedbackReportBuilder.buildIssueTitle("");
+  check("buildIssueTitle handles empty description", titleEmpty.startsWith("Feedback/Bug Report:"));
+
+  const bodyNoRun = FeedbackReportBuilder.buildIssueBody({ whatHappened: "it crashed", whatExpected: "no crash" }, null, "Main Menu");
+  check("buildIssueBody includes what happened", bodyNoRun.includes("it crashed"));
+  check("buildIssueBody includes what expected", bodyNoRun.includes("no crash"));
+  check("buildIssueBody includes screen label", bodyNoRun.includes("Main Menu"));
+  check("buildIssueBody includes build version", bodyNoRun.includes(AppInfo.version));
+  check("buildIssueBody says no active run when null", bodyNoRun.includes("No active run"));
+  check("buildIssueBody has screenshot note", bodyNoRun.includes("screenshot"));
+
+  const fakeRun = {
+    act: 2, round: 14, gold: 30, debt: 5, morale: 3,
+    difficultyDisplayName: "Veteran",
+    party: [
+      { definition: { displayName: "Garrick", role: "Tank" }, tier: "Bronze" },
+    ],
+    activeRelics: ["relic_iron_will"],
+    currentEncounter: { displayName: "Spider Nest" },
+  };
+  const bodyWithRun = FeedbackReportBuilder.buildIssueBody({}, fakeRun, "Combat");
+  check("buildIssueBody includes act", bodyWithRun.includes("Act: 2"));
+  check("buildIssueBody includes round", bodyWithRun.includes("Round: 14"));
+  check("buildIssueBody includes gold", bodyWithRun.includes("Gold: 30"));
+  check("buildIssueBody includes difficulty", bodyWithRun.includes("Veteran"));
+  check("buildIssueBody includes hero name", bodyWithRun.includes("Garrick"));
+  check("buildIssueBody includes relic", bodyWithRun.includes("relic_iron_will"));
+  check("buildIssueBody includes encounter", bodyWithRun.includes("Spider Nest"));
+
+  const url = FeedbackReportBuilder.buildGitHubUrl("Test title", "Test body");
+  check("buildGitHubUrl contains issues/new", url.includes("issues/new"));
+  check("buildGitHubUrl encodes title param", url.includes("title="));
+  check("buildGitHubUrl encodes body param", url.includes("body="));
+  check("buildGitHubUrl encodes spaces", url.includes("Test+title") || url.includes("Test%20title"));
 }
 
 console.log(failures === 0 ? "\nALL PASS" : `\n${failures} FAILURE(S)`);
