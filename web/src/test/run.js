@@ -4,6 +4,7 @@
 
 import { GameManager } from "../core/GameManager.js";
 import { MemoryStorage } from "../core/SaveManager.js";
+import { Settings } from "../core/Settings.js";
 import { GameState } from "../core/GameState.js";
 import { GameRules, GameRulesFns } from "../core/GameRules.js";
 import { DataRepository } from "../core/DataRepository.js";
@@ -864,6 +865,22 @@ console.log("Run-flow test");
   combatPanel._finish();
   check("combat renderer: skip-to-report renders summary", textContentOf(combatPanel.root).includes("Contract"));
   check("combat renderer: skip-to-report clears transient projectiles", countClass(combatPanel.root, "projectile") === 0);
+
+  const previousReducedMotion = Settings.reducedMotion;
+  const reducedMotionGm = new GameManager();
+  Settings.setReducedMotion(true);
+  reducedMotionGm.startRun(DifficultyLevel.Level0);
+  fieldKnownParty(reducedMotionGm, ["warrior", "wizard"]);
+  const reducedMotionPanel = new CombatPanel(reducedMotionGm);
+  reducedMotionPanel._eventIndex = 9999;
+  reducedMotionPanel.render();
+  check("combat renderer: reduced motion resets stale replay index",
+    reducedMotionPanel._eventIndex === reducedMotionPanel._result.replayEvents.length);
+  check("combat renderer: reduced motion renders summary immediately",
+    textContentOf(reducedMotionPanel.root).includes("Contract"));
+  check("combat renderer: reduced motion clears transient projectiles",
+    countClass(reducedMotionPanel.root, "projectile") === 0);
+  Settings.setReducedMotion(previousReducedMotion);
 
   const summaryRun = gm.currentRunState;
   summaryRun.latestRewardGold = 31;

@@ -33,6 +33,7 @@ web/
 ├── package.json
 ├── styles/main.css              ← design tokens + component CSS
 ├── docs/UNIT_VISUALS.md         ← 2.5D unit visual catalog conventions and placeholder plan
+├── docs/COMBAT_V2_REPLAY.md     ← Combat V2 replay grouping and presentation behavior
 ├── vendor/                      ← vendored Three.js ES modules (approved #259 exception)
 └── src/
     ├── main.js                  ← renderer entry: new GameManager() → new UIManager(gm, root)
@@ -117,6 +118,7 @@ MainMenu
 - `GameManager.resolveCombat()` runs `CombatManager.startCombat(run, encounter)` then `runManager.applyPostCombatResult(result, encounter)` and returns the result. The Combat panel calls this once on entry.
 - `web/src/ui/board/` owns presentation-only board rendering/projection helpers. It may project `CombatBoard` / `BoardPlacement` coordinates for Formation and Combat, and `ThreeCombatBoardScene` may render Combat replay presentation through the vendored Three.js module. It must not mutate authored board data, replay events, targeting, or combat math.
 - `web/src/ui/UnitVisualCatalog.js` owns presentation-only unit visual lookup for Formation and Combat. It resolves hero/opponent/fallback placeholder metadata and keeps `SpriteCatalog` PNG URLs as fallback detail. It must not add visual fields to gameplay definitions.
+- Combat V2 replay events carry deterministic `phase`, `groupId`, and `groupSequence` metadata. `CombatPanel` advances one replay group per visual step so same-tick movement, windups, hit feedback, and deaths can present as shared combat beats without rerunning combat logic.
 
 ### Data ownership
 

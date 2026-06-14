@@ -69,11 +69,11 @@ export class CombatPanel {
 
     this._initUnitsFromSpawnEvents();
 
+    this._eventIndex = 0;
+    this._stepMs = Settings.stepMs;
     if (Settings.reducedMotion) {
       this._skipToEnd();
     } else {
-      this._eventIndex = 0;
-      this._stepMs = Settings.stepMs;
       this._timer = setInterval(() => this._tick(), this._stepMs);
     }
   }
