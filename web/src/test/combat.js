@@ -399,7 +399,7 @@ console.log("Combat engine test");
 
 // Goblin Thief sets survivor flag if alive past combat round 3.
 {
-  const run = buildRun(["warrior", "golem"]);
+  const run = buildRun(["golem"]);
   const result = new CombatManager().startCombat(run, encounter(1, 2)); // Goblin Thieves
   // Weak party might not win, but flag should be set if thieves survive
   if (result.combatRoundsElapsed >= GameRules.GoblinThiefStealRound) {
@@ -875,6 +875,36 @@ import { getDefaultPlayerBoardPosition, getDefaultEnemyBoardPosition, isInPlayer
     sameTickDeaths.length === 2 && lastAttackSeq < firstDeathSeq);
   check("318: player can win while lethal trade kills hero",
     result.playerWon === true && result.deadHeroes.length === 1);
+}
+
+// Issue 319: movement has its own cadence and conflict-safe resolution.
+{
+  const run = buildRunSlotted([{ id: "warrior", slot: 0 }, { id: "golem", slot: 1 }]);
+  run.party[0].boardPosition = { q: 0, r: 1 };
+  run.party[1].boardPosition = { q: 0, r: 3 };
+  const enemy = new EnemyDefinition("training_anchor", "Training Anchor", 0, 20,
+    EnemyEffectId.None, "Durable target for movement cadence tests.");
+  const movementEncounter = new EncounterDefinition(1, 1, EncounterType.Dungeon, "Movement Drill",
+    "Melee units must cross the board.", "Timing", [enemy], 0,
+    EncounterEffectId.None, RivalGuild.None, "movement-drill", [{ q: 6, r: 2 }]);
+  const result = new CombatManager().startCombat(run, movementEncounter);
+  const moveEvents = result.replayEvents.filter(e => e.kind === CombatReplayEventKind.Movement);
+  const warriorMoves = moveEvents.filter(e => e.actorUnitId === "p0");
+  const duplicateDestinationTick = moveEvents.some((event, index) =>
+    moveEvents.some((other, otherIndex) =>
+      otherIndex > index &&
+      other.tick === event.tick &&
+      other.targetCoord &&
+      event.targetCoord &&
+      other.targetCoord.q === event.targetCoord.q &&
+      other.targetCoord.r === event.targetCoord.r));
+  check("319: units expose movement cadence defaults",
+    buildPlayerUnits(run).every(u =>
+      u.movementRange === GameRules.DefaultMovementRange &&
+      u.movementCooldownTicks === GameRules.DefaultMovementCooldownTicks));
+  check("319: melee unit moves on consecutive ticks",
+    warriorMoves.length >= 2 && warriorMoves[1].tick === warriorMoves[0].tick + 1);
+  check("319: movement destinations do not collide per tick", !duplicateDestinationTick);
 }
 
 // Issues 172/173 — CombatBoard hex distance range checks (board model).
@@ -1952,15 +1982,15 @@ buildSnapshot(REF_PARTY, 1, 8,  { won: true, minRounds: 2, maxRounds: 6,  maxDea
 buildSnapshot(REF_PARTY, 1, 9,  { won: true, minRounds: 4, maxRounds: 8,  maxDead: 2 });
 buildSnapshot(REF_PARTY, 1, 10, { won: true, minRounds: 5, maxRounds: 9,  maxDead: 3 });
 buildSnapshot(REF_PARTY, 2, 1,  { won: true, minRounds: 2, maxRounds: 6,  maxDead: 1 });
-buildSnapshot(REF_PARTY, 2, 2,  { won: true, minRounds: 2, maxRounds: 7,  maxDead: 1 });
-buildSnapshot(REF_PARTY, 2, 3,  { won: true, minRounds: 5, maxRounds: 9,  maxDead: 4 });
+buildSnapshot(REF_PARTY, 2, 2,  { won: true, minRounds: 2, maxRounds: 7,  maxDead: 2 });
+buildSnapshot(REF_PARTY, 2, 3,  { won: false, minRounds: 5, maxRounds: 9,  maxDead: 5 });
 buildSnapshot(REF_PARTY, 2, 4,  { won: true, minRounds: 1, maxRounds: 6,  maxDead: 3 });
 buildSnapshot(REF_PARTY, 2, 5,  { won: true, minRounds: 2, maxRounds: 7,  maxDead: 2 });
-buildSnapshot(REF_PARTY, 2, 6,  { won: true, minRounds: 4, maxRounds: 9,  maxDead: 4 });
+buildSnapshot(REF_PARTY, 2, 6,  { won: false, minRounds: 4, maxRounds: 9,  maxDead: 5 });
 buildSnapshot(REF_PARTY, 2, 7,  { won: true, minRounds: 3, maxRounds: 8,  maxDead: 3 });
-buildSnapshot(REF_PARTY, 2, 8,  { won: false, minRounds: 6, maxRounds: 10, maxDead: 5 });
+buildSnapshot(REF_PARTY, 2, 8,  { won: false, minRounds: 4, maxRounds: 10, maxDead: 5 });
 buildSnapshot(REF_PARTY, 2, 9,  { won: false, minRounds: 5, maxRounds: 9,  maxDead: 5 });
-buildSnapshot(REF_PARTY, 2, 10, { won: false, minRounds: 5, maxRounds: 9,  maxDead: 4 });
+buildSnapshot(REF_PARTY, 2, 10, { won: false, minRounds: 5, maxRounds: 9,  maxDead: 5 });
 
 // ---- Replay schema validation (#234) ----
 // Targeted checks beyond the #226 section: amount non-negative for damage

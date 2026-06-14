@@ -229,6 +229,7 @@ export const GameRules = Object.freeze({
   PlayerDeploymentMaxQ: 1,
   EnemyDeploymentMinQ: 5,
   DefaultMovementRange: 1,
+  DefaultMovementCooldownTicks: 1,
   MinimumPositiveCombatStat: 1,
   GuardedDamageDivisor: 2,
   BurnedAttackPenalty: 1,

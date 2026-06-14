@@ -82,6 +82,7 @@ export class CombatManager {
     for (const u of match.allUnits) {
       u.nextAttackAt = 0;
       u.nextAttackReadyTick = 0;
+      u.nextMovementReadyTick = 0;
     }
 
     const maxTicks = GameRules.CombatTurnLimit * GameRules.CombatTicksPerRound;
@@ -164,8 +165,8 @@ export class CombatManager {
   }
 
   _collectTimelineIntents(match, currentRound, playerUnits, tick, logger) {
-    const readyUnits = match.allUnits.filter(u => u.isAlive && u.nextAttackReadyTick <= tick);
-    readyUnits.sort(combatActionOrder);
+    const readyUnits = match.allUnits.filter(u => u.isAlive);
+    readyUnits.sort(stableUnitOrder);
 
     const intents = { movements: [], attacks: [] };
 
@@ -181,13 +182,17 @@ export class CombatManager {
       }
 
       if (match.board.canAttack(unit, target)) {
+        if (unit.nextAttackReadyTick > tick) continue;
         intents.attacks.push({ actor: unit, target });
+        markUnitAttacked(unit, tick);
       } else {
+        if (unit.nextMovementReadyTick > tick) continue;
         const targetPos = match.board.getUnitPosition(target);
-        if (targetPos) intents.movements.push({ actor: unit, target, targetPos });
+        if (targetPos) {
+          intents.movements.push({ actor: unit, target, targetPos });
+          markUnitMoved(unit, tick);
+        }
       }
-
-      markUnitActed(unit, tick);
     }
 
     return intents;
@@ -361,6 +366,7 @@ export function buildPlayerUnits(run) {
     const unit = new CombatUnitState(unitId, hero.definition.displayName, attack, maxHealth, maxHealth, true, hero.formationSlot, hero, null);
     applyAttackCadence(unit);
     unit.attackRange = resolveAttackRange(unit);
+    applyMovementCadence(unit);
     if (critSlots.includes(hero.formationSlot)) {
       unit.statuses.add(CombatStatusId.CritCharged);
     }
@@ -398,6 +404,7 @@ export function buildEnemyUnits(run, encounter) {
     const unit = new CombatUnitState(unitId, enemy.displayName, attack, health, health, false, i, null, enemy);
     applyAttackCadence(unit);
     unit.attackRange = resolveAttackRange(unit);
+    applyMovementCadence(unit);
     for (const status of enemy.startingStatuses) {
       unit.statuses.add(status);
     }
@@ -420,10 +427,20 @@ function applyAttackCadence(unit) {
   unit.nextAttackAt = unit.nextAttackReadyTick;
 }
 
-function markUnitActed(unit, tick) {
+function applyMovementCadence(unit) {
+  unit.movementRange = resolveMovementRange(unit);
+  unit.movementCooldownTicks = resolveMovementCooldownTicks(unit);
+  unit.nextMovementReadyTick = 0;
+}
+
+function markUnitAttacked(unit, tick) {
   const nextReadyTick = tick + unit.attackIntervalTicks;
   unit.nextAttackReadyTick = nextReadyTick;
   unit.nextAttackAt = nextReadyTick;
+}
+
+function markUnitMoved(unit, tick) {
+  unit.nextMovementReadyTick = tick + unit.movementCooldownTicks;
 }
 
 function startAttackWindups(attackIntents, pendingHitEvents, tick) {
@@ -440,14 +457,14 @@ function startAttackWindups(attackIntents, pendingHitEvents, tick) {
 }
 
 function resolveMovementIntents(movementIntents, match, logger) {
-  movementIntents.sort((a, b) => combatActionOrder(a.actor, b.actor));
+  movementIntents.sort((a, b) => stableUnitOrder(a.actor, b.actor));
 
   for (const intent of movementIntents) {
     const { actor, targetPos } = intent;
     if (!actor.isAlive) continue;
 
     const fromPos = logger ? match.board.getUnitPosition(actor) : null;
-    const moved = match.board.moveUnitToward(actor, targetPos, GameRules.DefaultMovementRange);
+    const moved = match.board.moveUnitToward(actor, targetPos, actor.movementRange);
     if (moved && logger) {
       const toPos = match.board.getUnitPosition(actor);
       logger.logMovement(actor, fromPos, toPos);
@@ -471,6 +488,14 @@ function resolveAttackWindupTicks(unit) {
 
 function resolveAttackRecoveryTicks(unit) {
   return GameRules.DefaultAttackRecoveryTicks;
+}
+
+function resolveMovementRange(unit) {
+  return GameRules.DefaultMovementRange;
+}
+
+function resolveMovementCooldownTicks(unit) {
+  return GameRules.DefaultMovementCooldownTicks;
 }
 
 export function resolveEffectiveAttackCooldownTicks(unit) {
@@ -500,6 +525,10 @@ function combatActionOrder(a, b) {
   const aTick = a.nextAttackReadyTick ?? a.nextAttackAt;
   const bTick = b.nextAttackReadyTick ?? b.nextAttackAt;
   if (aTick !== bTick) return aTick - bTick;
+  return stableUnitOrder(a, b);
+}
+
+function stableUnitOrder(a, b) {
   if (a.isPlayerSide !== b.isPlayerSide) return a.isPlayerSide ? -1 : 1;
   if (a.slot !== b.slot) return a.slot - b.slot;
   if (a.unitId < b.unitId) return -1;

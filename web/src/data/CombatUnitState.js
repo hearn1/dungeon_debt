@@ -25,6 +25,11 @@ export class CombatUnitState extends CombatUnit {
     // Attack range: DefaultMeleeRange (melee) or DefaultRangedRange (ranged).
     this.attackRange = 0;
 
+    // Movement cadence is independent from attack cadence in Combat V2.
+    this.movementRange = 0;
+    this.movementCooldownTicks = 0;
+    this.nextMovementReadyTick = 0;
+
     // UnitId of the current target; cleared when target dies or becomes invalid.
     this.currentTargetUnitId = null;
 
