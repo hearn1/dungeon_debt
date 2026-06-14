@@ -112,61 +112,28 @@ export class CombatManager {
         if (!unit.isAlive) match.board.removeUnit(unit);
       }
 
-      // Collect units ready to act this tick and execute in deterministic order.
-      const readyUnits = match.allUnits.filter(u => u.isAlive && u.nextAttackAt <= tick);
-      readyUnits.sort(combatActionOrder);
+      const intents = this._collectTimelineIntents(match, currentRound, playerUnits, tick, logger);
+      resolveMovementIntents(intents.movements, match, logger);
+      this._resolveAttackIntents(intents.attacks, match, logger);
 
-      for (const unit of readyUnits) {
-        if (!unit.isAlive) continue; // may have died earlier this tick
+      for (const unit of match.allUnits) {
+        if (!unit.isAlive) match.board.removeUnit(unit);
+      }
 
-        let target = findTarget(unit, match, currentRound);
-        if (!target) continue;
+      if (!enemyTeam.hasLiving) {
+        result.playerWon = true;
+        result.combatRoundsElapsed = currentRound;
+        logger.logFinalResult(true);
+        this._finishResult(result, playerUnits, enemyUnits, logger);
+        return result;
+      }
 
-        // Knight redirect only applies when an enemy hits a player backline hero.
-        if (!unit.isPlayerSide) {
-          const redirect = HeroEffects.tryRedirectToKnight(target, playerUnits, this._knightRedirectsRemaining, logger);
-          target = redirect.target;
-          this._knightRedirectsRemaining = redirect.remaining;
-          if (!target) continue;
-        }
-
-        if (match.board.canAttack(unit, target)) {
-          // Target is in range: attack.
-          HeroEffects.onAttack(unit, target, logger);
-          this._applyAttack(unit, target, logger);
-          // Remove killed units from board immediately so same-tick pathfinding is unblocked.
-          if (!target.isAlive) match.board.removeUnit(target);
-          if (!unit.isAlive) match.board.removeUnit(unit);
-        } else {
-          // Target is out of range: move one step toward it.
-          const targetPos = match.board.getUnitPosition(target);
-          if (targetPos) {
-            const fromPos = logger ? match.board.getUnitPosition(unit) : null;
-            const moved = match.board.moveUnitToward(unit, targetPos, GameRules.DefaultMovementRange);
-            if (moved && logger) {
-              const toPos = match.board.getUnitPosition(unit);
-              logger.logMovement(unit, fromPos, toPos);
-            }
-          }
-        }
-
-        unit.nextAttackAt = tick + unit.attackIntervalTicks;
-
-        if (!enemyTeam.hasLiving) {
-          result.playerWon = true;
-          result.combatRoundsElapsed = currentRound;
-          logger.logFinalResult(true);
-          this._finishResult(result, playerUnits, enemyUnits, logger);
-          return result;
-        }
-
-        if (!playerTeam.hasLiving) {
-          result.playerWon = false;
-          result.combatRoundsElapsed = currentRound;
-          logger.logFinalResult(false);
-          this._finishResult(result, playerUnits, enemyUnits, logger);
-          return result;
-        }
+      if (!playerTeam.hasLiving) {
+        result.playerWon = false;
+        result.combatRoundsElapsed = currentRound;
+        logger.logFinalResult(false);
+        this._finishResult(result, playerUnits, enemyUnits, logger);
+        return result;
       }
 
       // Active ability pass: fire any active abilities whose cooldown has expired.
@@ -191,6 +158,46 @@ export class CombatManager {
     logger.logFinalResult(false);
     this._finishResult(result, playerUnits, enemyUnits, logger);
     return result;
+  }
+
+  _collectTimelineIntents(match, currentRound, playerUnits, tick, logger) {
+    const readyUnits = match.allUnits.filter(u => u.isAlive && u.nextAttackReadyTick <= tick);
+    readyUnits.sort(combatActionOrder);
+
+    const intents = { movements: [], attacks: [] };
+
+    for (const unit of readyUnits) {
+      let target = findTarget(unit, match, currentRound);
+      if (!target) continue;
+
+      if (!unit.isPlayerSide) {
+        const redirect = HeroEffects.tryRedirectToKnight(target, playerUnits, this._knightRedirectsRemaining, logger);
+        target = redirect.target;
+        this._knightRedirectsRemaining = redirect.remaining;
+        if (!target) continue;
+      }
+
+      if (match.board.canAttack(unit, target)) {
+        intents.attacks.push({ actor: unit, target });
+      } else {
+        const targetPos = match.board.getUnitPosition(target);
+        if (targetPos) intents.movements.push({ actor: unit, target, targetPos });
+      }
+
+      markUnitActed(unit, tick);
+    }
+
+    return intents;
+  }
+
+  _resolveAttackIntents(attackIntents, match, logger) {
+    for (const intent of attackIntents) {
+      const { actor, target } = intent;
+      if (!actor.isAlive) continue;
+      if (!target.isAlive) continue;
+      HeroEffects.onAttack(actor, target, logger);
+      this._applyAttack(actor, target, logger);
+    }
   }
 
   _applyAttack(attacker, defender, logger) {
@@ -371,6 +378,28 @@ function applyAttackCadence(unit) {
   unit.nextAttackAt = unit.nextAttackReadyTick;
 }
 
+function markUnitActed(unit, tick) {
+  const nextReadyTick = tick + unit.attackIntervalTicks;
+  unit.nextAttackReadyTick = nextReadyTick;
+  unit.nextAttackAt = nextReadyTick;
+}
+
+function resolveMovementIntents(movementIntents, match, logger) {
+  movementIntents.sort((a, b) => combatActionOrder(a.actor, b.actor));
+
+  for (const intent of movementIntents) {
+    const { actor, targetPos } = intent;
+    if (!actor.isAlive) continue;
+
+    const fromPos = logger ? match.board.getUnitPosition(actor) : null;
+    const moved = match.board.moveUnitToward(actor, targetPos, GameRules.DefaultMovementRange);
+    if (moved && logger) {
+      const toPos = match.board.getUnitPosition(actor);
+      logger.logMovement(actor, fromPos, toPos);
+    }
+  }
+}
+
 function resolveAttackCooldownTicks(unit) {
   // All units share the default cooldown in the first Combat V2 pass. Later tuning can
   // specialise this per definition without changing the runtime contract.
@@ -413,7 +442,9 @@ function resolveAttackRange(unit) {
 // Sort comparator: lower nextAttackAt first, then player-side first (tie-break only),
 // then lower slot, then unitId lexicographic order for full stability.
 function combatActionOrder(a, b) {
-  if (a.nextAttackAt !== b.nextAttackAt) return a.nextAttackAt - b.nextAttackAt;
+  const aTick = a.nextAttackReadyTick ?? a.nextAttackAt;
+  const bTick = b.nextAttackReadyTick ?? b.nextAttackAt;
+  if (aTick !== bTick) return aTick - bTick;
   if (a.isPlayerSide !== b.isPlayerSide) return a.isPlayerSide ? -1 : 1;
   if (a.slot !== b.slot) return a.slot - b.slot;
   if (a.unitId < b.unitId) return -1;
