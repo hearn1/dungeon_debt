@@ -64,6 +64,7 @@ export class CombatManager {
     const board = new CombatBoard();
     initBoardPositions(board, playerUnits, enemyUnits, encounter);
     const match = new CombatMatch(playerTeam, enemyTeam, board);
+    const pendingHitEvents = [];
 
     this._match = match;
 
@@ -114,10 +115,12 @@ export class CombatManager {
 
       const intents = this._collectTimelineIntents(match, currentRound, playerUnits, tick, logger);
       resolveMovementIntents(intents.movements, match, logger);
-      this._resolveAttackIntents(intents.attacks, match, logger);
+      startAttackWindups(intents.attacks, pendingHitEvents, tick);
+      const defeatedThisTick = this._resolveMaturingHitEvents(pendingHitEvents, tick, logger);
+      this._applyDeferredDeaths(defeatedThisTick, logger);
 
       for (const unit of match.allUnits) {
-        if (!unit.isAlive) match.board.removeUnit(unit);
+        if (unit.deathResolved) match.board.removeUnit(unit);
       }
 
       if (!enemyTeam.hasLiving) {
@@ -190,18 +193,50 @@ export class CombatManager {
     return intents;
   }
 
-  _resolveAttackIntents(attackIntents, match, logger) {
-    for (const intent of attackIntents) {
-      const { actor, target } = intent;
-      if (!actor.isAlive) continue;
-      if (!target.isAlive) continue;
+  _resolveMaturingHitEvents(pendingHitEvents, tick, logger) {
+    const maturing = [];
+    for (let i = pendingHitEvents.length - 1; i >= 0; i--) {
+      if (pendingHitEvents[i].hitTick !== tick) continue;
+      maturing.push(pendingHitEvents[i]);
+      pendingHitEvents.splice(i, 1);
+    }
+    maturing.sort((a, b) => a.order - b.order);
+
+    const defeatedByUnitId = new Map();
+    for (const event of maturing) {
+      const { actor, target } = event;
+      if (actor.deathResolved || target.deathResolved) continue;
       HeroEffects.onAttack(actor, target, logger);
-      this._applyAttack(actor, target, logger);
+      const defeated = this._applyAttack(actor, target, logger, { deferDeath: true });
+      for (const entry of defeated) {
+        if (!defeatedByUnitId.has(entry.defeated.unitId)) {
+          defeatedByUnitId.set(entry.defeated.unitId, entry);
+        }
+      }
+    }
+
+    return [...defeatedByUnitId.values()];
+  }
+
+  _applyDeferredDeaths(defeatedEntries, logger) {
+    defeatedEntries.sort((a, b) => combatActionOrder(a.defeated, b.defeated));
+
+    for (const entry of defeatedEntries) {
+      const defeated = entry.defeated;
+      if (defeated.deathResolved || defeated.isAlive) continue;
+      defeated.pendingDeath = false;
+      defeated.deathResolved = true;
+      logger.logDeath(defeated);
+      HeroEffects.onKill(entry.attacker, defeated, this._run, logger);
+      AbilityRunner.triggerPassiveOn(AbilityTrigger.OnKill, entry.attacker, defeated, { match: this._match, run: this._run, logger });
     }
   }
 
-  _applyAttack(attacker, defender, logger) {
+  _applyAttack(attacker, defender, logger, options = null) {
+    const deferDeath = options && options.deferDeath === true;
+    const defeated = [];
     let damage = attacker.attack;
+    const defenderWasAlive = defender.isAlive;
 
     if (attacker.statuses.has(CombatStatusId.CritCharged)) {
       damage *= GameRules.CritDamageMultiplier;
@@ -221,11 +256,17 @@ export class CombatManager {
 
     logger.logAttack(attacker, defender, damage);
 
-    if (!defender.isAlive) {
-      logger.logDeath(defender);
-      HeroEffects.onKill(attacker, defender, this._run, logger);
-      AbilityRunner.triggerPassiveOn(AbilityTrigger.OnKill, attacker, defender, { match: this._match, run: this._run, logger });
-    } else {
+    if (defenderWasAlive && !defender.isAlive) {
+      if (deferDeath) {
+        defender.pendingDeath = true;
+        defeated.push({ attacker, defeated: defender });
+      } else {
+        logger.logDeath(defender);
+        defender.deathResolved = true;
+        HeroEffects.onKill(attacker, defender, this._run, logger);
+        AbilityRunner.triggerPassiveOn(AbilityTrigger.OnKill, attacker, defender, { match: this._match, run: this._run, logger });
+      }
+    } else if (defender.isAlive) {
       applyAttackStatuses(attacker, defender, logger);
       HeroEffects.onSurvivingAttack(attacker, defender, logger);
       this._applyRelicAttackStatuses(attacker, defender, logger);
@@ -240,6 +281,7 @@ export class CombatManager {
     }
 
     applyPostAttackStatusDamage(attacker, logger);
+    return defeated;
   }
 
   _applyRelicAttackStatuses(attacker, defender, logger) {
@@ -382,6 +424,19 @@ function markUnitActed(unit, tick) {
   const nextReadyTick = tick + unit.attackIntervalTicks;
   unit.nextAttackReadyTick = nextReadyTick;
   unit.nextAttackAt = nextReadyTick;
+}
+
+function startAttackWindups(attackIntents, pendingHitEvents, tick) {
+  for (const intent of attackIntents) {
+    const { actor, target } = intent;
+    if (!actor.isAlive || target.deathResolved) continue;
+    pendingHitEvents.push({
+      actor,
+      target,
+      hitTick: tick + actor.attackWindupTicks,
+      order: pendingHitEvents.length,
+    });
+  }
 }
 
 function resolveMovementIntents(movementIntents, match, logger) {
@@ -578,7 +633,10 @@ function applyStatusDamage(unit, statusId, damage, logger) {
   if (unit.currentHealth < 0) unit.currentHealth = 0;
   if (logger) {
     logger.logStatusDamage(unit, statusId, damage);
-    if (!unit.isAlive) logger.logDeath(unit);
+    if (!unit.isAlive) {
+      unit.deathResolved = true;
+      logger.logDeath(unit);
+    }
   }
 }
 

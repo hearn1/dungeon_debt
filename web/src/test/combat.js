@@ -9,9 +9,11 @@ import { HeroEffects } from "../combat/HeroEffects.js";
 import { RunState } from "../data/RunState.js";
 import { HeroInstance } from "../data/HeroInstance.js";
 import { GameRules, GameRulesFns } from "../core/GameRules.js";
-import { EnemyEffectId, HeroTier, RelicId, CombatStatusId, EncounterEffectId } from "../data/enums.js";
+import { EnemyEffectId, HeroTier, RelicId, CombatStatusId, EncounterEffectId, EncounterType, RivalGuild } from "../data/enums.js";
 import { CombatUnit as CU } from "../data/CombatUnit.js";
 import { CombatReplayEventKind } from "../data/CombatReplayEvent.js";
+import { EnemyDefinition } from "../data/EnemyDefinition.js";
+import { EncounterDefinition } from "../data/EncounterDefinition.js";
 import { getEncounterScaling } from "../run/EncounterScaling.js";
 
 let failures = 0;
@@ -848,6 +850,31 @@ import { getDefaultPlayerBoardPosition, getDefaultEnemyBoardPosition, isInPlayer
     firstAttackTick >= 0 && firstTickAttacks.length >= 2);
   check("317: same-tick attacks remain deterministic",
     firstTickAttacks.map(e => e.actorUnitId).join(",") === "p2,p3");
+}
+
+// Issue 318: same-tick lethal trades resolve before death cleanup.
+{
+  const run = buildRunSlotted([{ id: "wizard", slot: 0 }]);
+  run.party[0].boardPosition = { q: 3, r: 2 };
+  const enemy = new EnemyDefinition("timeline_duelist", "Timeline Duelist", 4, 3,
+    EnemyEffectId.None, "Trades lethal attacks on the same tick.");
+  const duel = new EncounterDefinition(1, 1, EncounterType.Dungeon, "Timeline Duel",
+    "Both duelists are already in range.", "Timing", [enemy], 0,
+    EncounterEffectId.None, RivalGuild.None, "timeline-duel", [{ q: 4, r: 2 }]);
+  const result = new CombatManager().startCombat(run, duel);
+  const attackEvents = result.replayEvents.filter(e => e.kind === CombatReplayEventKind.Attack);
+  const deathEvents = result.replayEvents.filter(e => e.kind === CombatReplayEventKind.Death);
+  const firstAttackTick = attackEvents.length > 0 ? attackEvents[0].tick : -1;
+  const sameTickAttacks = attackEvents.filter(e => e.tick === firstAttackTick);
+  const sameTickDeaths = deathEvents.filter(e => e.tick === firstAttackTick);
+  const lastAttackSeq = Math.max(...sameTickAttacks.map(e => e.sequence));
+  const firstDeathSeq = Math.min(...sameTickDeaths.map(e => e.sequence));
+  check("318: lethal trade produces two same-tick attacks",
+    sameTickAttacks.length === 2);
+  check("318: lethal trade logs deaths after hit group",
+    sameTickDeaths.length === 2 && lastAttackSeq < firstDeathSeq);
+  check("318: player can win while lethal trade kills hero",
+    result.playerWon === true && result.deadHeroes.length === 1);
 }
 
 // Issues 172/173 — CombatBoard hex distance range checks (board model).
@@ -1926,10 +1953,10 @@ buildSnapshot(REF_PARTY, 1, 9,  { won: true, minRounds: 4, maxRounds: 8,  maxDea
 buildSnapshot(REF_PARTY, 1, 10, { won: true, minRounds: 5, maxRounds: 9,  maxDead: 3 });
 buildSnapshot(REF_PARTY, 2, 1,  { won: true, minRounds: 2, maxRounds: 6,  maxDead: 1 });
 buildSnapshot(REF_PARTY, 2, 2,  { won: true, minRounds: 2, maxRounds: 7,  maxDead: 1 });
-buildSnapshot(REF_PARTY, 2, 3,  { won: true, minRounds: 5, maxRounds: 9,  maxDead: 3 });
-buildSnapshot(REF_PARTY, 2, 4,  { won: true, minRounds: 1, maxRounds: 6,  maxDead: 1 });
+buildSnapshot(REF_PARTY, 2, 3,  { won: true, minRounds: 5, maxRounds: 9,  maxDead: 4 });
+buildSnapshot(REF_PARTY, 2, 4,  { won: true, minRounds: 1, maxRounds: 6,  maxDead: 3 });
 buildSnapshot(REF_PARTY, 2, 5,  { won: true, minRounds: 2, maxRounds: 7,  maxDead: 2 });
-buildSnapshot(REF_PARTY, 2, 6,  { won: true, minRounds: 4, maxRounds: 8,  maxDead: 4 });
+buildSnapshot(REF_PARTY, 2, 6,  { won: true, minRounds: 4, maxRounds: 9,  maxDead: 4 });
 buildSnapshot(REF_PARTY, 2, 7,  { won: true, minRounds: 3, maxRounds: 8,  maxDead: 3 });
 buildSnapshot(REF_PARTY, 2, 8,  { won: false, minRounds: 6, maxRounds: 10, maxDead: 5 });
 buildSnapshot(REF_PARTY, 2, 9,  { won: false, minRounds: 5, maxRounds: 9,  maxDead: 5 });

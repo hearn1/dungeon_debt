@@ -28,6 +28,10 @@ export class CombatUnitState extends CombatUnit {
     // UnitId of the current target; cleared when target dies or becomes invalid.
     this.currentTargetUnitId = null;
 
+    // Death cleanup is delayed until same-tick hit groups finish resolving.
+    this.pendingDeath = false;
+    this.deathResolved = false;
+
     // Axial hex board position {q, r}. Set during match initialisation from
     // hero.boardPosition (or slot default). Updated by board.moveUnit.
     this.boardPosition = null;
