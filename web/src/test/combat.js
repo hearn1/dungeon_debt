@@ -11,7 +11,7 @@ import { HeroInstance } from "../data/HeroInstance.js";
 import { GameRules, GameRulesFns } from "../core/GameRules.js";
 import { EnemyEffectId, HeroTier, RelicId, CombatStatusId, EncounterEffectId, EncounterType, RivalGuild } from "../data/enums.js";
 import { CombatUnit as CU } from "../data/CombatUnit.js";
-import { CombatReplayEventKind } from "../data/CombatReplayEvent.js";
+import { CombatReplayEventKind, CombatReplayPhase } from "../data/CombatReplayEvent.js";
 import { EnemyDefinition } from "../data/EnemyDefinition.js";
 import { EncounterDefinition } from "../data/EncounterDefinition.js";
 import { getEncounterScaling } from "../run/EncounterScaling.js";
@@ -1969,6 +1969,30 @@ function reconstructHpMap(events) {
     result.playerWon &&
     result.bonusXpHeroIds &&
     result.bonusXpHeroIds.includes(apprentice.instanceId));
+}
+
+// 323: Combat V2 replay phase and group metadata exposes same-tick combat beats.
+{
+  const result = new CombatManager({ runtimeId: CombatRuntimeId.CombatV2 })
+    .startCombat(buildRun(["warrior", "golem"]), encounter(1, 1));
+  const events = result.replayEvents;
+  const attackStarts = events.filter(e => e.kind === CombatReplayEventKind.AttackStart);
+  const attacks = events.filter(e => e.kind === CombatReplayEventKind.Attack);
+  const deaths = events.filter(e => e.kind === CombatReplayEventKind.Death);
+  const groupedAttackStart = attackStarts.some((event, _index, list) =>
+    list.some(other => other !== event && other.groupId === event.groupId));
+
+  check("323: replay events include phase metadata",
+    events.every(e => typeof e.phase === "string" && e.phase.length > 0));
+  check("323: replay events include group metadata",
+    events.every(e => typeof e.groupId === "string" && e.groupId.length > 0 && Number.isInteger(e.groupSequence)));
+  check("323: attack start events precede hit-resolution events",
+    attackStarts.length > 0 &&
+    attackStarts.every(e => e.phase === CombatReplayPhase.AttackStart) &&
+    attacks.every(e => e.phase === CombatReplayPhase.HitResolution));
+  check("323: same-tick attack starts can share a replay group", groupedAttackStart);
+  check("323: death events use the death phase",
+    deaths.length > 0 && deaths.every(e => e.phase === CombatReplayPhase.Death));
 }
 
 // 226-I: PassiveTrigger events present for passive abilities.

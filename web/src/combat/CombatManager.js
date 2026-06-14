@@ -15,6 +15,7 @@ import { resolvePlayerBoardPosition, resolveEnemyBoardPosition } from "./BoardPl
 import { selectTarget } from "./TargetingRules.js";
 import { getBasicAttackMode } from "./RoleBehavior.js";
 import { DefaultCombatRuntimeId, resolveCombatRuntimeId } from "./CombatRuntime.js";
+import { CombatReplayPhase } from "../data/CombatReplayEvent.js";
 
 export class CombatManager {
   constructor(options = null) {
@@ -99,6 +100,7 @@ export class CombatManager {
       // Fire end-of-round effects when crossing a round boundary.
       if (tick > 0 && tick % GameRules.CombatTicksPerRound === 0) {
         const roundJustEnded = currentRound - 1;
+        logger.setPhase(CombatReplayPhase.RoundBoundary);
         logger.logRoundBoundary(currentRound);
         HeroEffects.onEndOfCombatRound(roundJustEnded, run, encounter, playerUnits, enemyUnits, result, logger);
         AbilityRunner.triggerPassives(AbilityTrigger.EndOfRound, playerUnits, { match, run, logger });
@@ -120,11 +122,15 @@ export class CombatManager {
 
       const intents = this._collectTimelineIntents(match, currentRound, playerUnits, tick, logger);
       intents.activeCasts.push(...AbilityRunner.collectActiveIntents(tick, playerUnits, match));
+      logger.setPhase(CombatReplayPhase.Movement);
       resolveMovementIntents(intents.movements, match, logger);
-      startAttackWindups(intents.attacks, pendingHitEvents, tick);
-      startAbilityWindups(intents.activeCasts, pendingAbilityEvents, tick);
+      logger.setPhase(CombatReplayPhase.AttackStart);
+      startAttackWindups(intents.attacks, pendingHitEvents, tick, logger, match.board);
+      startAbilityWindups(intents.activeCasts, pendingAbilityEvents, tick, logger, match.board);
+      logger.setPhase(CombatReplayPhase.HitResolution);
       const defeatedThisTick = this._resolveMaturingHitEvents(pendingHitEvents, tick, logger);
       this._resolveMaturingAbilityEvents(pendingAbilityEvents, tick, logger);
+      logger.setPhase(CombatReplayPhase.Death);
       this._applyDeferredDeaths(defeatedThisTick, logger);
 
       for (const unit of match.allUnits) {
@@ -449,10 +455,11 @@ function markUnitMoved(unit, tick) {
   unit.nextMovementReadyTick = tick + unit.movementCooldownTicks;
 }
 
-function startAttackWindups(attackIntents, pendingHitEvents, tick) {
+function startAttackWindups(attackIntents, pendingHitEvents, tick, logger = null, board = null) {
   for (const intent of attackIntents) {
     const { actor, target } = intent;
     if (!actor.isAlive || target.deathResolved) continue;
+    logger?.logAttackStart(actor, target, board);
     pendingHitEvents.push({
       actor,
       target,
@@ -462,10 +469,11 @@ function startAttackWindups(attackIntents, pendingHitEvents, tick) {
   }
 }
 
-function startAbilityWindups(activeCastIntents, pendingAbilityEvents, tick) {
+function startAbilityWindups(activeCastIntents, pendingAbilityEvents, tick, logger = null, board = null) {
   for (const intent of activeCastIntents) {
     const { caster, target } = intent;
     if (!caster.isAlive || (target && target.deathResolved)) continue;
+    logger?.logAbilityStart(caster, intent.targets || [], intent.ability.id, board);
     pendingAbilityEvents.push({
       ...intent,
       castTick: tick + GameRules.DefaultAbilityWindupTicks,
