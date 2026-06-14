@@ -16,7 +16,9 @@ import { RivalManager } from "../run/RivalManager.js";
 import { CombatManager } from "../combat/CombatManager.js";
 import { DefaultCombatRuntimeId } from "../combat/CombatRuntime.js";
 import { BalanceRunLogger } from "../run/BalanceRunLogger.js";
+import { getEncounterScaling } from "../run/EncounterScaling.js";
 import { BalanceChallengeFlag, classifyEncounterChallenge, formatTargetBandLabel } from "./BalanceTargets.js";
+import { formatPowerRows, summarizePartyPower } from "./BalancePowerMetrics.js";
 import { GreedyStrategy } from "./strategies/greedy.js";
 import { FrugalStrategy } from "./strategies/frugal.js";
 import { SmartStrategy } from "./strategies/smart.js";
@@ -36,32 +38,40 @@ const strategies = resolveStrategies(options.strategy);
 
 BalanceRunLogger.combatRows = [];
 BalanceRunLogger.economyRows = [];
+const firstPowerLog = [];
+let activePowerLog = firstPowerLog;
 const firstPass = runSeedSet(options.seedCount, strategies);
 const firstTsv = BalanceRunLogger.formatSeedResults(firstPass);
 const firstCombatLog = [...BalanceRunLogger.combatRows];
 const firstCombatTsv = BalanceRunLogger.formatCombatResults(firstCombatLog);
 const firstEconomyLog = [...BalanceRunLogger.economyRows];
 const firstEconomyTsv = BalanceRunLogger.formatEconomyResults(firstEconomyLog);
+const firstPowerTsv = formatPowerRows(firstPowerLog);
 
 BalanceRunLogger.combatRows = [];
 BalanceRunLogger.economyRows = [];
+const secondPowerLog = [];
+activePowerLog = secondPowerLog;
 const secondPass = runSeedSet(options.seedCount, strategies);
 const secondTsv = BalanceRunLogger.formatSeedResults(secondPass);
 const secondCombatTsv = BalanceRunLogger.formatCombatResults(BalanceRunLogger.combatRows);
 const secondEconomyTsv = BalanceRunLogger.formatEconomyResults(BalanceRunLogger.economyRows);
+const secondPowerTsv = formatPowerRows(secondPowerLog);
 const deterministic = firstTsv === secondTsv
   && firstCombatTsv === secondCombatTsv
-  && firstEconomyTsv === secondEconomyTsv;
+  && firstEconomyTsv === secondEconomyTsv
+  && firstPowerTsv === secondPowerTsv;
 
 const runTimestamp = getTimestampForFilename();
 const reportPath = writeTsvFile(firstTsv, runTimestamp);
 const combatPath = writeCombatTsvFile(firstCombatTsv, runTimestamp);
 const economyPath = writeEconomyTsvFile(firstEconomyTsv, runTimestamp);
+const powerPath = writePowerTsvFile(firstPowerTsv, runTimestamp);
 const wins = firstPass.filter((result) => result.outcome === "WIN").length;
 const losses = firstPass.length - wins;
 
 if (options.report) {
-  const mdContent = buildMarkdownReport(firstPass, firstCombatLog, firstEconomyLog, options, runTimestamp);
+  const mdContent = buildMarkdownReport(firstPass, firstCombatLog, firstEconomyLog, firstPowerLog, options, runTimestamp);
   const mdPath = writeMarkdownFile(mdContent, runTimestamp);
   console.log(`Markdown: ${mdPath}`);
 }
@@ -73,6 +83,7 @@ console.log(`Losses: ${losses}`);
 console.log(`Report: ${reportPath}`);
 console.log(`Combat: ${combatPath}`);
 console.log(`Economy: ${economyPath}`);
+console.log(`Power: ${powerPath}`);
 console.log(`DETERMINISM CHECK: ${deterministic ? "PASS" : "FAIL"}`);
 
 process.exit(deterministic ? 0 : 1);
@@ -157,6 +168,7 @@ function runSingleSeed(seed, strategy) {
         managers.shopManager.generateOffers();
         strategy.visitShop(managers.shopManager, run, context);
         BalanceRunLogger.logShop(run, beforeShop, snapshotShopState(run));
+        logPowerRow(activePowerLog, run, "shop");
         state = GameState.Formation;
         break;
 
@@ -229,6 +241,7 @@ function resolveCombatRound(managers, run) {
   const nextState = managers.runManager.evaluateNextState();
   BalanceRunLogger.logRound(run, nextState);
   BalanceRunLogger.logCombat(run, result, enc);
+  logPowerRow(activePowerLog, run, "combat");
   run.selectedPayrollAction = null;
 
   if (managers.runManager.tryPreparePendingRelicReward(nextState)) {
@@ -282,6 +295,14 @@ function writeEconomyTsvFile(contents, timestamp) {
   return economyPath;
 }
 
+function writePowerTsvFile(contents, timestamp) {
+  const reportDir = getReportDir();
+  fs.mkdirSync(reportDir, { recursive: true });
+  const powerPath = path.join(reportDir, `power-${timestamp}.tsv`);
+  fs.writeFileSync(powerPath, contents, "utf8");
+  return powerPath;
+}
+
 function writeMarkdownFile(contents, timestamp) {
   const reportDir = getReportDir();
   fs.mkdirSync(reportDir, { recursive: true });
@@ -290,7 +311,7 @@ function writeMarkdownFile(contents, timestamp) {
   return mdPath;
 }
 
-function buildMarkdownReport(results, combatLog, economyLog, options, timestamp) {
+function buildMarkdownReport(results, combatLog, economyLog, powerLog, options, timestamp) {
   const lines = [];
   const wins = results.filter((r) => r.outcome === "WIN").length;
   const losses = results.length - wins;
@@ -376,6 +397,10 @@ function buildMarkdownReport(results, combatLog, economyLog, options, timestamp)
     appendEconomySummary(lines, economyLog);
   }
 
+  if (Array.isArray(powerLog) && powerLog.length > 0) {
+    appendPartyPowerSummary(lines, powerLog);
+  }
+
   const byGold = [...results].sort((a, b) => b.finalGold - a.finalGold);
   lines.push("## Top 5 Outlier Seeds");
   lines.push("**Highest final gold:**");
@@ -453,12 +478,46 @@ function snapshotParty(run) {
     }));
 }
 
+function logPowerRow(powerLog, run, phase) {
+  if (!Array.isArray(powerLog) || !run) return;
+  const encounter = run.currentEncounter;
+  const scaling = encounter
+    ? getEncounterScaling(encounter.act, encounter.slot, encounter.type)
+    : { enemyHealth: 1, enemyAttack: 1 };
+  powerLog.push({
+    seed: run._balanceSeed ?? run.seed ?? 0,
+    strategy: run._balanceStrategy ?? "",
+    phase,
+    act: run.act,
+    slot: encounter ? encounter.slot : 0,
+    round: run.round,
+    encounterId: encounter ? (encounter.id || encounter.displayName) : "",
+    ...summarizePartyPower(run),
+    gold: run.gold,
+    debt: run.debt,
+    enemyHealthScale: scaling.enemyHealth,
+    enemyAttackScale: scaling.enemyAttack,
+  });
+}
+
 function appendStrategyBehaviorNotes(lines) {
   lines.push("## Strategy Behavior Notes");
   lines.push("- `smart`: human-like baseline; fills missing roles, buys upgrades/merges, spends surplus on rerolls, replaces clearly weaker units, and pays debt after preserving a small shop reserve.");
   lines.push("- `greedy`: damage-first contrast strategy that tends to buy the strongest affordable offers.");
   lines.push("- `frugal`: low-upkeep contrast strategy that favors cheap sustainable parties.");
   lines.push("- `random`: seeded legal-action fuzz strategy for determinism and edge-case coverage.");
+  lines.push("");
+}
+
+function appendPartyPowerSummary(lines, powerLog) {
+  const byAct = groupBy(powerLog, (row) => String(row.act || 0));
+  lines.push("## Party Power Progression");
+  lines.push("| Act | Samples | Avg Party Size | Avg Total HP | Avg Total Attack | Avg Tier | Avg Veteran Tiers | Avg Active Abilities | Avg Relics | Avg Ranged Attack Share | Avg Economy Surplus | Enemy HP Scale | Enemy Attack Scale |");
+  lines.push("|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|");
+  for (const act of Object.keys(byAct).sort((a, b) => Number(a) - Number(b))) {
+    const rows = byAct[act];
+    lines.push(`| ${act} | ${rows.length} | ${avg(rows.map((row) => row.partySize || 0))} | ${avg(rows.map((row) => row.totalHealth || 0))} | ${avg(rows.map((row) => row.totalAttack || 0))} | ${avg(rows.map((row) => row.avgTier || 0))} | ${avg(rows.map((row) => row.veteranTierTotal || 0))} | ${avg(rows.map((row) => row.activeAbilityCount || 0))} | ${avg(rows.map((row) => row.relicCount || 0))} | ${avg(rows.map((row) => row.rangedAttackShare || 0))} | ${avg(rows.map((row) => row.economySurplus || 0))} | ${avg(rows.map((row) => row.enemyHealthScale || 1))} | ${avg(rows.map((row) => row.enemyAttackScale || 1))} |`);
+  }
   lines.push("");
 }
 

@@ -31,6 +31,7 @@ import { getEncounterReward } from "../run/EncounterReward.js";
 import { getEncounterRewardQualityBreakdown, getEncounterVeterancyXpBreakdown } from "../run/EncounterRewardQuality.js";
 import { BalanceRunLogger } from "../run/BalanceRunLogger.js";
 import { DefaultCombatRuntimeId } from "../combat/CombatRuntime.js";
+import { formatPowerRows, summarizePartyPower } from "./BalancePowerMetrics.js";
 
 let failures = 0;
 function check(name, cond) {
@@ -2435,6 +2436,23 @@ function makeCombatResult(overrides = {}) {
       && shopTsv.includes("premiumPurchases")
       && shopTsv.includes("mergesOrUpgrades")
       && shopTsv.includes("hireSpend"));
+  const powerRun = rm.initializeRun(DifficultyLevel.Level0, 313);
+  fieldKnownPartyOnRun(powerRun, ["warrior", "ranger", "priest"], HeroTier.Silver);
+  powerRun.gold = 18;
+  powerRun.debt = 4;
+  powerRun.activeRelics.push(RelicId.BladeCharter);
+  const power = summarizePartyPower(powerRun);
+  const powerTsv = formatPowerRows([{ seed: 313, strategy: "smart", phase: "shop", act: 1, slot: 1, round: 1, encounterId: "test", ...power, gold: powerRun.gold, debt: powerRun.debt, enemyHealthScale: 1, enemyAttackScale: 1 }]);
+  check("balance: party power helper exposes progression metrics",
+    power.partySize === 3
+      && power.totalHealth > 0
+      && power.totalAttack > 0
+      && power.activeAbilityCount === 3
+      && power.relicCount === 1
+      && power.economySurplus === 14
+      && powerTsv.includes("totalHealth")
+      && powerTsv.includes("rangedAttackShare")
+      && powerTsv.includes("enemyHealthScale"));
 }
 
 // 2f. Later and special encounters add context veterancy XP without changing Act 1 baseline.
