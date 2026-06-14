@@ -80,6 +80,7 @@ export class CombatManager {
     // Timing is seeded by the build functions; ensure all units start ready at tick 0.
     for (const u of match.allUnits) {
       u.nextAttackAt = 0;
+      u.nextAttackReadyTick = 0;
     }
 
     const maxTicks = GameRules.CombatTurnLimit * GameRules.CombatTicksPerRound;
@@ -309,7 +310,7 @@ export function buildPlayerUnits(run) {
       + getRelicAttackBonus(run, hero);
     const unitId = `p${hero.formationSlot}`;
     const unit = new CombatUnitState(unitId, hero.definition.displayName, attack, maxHealth, maxHealth, true, hero.formationSlot, hero, null);
-    unit.attackIntervalTicks = resolveAttackInterval(unit);
+    applyAttackCadence(unit);
     unit.attackRange = resolveAttackRange(unit);
     if (critSlots.includes(hero.formationSlot)) {
       unit.statuses.add(CombatStatusId.CritCharged);
@@ -346,7 +347,7 @@ export function buildEnemyUnits(run, encounter) {
     );
     const unitId = `e${i}`;
     const unit = new CombatUnitState(unitId, enemy.displayName, attack, health, health, false, i, null, enemy);
-    unit.attackIntervalTicks = resolveAttackInterval(unit);
+    applyAttackCadence(unit);
     unit.attackRange = resolveAttackRange(unit);
     for (const status of enemy.startingStatuses) {
       unit.statuses.add(status);
@@ -360,10 +361,43 @@ export function buildEnemyUnits(run, encounter) {
 
 // --- Timing helpers -----------------------------------------------------------
 
-function resolveAttackInterval(unit) {
-  // All units share the default interval in the MVP. Later issues may specialise this
-  // per definition for heroes/enemies with different attack speeds.
-  return GameRules.DefaultAttackIntervalTicks;
+function applyAttackCadence(unit) {
+  unit.attackCooldownTicks = resolveAttackCooldownTicks(unit);
+  unit.attackSpeedMultiplier = resolveAttackSpeedMultiplier(unit);
+  unit.attackWindupTicks = resolveAttackWindupTicks(unit);
+  unit.attackRecoveryTicks = resolveAttackRecoveryTicks(unit);
+  unit.attackIntervalTicks = resolveEffectiveAttackCooldownTicks(unit);
+  unit.nextAttackReadyTick = 0;
+  unit.nextAttackAt = unit.nextAttackReadyTick;
+}
+
+function resolveAttackCooldownTicks(unit) {
+  // All units share the default cooldown in the first Combat V2 pass. Later tuning can
+  // specialise this per definition without changing the runtime contract.
+  return GameRules.DefaultAttackCooldownTicks;
+}
+
+function resolveAttackSpeedMultiplier(unit) {
+  return GameRules.DefaultAttackSpeedMultiplier;
+}
+
+function resolveAttackWindupTicks(unit) {
+  return GameRules.DefaultAttackWindupTicks;
+}
+
+function resolveAttackRecoveryTicks(unit) {
+  return GameRules.DefaultAttackRecoveryTicks;
+}
+
+export function resolveEffectiveAttackCooldownTicks(unit) {
+  const baseCooldown = unit && unit.attackCooldownTicks > 0
+    ? unit.attackCooldownTicks
+    : GameRules.DefaultAttackCooldownTicks;
+  const speedMultiplier = unit && unit.attackSpeedMultiplier > 0
+    ? unit.attackSpeedMultiplier
+    : GameRules.DefaultAttackSpeedMultiplier;
+  const effectiveCooldown = Math.ceil(baseCooldown / speedMultiplier);
+  return Math.max(GameRules.MinimumAttackCooldownTicks, effectiveCooldown);
 }
 
 function resolveAttackRange(unit) {

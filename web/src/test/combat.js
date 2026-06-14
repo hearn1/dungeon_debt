@@ -728,7 +728,7 @@ function checkEncounterShape(label, enc, enemyIds, positions) {
 // ---- Autobattle simulation (issues #164 / #170 / #171 / #172 / #173) ----
 
 // Issue 164: runtime match construction — unit IDs, slots, and source refs.
-import { buildPlayerUnits, buildEnemyUnits } from "../combat/CombatManager.js";
+import { buildPlayerUnits, buildEnemyUnits, resolveEffectiveAttackCooldownTicks } from "../combat/CombatManager.js";
 import { CombatTeam } from "../combat/CombatTeam.js";
 import { CombatBoard, coordKey, isInBounds, getNeighbors, hexDistance, isSameCoord, compareCoordsForTieBreak } from "../combat/CombatBoard.js";
 import { CombatMatch } from "../combat/CombatMatch.js";
@@ -811,6 +811,29 @@ import { getDefaultPlayerBoardPosition, getDefaultEnemyBoardPosition, isInPlayer
     enemyUnits.every(u => u.attackIntervalTicks > 0));
   check("171: nextAttackAt starts at 0 for fresh units",
     playerUnits.every(u => u.nextAttackAt === 0) && enemyUnits.every(u => u.nextAttackAt === 0));
+}
+
+// Issue 316: explicit Combat V2 attack cooldown and speed surfaces.
+{
+  const run = buildRun(["warrior", "golem"]);
+  const playerUnits = buildPlayerUnits(run);
+  const enemyUnits = buildEnemyUnits(run, encounter(1, 1));
+  const allUnits = [...playerUnits, ...enemyUnits];
+  check("316: every unit has baseline attackCooldownTicks",
+    allUnits.every(u => u.attackCooldownTicks === GameRules.DefaultAttackCooldownTicks));
+  check("316: every unit has attackSpeedMultiplier",
+    allUnits.every(u => u.attackSpeedMultiplier === GameRules.DefaultAttackSpeedMultiplier));
+  check("316: every unit has attackWindupTicks",
+    allUnits.every(u => u.attackWindupTicks === GameRules.DefaultAttackWindupTicks));
+  check("316: every unit has attackRecoveryTicks",
+    allUnits.every(u => u.attackRecoveryTicks === GameRules.DefaultAttackRecoveryTicks));
+
+  const baseline = { attackCooldownTicks: GameRules.DefaultAttackCooldownTicks, attackSpeedMultiplier: 1 };
+  const fast = { attackCooldownTicks: GameRules.DefaultAttackCooldownTicks, attackSpeedMultiplier: 2 };
+  check("316: faster unit has shorter effective cooldown",
+    resolveEffectiveAttackCooldownTicks(fast) < resolveEffectiveAttackCooldownTicks(baseline));
+  check("316: cooldown clamps to minimum",
+    resolveEffectiveAttackCooldownTicks({ attackCooldownTicks: 1, attackSpeedMultiplier: 99 }) === GameRules.MinimumAttackCooldownTicks);
 }
 
 // Issues 172/173 — CombatBoard hex distance range checks (board model).

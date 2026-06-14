@@ -215,6 +215,11 @@ export const GameRules = Object.freeze({
   // Tick-based simulation constants (issues #164/#170/#171/#172/#173).
   CombatTicksPerRound: 4,
   DefaultAttackIntervalTicks: 4,
+  DefaultAttackCooldownTicks: 4,
+  DefaultAttackSpeedMultiplier: 1,
+  DefaultAttackWindupTicks: 1,
+  DefaultAttackRecoveryTicks: 0,
+  MinimumAttackCooldownTicks: 1,
   DefaultMeleeRange: 1,
   DefaultRangedRange: 99,
 
