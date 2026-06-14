@@ -1756,6 +1756,21 @@ function makeMatch(playerUnits, enemyUnits, board) {
 // Helper: returns an array of error strings (empty = valid).
 function validateReplayStream(events) {
   const errors = [];
+  const expectedPhaseByKind = new Map([
+    [CombatReplayEventKind.CombatStart, CombatReplayPhase.Setup],
+    [CombatReplayEventKind.UnitSpawn, CombatReplayPhase.Setup],
+    [CombatReplayEventKind.RoundBoundary, CombatReplayPhase.RoundBoundary],
+    [CombatReplayEventKind.Movement, CombatReplayPhase.Movement],
+    [CombatReplayEventKind.AttackStart, CombatReplayPhase.AttackStart],
+    [CombatReplayEventKind.AbilityStart, CombatReplayPhase.AttackStart],
+    [CombatReplayEventKind.Attack, CombatReplayPhase.HitResolution],
+    [CombatReplayEventKind.Heal, CombatReplayPhase.HitResolution],
+    [CombatReplayEventKind.StatusDamage, CombatReplayPhase.HitResolution],
+    [CombatReplayEventKind.Death, CombatReplayPhase.Death],
+    [CombatReplayEventKind.PassiveTrigger, CombatReplayPhase.Passive],
+    [CombatReplayEventKind.CombatEnd, CombatReplayPhase.CombatEnd],
+    [CombatReplayEventKind.Message, CombatReplayPhase.Message],
+  ]);
 
   // 1. Sequence must be monotonically increasing.
   for (let i = 1; i < events.length; i++) {
@@ -1771,16 +1786,42 @@ function validateReplayStream(events) {
     }
   }
 
+  // 2b. Group sequence must increase within each group.
+  const lastGroupSeq = new Map();
+  for (let i = 0; i < events.length; i++) {
+    const e = events[i];
+    if (!e.groupId) {
+      errors.push(`event[${i}] missing groupId`);
+      continue;
+    }
+    const previous = lastGroupSeq.get(e.groupId);
+    if (previous !== undefined && e.groupSequence <= previous) {
+      errors.push(`groupSequence not monotone for ${e.groupId} at index ${i}`);
+    }
+    lastGroupSeq.set(e.groupId, e.groupSequence);
+  }
+
   // 3. Required fields by event kind.
   for (let i = 0; i < events.length; i++) {
     const e = events[i];
+    const expectedPhase = expectedPhaseByKind.get(e.kind);
+    if (expectedPhase && e.phase !== expectedPhase) {
+      errors.push(`${e.kind}[${i}] expected phase ${expectedPhase}, got ${e.phase}`);
+    }
     switch (e.kind) {
       case CombatReplayEventKind.UnitSpawn:
         if (!e.actorUnitId) errors.push(`UnitSpawn[${i}] missing actorUnitId`);
         break;
       case CombatReplayEventKind.Movement:
         if (!e.actorUnitId) errors.push(`Movement[${i}] missing actorUnitId`);
+        if (!e.sourceCoord) errors.push(`Movement[${i}] missing sourceCoord`);
         if (!e.targetCoord) errors.push(`Movement[${i}] missing targetCoord`);
+        break;
+      case CombatReplayEventKind.AttackStart:
+        if (!e.actorUnitId) errors.push(`AttackStart[${i}] missing actorUnitId`);
+        if (!e.targetUnitId) errors.push(`AttackStart[${i}] missing targetUnitId`);
+        if (!e.sourceCoord) errors.push(`AttackStart[${i}] missing sourceCoord`);
+        if (!e.targetCoord) errors.push(`AttackStart[${i}] missing targetCoord`);
         break;
       case CombatReplayEventKind.Attack:
         if (!e.actorUnitId) errors.push(`Attack[${i}] missing actorUnitId`);
@@ -1792,6 +1833,10 @@ function validateReplayStream(events) {
       case CombatReplayEventKind.AbilityCast:
         if (!e.actorUnitId) errors.push(`AbilityCast[${i}] missing actorUnitId`);
         if (!e.abilityId) errors.push(`AbilityCast[${i}] missing abilityId`);
+        break;
+      case CombatReplayEventKind.AbilityStart:
+        if (!e.actorUnitId) errors.push(`AbilityStart[${i}] missing actorUnitId`);
+        if (!e.abilityId) errors.push(`AbilityStart[${i}] missing abilityId`);
         break;
       case CombatReplayEventKind.PassiveTrigger:
         if (!e.actorUnitId) errors.push(`PassiveTrigger[${i}] missing actorUnitId`);
@@ -1823,6 +1868,31 @@ function validateReplayStream(events) {
       errors.push(`Death of ${uid} has no preceding damage event`);
     } else if (damageIdx > deathIdx) {
       errors.push(`Death of ${uid} appears before its damage event`);
+    }
+  }
+
+  // 5. Dead units may resolve same-tick pending hits, but cannot act on later ticks.
+  const deathTickByUnitId = new Map();
+  for (const e of events) {
+    if (e.kind === CombatReplayEventKind.Death && e.targetUnitId && !deathTickByUnitId.has(e.targetUnitId)) {
+      deathTickByUnitId.set(e.targetUnitId, e.tick);
+    }
+  }
+  const actorKinds = new Set([
+    CombatReplayEventKind.Movement,
+    CombatReplayEventKind.AttackStart,
+    CombatReplayEventKind.AbilityStart,
+    CombatReplayEventKind.Attack,
+    CombatReplayEventKind.AbilityCast,
+    CombatReplayEventKind.Heal,
+    CombatReplayEventKind.PassiveTrigger,
+  ]);
+  for (let i = 0; i < events.length; i++) {
+    const e = events[i];
+    if (!actorKinds.has(e.kind) || !e.actorUnitId) continue;
+    const deathTick = deathTickByUnitId.get(e.actorUnitId);
+    if (deathTick !== undefined && e.tick > deathTick) {
+      errors.push(`${e.kind}[${i}] dead unit ${e.actorUnitId} acted after death tick ${deathTick}`);
     }
   }
 
@@ -1993,6 +2063,51 @@ function reconstructHpMap(events) {
   check("323: same-tick attack starts can share a replay group", groupedAttackStart);
   check("323: death events use the death phase",
     deaths.length > 0 && deaths.every(e => e.phase === CombatReplayPhase.Death));
+}
+
+// 324: grouped replay validation accepts same-tick lethal trades and rejects bad ordering.
+{
+  const tradeEnemy = new EnemyDefinition("validation_duelist", "Validation Duelist", 4, 3,
+    EnemyEffectId.None, "Trades lethal replay hits.");
+  const tradeEncounter = new EncounterDefinition(1, 1, EncounterType.Dungeon,
+    "Validation Duel", "Replay validation duel.", "Same tick",
+    [tradeEnemy], GameRules.WinReward, EncounterEffectId.None, RivalGuild.None,
+    "validation-duel", [{ q: 4, r: 2 }]);
+  const tradeResult = new CombatManager({ runtimeId: CombatRuntimeId.CombatV2 })
+    .startCombat(buildRun(["warrior"]), tradeEncounter);
+  const tradeErrors = validateReplayStream(tradeResult.replayEvents);
+  check("324: valid same-tick lethal trade passes grouped replay validation",
+    tradeErrors.length === 0);
+
+  const malformedOrder = tradeResult.replayEvents.map(e => ({ ...e }));
+  const firstAttackStartIndex = malformedOrder.findIndex(e => e.kind === CombatReplayEventKind.AttackStart);
+  if (firstAttackStartIndex >= 0) {
+    malformedOrder[firstAttackStartIndex].phase = CombatReplayPhase.Movement;
+    malformedOrder[firstAttackStartIndex].groupId = `${malformedOrder[firstAttackStartIndex].tick}:${CombatReplayPhase.Movement}`;
+  }
+  check("324: invalid phase assignment is caught",
+    validateReplayStream(malformedOrder).some(e => e.includes("expected phase")));
+
+  const malformedMove = tradeResult.replayEvents.map(e => ({ ...e }));
+  const firstMoveIndex = malformedMove.findIndex(e => e.kind === CombatReplayEventKind.Movement);
+  if (firstMoveIndex >= 0) malformedMove[firstMoveIndex].targetCoord = null;
+  check("324: malformed grouped movement shape is caught",
+    firstMoveIndex < 0 || validateReplayStream(malformedMove).some(e => e.includes("Movement")));
+
+  const deathEvent = tradeResult.replayEvents.find(e => e.kind === CombatReplayEventKind.Death);
+  const laterBadAction = deathEvent
+    ? {
+        ...tradeResult.replayEvents.find(e => e.kind === CombatReplayEventKind.AttackStart),
+        tick: deathEvent.tick + 1,
+        sequence: tradeResult.replayEvents[tradeResult.replayEvents.length - 1].sequence + 1,
+        groupId: `${deathEvent.tick + 1}:${CombatReplayPhase.AttackStart}`,
+        groupSequence: 0,
+        actorUnitId: deathEvent.targetUnitId,
+      }
+    : null;
+  check("324: dead unit cannot act on a later tick",
+    !laterBadAction || validateReplayStream([...tradeResult.replayEvents, laterBadAction])
+      .some(e => e.includes("acted after death")));
 }
 
 // 226-I: PassiveTrigger events present for passive abilities.

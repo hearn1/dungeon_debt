@@ -102,6 +102,7 @@ export class CombatManager {
         const roundJustEnded = currentRound - 1;
         logger.setPhase(CombatReplayPhase.RoundBoundary);
         logger.logRoundBoundary(currentRound);
+        logger.setPhase(CombatReplayPhase.HitResolution, `${tick}:RoundEffects`);
         HeroEffects.onEndOfCombatRound(roundJustEnded, run, encounter, playerUnits, enemyUnits, result, logger);
         AbilityRunner.triggerPassives(AbilityTrigger.EndOfRound, playerUnits, { match, run, logger });
         result.combatRoundsElapsed = roundJustEnded;
