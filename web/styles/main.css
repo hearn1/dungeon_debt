@@ -533,6 +533,75 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   animation: none !important;
 }
 
+/* ---- PortraitToken visual kind (first real visual slice, epic #314) ---- */
+/* Units with data-visual-kind="PortraitToken" use a larger circular medallion
+   with the portrait as the primary visual instead of the colored diamond pin. */
+[data-visual-kind="PortraitToken"] .three-unit-pin {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  transform: none;
+  border-width: 2px;
+  box-shadow: 0 0 10px var(--unit-visual-color, currentColor), inset 0 0 8px rgba(0,0,0,0.5);
+  overflow: hidden;
+}
+[data-visual-kind="PortraitToken"] .three-unit-portrait {
+  width: 44px;
+  height: 44px;
+  transform: none;
+  opacity: 0.95;
+  object-fit: cover;
+  object-position: center top;
+}
+/* Role-specific border tints for hero portrait tokens */
+[data-visual-kind="PortraitToken"].visual-hero-tank .three-unit-pin    { border-color: rgba(120, 160, 210, 0.9); }
+[data-visual-kind="PortraitToken"].visual-hero-damage .three-unit-pin  { border-color: rgba(196, 74, 62, 0.9); }
+[data-visual-kind="PortraitToken"].visual-hero-support .three-unit-pin { border-color: rgba(107, 155, 107, 0.9); }
+[data-visual-kind="PortraitToken"].visual-hero-economy .three-unit-pin { border-color: rgba(201, 160, 74, 0.9); }
+/* Enemy portrait tokens use the rust red palette */
+[data-visual-kind="PortraitToken"].visual-enemy-slime .three-unit-pin  { border-color: rgba(107, 155, 107, 0.9); }
+[data-visual-kind="PortraitToken"].visual-enemy-goblin .three-unit-pin { border-color: rgba(166, 106, 64, 0.9); }
+[data-visual-kind="PortraitToken"].visual-enemy-bat .three-unit-pin    { border-color: rgba(118, 95, 143, 0.9); }
+
+/* Acting glow — brighter for portrait tokens */
+[data-visual-kind="PortraitToken"].acting .three-unit-pin {
+  box-shadow: 0 0 0 3px currentColor, 0 0 22px currentColor;
+  background: transparent;
+}
+
+/* State animations — override pin-level animations with medallion-appropriate ones */
+[data-visual-kind="PortraitToken"].visual-state-idle .three-unit-pin      { animation: token-idle-breathe 2200ms ease-in-out infinite; }
+[data-visual-kind="PortraitToken"].visual-state-attack .three-unit-pin    { animation: token-attack-slam 220ms ease-out 1; }
+[data-visual-kind="PortraitToken"].visual-state-hit .three-unit-pin       { animation: token-hit-shake 300ms ease-out 1; }
+[data-visual-kind="PortraitToken"].visual-state-death .three-unit-pin     { animation: token-death-drop 480ms ease-in forwards; }
+[data-visual-kind="PortraitToken"].visual-state-cast .three-unit-pin      { animation: token-cast-ring 320ms ease-out 1; }
+
+@keyframes token-idle-breathe {
+  0%, 100% { transform: scale(1); filter: brightness(1); }
+  50%       { transform: scale(1.04); filter: brightness(1.08); }
+}
+@keyframes token-attack-slam {
+  0%   { transform: scale(1) translateY(0); }
+  30%  { transform: scale(1.22) translateY(-4px); }
+  100% { transform: scale(1) translateY(0); }
+}
+@keyframes token-hit-shake {
+  0%, 100% { transform: translateX(0); filter: brightness(1); }
+  20%       { transform: translateX(-5px); filter: brightness(1.8) saturate(0); }
+  50%       { transform: translateX(4px); filter: brightness(1.4); }
+  75%       { transform: translateX(-2px); }
+}
+@keyframes token-death-drop {
+  0%   { transform: scale(1) translateY(0); opacity: 1; filter: grayscale(0); }
+  40%  { transform: scale(0.9) translateY(3px); filter: grayscale(0.6); }
+  100% { transform: scale(0.72) translateY(10px); opacity: 0; filter: grayscale(1); }
+}
+@keyframes token-cast-ring {
+  0%   { transform: scale(1); box-shadow: 0 0 10px var(--unit-visual-color, currentColor); }
+  50%  { transform: scale(1.14); box-shadow: 0 0 28px var(--unit-visual-color, currentColor), 0 0 0 4px currentColor; }
+  100% { transform: scale(1); box-shadow: 0 0 10px var(--unit-visual-color, currentColor); }
+}
+
 /* Hex tile zone tints inside the battlefield. */
 .hex-tile.player-zone { background: color-mix(in srgb, var(--gold) 8%, var(--bg-panel)); }
 .hex-tile.enemy-zone  { background: color-mix(in srgb, var(--debt-critical) 8%, var(--bg-panel)); }

@@ -1,5 +1,6 @@
 import { HeroRole } from "../data/enums.js";
 import { unitPortrait } from "./SpriteCatalog.js";
+import { resolveManifestEntry, VisualTier } from "./CombatAssetManifest.js";
 
 // UnitVisualCatalog maps game units to presentation metadata for board visuals.
 // Lookup order:
@@ -8,9 +9,14 @@ import { unitPortrait } from "./SpriteCatalog.js";
 //   unknown input -> neutral fallback placeholder
 // Each result includes the existing PNG portrait URL so DOM/UI surfaces can keep
 // using SpriteCatalog assets while the board renderer uses 2.5D placeholders.
+//
+// UnitVisualKind.PortraitToken is used for units in the first real visual slice
+// (warrior, knight, priest, slime, goblin_thief, cave_bat). All others remain
+// PlaceholderPawn until future passes.
 
 export const UnitVisualKind = Object.freeze({
   PlaceholderPawn: "PlaceholderPawn",
+  PortraitToken: "PortraitToken",
 });
 
 export const UnitVisualState = Object.freeze({
@@ -163,12 +169,16 @@ function buildEnemyVisual(enemyDef, source) {
 }
 
 function buildVisual({ id, displayName, side, sourceType, base, portraitUrl }) {
+  const manifest = resolveManifestEntry(id);
+  const kind = manifest.tier === VisualTier.PortraitToken
+    ? UnitVisualKind.PortraitToken
+    : UnitVisualKind.PlaceholderPawn;
   return Object.freeze({
     id,
     displayName,
     side,
     sourceType,
-    kind: UnitVisualKind.PlaceholderPawn,
+    kind,
     group: base.group,
     groupLabel: base.label,
     color: base.color,
