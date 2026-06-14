@@ -124,6 +124,7 @@ MainMenu
 - `HeroInstance` is the single mutable per-hero bag. `HeroEffects.applyTierStatSeed(hero)` reseeds tier-derived stats each round.
 - `CombatUnit` is a per-combat snapshot of a hero/enemy; it never persists past a fight. `CombatResult.playerStartUnits` / `playerFinalUnits` are deep snapshots for UI replay.
 - `web/src/run/EncounterScaling.js` owns deterministic act/slot/type scaling for opponent stats. `CombatManager.buildEnemyUnits` applies it to combat-unit snapshots after difficulty multipliers and before rival-race lead scaling; enemy definitions and `DataRepository` values remain unchanged.
+- `web/src/combat/CombatRuntime.js` owns explicit combat runtime ids. `CombatManager` validates the selected runtime, stamps `CombatResult.combatRuntimeId`, and `RunState.latestCombatRuntimeId` / balance outputs carry that id for rebaseline and comparison work.
 
 ### Combat hook points
 

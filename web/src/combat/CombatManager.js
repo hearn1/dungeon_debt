@@ -14,9 +14,11 @@ import { getEncounterScaling } from "../run/EncounterScaling.js";
 import { resolvePlayerBoardPosition, resolveEnemyBoardPosition } from "./BoardPlacement.js";
 import { selectTarget } from "./TargetingRules.js";
 import { getBasicAttackMode } from "./RoleBehavior.js";
+import { DefaultCombatRuntimeId, resolveCombatRuntimeId } from "./CombatRuntime.js";
 
 export class CombatManager {
-  constructor() {
+  constructor(options = null) {
+    this.runtimeId = resolveCombatRuntimeId(options && options.runtimeId ? options.runtimeId : DefaultCombatRuntimeId);
     this._run = null;
     this._match = null;
     this._knightRedirectsRemaining = 0;
@@ -25,6 +27,7 @@ export class CombatManager {
 
   startCombat(run, encounter) {
     const result = new CombatResult();
+    result.combatRuntimeId = this.runtimeId;
     const logger = new CombatLogger();
 
     this._run = run;
@@ -64,6 +67,8 @@ export class CombatManager {
     const board = new CombatBoard();
     initBoardPositions(board, playerUnits, enemyUnits, encounter);
     const match = new CombatMatch(playerTeam, enemyTeam, board);
+    const pendingHitEvents = [];
+    const pendingAbilityEvents = [];
 
     this._match = match;
 
@@ -80,6 +85,8 @@ export class CombatManager {
     // Timing is seeded by the build functions; ensure all units start ready at tick 0.
     for (const u of match.allUnits) {
       u.nextAttackAt = 0;
+      u.nextAttackReadyTick = 0;
+      u.nextMovementReadyTick = 0;
     }
 
     const maxTicks = GameRules.CombatTurnLimit * GameRules.CombatTicksPerRound;
@@ -111,69 +118,17 @@ export class CombatManager {
         if (!unit.isAlive) match.board.removeUnit(unit);
       }
 
-      // Collect units ready to act this tick and execute in deterministic order.
-      const readyUnits = match.allUnits.filter(u => u.isAlive && u.nextAttackAt <= tick);
-      readyUnits.sort(combatActionOrder);
+      const intents = this._collectTimelineIntents(match, currentRound, playerUnits, tick, logger);
+      intents.activeCasts.push(...AbilityRunner.collectActiveIntents(tick, playerUnits, match));
+      resolveMovementIntents(intents.movements, match, logger);
+      startAttackWindups(intents.attacks, pendingHitEvents, tick);
+      startAbilityWindups(intents.activeCasts, pendingAbilityEvents, tick);
+      const defeatedThisTick = this._resolveMaturingHitEvents(pendingHitEvents, tick, logger);
+      this._resolveMaturingAbilityEvents(pendingAbilityEvents, tick, logger);
+      this._applyDeferredDeaths(defeatedThisTick, logger);
 
-      for (const unit of readyUnits) {
-        if (!unit.isAlive) continue; // may have died earlier this tick
-
-        let target = findTarget(unit, match, currentRound);
-        if (!target) continue;
-
-        // Knight redirect only applies when an enemy hits a player backline hero.
-        if (!unit.isPlayerSide) {
-          const redirect = HeroEffects.tryRedirectToKnight(target, playerUnits, this._knightRedirectsRemaining, logger);
-          target = redirect.target;
-          this._knightRedirectsRemaining = redirect.remaining;
-          if (!target) continue;
-        }
-
-        if (match.board.canAttack(unit, target)) {
-          // Target is in range: attack.
-          HeroEffects.onAttack(unit, target, logger);
-          this._applyAttack(unit, target, logger);
-          // Remove killed units from board immediately so same-tick pathfinding is unblocked.
-          if (!target.isAlive) match.board.removeUnit(target);
-          if (!unit.isAlive) match.board.removeUnit(unit);
-        } else {
-          // Target is out of range: move one step toward it.
-          const targetPos = match.board.getUnitPosition(target);
-          if (targetPos) {
-            const fromPos = logger ? match.board.getUnitPosition(unit) : null;
-            const moved = match.board.moveUnitToward(unit, targetPos, GameRules.DefaultMovementRange);
-            if (moved && logger) {
-              const toPos = match.board.getUnitPosition(unit);
-              logger.logMovement(unit, fromPos, toPos);
-            }
-          }
-        }
-
-        unit.nextAttackAt = tick + unit.attackIntervalTicks;
-
-        if (!enemyTeam.hasLiving) {
-          result.playerWon = true;
-          result.combatRoundsElapsed = currentRound;
-          logger.logFinalResult(true);
-          this._finishResult(result, playerUnits, enemyUnits, logger);
-          return result;
-        }
-
-        if (!playerTeam.hasLiving) {
-          result.playerWon = false;
-          result.combatRoundsElapsed = currentRound;
-          logger.logFinalResult(false);
-          this._finishResult(result, playerUnits, enemyUnits, logger);
-          return result;
-        }
-      }
-
-      // Active ability pass: fire any active abilities whose cooldown has expired.
-      AbilityRunner.processActives(tick, playerUnits, match, run, logger);
-
-      // Clean up board after ability damage.
       for (const unit of match.allUnits) {
-        if (!unit.isAlive) match.board.removeUnit(unit);
+        if (unit.deathResolved) match.board.removeUnit(unit);
       }
 
       if (!enemyTeam.hasLiving) {
@@ -183,6 +138,15 @@ export class CombatManager {
         this._finishResult(result, playerUnits, enemyUnits, logger);
         return result;
       }
+
+      if (!playerTeam.hasLiving) {
+        result.playerWon = false;
+        result.combatRoundsElapsed = currentRound;
+        logger.logFinalResult(false);
+        this._finishResult(result, playerUnits, enemyUnits, logger);
+        return result;
+      }
+
     }
 
     result.playerWon = false;
@@ -192,8 +156,98 @@ export class CombatManager {
     return result;
   }
 
-  _applyAttack(attacker, defender, logger) {
+  _collectTimelineIntents(match, currentRound, playerUnits, tick, logger) {
+    const readyUnits = match.allUnits.filter(u => u.isAlive);
+    readyUnits.sort(stableUnitOrder);
+
+    const intents = { movements: [], attacks: [], activeCasts: [] };
+
+    for (const unit of readyUnits) {
+      let target = findTarget(unit, match, currentRound);
+      if (!target) continue;
+
+      if (!unit.isPlayerSide) {
+        const redirect = HeroEffects.tryRedirectToKnight(target, playerUnits, this._knightRedirectsRemaining, logger);
+        target = redirect.target;
+        this._knightRedirectsRemaining = redirect.remaining;
+        if (!target) continue;
+      }
+
+      if (match.board.canAttack(unit, target)) {
+        if (unit.nextAttackReadyTick > tick) continue;
+        intents.attacks.push({ actor: unit, target });
+        markUnitAttacked(unit, tick);
+      } else {
+        if (unit.nextMovementReadyTick > tick) continue;
+        const targetPos = match.board.getUnitPosition(target);
+        if (targetPos) {
+          intents.movements.push({ actor: unit, target, targetPos });
+          markUnitMoved(unit, tick);
+        }
+      }
+    }
+
+    return intents;
+  }
+
+  _resolveMaturingHitEvents(pendingHitEvents, tick, logger) {
+    const maturing = [];
+    for (let i = pendingHitEvents.length - 1; i >= 0; i--) {
+      if (pendingHitEvents[i].hitTick !== tick) continue;
+      maturing.push(pendingHitEvents[i]);
+      pendingHitEvents.splice(i, 1);
+    }
+    maturing.sort((a, b) => a.order - b.order);
+
+    const defeatedByUnitId = new Map();
+    for (const event of maturing) {
+      const { actor, target } = event;
+      if (actor.deathResolved || target.deathResolved) continue;
+      HeroEffects.onAttack(actor, target, logger);
+      const defeated = this._applyAttack(actor, target, logger, { deferDeath: true });
+      for (const entry of defeated) {
+        if (!defeatedByUnitId.has(entry.defeated.unitId)) {
+          defeatedByUnitId.set(entry.defeated.unitId, entry);
+        }
+      }
+    }
+
+    return [...defeatedByUnitId.values()];
+  }
+
+  _applyDeferredDeaths(defeatedEntries, logger) {
+    defeatedEntries.sort((a, b) => combatActionOrder(a.defeated, b.defeated));
+
+    for (const entry of defeatedEntries) {
+      const defeated = entry.defeated;
+      if (defeated.deathResolved || defeated.isAlive) continue;
+      defeated.pendingDeath = false;
+      defeated.deathResolved = true;
+      logger.logDeath(defeated);
+      HeroEffects.onKill(entry.attacker, defeated, this._run, logger);
+      AbilityRunner.triggerPassiveOn(AbilityTrigger.OnKill, entry.attacker, defeated, { match: this._match, run: this._run, logger });
+    }
+  }
+
+  _resolveMaturingAbilityEvents(pendingAbilityEvents, tick, logger) {
+    const maturing = [];
+    for (let i = pendingAbilityEvents.length - 1; i >= 0; i--) {
+      if (pendingAbilityEvents[i].castTick !== tick) continue;
+      maturing.push(pendingAbilityEvents[i]);
+      pendingAbilityEvents.splice(i, 1);
+    }
+    maturing.sort((a, b) => a.order - b.order);
+
+    for (const event of maturing) {
+      AbilityRunner.resolveActiveCast(event, this._match, this._run, logger);
+    }
+  }
+
+  _applyAttack(attacker, defender, logger, options = null) {
+    const deferDeath = options && options.deferDeath === true;
+    const defeated = [];
     let damage = attacker.attack;
+    const defenderWasAlive = defender.isAlive;
 
     if (attacker.statuses.has(CombatStatusId.CritCharged)) {
       damage *= GameRules.CritDamageMultiplier;
@@ -213,11 +267,17 @@ export class CombatManager {
 
     logger.logAttack(attacker, defender, damage);
 
-    if (!defender.isAlive) {
-      logger.logDeath(defender);
-      HeroEffects.onKill(attacker, defender, this._run, logger);
-      AbilityRunner.triggerPassiveOn(AbilityTrigger.OnKill, attacker, defender, { match: this._match, run: this._run, logger });
-    } else {
+    if (defenderWasAlive && !defender.isAlive) {
+      if (deferDeath) {
+        defender.pendingDeath = true;
+        defeated.push({ attacker, defeated: defender });
+      } else {
+        logger.logDeath(defender);
+        defender.deathResolved = true;
+        HeroEffects.onKill(attacker, defender, this._run, logger);
+        AbilityRunner.triggerPassiveOn(AbilityTrigger.OnKill, attacker, defender, { match: this._match, run: this._run, logger });
+      }
+    } else if (defender.isAlive) {
       applyAttackStatuses(attacker, defender, logger);
       HeroEffects.onSurvivingAttack(attacker, defender, logger);
       this._applyRelicAttackStatuses(attacker, defender, logger);
@@ -232,6 +292,7 @@ export class CombatManager {
     }
 
     applyPostAttackStatusDamage(attacker, logger);
+    return defeated;
   }
 
   _applyRelicAttackStatuses(attacker, defender, logger) {
@@ -309,8 +370,9 @@ export function buildPlayerUnits(run) {
       + getRelicAttackBonus(run, hero);
     const unitId = `p${hero.formationSlot}`;
     const unit = new CombatUnitState(unitId, hero.definition.displayName, attack, maxHealth, maxHealth, true, hero.formationSlot, hero, null);
-    unit.attackIntervalTicks = resolveAttackInterval(unit);
+    applyAttackCadence(unit);
     unit.attackRange = resolveAttackRange(unit);
+    applyMovementCadence(unit);
     if (critSlots.includes(hero.formationSlot)) {
       unit.statuses.add(CombatStatusId.CritCharged);
     }
@@ -346,8 +408,9 @@ export function buildEnemyUnits(run, encounter) {
     );
     const unitId = `e${i}`;
     const unit = new CombatUnitState(unitId, enemy.displayName, attack, health, health, false, i, null, enemy);
-    unit.attackIntervalTicks = resolveAttackInterval(unit);
+    applyAttackCadence(unit);
     unit.attackRange = resolveAttackRange(unit);
+    applyMovementCadence(unit);
     for (const status of enemy.startingStatuses) {
       unit.statuses.add(status);
     }
@@ -360,10 +423,108 @@ export function buildEnemyUnits(run, encounter) {
 
 // --- Timing helpers -----------------------------------------------------------
 
-function resolveAttackInterval(unit) {
-  // All units share the default interval in the MVP. Later issues may specialise this
-  // per definition for heroes/enemies with different attack speeds.
-  return GameRules.DefaultAttackIntervalTicks;
+function applyAttackCadence(unit) {
+  unit.attackCooldownTicks = resolveAttackCooldownTicks(unit);
+  unit.attackSpeedMultiplier = resolveAttackSpeedMultiplier(unit);
+  unit.attackWindupTicks = resolveAttackWindupTicks(unit);
+  unit.attackRecoveryTicks = resolveAttackRecoveryTicks(unit);
+  unit.attackIntervalTicks = resolveEffectiveAttackCooldownTicks(unit);
+  unit.nextAttackReadyTick = 0;
+  unit.nextAttackAt = unit.nextAttackReadyTick;
+}
+
+function applyMovementCadence(unit) {
+  unit.movementRange = resolveMovementRange(unit);
+  unit.movementCooldownTicks = resolveMovementCooldownTicks(unit);
+  unit.nextMovementReadyTick = 0;
+}
+
+function markUnitAttacked(unit, tick) {
+  const nextReadyTick = tick + unit.attackIntervalTicks;
+  unit.nextAttackReadyTick = nextReadyTick;
+  unit.nextAttackAt = nextReadyTick;
+}
+
+function markUnitMoved(unit, tick) {
+  unit.nextMovementReadyTick = tick + unit.movementCooldownTicks;
+}
+
+function startAttackWindups(attackIntents, pendingHitEvents, tick) {
+  for (const intent of attackIntents) {
+    const { actor, target } = intent;
+    if (!actor.isAlive || target.deathResolved) continue;
+    pendingHitEvents.push({
+      actor,
+      target,
+      hitTick: tick + actor.attackWindupTicks,
+      order: pendingHitEvents.length,
+    });
+  }
+}
+
+function startAbilityWindups(activeCastIntents, pendingAbilityEvents, tick) {
+  for (const intent of activeCastIntents) {
+    const { caster, target } = intent;
+    if (!caster.isAlive || (target && target.deathResolved)) continue;
+    pendingAbilityEvents.push({
+      ...intent,
+      castTick: tick + GameRules.DefaultAbilityWindupTicks,
+      order: pendingAbilityEvents.length,
+    });
+  }
+}
+
+function resolveMovementIntents(movementIntents, match, logger) {
+  movementIntents.sort((a, b) => stableUnitOrder(a.actor, b.actor));
+
+  for (const intent of movementIntents) {
+    const { actor, targetPos } = intent;
+    if (!actor.isAlive) continue;
+
+    const fromPos = logger ? match.board.getUnitPosition(actor) : null;
+    const moved = match.board.moveUnitToward(actor, targetPos, actor.movementRange);
+    if (moved && logger) {
+      const toPos = match.board.getUnitPosition(actor);
+      logger.logMovement(actor, fromPos, toPos);
+    }
+  }
+}
+
+function resolveAttackCooldownTicks(unit) {
+  // All units share the default cooldown in the first Combat V2 pass. Later tuning can
+  // specialise this per definition without changing the runtime contract.
+  return GameRules.DefaultAttackCooldownTicks;
+}
+
+function resolveAttackSpeedMultiplier(unit) {
+  return GameRules.DefaultAttackSpeedMultiplier;
+}
+
+function resolveAttackWindupTicks(unit) {
+  return GameRules.DefaultAttackWindupTicks;
+}
+
+function resolveAttackRecoveryTicks(unit) {
+  return GameRules.DefaultAttackRecoveryTicks;
+}
+
+function resolveMovementRange(unit) {
+  return GameRules.DefaultMovementRange;
+}
+
+function resolveMovementCooldownTicks(unit) {
+  return GameRules.DefaultMovementCooldownTicks;
+}
+
+export function resolveEffectiveAttackCooldownTicks(unit) {
+  const baseCooldown = unit && unit.attackCooldownTicks > 0
+    ? unit.attackCooldownTicks
+    : GameRules.DefaultAttackCooldownTicks;
+  const speedMultiplier = unit && unit.attackSpeedMultiplier > 0
+    ? unit.attackSpeedMultiplier
+    : GameRules.DefaultAttackSpeedMultiplier;
+  const effectiveCooldown = Math.ceil(baseCooldown / speedMultiplier);
+  return Math.max(GameRules.MinimumAttackCooldownTicks, effectiveCooldown);
 }
 
 function resolveAttackRange(unit) {
@@ -379,7 +540,13 @@ function resolveAttackRange(unit) {
 // Sort comparator: lower nextAttackAt first, then player-side first (tie-break only),
 // then lower slot, then unitId lexicographic order for full stability.
 function combatActionOrder(a, b) {
-  if (a.nextAttackAt !== b.nextAttackAt) return a.nextAttackAt - b.nextAttackAt;
+  const aTick = a.nextAttackReadyTick ?? a.nextAttackAt;
+  const bTick = b.nextAttackReadyTick ?? b.nextAttackAt;
+  if (aTick !== bTick) return aTick - bTick;
+  return stableUnitOrder(a, b);
+}
+
+function stableUnitOrder(a, b) {
   if (a.isPlayerSide !== b.isPlayerSide) return a.isPlayerSide ? -1 : 1;
   if (a.slot !== b.slot) return a.slot - b.slot;
   if (a.unitId < b.unitId) return -1;
@@ -513,7 +680,10 @@ function applyStatusDamage(unit, statusId, damage, logger) {
   if (unit.currentHealth < 0) unit.currentHealth = 0;
   if (logger) {
     logger.logStatusDamage(unit, statusId, damage);
-    if (!unit.isAlive) logger.logDeath(unit);
+    if (!unit.isAlive) {
+      unit.deathResolved = true;
+      logger.logDeath(unit);
+    }
   }
 }
 

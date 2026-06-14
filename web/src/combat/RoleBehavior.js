@@ -4,13 +4,13 @@
 import { TargetingMode, HeroRole, HeroEffectId } from "../data/enums.js";
 
 export const RoleBehaviorDefaults = Object.freeze({
-  [HeroRole.Tank]:    Object.freeze({ basicAttackTarget: TargetingMode.NearestEnemy }),
-  [HeroRole.Damage]:  Object.freeze({ basicAttackTarget: TargetingMode.NearestEnemy }),
+  [HeroRole.Tank]:    Object.freeze({ basicAttackTarget: TargetingMode.CurrentTargetOrNearestEnemy }),
+  [HeroRole.Damage]:  Object.freeze({ basicAttackTarget: TargetingMode.CurrentTargetOrNearestEnemy }),
   [HeroRole.Support]: Object.freeze({
-    basicAttackTarget: TargetingMode.NearestEnemy,
+    basicAttackTarget: TargetingMode.CurrentTargetOrNearestEnemy,
     defaultAllyTarget: TargetingMode.LowestHealthAlly,
   }),
-  [HeroRole.Economy]: Object.freeze({ basicAttackTarget: TargetingMode.NearestEnemy }),
+  [HeroRole.Economy]: Object.freeze({ basicAttackTarget: TargetingMode.CurrentTargetOrNearestEnemy }),
 });
 
 // Heroes whose effectId maps to a non-default basic attack targeting mode.
@@ -29,5 +29,5 @@ export function getBasicAttackMode(unit) {
     const roleDef = RoleBehaviorDefaults[unit.sourceHero.definition.role];
     if (roleDef) return roleDef.basicAttackTarget;
   }
-  return TargetingMode.NearestEnemy;
+  return TargetingMode.CurrentTargetOrNearestEnemy;
 }

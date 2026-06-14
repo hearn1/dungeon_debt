@@ -14,6 +14,7 @@ import { PayrollManager } from "../run/PayrollManager.js";
 import { EncounterManager } from "../run/EncounterManager.js";
 import { RivalManager } from "../run/RivalManager.js";
 import { CombatManager } from "../combat/CombatManager.js";
+import { DefaultCombatRuntimeId } from "../combat/CombatRuntime.js";
 import { BalanceRunLogger } from "../run/BalanceRunLogger.js";
 import { BalanceChallengeFlag, classifyEncounterChallenge, formatTargetBandLabel } from "./BalanceTargets.js";
 import { GreedyStrategy } from "./strategies/greedy.js";
@@ -301,6 +302,7 @@ function buildMarkdownReport(results, combatLog, economyLog, options, timestamp)
   lines.push(`- Seeds: ${options.seedCount}`);
   lines.push(`- Strategy: ${options.strategy}`);
   lines.push(`- Difficulty: ${GameRules.DefaultDifficultyPreset}`);
+  lines.push(`- Combat runtime: ${getReportRuntimeLabel(combatLog)}`);
   lines.push(`- Date: ${new Date().toISOString()}`);
   lines.push("");
 
@@ -513,6 +515,14 @@ function compareEncounterSummaries(a, b) {
   if (a.act !== b.act) return a.act - b.act;
   if (a.slot !== b.slot) return a.slot - b.slot;
   return a.encounterId.localeCompare(b.encounterId);
+}
+
+function getReportRuntimeLabel(combatLog) {
+  const runtimeIds = [...new Set((combatLog || [])
+    .map((row) => row.combatRuntimeId)
+    .filter(Boolean))];
+  if (runtimeIds.length === 0) return DefaultCombatRuntimeId;
+  return runtimeIds.join(", ");
 }
 
 function groupBy(arr, keyFn) {

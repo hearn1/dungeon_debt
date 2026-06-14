@@ -12,14 +12,30 @@ export class CombatUnitState extends CombatUnit {
     // Tick when this unit may next act (0 = ready immediately).
     this.nextAttackAt = 0;
 
-    // Number of ticks between successive attacks. Set by the match builder from GameRules.
+    // Combat V2 attack cadence surfaces. Set by the match builder from GameRules.
+    this.attackCooldownTicks = 0;
+    this.attackSpeedMultiplier = 1;
+    this.attackWindupTicks = 0;
+    this.attackRecoveryTicks = 0;
+    this.nextAttackReadyTick = 0;
+
+    // Backward-compatible alias for the effective cooldown during the transition.
     this.attackIntervalTicks = 0;
 
     // Attack range: DefaultMeleeRange (melee) or DefaultRangedRange (ranged).
     this.attackRange = 0;
 
+    // Movement cadence is independent from attack cadence in Combat V2.
+    this.movementRange = 0;
+    this.movementCooldownTicks = 0;
+    this.nextMovementReadyTick = 0;
+
     // UnitId of the current target; cleared when target dies or becomes invalid.
     this.currentTargetUnitId = null;
+
+    // Death cleanup is delayed until same-tick hit groups finish resolving.
+    this.pendingDeath = false;
+    this.deathResolved = false;
 
     // Axial hex board position {q, r}. Set during match initialisation from
     // hero.boardPosition (or slot default). Updated by board.moveUnit.

@@ -29,6 +29,7 @@ import { buildManagerReportLines } from "../run/ManagerReportBuilder.js";
 import { getEncounterReward } from "../run/EncounterReward.js";
 import { getEncounterRewardQualityBreakdown, getEncounterVeterancyXpBreakdown } from "../run/EncounterRewardQuality.js";
 import { BalanceRunLogger } from "../run/BalanceRunLogger.js";
+import { DefaultCombatRuntimeId } from "../combat/CombatRuntime.js";
 
 let failures = 0;
 function check(name, cond) {
@@ -2245,6 +2246,7 @@ function makeCombatResult(overrides = {}) {
   gm.continueFromShop();
   gm.continueFromFormation();
   const run = gm.currentRunState;
+  run.currentEncounter = DataRepository.getEncounterPool(1, 1)[0];
   run.gold = 200;
   gm.selectPayrollAction(PayrollActionId.StandardPay);
   gm.continueFromPayroll();
@@ -2320,6 +2322,10 @@ function makeCombatResult(overrides = {}) {
       && tsv.includes("veterancyContextBonusXp")
       && tsv.includes("rewardQualityRelicChoiceBonus")
       && tsv.includes("rewardQualityShopSilverChanceBonus"));
+  check("balance: combat row exposes Combat V2 runtime",
+    BalanceRunLogger.combatRows[0].combatRuntimeId === DefaultCombatRuntimeId
+      && tsv.includes("combatRuntimeId")
+      && tsv.includes(DefaultCombatRuntimeId));
   BalanceRunLogger.economyRows = [];
   BalanceRunLogger.logRound(run, GameState.RivalUpdate);
   const economyTsv = BalanceRunLogger.formatEconomyResults(BalanceRunLogger.economyRows);
@@ -2327,6 +2333,7 @@ function makeCombatResult(overrides = {}) {
     BalanceRunLogger.economyRows[0].contractRewardGold === getEncounterReward(4, 10, EncounterType.FinalBoss)
       && BalanceRunLogger.economyRows[0].totalUpkeep === run.latestTotalUpkeep
       && economyTsv.includes("contractRewardGold")
+      && economyTsv.includes("combatRuntimeId")
       && economyTsv.includes("interestAddedToDebt"));
 }
 
@@ -2401,6 +2408,7 @@ function makeCombatResult(overrides = {}) {
   gm.continueFromShop();
   gm.continueFromFormation();
   const run = gm.currentRunState;
+  run.currentEncounter = DataRepository.getEncounterPool(1, 1)[0];
   run.gold = 200;
   gm.selectPayrollAction(PayrollActionId.StandardPay);
   gm.continueFromPayroll();

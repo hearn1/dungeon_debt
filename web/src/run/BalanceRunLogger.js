@@ -4,6 +4,8 @@
 // but does not write files. Rows are buffered in memory and can be inspected or
 // dumped by tooling if needed.
 
+import { DefaultCombatRuntimeId } from "../combat/CombatRuntime.js";
+
 export const BalanceRunLogger = {
   runId: null,
   rows: [],
@@ -41,6 +43,7 @@ export const BalanceRunLogger = {
       slot: encounterDef ? encounterDef.slot : 0,
       type: encounterDef ? encounterDef.type : "",
       encounterId: encounterDef ? (encounterDef.id || encounterDef.displayName) : "",
+      combatRuntimeId: combatResult.combatRuntimeId || run.latestCombatRuntimeId || DefaultCombatRuntimeId,
       contractRewardGold: run.latestContractRewardGold,
       veterancyContextBonusXp: run.latestVeterancyContextBonusXp,
       veterancySurvivorXp: run.latestVeterancySurvivorXp,
@@ -78,7 +81,7 @@ export const BalanceRunLogger = {
 
   formatCombatResults(combatLog) {
     const rows = Array.isArray(combatLog) ? combatLog : [];
-    const columns = ["seed", "strategy", "act", "slot", "encounterId", "playerWon", "combatRoundsElapsed", "heroesLost", "contractRewardGold", "veterancyContextBonusXp", "veterancySurvivorXp", "rewardQualityRelicChoiceBonus", "rewardQualityShopSilverChanceBonus"];
+    const columns = ["seed", "strategy", "act", "slot", "encounterId", "combatRuntimeId", "playerWon", "combatRoundsElapsed", "heroesLost", "contractRewardGold", "veterancyContextBonusXp", "veterancySurvivorXp", "rewardQualityRelicChoiceBonus", "rewardQualityShopSilverChanceBonus"];
     const lines = [columns.join("\t")];
     for (const row of rows) {
       lines.push(columns.map(c => sanitizeTsvValue(row[c])).join("\t"));
@@ -110,6 +113,7 @@ export const BalanceRunLogger = {
       slot: getEncounterSlot(runState),
       round: runState.round,
       encounterId: getEncounterId(encounter),
+      combatRuntimeId: runState.latestCombatRuntimeId || DefaultCombatRuntimeId,
       playerWon: runState.latestCombatWon ? 1 : 0,
       rewardGold: runState.latestRewardGold,
       contractRewardGold: runState.latestContractRewardGold,
@@ -137,6 +141,7 @@ export const BalanceRunLogger = {
       "slot",
       "round",
       "encounterId",
+      "combatRuntimeId",
       "goldBefore",
       "goldAfter",
       "debtBefore",

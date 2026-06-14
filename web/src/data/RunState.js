@@ -17,6 +17,7 @@ export class RunState {
     this.usedRaceActions = new Set();
     this.hasLatestRewardSummary = false;
     this.latestCombatWon = false;
+    this.latestCombatRuntimeId = "";
     this.latestRewardGold = 0;
     this.latestContractRewardGold = 0;
     this.latestRewardScaleBonusGold = 0;

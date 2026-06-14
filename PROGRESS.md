@@ -51,6 +51,43 @@ Copy this block when adding a new entry. Paste it at the top of the Session log 
 
 <!-- Newest entries at the top. -->
 
+## 2026-06-14 - #310: Combat V2 simulation foundation
+
+**Milestone:** GitHub epic
+**Status:** Complete
+
+**Files added:**
+- `COMBAT_V2_RUNTIME_CONTRACT.md`
+- `balance-audit/findings-310-combat-v2-rebaseline.md`
+- `web/src/combat/CombatRuntime.js`
+
+**Files modified:**
+- `web/src/combat/CombatManager.js` - refactored combat into deterministic timeline intent/windup/resolution phases with movement cadence, stable targeting, active ability casts, and runtime stamping.
+- `web/src/combat/AbilityRunner.js` - split active ability collection from cast resolution so active abilities queue through the timeline.
+- `web/src/combat/RoleBehavior.js`, `web/src/combat/TargetingRules.js` - made default targeting sticky while targets remain alive and usable.
+- `web/src/core/GameRules.js`, `web/src/data/CombatUnitState.js`, `web/src/data/CombatResult.js`, `web/src/data/RunState.js` - added Combat V2 cadence/runtime state surfaces.
+- `web/src/run/RunManager.js`, `web/src/run/BalanceRunLogger.js`, `web/src/test/balance.js` - carry `CombatV2` through run state, TSV rows, and generated balance reports.
+- `web/src/test/combat.js`, `web/src/test/run.js` - added Combat V2 runtime, cadence, same-tick, active cast, targeting, and representative rebaseline coverage.
+- `IMPLEMENTATION_PLAN.md`, `NEXT_SESSION.md` - documented the runtime seam and reset the next-session brief.
+
+**Acceptance criteria:**
+- [x] Combat V2 runtime contract exists and defines tick, cadence, intent, targeting, replay, and death-cleanup expectations.
+- [x] Attack cooldown, speed, windup, recovery, movement cadence, stable targeting, and active ability timeline intents are implemented.
+- [x] Same-tick hit/cast resolution and lethal trades are covered by deterministic tests.
+- [x] Combat runtime selection is explicit/testable and balance outputs identify `CombatV2`.
+- [x] Representative melee, ranged, sustain, carry, boss, and rival scenarios have V2 coverage.
+- [x] Rebaseline notes document outcome shifts before tuning.
+
+**Test plan:** `npm.cmd run test:headless` after each subissue commit; `npm.cmd run test:balance -- --seeds=1 --strategy=greedy --report` for the runtime report smoke test; all passed.
+
+**Deviations from plan:**
+- Combat V1 was not reimplemented for A/B comparison; `#322` added the explicit runtime seam and report labeling so future comparison can plug in without duplicating formats.
+
+**Follow-up flagged:**
+- Larger balance audits and any late-game tuning should use the `CombatV2` report label and the rebaseline notes in `balance-audit/findings-310-combat-v2-rebaseline.md`.
+
+**Next slice:** Awaiting Matt's next selected slice; likely Combat V2 presentation/replay polish if Matt chooses the follow-up combat epic.
+
 ## 2026-06-13 - #288: Shop, debt, and price scaling
 
 **Milestone:** GitHub epic

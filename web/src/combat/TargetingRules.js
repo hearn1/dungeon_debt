@@ -18,7 +18,7 @@ export function selectTarget({ actor, match, mode, currentTargetUnitId = null })
   if (mode === TargetingMode.CurrentTargetOrNearestEnemy) {
     if (currentTargetUnitId) {
       const current = match.allUnits.find(u => u.unitId === currentTargetUnitId);
-      if (current && current.isAlive) return current;
+      if (current && current.isAlive && _isTargetUsable(actor, current, match.board)) return current;
     }
     return _selectFromCandidates(TargetingMode.NearestEnemy, actor,
       filterLiving(getEnemiesOf(actor, match)), match.board);
@@ -66,6 +66,9 @@ function _selectFromCandidates(mode, actor, candidates, board) {
   return [...candidates].sort((a, b) => {
     switch (mode) {
       case TargetingMode.NearestEnemy: {
+        const reachableA = _targetUsabilityRank(actor, a, board);
+        const reachableB = _targetUsabilityRank(actor, b, board);
+        if (reachableA !== reachableB) return reachableA - reachableB;
         const dA = _distanceBetween(a, actor, board);
         const dB = _distanceBetween(b, actor, board);
         if (dA !== dB) return dA - dB;
@@ -96,4 +99,16 @@ function _selectFromCandidates(mode, actor, candidates, board) {
         return 0;
     }
   })[0] || null;
+}
+
+function _isTargetUsable(actor, target, board) {
+  return _targetUsabilityRank(actor, target, board) === 0;
+}
+
+function _targetUsabilityRank(actor, target, board) {
+  const actorPos = board.getUnitPosition(actor);
+  const targetPos = board.getUnitPosition(target);
+  if (!actorPos || !targetPos) return 1;
+  if (board.canAttack(actor, target)) return 0;
+  return board.findNearestReachableAdjacentTile(actor, targetPos) ? 0 : 1;
 }

@@ -68,10 +68,10 @@ export const AbilityRunner = {
     }
   },
 
-  // Check and fire any active abilities that are ready at `tick`.
-  // Returns true if at least one ability fired.
-  processActives(tick, units, match, run, logger) {
-    let fired = false;
+  // Check active abilities that are ready at `tick` and reserve their cooldowns.
+  // Execution is deferred to CombatManager's timeline resolution pass.
+  collectActiveIntents(tick, units, match) {
+    const intents = [];
     for (const unit of units) {
       if (!unit.isAlive) continue;
       const ability = _getActive(unit);
@@ -88,15 +88,43 @@ export const AbilityRunner = {
       if (!target) continue; // no valid target — skip, do not reset cooldown
 
       const targets = resolveTargets(unit, target, ability.targetShape, match);
-      logger?.logAbilityCast(unit, targets, ability.id);
-      const ctx = _buildCtx(unit, target, targets, { match, run, logger });
-      ability.execute(ctx);
-
-      unit.abilityState.castCount += 1;
       unit.abilityState.nextActiveAt = tick + ability.cooldownTicks;
-      fired = true;
+      intents.push({ caster: unit, ability, target, targets });
     }
-    return fired;
+    return intents;
+  },
+
+  resolveActiveCast(event, match, run, logger) {
+    const { caster, ability, target, targets } = event;
+    if (!caster || caster.deathResolved) return false;
+    if (target && target.deathResolved) return false;
+
+    logger?.logAbilityCast(caster, targets, ability.id);
+    const livingBefore = new Set(match.allUnits.filter(u => u.isAlive).map(u => u.unitId));
+    const ctx = _buildCtx(caster, target, targets, { match, run, logger });
+    ability.execute(ctx);
+    caster.abilityState.castCount += 1;
+
+    // Active ability damage helpers currently log Death directly. Mark those
+    // units resolved so later timeline phases do not act with them again.
+    for (const unit of match.allUnits) {
+      if (!livingBefore.has(unit.unitId)) continue;
+      if (unit.isAlive || unit.deathResolved) continue;
+      unit.pendingDeath = false;
+      unit.deathResolved = true;
+    }
+
+    return true;
+  },
+
+  // Legacy compatibility wrapper for direct callers. CombatManager uses the
+  // intent/resolution API above.
+  processActives(tick, units, match, run, logger) {
+    const intents = this.collectActiveIntents(tick, units, match);
+    for (const intent of intents) {
+      this.resolveActiveCast(intent, match, run, logger);
+    }
+    return intents.length > 0;
   },
 };
 

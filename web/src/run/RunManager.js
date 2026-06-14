@@ -10,6 +10,7 @@ import { GameState } from "../core/GameState.js";
 import { GameRules, GameRulesFns } from "../core/GameRules.js";
 import { DataRepository } from "../core/DataRepository.js";
 import { HeroEffects } from "../combat/HeroEffects.js";
+import { DefaultCombatRuntimeId } from "../combat/CombatRuntime.js";
 import { BalanceRunLogger } from "./BalanceRunLogger.js";
 import { buildManagerReportLines } from "./ManagerReportBuilder.js";
 import { getEncounterRewardBreakdownForEncounter } from "./EncounterReward.js";
@@ -218,6 +219,7 @@ export class RunManager {
 
     run.hasLatestRewardSummary = true;
     run.latestCombatWon = combatResult.playerWon;
+    run.latestCombatRuntimeId = combatResult.combatRuntimeId || DefaultCombatRuntimeId;
     run.latestRewardGold = rewardGold;
     run.latestContractRewardGold = contractRewardGold;
     run.latestRewardScaleBonusGold = rewardScaleBonusGold;
