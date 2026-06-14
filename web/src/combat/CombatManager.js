@@ -491,7 +491,7 @@ function resolveMovementIntents(movementIntents, match, logger) {
     if (!actor.isAlive) continue;
 
     const fromPos = logger ? match.board.getUnitPosition(actor) : null;
-    const moved = match.board.moveUnitToward(actor, targetPos, actor.movementRange);
+    const moved = match.board.moveUnitTowardRange(actor, targetPos, actor.movementRange, actor.attackRange);
     if (moved && logger) {
       const toPos = match.board.getUnitPosition(actor);
       logger.logMovement(actor, fromPos, toPos);

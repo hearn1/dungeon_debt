@@ -1101,6 +1101,28 @@ import { getDefaultPlayerBoardPosition, getDefaultEnemyBoardPosition, isInPlayer
   check("176: removing blocking unit opens path to {3,0}", pathAfterRemove !== null);
 }
 
+// Issue 330: ranged movement paths toward max range instead of adjacency.
+{
+  const board = new CombatBoard();
+  const archer = { unitId: "ra", attackRange: GameRules.DefaultShortRangedRange };
+  const target = { unitId: "tg" };
+
+  board.placeUnit(archer, { q: 0, r: 0 });
+  board.placeUnit(target, { q: 6, r: 4 });
+
+  let guard = 0;
+  while (!board.canAttack(archer, target) && guard < 10) {
+    board.moveUnitTowardRange(archer, board.getUnitPosition(target), 1, archer.attackRange);
+    guard += 1;
+  }
+
+  const archerPos = board.getUnitPosition(archer);
+  const targetPos = board.getUnitPosition(target);
+  const finalDistance = hexDistance(archerPos, targetPos);
+  check("330: ranged unit eventually reaches max range", board.canAttack(archer, target));
+  check("330: ranged unit does not path all the way adjacent", finalDistance > GameRules.DefaultMeleeRange);
+}
+
 // ---- Hex board movement in combat (issue #220) ----
 
 // Melee unit starts out of range — it moves instead of attacking, then attacks
@@ -1126,6 +1148,29 @@ import { getDefaultPlayerBoardPosition, getDefaultEnemyBoardPosition, isInPlayer
   const rangerMoveLogs = result.logLines.filter(l => l.includes("Ranger") && l.includes("moves to"));
   const rangerAttackLogs = result.logLines.filter(l => l.includes("Ranger attacks"));
   check("220: ranged unit attacks without moving", rangerAttackLogs.length > 0 && rangerMoveLogs.length === 0);
+}
+
+// Issue 330: out-of-range ranged unit moves, then attacks once inside max range.
+{
+  const run = buildRunSlotted([{ id: "ranger", slot: 0 }]);
+  const enemy = new EnemyDefinition("far_anchor", "Far Anchor", 0, 12,
+    EnemyEffectId.None, "Target placed outside long range.");
+  const rangeEncounter = new EncounterDefinition(1, 1, EncounterType.Dungeon, "Long Range Drill",
+    "Ranged unit must advance before firing.", "Timing", [enemy], 0,
+    EncounterEffectId.None, RivalGuild.None, "long-range-drill", [{ q: 6, r: 4 }]);
+  const result = new CombatManager().startCombat(run, rangeEncounter);
+  const rangerMoves = result.replayEvents.filter(e => e.kind === CombatReplayEventKind.Movement && e.actorUnitId === "p0");
+  const rangerAttacks = result.replayEvents.filter(e => e.kind === CombatReplayEventKind.AttackStart && e.actorUnitId === "p0");
+  const firstAttack = rangerAttacks[0];
+  const attackDistance = firstAttack && firstAttack.sourceCoord && firstAttack.targetCoord
+    ? hexDistance(firstAttack.sourceCoord, firstAttack.targetCoord)
+    : Infinity;
+  check("330: out-of-range Ranger moves before attacking",
+    rangerMoves.length > 0 && firstAttack && rangerMoves[0].tick < firstAttack.tick);
+  check("330: Ranger first attacks inside max range",
+    attackDistance <= GameRules.DefaultLongRangedRange);
+  check("330: ranged movement is exposed in replay/logs",
+    result.logLines.some(l => l.includes("Ranger moves to")));
 }
 
 // Determinism still holds with board movement.
@@ -1154,6 +1199,7 @@ import { CombatUnitState } from "../data/CombatUnitState.js";
 
 function makeUnit(unitId, attack, currentHealth, maxHealth, isPlayerSide, slot = 0) {
   const u = new CombatUnitState(unitId, unitId, attack, currentHealth, maxHealth, isPlayerSide, slot, null, null);
+  u.attackRange = GameRules.DefaultMeleeRange;
   return u;
 }
 

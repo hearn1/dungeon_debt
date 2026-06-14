@@ -110,5 +110,5 @@ function _targetUsabilityRank(actor, target, board) {
   const targetPos = board.getUnitPosition(target);
   if (!actorPos || !targetPos) return 1;
   if (board.canAttack(actor, target)) return 0;
-  return board.findNearestReachableAdjacentTile(actor, targetPos) ? 0 : 1;
+  return board.findNearestReachableTileInRange(actor, targetPos, actor.attackRange) ? 0 : 1;
 }
