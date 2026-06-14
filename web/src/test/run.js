@@ -2393,10 +2393,17 @@ function makeCombatResult(overrides = {}) {
   check("balance: combat row exposes ranged threat metrics",
     rangedRow.rangedDamageShare > 0
       && rangedRow.avgRangedFirstAttackTick >= 0
+      && rangedRow.enemyDamageDealt >= 0
+      && rangedRow.lowestSurvivorHp >= 0
+      && rangedRow.combatTicksElapsed >= rangedRow.combatRoundsElapsed
       && rangedTsv.includes("rangedDamageShare")
       && rangedTsv.includes("rangedSafeAttackShare")
       && rangedTsv.includes("meleeReachedBackline")
-      && rangedTsv.includes("backlineDamageTaken"));
+      && rangedTsv.includes("backlineDamageTaken")
+      && rangedTsv.includes("lowestSurvivorHpPct")
+      && rangedTsv.includes("enemyDamageDealt")
+      && rangedTsv.includes("frontlineDamageTaken")
+      && rangedTsv.includes("enemiesReachedRangedUnit"));
   BalanceRunLogger.economyRows = [];
   BalanceRunLogger.logRound(run, GameState.RivalUpdate);
   const economyTsv = BalanceRunLogger.formatEconomyResults(BalanceRunLogger.economyRows);

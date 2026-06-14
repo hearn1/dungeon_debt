@@ -430,15 +430,30 @@ function buildMarkdownReport(results, combatLog, economyLog, powerLog, options, 
     lines.push("");
 
     lines.push("## Combat Outcomes");
-    lines.push("| Encounter | Combats | Win Rate | Avg Rounds | Avg Heroes Lost | Avg Contract Reward | Avg XP Bonus | Avg Relic Option Bonus | Avg Silver Odds Bonus | Ranged Dmg Share | Safe Ranged Share | Melee Reached Backline | Backline Damage | Act | Slot | Type | Target Band | Flag | Reasons |");
-    lines.push("|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|---|---|---|");
+    lines.push("| Encounter | Combats | Win Rate | Avg Rounds | Avg Ticks | Avg Heroes Lost | Lowest Survivor HP% | Enemy Damage | Frontline Damage | Backline Damage | Enemy Healing | Ranged Dmg Share | Safe Ranged Share | Ranged Always Safe | Enemies Reached Ranged | Threat | Act | Slot | Type | Target Band | Flag | Reasons |");
+    lines.push("|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|---:|---:|---|---|---|---|");
     for (const summary of summaries) {
       const classification = classifyEncounterChallenge(summary);
+      const threat = classifyCombatThreat(summary);
       lines.push(
-        `| ${summary.encounterId} | ${summary.combats} | ${summary.winRate.toFixed(1)}% | ${summary.avgRounds.toFixed(2)} | ${summary.avgHeroesLost.toFixed(2)} | ${summary.avgContractReward.toFixed(2)} | ${summary.avgVeterancyContextBonusXp.toFixed(2)} | ${summary.avgRewardQualityRelicChoiceBonus.toFixed(2)} | ${summary.avgRewardQualityShopSilverChanceBonus.toFixed(2)} | ${summary.avgRangedDamageShare.toFixed(2)} | ${summary.avgRangedSafeAttackShare.toFixed(2)} | ${summary.meleeReachedBacklineRate.toFixed(2)} | ${summary.avgBacklineDamageTaken.toFixed(2)} | ${summary.act} | ${summary.slot} | ${summary.type} | ${formatTargetBandLabel(classification.band)} | ${classification.label} | ${classification.reasons.join("; ") || "-"} |`
+        `| ${summary.encounterId} | ${summary.combats} | ${summary.winRate.toFixed(1)}% | ${summary.avgRounds.toFixed(2)} | ${summary.avgCombatTicksElapsed.toFixed(2)} | ${summary.avgHeroesLost.toFixed(2)} | ${(summary.avgLowestSurvivorHpPct * 100).toFixed(1)}% | ${summary.avgEnemyDamageDealt.toFixed(2)} | ${summary.avgFrontlineDamageTaken.toFixed(2)} | ${summary.avgBacklineDamageTaken.toFixed(2)} | ${summary.avgEnemyHealingDone.toFixed(2)} | ${summary.avgRangedDamageShare.toFixed(2)} | ${summary.avgRangedSafeAttackShare.toFixed(2)} | ${summary.rangedAlwaysSafeRate.toFixed(2)} | ${summary.enemiesReachedRangedUnitRate.toFixed(2)} | ${threat.label} | ${summary.act} | ${summary.slot} | ${summary.type} | ${formatTargetBandLabel(classification.band)} | ${classification.label} | ${classification.reasons.join("; ") || "-"} |`
       );
     }
     lines.push("");
+
+    const threatFlags = summaries
+      .map((summary) => ({ summary, threat: classifyCombatThreat(summary) }))
+      .filter((entry) => entry.threat.flag !== "none");
+    if (threatFlags.length > 0) {
+      lines.push("## Combat Threat Flags");
+      lines.push("| Encounter | Threat | Win Rate | Avg Heroes Lost | Lowest Survivor HP% | Enemy Damage | Reasons |");
+      lines.push("|---|---|---:|---:|---:|---:|---|");
+      for (const entry of threatFlags) {
+        const summary = entry.summary;
+        lines.push(`| ${summary.encounterId} | ${entry.threat.label} | ${summary.winRate.toFixed(1)}% | ${summary.avgHeroesLost.toFixed(2)} | ${(summary.avgLowestSurvivorHpPct * 100).toFixed(1)}% | ${summary.avgEnemyDamageDealt.toFixed(2)} | ${entry.threat.reasons.join("; ")} |`);
+      }
+      lines.push("");
+    }
 
     const safeRangedFights = summaries.filter((summary) =>
       summary.avgRangedDamageShare > 0 && summary.avgRangedSafeAttackShare >= 1 && summary.meleeReachedBacklineRate <= 0);
@@ -593,7 +608,13 @@ function summarizeCombatLog(combatLog) {
         combats,
         winRate: combats > 0 ? (wins / combats) * 100 : 0,
         avgRounds: Number(avg(rows.map((r) => r.combatRoundsElapsed))),
+        avgCombatTicksElapsed: Number(avg(rows.map((r) => r.combatTicksElapsed || 0))),
         avgHeroesLost: Number(avg(rows.map((r) => r.heroesLost))),
+        avgLowestSurvivorHp: Number(avg(rows.map((r) => r.lowestSurvivorHp || 0))),
+        avgLowestSurvivorHpPct: Number(avg(rows.map((r) => r.lowestSurvivorHpPct || 0))),
+        avgEnemyDamageDealt: Number(avg(rows.map((r) => r.enemyDamageDealt || 0))),
+        avgEnemyHealingDone: Number(avg(rows.map((r) => r.enemyHealingDone || 0))),
+        avgFrontlineDamageTaken: Number(avg(rows.map((r) => r.frontlineDamageTaken || 0))),
         avgContractReward: Number(avg(rows.map((r) => r.contractRewardGold || 0))),
         avgVeterancyContextBonusXp: Number(avg(rows.map((r) => r.veterancyContextBonusXp || 0))),
         avgRewardQualityRelicChoiceBonus: Number(avg(rows.map((r) => r.rewardQualityRelicChoiceBonus || 0))),
@@ -602,11 +623,31 @@ function summarizeCombatLog(combatLog) {
         avgRangedKillShare: Number(avg(rows.map((r) => r.rangedKillShare || 0))),
         avgRangedFirstAttackTick: Number(avg(rows.map((r) => r.avgRangedFirstAttackTick || 0))),
         avgRangedSafeAttackShare: Number(avg(rows.map((r) => r.rangedSafeAttackShare || 0))),
+        rangedAlwaysSafeRate: Number(avg(rows.map((r) => r.rangedAlwaysSafe || 0))),
         meleeReachedBacklineRate: Number(avg(rows.map((r) => r.meleeReachedBackline || 0))),
+        enemiesReachedRangedUnitRate: Number(avg(rows.map((r) => r.enemiesReachedRangedUnit || 0))),
         avgBacklineDamageTaken: Number(avg(rows.map((r) => r.backlineDamageTaken || 0))),
       };
     })
     .sort(compareEncounterSummaries);
+}
+
+function classifyCombatThreat(summary) {
+  if (!summary || summary.combats <= 0) return { flag: "none", label: "-", reasons: [] };
+  const reasons = [];
+  if (summary.winRate >= 90 && summary.avgHeroesLost <= 0.25 && summary.avgEnemyDamageDealt <= 2) {
+    if (summary.winRate >= 90) reasons.push(`win ${summary.winRate.toFixed(1)}%`);
+    if (summary.avgHeroesLost <= 0.25) reasons.push(`lost ${summary.avgHeroesLost.toFixed(2)}`);
+    if (summary.avgEnemyDamageDealt <= 2) reasons.push(`enemy damage ${summary.avgEnemyDamageDealt.toFixed(2)}`);
+    return { flag: "trivial", label: "won but trivial", reasons };
+  }
+  if (summary.winRate >= 50 && (summary.avgHeroesLost >= 2 || summary.avgLowestSurvivorHpPct <= 0.25 || summary.avgEnemyDamageDealt >= 10)) {
+    if (summary.avgHeroesLost >= 2) reasons.push(`lost ${summary.avgHeroesLost.toFixed(2)}`);
+    if (summary.avgLowestSurvivorHpPct <= 0.25) reasons.push(`lowest survivor ${(summary.avgLowestSurvivorHpPct * 100).toFixed(1)}% HP`);
+    if (summary.avgEnemyDamageDealt >= 10) reasons.push(`enemy damage ${summary.avgEnemyDamageDealt.toFixed(2)}`);
+    return { flag: "costly", label: "won but costly", reasons };
+  }
+  return { flag: "none", label: "-", reasons: [] };
 }
 
 function summarizeChallengeFlags(summaries) {
