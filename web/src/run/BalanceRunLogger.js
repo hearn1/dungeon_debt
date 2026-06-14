@@ -8,6 +8,7 @@ import { DefaultCombatRuntimeId } from "../combat/CombatRuntime.js";
 import { hexDistance } from "../combat/CombatBoard.js";
 import { GameRules } from "../core/GameRules.js";
 import { CombatReplayEventKind } from "../data/CombatReplayEvent.js";
+import { HeroTier } from "../data/enums.js";
 
 const RangedHeroIds = new Set(["ranger", "ninja"]);
 
@@ -41,7 +42,7 @@ export const BalanceRunLogger = {
 
   logCombat(run, combatResult, encounterDef) {
     if (!run || !combatResult || !this.runId) return;
-    const rangedThreat = summarizeRangedThreat(combatResult);
+    const combatThreat = summarizeCombatThreat(combatResult);
     this.combatRows.push({
       seed: getRunSeed(run),
       strategy: run._balanceStrategy ?? "",
@@ -57,18 +58,34 @@ export const BalanceRunLogger = {
       rewardQualityShopSilverChanceBonus: run.latestRewardQualityShopSilverChanceBonus,
       playerWon: combatResult.playerWon ? 1 : 0,
       combatRoundsElapsed: combatResult.combatRoundsElapsed,
+      combatTicksElapsed: combatThreat.combatTicksElapsed,
       heroesLost: Array.isArray(combatResult.deadHeroes) ? combatResult.deadHeroes.length : 0,
-      rangedDamageShare: rangedThreat.rangedDamageShare,
-      rangedKillShare: rangedThreat.rangedKillShare,
-      avgRangedFirstAttackTick: rangedThreat.avgRangedFirstAttackTick,
-      rangedSafeAttackShare: rangedThreat.rangedSafeAttackShare,
-      meleeReachedBackline: rangedThreat.meleeReachedBackline,
-      backlineDamageTaken: rangedThreat.backlineDamageTaken,
+      lowestSurvivorHp: combatThreat.lowestSurvivorHp,
+      lowestSurvivorHpPct: combatThreat.lowestSurvivorHpPct,
+      enemyDamageDealt: combatThreat.enemyDamageDealt,
+      enemyHealingDone: combatThreat.enemyHealingDone,
+      frontlineDamageTaken: combatThreat.frontlineDamageTaken,
+      backlineDamageTaken: combatThreat.backlineDamageTaken,
+      rangedDamageShare: combatThreat.rangedDamageShare,
+      rangedKillShare: combatThreat.rangedKillShare,
+      avgRangedFirstAttackTick: combatThreat.avgRangedFirstAttackTick,
+      rangedSafeAttackShare: combatThreat.rangedSafeAttackShare,
+      rangedAlwaysSafe: combatThreat.rangedAlwaysSafe,
+      meleeReachedBackline: combatThreat.meleeReachedBackline,
+      enemiesReachedRangedUnit: combatThreat.enemiesReachedRangedUnit,
     });
   },
 
   logShop(run, beforeShop, afterShop) {
     if (!run || !this.runId || !beforeShop || !afterShop) return;
+    const partyDiff = summarizePartyDiff(beforeShop.party, afterShop.party);
+    const debtPaid = Math.max(0, beforeShop.debt - afterShop.debt);
+    const rerollsUsed = Math.max(0, afterShop.rerollCount - beforeShop.rerollCount);
+    const rerollCost = GameRules.RerollCost + (beforeShop.rerollCostModifier || 0);
+    const totalGoldSpent = Math.max(0, beforeShop.gold - afterShop.gold);
+    const rerollSpend = rerollsUsed * rerollCost;
+    const shopSpend = Math.max(0, totalGoldSpent - debtPaid);
+    const hireSpend = Math.max(0, shopSpend - rerollSpend);
     this.economyRows.push({
       phase: "shop",
       seed: getRunSeed(run),
@@ -85,15 +102,22 @@ export const BalanceRunLogger = {
       moraleAfter: afterShop.morale,
       partySizeBefore: beforeShop.partySize,
       partySizeAfter: afterShop.partySize,
-      rerollsUsed: Math.max(0, afterShop.rerollCount - beforeShop.rerollCount),
-      debtPaid: Math.max(0, beforeShop.debt - afterShop.debt),
+      rerollsUsed,
+      debtPaid,
       netGoldDelta: afterShop.gold - beforeShop.gold,
+      shopSpend,
+      hireSpend,
+      rerollSpend,
+      premiumPurchases: partyDiff.premiumPurchases,
+      mergesOrUpgrades: partyDiff.mergesOrUpgrades,
+      newHires: partyDiff.newHires,
+      replacements: partyDiff.replacements,
     });
   },
 
   formatCombatResults(combatLog) {
     const rows = Array.isArray(combatLog) ? combatLog : [];
-    const columns = ["seed", "strategy", "act", "slot", "encounterId", "combatRuntimeId", "playerWon", "combatRoundsElapsed", "heroesLost", "contractRewardGold", "veterancyContextBonusXp", "veterancySurvivorXp", "rewardQualityRelicChoiceBonus", "rewardQualityShopSilverChanceBonus", "rangedDamageShare", "rangedKillShare", "avgRangedFirstAttackTick", "rangedSafeAttackShare", "meleeReachedBackline", "backlineDamageTaken"];
+    const columns = ["seed", "strategy", "act", "slot", "encounterId", "combatRuntimeId", "playerWon", "combatRoundsElapsed", "combatTicksElapsed", "heroesLost", "lowestSurvivorHp", "lowestSurvivorHpPct", "enemyDamageDealt", "enemyHealingDone", "frontlineDamageTaken", "backlineDamageTaken", "contractRewardGold", "veterancyContextBonusXp", "veterancySurvivorXp", "rewardQualityRelicChoiceBonus", "rewardQualityShopSilverChanceBonus", "rangedDamageShare", "rangedKillShare", "avgRangedFirstAttackTick", "rangedSafeAttackShare", "rangedAlwaysSafe", "meleeReachedBackline", "enemiesReachedRangedUnit"];
     const lines = [columns.join("\t")];
     for (const row of rows) {
       lines.push(columns.map(c => sanitizeTsvValue(row[c])).join("\t"));
@@ -165,6 +189,13 @@ export const BalanceRunLogger = {
       "rerollsUsed",
       "debtPaid",
       "netGoldDelta",
+      "shopSpend",
+      "hireSpend",
+      "rerollSpend",
+      "premiumPurchases",
+      "mergesOrUpgrades",
+      "newHires",
+      "replacements",
       "playerWon",
       "rewardGold",
       "contractRewardGold",
@@ -289,9 +320,65 @@ function sanitizeTsvValue(value) {
   return String(value).replace(/[\t\r\n]/g, " ");
 }
 
-function summarizeRangedThreat(combatResult) {
+function summarizePartyDiff(beforeParty, afterParty) {
+  const before = mapPartyById(beforeParty);
+  const after = mapPartyById(afterParty);
+  let premiumPurchases = 0;
+  let mergesOrUpgrades = 0;
+  let newHires = 0;
+  let replacements = 0;
+  let removed = 0;
+
+  for (const [heroId, beforeHero] of before.entries()) {
+    const afterHero = after.get(heroId);
+    if (!afterHero) {
+      removed += 1;
+      continue;
+    }
+    if (getTierOrdinal(afterHero.tier) > getTierOrdinal(beforeHero.tier)) {
+      mergesOrUpgrades += 1;
+    }
+  }
+
+  for (const [heroId, afterHero] of after.entries()) {
+    if (before.has(heroId)) continue;
+    newHires += 1;
+    if (getTierOrdinal(afterHero.tier) > getTierOrdinal(HeroTier.Bronze)) {
+      premiumPurchases += 1;
+    }
+  }
+
+  replacements = Math.min(removed, newHires);
+
+  return {
+    premiumPurchases,
+    mergesOrUpgrades,
+    newHires,
+    replacements,
+  };
+}
+
+function mapPartyById(party) {
+  const mapped = new Map();
+  if (!Array.isArray(party)) return mapped;
+  for (const hero of party) {
+    if (!hero || !hero.id) continue;
+    mapped.set(hero.id, hero);
+  }
+  return mapped;
+}
+
+function getTierOrdinal(tier) {
+  if (tier === HeroTier.Diamond) return 4;
+  if (tier === HeroTier.Gold) return 3;
+  if (tier === HeroTier.Silver) return 2;
+  return 1;
+}
+
+function summarizeCombatThreat(combatResult) {
   const events = Array.isArray(combatResult?.replayEvents) ? combatResult.replayEvents : [];
   const attackStartsByKey = new Map();
+  const heroIdByUnit = new Map();
   const firstRangedAttackTickByUnit = new Map();
   let playerDamage = 0;
   let rangedDamage = 0;
@@ -300,7 +387,19 @@ function summarizeRangedThreat(combatResult) {
   let rangedAttackStarts = 0;
   let safeRangedAttackStarts = 0;
   let meleeReachedBackline = 0;
+  let enemiesReachedRangedUnit = 0;
+  let frontlineDamageTaken = 0;
   let backlineDamageTaken = 0;
+  let enemyDamageDealt = 0;
+  let enemyHealingDone = 0;
+  let combatTicksElapsed = 0;
+
+  for (const event of events) {
+    if (Number.isFinite(event.tick)) combatTicksElapsed = Math.max(combatTicksElapsed, event.tick);
+    if (event.kind === CombatReplayEventKind.UnitSpawn && event.actorUnitId && event.attackerHeroId) {
+      heroIdByUnit.set(event.actorUnitId, event.attackerHeroId);
+    }
+  }
 
   for (const event of events) {
     if (event.kind === CombatReplayEventKind.AttackStart) {
@@ -312,10 +411,18 @@ function summarizeRangedThreat(combatResult) {
       if (!event.attackerIsPlayerSide && event.targetIsPlayerSide && event.targetSlot >= GameRules.FrontlineSlots) {
         if (eventDistance(event) <= GameRules.DefaultMeleeRange) meleeReachedBackline = 1;
       }
+      if (!event.attackerIsPlayerSide && event.targetIsPlayerSide && isRangedHeroId(heroIdByUnit.get(event.targetUnitId))) {
+        if (eventDistance(event) <= GameRules.DefaultMeleeRange) enemiesReachedRangedUnit = 1;
+      }
       continue;
     }
 
-    if (event.kind !== CombatReplayEventKind.Attack) continue;
+    if (event.kind === CombatReplayEventKind.Heal) {
+      if (!event.attackerIsPlayerSide) enemyHealingDone += event.amount || 0;
+      continue;
+    }
+
+    if (event.kind !== CombatReplayEventKind.Attack && event.kind !== CombatReplayEventKind.StatusDamage) continue;
 
     if (event.attackerIsPlayerSide) {
       playerDamage += event.amount || 0;
@@ -330,24 +437,48 @@ function summarizeRangedThreat(combatResult) {
         if (isRangedHeroEvent(event)) rangedKills += 1;
       }
     } else if (event.targetIsPlayerSide && event.targetSlot >= GameRules.FrontlineSlots) {
-      backlineDamageTaken += event.amount || 0;
+      const amount = event.amount || 0;
+      backlineDamageTaken += amount;
+      enemyDamageDealt += amount;
       const start = attackStartsByKey.get(attackKey(event));
       if (start && eventDistance(start) <= GameRules.DefaultMeleeRange) meleeReachedBackline = 1;
+      if (isRangedHeroId(heroIdByUnit.get(event.targetUnitId))) {
+        if (!start || eventDistance(start) <= GameRules.DefaultMeleeRange) enemiesReachedRangedUnit = 1;
+      }
+    } else if (event.targetIsPlayerSide) {
+      const amount = event.amount || 0;
+      frontlineDamageTaken += amount;
+      enemyDamageDealt += amount;
     }
   }
+
+  const survivorHp = getLowestSurvivorHp(combatResult);
+  const rangedSafeAttackShare = ratio(safeRangedAttackStarts, rangedAttackStarts);
 
   return {
     rangedDamageShare: ratio(rangedDamage, playerDamage),
     rangedKillShare: ratio(rangedKills, playerKills),
     avgRangedFirstAttackTick: average([...firstRangedAttackTickByUnit.values()]),
-    rangedSafeAttackShare: ratio(safeRangedAttackStarts, rangedAttackStarts),
+    rangedSafeAttackShare,
+    rangedAlwaysSafe: rangedAttackStarts > 0 && rangedSafeAttackShare >= 1 && enemiesReachedRangedUnit === 0 ? 1 : 0,
     meleeReachedBackline,
+    enemiesReachedRangedUnit,
+    frontlineDamageTaken,
     backlineDamageTaken,
+    enemyDamageDealt,
+    enemyHealingDone,
+    combatTicksElapsed,
+    lowestSurvivorHp: survivorHp.hp,
+    lowestSurvivorHpPct: survivorHp.hpPct,
   };
 }
 
 function isRangedHeroEvent(event) {
-  return event && RangedHeroIds.has(event.attackerHeroId);
+  return event && isRangedHeroId(event.attackerHeroId);
+}
+
+function isRangedHeroId(heroId) {
+  return RangedHeroIds.has(heroId);
 }
 
 function attackKey(event) {
@@ -368,6 +499,25 @@ function average(values) {
   if (!Array.isArray(values) || values.length <= 0) return 0;
   const total = values.reduce((sum, value) => sum + value, 0);
   return Number((total / values.length).toFixed(2));
+}
+
+function getLowestSurvivorHp(combatResult) {
+  const units = Array.isArray(combatResult?.playerFinalUnits) ? combatResult.playerFinalUnits : [];
+  let lowestHp = null;
+  let lowestPct = null;
+  for (const unit of units) {
+    if (!unit || unit.currentHealth <= 0) continue;
+    const hp = unit.currentHealth;
+    const pct = unit.maxHealth > 0 ? hp / unit.maxHealth : 0;
+    if (lowestHp === null || hp < lowestHp || (hp === lowestHp && pct < lowestPct)) {
+      lowestHp = hp;
+      lowestPct = pct;
+    }
+  }
+  return {
+    hp: lowestHp ?? 0,
+    hpPct: lowestPct === null ? 0 : Number(lowestPct.toFixed(4)),
+  };
 }
 
 function formatAverage(total, count) {

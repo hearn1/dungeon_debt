@@ -16,7 +16,9 @@ import { RivalManager } from "../run/RivalManager.js";
 import { CombatManager } from "../combat/CombatManager.js";
 import { DefaultCombatRuntimeId } from "../combat/CombatRuntime.js";
 import { BalanceRunLogger } from "../run/BalanceRunLogger.js";
-import { BalanceChallengeFlag, classifyEncounterChallenge, formatTargetBandLabel } from "./BalanceTargets.js";
+import { getEncounterScaling } from "../run/EncounterScaling.js";
+import { BalanceChallengeFlag, classifyEncounterChallenge, formatTargetBandLabel, summarizeSurvivorCohorts } from "./BalanceTargets.js";
+import { formatPowerRows, summarizePartyPower } from "./BalancePowerMetrics.js";
 import { GreedyStrategy } from "./strategies/greedy.js";
 import { FrugalStrategy } from "./strategies/frugal.js";
 import { SmartStrategy } from "./strategies/smart.js";
@@ -36,32 +38,40 @@ const strategies = resolveStrategies(options.strategy);
 
 BalanceRunLogger.combatRows = [];
 BalanceRunLogger.economyRows = [];
+const firstPowerLog = [];
+let activePowerLog = firstPowerLog;
 const firstPass = runSeedSet(options.seedCount, strategies);
 const firstTsv = BalanceRunLogger.formatSeedResults(firstPass);
 const firstCombatLog = [...BalanceRunLogger.combatRows];
 const firstCombatTsv = BalanceRunLogger.formatCombatResults(firstCombatLog);
 const firstEconomyLog = [...BalanceRunLogger.economyRows];
 const firstEconomyTsv = BalanceRunLogger.formatEconomyResults(firstEconomyLog);
+const firstPowerTsv = formatPowerRows(firstPowerLog);
 
 BalanceRunLogger.combatRows = [];
 BalanceRunLogger.economyRows = [];
+const secondPowerLog = [];
+activePowerLog = secondPowerLog;
 const secondPass = runSeedSet(options.seedCount, strategies);
 const secondTsv = BalanceRunLogger.formatSeedResults(secondPass);
 const secondCombatTsv = BalanceRunLogger.formatCombatResults(BalanceRunLogger.combatRows);
 const secondEconomyTsv = BalanceRunLogger.formatEconomyResults(BalanceRunLogger.economyRows);
+const secondPowerTsv = formatPowerRows(secondPowerLog);
 const deterministic = firstTsv === secondTsv
   && firstCombatTsv === secondCombatTsv
-  && firstEconomyTsv === secondEconomyTsv;
+  && firstEconomyTsv === secondEconomyTsv
+  && firstPowerTsv === secondPowerTsv;
 
 const runTimestamp = getTimestampForFilename();
 const reportPath = writeTsvFile(firstTsv, runTimestamp);
 const combatPath = writeCombatTsvFile(firstCombatTsv, runTimestamp);
 const economyPath = writeEconomyTsvFile(firstEconomyTsv, runTimestamp);
+const powerPath = writePowerTsvFile(firstPowerTsv, runTimestamp);
 const wins = firstPass.filter((result) => result.outcome === "WIN").length;
 const losses = firstPass.length - wins;
 
 if (options.report) {
-  const mdContent = buildMarkdownReport(firstPass, firstCombatLog, firstEconomyLog, options, runTimestamp);
+  const mdContent = buildMarkdownReport(firstPass, firstCombatLog, firstEconomyLog, firstPowerLog, options, runTimestamp);
   const mdPath = writeMarkdownFile(mdContent, runTimestamp);
   console.log(`Markdown: ${mdPath}`);
 }
@@ -73,6 +83,7 @@ console.log(`Losses: ${losses}`);
 console.log(`Report: ${reportPath}`);
 console.log(`Combat: ${combatPath}`);
 console.log(`Economy: ${economyPath}`);
+console.log(`Power: ${powerPath}`);
 console.log(`DETERMINISM CHECK: ${deterministic ? "PASS" : "FAIL"}`);
 
 process.exit(deterministic ? 0 : 1);
@@ -157,6 +168,7 @@ function runSingleSeed(seed, strategy) {
         managers.shopManager.generateOffers();
         strategy.visitShop(managers.shopManager, run, context);
         BalanceRunLogger.logShop(run, beforeShop, snapshotShopState(run));
+        logPowerRow(activePowerLog, run, "shop");
         state = GameState.Formation;
         break;
 
@@ -229,6 +241,7 @@ function resolveCombatRound(managers, run) {
   const nextState = managers.runManager.evaluateNextState();
   BalanceRunLogger.logRound(run, nextState);
   BalanceRunLogger.logCombat(run, result, enc);
+  logPowerRow(activePowerLog, run, "combat");
   run.selectedPayrollAction = null;
 
   if (managers.runManager.tryPreparePendingRelicReward(nextState)) {
@@ -282,6 +295,14 @@ function writeEconomyTsvFile(contents, timestamp) {
   return economyPath;
 }
 
+function writePowerTsvFile(contents, timestamp) {
+  const reportDir = getReportDir();
+  fs.mkdirSync(reportDir, { recursive: true });
+  const powerPath = path.join(reportDir, `power-${timestamp}.tsv`);
+  fs.writeFileSync(powerPath, contents, "utf8");
+  return powerPath;
+}
+
 function writeMarkdownFile(contents, timestamp) {
   const reportDir = getReportDir();
   fs.mkdirSync(reportDir, { recursive: true });
@@ -290,7 +311,7 @@ function writeMarkdownFile(contents, timestamp) {
   return mdPath;
 }
 
-function buildMarkdownReport(results, combatLog, economyLog, options, timestamp) {
+function buildMarkdownReport(results, combatLog, economyLog, powerLog, options, timestamp) {
   const lines = [];
   const wins = results.filter((r) => r.outcome === "WIN").length;
   const losses = results.length - wins;
@@ -312,6 +333,10 @@ function buildMarkdownReport(results, combatLog, economyLog, options, timestamp)
   lines.push(`- Losses: ${losses}`);
   lines.push(`- Win rate: ${winRate}%`);
   lines.push("");
+
+  appendSurvivorCohortSummary(lines, results);
+
+  appendStrategyBehaviorNotes(lines);
 
   const uniqueStrategies = [...new Set(results.map((r) => r.strategy))];
   if (uniqueStrategies.length > 1) {
@@ -374,6 +399,10 @@ function buildMarkdownReport(results, combatLog, economyLog, options, timestamp)
     appendEconomySummary(lines, economyLog);
   }
 
+  if (Array.isArray(powerLog) && powerLog.length > 0) {
+    appendPartyPowerSummary(lines, powerLog);
+  }
+
   const byGold = [...results].sort((a, b) => b.finalGold - a.finalGold);
   lines.push("## Top 5 Outlier Seeds");
   lines.push("**Highest final gold:**");
@@ -401,15 +430,30 @@ function buildMarkdownReport(results, combatLog, economyLog, options, timestamp)
     lines.push("");
 
     lines.push("## Combat Outcomes");
-    lines.push("| Encounter | Combats | Win Rate | Avg Rounds | Avg Heroes Lost | Avg Contract Reward | Avg XP Bonus | Avg Relic Option Bonus | Avg Silver Odds Bonus | Ranged Dmg Share | Safe Ranged Share | Melee Reached Backline | Backline Damage | Act | Slot | Type | Target Band | Flag | Reasons |");
-    lines.push("|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|---|---|---|");
+    lines.push("| Encounter | Combats | Win Rate | Avg Rounds | Avg Ticks | Avg Heroes Lost | Lowest Survivor HP% | Enemy Damage | Frontline Damage | Backline Damage | Enemy Healing | Ranged Dmg Share | Safe Ranged Share | Ranged Always Safe | Enemies Reached Ranged | Threat | Act | Slot | Type | Target Band | Flag | Reasons |");
+    lines.push("|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|---:|---:|---|---|---|---|");
     for (const summary of summaries) {
       const classification = classifyEncounterChallenge(summary);
+      const threat = classifyCombatThreat(summary);
       lines.push(
-        `| ${summary.encounterId} | ${summary.combats} | ${summary.winRate.toFixed(1)}% | ${summary.avgRounds.toFixed(2)} | ${summary.avgHeroesLost.toFixed(2)} | ${summary.avgContractReward.toFixed(2)} | ${summary.avgVeterancyContextBonusXp.toFixed(2)} | ${summary.avgRewardQualityRelicChoiceBonus.toFixed(2)} | ${summary.avgRewardQualityShopSilverChanceBonus.toFixed(2)} | ${summary.avgRangedDamageShare.toFixed(2)} | ${summary.avgRangedSafeAttackShare.toFixed(2)} | ${summary.meleeReachedBacklineRate.toFixed(2)} | ${summary.avgBacklineDamageTaken.toFixed(2)} | ${summary.act} | ${summary.slot} | ${summary.type} | ${formatTargetBandLabel(classification.band)} | ${classification.label} | ${classification.reasons.join("; ") || "-"} |`
+        `| ${summary.encounterId} | ${summary.combats} | ${summary.winRate.toFixed(1)}% | ${summary.avgRounds.toFixed(2)} | ${summary.avgCombatTicksElapsed.toFixed(2)} | ${summary.avgHeroesLost.toFixed(2)} | ${(summary.avgLowestSurvivorHpPct * 100).toFixed(1)}% | ${summary.avgEnemyDamageDealt.toFixed(2)} | ${summary.avgFrontlineDamageTaken.toFixed(2)} | ${summary.avgBacklineDamageTaken.toFixed(2)} | ${summary.avgEnemyHealingDone.toFixed(2)} | ${summary.avgRangedDamageShare.toFixed(2)} | ${summary.avgRangedSafeAttackShare.toFixed(2)} | ${summary.rangedAlwaysSafeRate.toFixed(2)} | ${summary.enemiesReachedRangedUnitRate.toFixed(2)} | ${threat.label} | ${summary.act} | ${summary.slot} | ${summary.type} | ${formatTargetBandLabel(classification.band)} | ${classification.label} | ${classification.reasons.join("; ") || "-"} |`
       );
     }
     lines.push("");
+
+    const threatFlags = summaries
+      .map((summary) => ({ summary, threat: classifyCombatThreat(summary) }))
+      .filter((entry) => entry.threat.flag !== "none");
+    if (threatFlags.length > 0) {
+      lines.push("## Combat Threat Flags");
+      lines.push("| Encounter | Threat | Win Rate | Avg Heroes Lost | Lowest Survivor HP% | Enemy Damage | Reasons |");
+      lines.push("|---|---|---:|---:|---:|---:|---|");
+      for (const entry of threatFlags) {
+        const summary = entry.summary;
+        lines.push(`| ${summary.encounterId} | ${entry.threat.label} | ${summary.winRate.toFixed(1)}% | ${summary.avgHeroesLost.toFixed(2)} | ${(summary.avgLowestSurvivorHpPct * 100).toFixed(1)}% | ${summary.avgEnemyDamageDealt.toFixed(2)} | ${entry.threat.reasons.join("; ")} |`);
+      }
+      lines.push("");
+    }
 
     const safeRangedFights = summaries.filter((summary) =>
       summary.avgRangedDamageShare > 0 && summary.avgRangedSafeAttackShare >= 1 && summary.meleeReachedBacklineRate <= 0);
@@ -434,7 +478,75 @@ function snapshotShopState(run) {
     morale: run.morale,
     partySize: run.party.length,
     rerollCount: run.rerollCount,
+    rerollCostModifier: run.rerollCostModifier || 0,
+    party: snapshotParty(run),
   };
+}
+
+function snapshotParty(run) {
+  if (!run || !Array.isArray(run.party)) return [];
+  return run.party
+    .filter((hero) => hero && hero.definition)
+    .map((hero) => ({
+      id: hero.definition.id,
+      tier: hero.tier,
+      veteranXp: hero.veteranXp || 0,
+      veteranTier: hero.veteranTier || 0,
+    }));
+}
+
+function logPowerRow(powerLog, run, phase) {
+  if (!Array.isArray(powerLog) || !run) return;
+  const encounter = run.currentEncounter;
+  const scaling = encounter
+    ? getEncounterScaling(encounter.act, encounter.slot, encounter.type)
+    : { enemyHealth: 1, enemyAttack: 1 };
+  powerLog.push({
+    seed: run._balanceSeed ?? run.seed ?? 0,
+    strategy: run._balanceStrategy ?? "",
+    phase,
+    act: run.act,
+    slot: encounter ? encounter.slot : 0,
+    round: run.round,
+    encounterId: encounter ? (encounter.id || encounter.displayName) : "",
+    ...summarizePartyPower(run),
+    gold: run.gold,
+    debt: run.debt,
+    enemyHealthScale: scaling.enemyHealth,
+    enemyAttackScale: scaling.enemyAttack,
+  });
+}
+
+function appendStrategyBehaviorNotes(lines) {
+  lines.push("## Strategy Behavior Notes");
+  lines.push("- `smart`: human-like baseline; fills missing roles, buys upgrades/merges, spends surplus on rerolls, replaces clearly weaker units, and pays debt after preserving a small shop reserve.");
+  lines.push("- `greedy`: damage-first contrast strategy that tends to buy the strongest affordable offers.");
+  lines.push("- `frugal`: low-upkeep contrast strategy that favors cheap sustainable parties.");
+  lines.push("- `random`: seeded legal-action fuzz strategy for determinism and edge-case coverage.");
+  lines.push("");
+}
+
+function appendSurvivorCohortSummary(lines, results) {
+  const cohorts = summarizeSurvivorCohorts(results);
+  lines.push("## Survivor Cohorts");
+  lines.push("| Cohort | Runs | Wins | Losses | Win Rate | Median Rounds | Avg Final Gold | Avg Final Debt | Avg Final Morale |");
+  lines.push("|---|---:|---:|---:|---:|---:|---:|---:|---:|");
+  for (const cohort of cohorts) {
+    lines.push(`| ${cohort.label} | ${cohort.runs} | ${cohort.wins} | ${cohort.losses} | ${cohort.winRate.toFixed(1)}% | ${cohort.medianRounds.toFixed(1)} | ${cohort.avgGold.toFixed(2)} | ${cohort.avgDebt.toFixed(2)} | ${cohort.avgMorale.toFixed(2)} |`);
+  }
+  lines.push("");
+}
+
+function appendPartyPowerSummary(lines, powerLog) {
+  const byAct = groupBy(powerLog, (row) => String(row.act || 0));
+  lines.push("## Party Power Progression");
+  lines.push("| Act | Samples | Avg Party Size | Avg Total HP | Avg Total Attack | Avg Tier | Avg Veteran Tiers | Avg Active Abilities | Avg Relics | Avg Ranged Attack Share | Avg Economy Surplus | Enemy HP Scale | Enemy Attack Scale |");
+  lines.push("|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|");
+  for (const act of Object.keys(byAct).sort((a, b) => Number(a) - Number(b))) {
+    const rows = byAct[act];
+    lines.push(`| ${act} | ${rows.length} | ${avg(rows.map((row) => row.partySize || 0))} | ${avg(rows.map((row) => row.totalHealth || 0))} | ${avg(rows.map((row) => row.totalAttack || 0))} | ${avg(rows.map((row) => row.avgTier || 0))} | ${avg(rows.map((row) => row.veteranTierTotal || 0))} | ${avg(rows.map((row) => row.activeAbilityCount || 0))} | ${avg(rows.map((row) => row.relicCount || 0))} | ${avg(rows.map((row) => row.rangedAttackShare || 0))} | ${avg(rows.map((row) => row.economySurplus || 0))} | ${avg(rows.map((row) => row.enemyHealthScale || 1))} | ${avg(rows.map((row) => row.enemyAttackScale || 1))} |`);
+  }
+  lines.push("");
 }
 
 function appendEconomySummary(lines, economyLog) {
@@ -443,13 +555,13 @@ function appendEconomySummary(lines, economyLog) {
   const acts = [...new Set(economyLog.map((row) => Number(row.act)))].sort((a, b) => a - b);
 
   lines.push("## Economy Pressure Summary");
-  lines.push("| Act | Shops | Avg Gold Before Shop | Avg Gold After Shop | Avg Shop Gold Delta | Avg Debt Paid | Debt Payment Rate | Avg Rerolls | Avg Debt After Shop |");
-  lines.push("|---|---:|---:|---:|---:|---:|---:|---:|---:|");
+  lines.push("| Act | Shops | Avg Gold Before Shop | Avg Gold After Shop | Avg Shop Spend | Avg Hire Spend | Avg Debt Paid | Debt Payment Rate | Avg Rerolls | Avg Merges / Upgrades | Avg Premium Buys | Avg Replacements | Avg Debt After Shop |");
+  lines.push("|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|");
   for (const act of acts) {
     const rows = shopRows.filter((row) => Number(row.act) === act);
     if (rows.length <= 0) continue;
     const debtPaymentRows = rows.filter((row) => (row.debtPaid || 0) > 0).length;
-    lines.push(`| ${act} | ${rows.length} | ${avg(rows.map((row) => row.goldBefore || 0))} | ${avg(rows.map((row) => row.goldAfter || 0))} | ${avg(rows.map((row) => row.netGoldDelta || 0))} | ${avg(rows.map((row) => row.debtPaid || 0))} | ${pct(debtPaymentRows, rows.length)} | ${avg(rows.map((row) => row.rerollsUsed || 0))} | ${avg(rows.map((row) => row.debtAfter || 0))} |`);
+    lines.push(`| ${act} | ${rows.length} | ${avg(rows.map((row) => row.goldBefore || 0))} | ${avg(rows.map((row) => row.goldAfter || 0))} | ${avg(rows.map((row) => row.shopSpend || 0))} | ${avg(rows.map((row) => row.hireSpend || 0))} | ${avg(rows.map((row) => row.debtPaid || 0))} | ${pct(debtPaymentRows, rows.length)} | ${avg(rows.map((row) => row.rerollsUsed || 0))} | ${avg(rows.map((row) => row.mergesOrUpgrades || 0))} | ${avg(rows.map((row) => row.premiumPurchases || 0))} | ${avg(rows.map((row) => row.replacements || 0))} | ${avg(rows.map((row) => row.debtAfter || 0))} |`);
   }
   lines.push("");
 
@@ -496,7 +608,13 @@ function summarizeCombatLog(combatLog) {
         combats,
         winRate: combats > 0 ? (wins / combats) * 100 : 0,
         avgRounds: Number(avg(rows.map((r) => r.combatRoundsElapsed))),
+        avgCombatTicksElapsed: Number(avg(rows.map((r) => r.combatTicksElapsed || 0))),
         avgHeroesLost: Number(avg(rows.map((r) => r.heroesLost))),
+        avgLowestSurvivorHp: Number(avg(rows.map((r) => r.lowestSurvivorHp || 0))),
+        avgLowestSurvivorHpPct: Number(avg(rows.map((r) => r.lowestSurvivorHpPct || 0))),
+        avgEnemyDamageDealt: Number(avg(rows.map((r) => r.enemyDamageDealt || 0))),
+        avgEnemyHealingDone: Number(avg(rows.map((r) => r.enemyHealingDone || 0))),
+        avgFrontlineDamageTaken: Number(avg(rows.map((r) => r.frontlineDamageTaken || 0))),
         avgContractReward: Number(avg(rows.map((r) => r.contractRewardGold || 0))),
         avgVeterancyContextBonusXp: Number(avg(rows.map((r) => r.veterancyContextBonusXp || 0))),
         avgRewardQualityRelicChoiceBonus: Number(avg(rows.map((r) => r.rewardQualityRelicChoiceBonus || 0))),
@@ -505,11 +623,31 @@ function summarizeCombatLog(combatLog) {
         avgRangedKillShare: Number(avg(rows.map((r) => r.rangedKillShare || 0))),
         avgRangedFirstAttackTick: Number(avg(rows.map((r) => r.avgRangedFirstAttackTick || 0))),
         avgRangedSafeAttackShare: Number(avg(rows.map((r) => r.rangedSafeAttackShare || 0))),
+        rangedAlwaysSafeRate: Number(avg(rows.map((r) => r.rangedAlwaysSafe || 0))),
         meleeReachedBacklineRate: Number(avg(rows.map((r) => r.meleeReachedBackline || 0))),
+        enemiesReachedRangedUnitRate: Number(avg(rows.map((r) => r.enemiesReachedRangedUnit || 0))),
         avgBacklineDamageTaken: Number(avg(rows.map((r) => r.backlineDamageTaken || 0))),
       };
     })
     .sort(compareEncounterSummaries);
+}
+
+function classifyCombatThreat(summary) {
+  if (!summary || summary.combats <= 0) return { flag: "none", label: "-", reasons: [] };
+  const reasons = [];
+  if (summary.winRate >= 90 && summary.avgHeroesLost <= 0.25 && summary.avgEnemyDamageDealt <= 2) {
+    if (summary.winRate >= 90) reasons.push(`win ${summary.winRate.toFixed(1)}%`);
+    if (summary.avgHeroesLost <= 0.25) reasons.push(`lost ${summary.avgHeroesLost.toFixed(2)}`);
+    if (summary.avgEnemyDamageDealt <= 2) reasons.push(`enemy damage ${summary.avgEnemyDamageDealt.toFixed(2)}`);
+    return { flag: "trivial", label: "won but trivial", reasons };
+  }
+  if (summary.winRate >= 50 && (summary.avgHeroesLost >= 2 || summary.avgLowestSurvivorHpPct <= 0.25 || summary.avgEnemyDamageDealt >= 10)) {
+    if (summary.avgHeroesLost >= 2) reasons.push(`lost ${summary.avgHeroesLost.toFixed(2)}`);
+    if (summary.avgLowestSurvivorHpPct <= 0.25) reasons.push(`lowest survivor ${(summary.avgLowestSurvivorHpPct * 100).toFixed(1)}% HP`);
+    if (summary.avgEnemyDamageDealt >= 10) reasons.push(`enemy damage ${summary.avgEnemyDamageDealt.toFixed(2)}`);
+    return { flag: "costly", label: "won but costly", reasons };
+  }
+  return { flag: "none", label: "-", reasons: [] };
 }
 
 function summarizeChallengeFlags(summaries) {

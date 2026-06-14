@@ -31,6 +31,8 @@ import { getEncounterReward } from "../run/EncounterReward.js";
 import { getEncounterRewardQualityBreakdown, getEncounterVeterancyXpBreakdown } from "../run/EncounterRewardQuality.js";
 import { BalanceRunLogger } from "../run/BalanceRunLogger.js";
 import { DefaultCombatRuntimeId } from "../combat/CombatRuntime.js";
+import { formatPowerRows, summarizePartyPower } from "./BalancePowerMetrics.js";
+import { SurvivorCohortId, getSurvivorCohortIds, summarizeSurvivorCohorts } from "./BalanceTargets.js";
 
 let failures = 0;
 function check(name, cond) {
@@ -2391,10 +2393,17 @@ function makeCombatResult(overrides = {}) {
   check("balance: combat row exposes ranged threat metrics",
     rangedRow.rangedDamageShare > 0
       && rangedRow.avgRangedFirstAttackTick >= 0
+      && rangedRow.enemyDamageDealt >= 0
+      && rangedRow.lowestSurvivorHp >= 0
+      && rangedRow.combatTicksElapsed >= rangedRow.combatRoundsElapsed
       && rangedTsv.includes("rangedDamageShare")
       && rangedTsv.includes("rangedSafeAttackShare")
       && rangedTsv.includes("meleeReachedBackline")
-      && rangedTsv.includes("backlineDamageTaken"));
+      && rangedTsv.includes("backlineDamageTaken")
+      && rangedTsv.includes("lowestSurvivorHpPct")
+      && rangedTsv.includes("enemyDamageDealt")
+      && rangedTsv.includes("frontlineDamageTaken")
+      && rangedTsv.includes("enemiesReachedRangedUnit"));
   BalanceRunLogger.economyRows = [];
   BalanceRunLogger.logRound(run, GameState.RivalUpdate);
   const economyTsv = BalanceRunLogger.formatEconomyResults(BalanceRunLogger.economyRows);
@@ -2404,6 +2413,71 @@ function makeCombatResult(overrides = {}) {
       && economyTsv.includes("contractRewardGold")
       && economyTsv.includes("combatRuntimeId")
       && economyTsv.includes("interestAddedToDebt"));
+  BalanceRunLogger.economyRows = [];
+  BalanceRunLogger.logShop(run, {
+    gold: 30,
+    debt: 8,
+    morale: 30,
+    partySize: 1,
+    rerollCount: 0,
+    rerollCostModifier: 0,
+    party: [{ id: "warrior", tier: HeroTier.Bronze }],
+  }, {
+    gold: 17,
+    debt: 3,
+    morale: 30,
+    partySize: 2,
+    rerollCount: 2,
+    party: [
+      { id: "warrior", tier: HeroTier.Silver },
+      { id: "ranger", tier: HeroTier.Silver },
+    ],
+  });
+  const shopTsv = BalanceRunLogger.formatEconomyResults(BalanceRunLogger.economyRows);
+  check("balance: shop row exposes spending and upgrade behavior",
+    BalanceRunLogger.economyRows[0].shopSpend === 8
+      && BalanceRunLogger.economyRows[0].hireSpend === 4
+      && BalanceRunLogger.economyRows[0].rerollSpend === 4
+      && BalanceRunLogger.economyRows[0].debtPaid === 5
+      && BalanceRunLogger.economyRows[0].mergesOrUpgrades === 1
+      && BalanceRunLogger.economyRows[0].premiumPurchases === 1
+      && shopTsv.includes("premiumPurchases")
+      && shopTsv.includes("mergesOrUpgrades")
+      && shopTsv.includes("hireSpend"));
+  const powerRun = rm.initializeRun(DifficultyLevel.Level0, 313);
+  fieldKnownPartyOnRun(powerRun, ["warrior", "ranger", "priest"], HeroTier.Silver);
+  powerRun.gold = 18;
+  powerRun.debt = 4;
+  powerRun.activeRelics.push(RelicId.BladeCharter);
+  const power = summarizePartyPower(powerRun);
+  const powerTsv = formatPowerRows([{ seed: 313, strategy: "smart", phase: "shop", act: 1, slot: 1, round: 1, encounterId: "test", ...power, gold: powerRun.gold, debt: powerRun.debt, enemyHealthScale: 1, enemyAttackScale: 1 }]);
+  check("balance: party power helper exposes progression metrics",
+    power.partySize === 3
+      && power.totalHealth > 0
+      && power.totalAttack > 0
+      && power.activeAbilityCount === 3
+      && power.relicCount === 1
+      && power.economySurplus === 14
+      && powerTsv.includes("totalHealth")
+      && powerTsv.includes("rangedAttackShare")
+      && powerTsv.includes("enemyHealthScale"));
+  const act4Win = { outcome: "WIN", roundsReached: GameRulesFns.act4FinalRound, finalGold: 13, finalDebt: 0, finalMorale: 22 };
+  const act2Loss = { outcome: "LOSS", roundsReached: GameRulesFns.act2FinalRound, finalGold: 0, finalDebt: 8, finalMorale: 0 };
+  const act1Loss = { outcome: "LOSS", roundsReached: GameRulesFns.act1FinalRound, finalGold: 0, finalDebt: 5, finalMorale: 0 };
+  const act4WinCohorts = getSurvivorCohortIds(act4Win);
+  const act1LossCohorts = getSurvivorCohortIds(act1Loss);
+  const cohortSummary = summarizeSurvivorCohorts([act4Win, act2Loss, act1Loss]);
+  const act3Cohort = cohortSummary.find((cohort) => cohort.id === SurvivorCohortId.ReachedAct3);
+  const losingCohort = cohortSummary.find((cohort) => cohort.id === SurvivorCohortId.LosingRuns);
+  check("balance: survivor cohort classification reaches later acts",
+    act4WinCohorts.includes(SurvivorCohortId.ReachedAct2)
+      && act4WinCohorts.includes(SurvivorCohortId.ReachedAct3)
+      && act4WinCohorts.includes(SurvivorCohortId.ReachedAct4)
+      && act4WinCohorts.includes(SurvivorCohortId.WinningRuns)
+      && !act1LossCohorts.includes(SurvivorCohortId.ReachedAct2));
+  check("balance: survivor cohort summary separates winners and losses",
+    act3Cohort && act3Cohort.runs === 1 && act3Cohort.wins === 1
+      && losingCohort && losingCohort.runs === 2 && losingCohort.losses === 2);
 }
 
 // 2f. Later and special encounters add context veterancy XP without changing Act 1 baseline.

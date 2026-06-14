@@ -128,7 +128,7 @@ MainMenu
 - `CombatUnit` is a per-combat snapshot of a hero/enemy; it never persists past a fight. `CombatResult.playerStartUnits` / `playerFinalUnits` are deep snapshots for UI replay.
 - `web/src/run/EncounterScaling.js` owns deterministic act/slot/type scaling for opponent stats. `CombatManager.buildEnemyUnits` applies it to combat-unit snapshots after difficulty multipliers and before rival-race lead scaling; enemy definitions and `DataRepository` values remain unchanged.
 - `web/src/combat/CombatRuntime.js` owns explicit combat runtime ids. `CombatManager` validates the selected runtime, stamps `CombatResult.combatRuntimeId`, and `RunState.latestCombatRuntimeId` / balance outputs carry that id for rebaseline and comparison work.
-- `BalanceRunLogger` derives ranged threat metrics from replay events for balance reports: ranged damage/kill share, first ranged attack tick, safe ranged attack share, melee reach into backline, and backline damage taken. These are reporting-only fields and must not feed back into combat resolution.
+- `BalanceRunLogger` derives reporting-only combat threat metrics from replay events: damage and healing totals, frontline/backline damage, lowest survivor HP, combat ticks elapsed, ranged damage/kill/safety, melee reach into backline, and enemy reach onto ranged units. `web/src/test/balance.js` also writes deterministic run/combat/economy/power TSVs plus markdown summaries for survivor cohorts, party power progression, and trivial/costly win flags. These fields must not feed back into combat resolution.
 
 ### Combat hook points
 
@@ -161,6 +161,8 @@ Run them all with `npm run test:headless` (from `web/`). The npm script chains:
 1. `src/test/headless.js` — 20 checks: enums, Rng, GameRules, data classes
 2. `src/test/combat.js` — 13 checks: end-to-end combats with fixed parties, including determinism
 3. `src/test/run.js` — 24 checks: full GameManager flow + an autopilot that drives a complete run to terminal state
+
+`npm run test:balance -- --seeds=<n> --strategy=<id|all> --report` runs the deterministic balance harness and writes run, combat, economy, power, and markdown reports under `web/balance-reports/`.
 
 UI is verified manually:
 
