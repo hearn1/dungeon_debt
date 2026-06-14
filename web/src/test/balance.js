@@ -17,7 +17,7 @@ import { CombatManager } from "../combat/CombatManager.js";
 import { DefaultCombatRuntimeId } from "../combat/CombatRuntime.js";
 import { BalanceRunLogger } from "../run/BalanceRunLogger.js";
 import { getEncounterScaling } from "../run/EncounterScaling.js";
-import { BalanceChallengeFlag, classifyEncounterChallenge, formatTargetBandLabel } from "./BalanceTargets.js";
+import { BalanceChallengeFlag, classifyEncounterChallenge, formatTargetBandLabel, summarizeSurvivorCohorts } from "./BalanceTargets.js";
 import { formatPowerRows, summarizePartyPower } from "./BalancePowerMetrics.js";
 import { GreedyStrategy } from "./strategies/greedy.js";
 import { FrugalStrategy } from "./strategies/frugal.js";
@@ -334,6 +334,8 @@ function buildMarkdownReport(results, combatLog, economyLog, powerLog, options, 
   lines.push(`- Win rate: ${winRate}%`);
   lines.push("");
 
+  appendSurvivorCohortSummary(lines, results);
+
   appendStrategyBehaviorNotes(lines);
 
   const uniqueStrategies = [...new Set(results.map((r) => r.strategy))];
@@ -506,6 +508,17 @@ function appendStrategyBehaviorNotes(lines) {
   lines.push("- `greedy`: damage-first contrast strategy that tends to buy the strongest affordable offers.");
   lines.push("- `frugal`: low-upkeep contrast strategy that favors cheap sustainable parties.");
   lines.push("- `random`: seeded legal-action fuzz strategy for determinism and edge-case coverage.");
+  lines.push("");
+}
+
+function appendSurvivorCohortSummary(lines, results) {
+  const cohorts = summarizeSurvivorCohorts(results);
+  lines.push("## Survivor Cohorts");
+  lines.push("| Cohort | Runs | Wins | Losses | Win Rate | Median Rounds | Avg Final Gold | Avg Final Debt | Avg Final Morale |");
+  lines.push("|---|---:|---:|---:|---:|---:|---:|---:|---:|");
+  for (const cohort of cohorts) {
+    lines.push(`| ${cohort.label} | ${cohort.runs} | ${cohort.wins} | ${cohort.losses} | ${cohort.winRate.toFixed(1)}% | ${cohort.medianRounds.toFixed(1)} | ${cohort.avgGold.toFixed(2)} | ${cohort.avgDebt.toFixed(2)} | ${cohort.avgMorale.toFixed(2)} |`);
+  }
   lines.push("");
 }
 

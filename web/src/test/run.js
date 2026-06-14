@@ -32,6 +32,7 @@ import { getEncounterRewardQualityBreakdown, getEncounterVeterancyXpBreakdown } 
 import { BalanceRunLogger } from "../run/BalanceRunLogger.js";
 import { DefaultCombatRuntimeId } from "../combat/CombatRuntime.js";
 import { formatPowerRows, summarizePartyPower } from "./BalancePowerMetrics.js";
+import { SurvivorCohortId, getSurvivorCohortIds, summarizeSurvivorCohorts } from "./BalanceTargets.js";
 
 let failures = 0;
 function check(name, cond) {
@@ -2453,6 +2454,23 @@ function makeCombatResult(overrides = {}) {
       && powerTsv.includes("totalHealth")
       && powerTsv.includes("rangedAttackShare")
       && powerTsv.includes("enemyHealthScale"));
+  const act4Win = { outcome: "WIN", roundsReached: GameRulesFns.act4FinalRound, finalGold: 13, finalDebt: 0, finalMorale: 22 };
+  const act2Loss = { outcome: "LOSS", roundsReached: GameRulesFns.act2FinalRound, finalGold: 0, finalDebt: 8, finalMorale: 0 };
+  const act1Loss = { outcome: "LOSS", roundsReached: GameRulesFns.act1FinalRound, finalGold: 0, finalDebt: 5, finalMorale: 0 };
+  const act4WinCohorts = getSurvivorCohortIds(act4Win);
+  const act1LossCohorts = getSurvivorCohortIds(act1Loss);
+  const cohortSummary = summarizeSurvivorCohorts([act4Win, act2Loss, act1Loss]);
+  const act3Cohort = cohortSummary.find((cohort) => cohort.id === SurvivorCohortId.ReachedAct3);
+  const losingCohort = cohortSummary.find((cohort) => cohort.id === SurvivorCohortId.LosingRuns);
+  check("balance: survivor cohort classification reaches later acts",
+    act4WinCohorts.includes(SurvivorCohortId.ReachedAct2)
+      && act4WinCohorts.includes(SurvivorCohortId.ReachedAct3)
+      && act4WinCohorts.includes(SurvivorCohortId.ReachedAct4)
+      && act4WinCohorts.includes(SurvivorCohortId.WinningRuns)
+      && !act1LossCohorts.includes(SurvivorCohortId.ReachedAct2));
+  check("balance: survivor cohort summary separates winners and losses",
+    act3Cohort && act3Cohort.runs === 1 && act3Cohort.wins === 1
+      && losingCohort && losingCohort.runs === 2 && losingCohort.losses === 2);
 }
 
 // 2f. Later and special encounters add context veterancy XP without changing Act 1 baseline.

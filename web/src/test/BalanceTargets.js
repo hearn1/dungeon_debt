@@ -1,3 +1,4 @@
+import { GameRulesFns } from "../core/GameRules.js";
 import { EncounterType } from "../data/enums.js";
 
 export const BalanceChallengeFlag = Object.freeze({
@@ -6,6 +7,24 @@ export const BalanceChallengeFlag = Object.freeze({
   HighChallenge: "high-challenge",
   LowSample: "low-sample",
 });
+
+export const SurvivorCohortId = Object.freeze({
+  AllRuns: "all-runs",
+  ReachedAct2: "reached-act-2",
+  ReachedAct3: "reached-act-3",
+  ReachedAct4: "reached-act-4",
+  WinningRuns: "winning-runs",
+  LosingRuns: "losing-runs",
+});
+
+export const SurvivorCohorts = Object.freeze([
+  Object.freeze({ id: SurvivorCohortId.AllRuns, label: "All runs" }),
+  Object.freeze({ id: SurvivorCohortId.ReachedAct2, label: "Reached Act 2" }),
+  Object.freeze({ id: SurvivorCohortId.ReachedAct3, label: "Reached Act 3" }),
+  Object.freeze({ id: SurvivorCohortId.ReachedAct4, label: "Reached Act 4" }),
+  Object.freeze({ id: SurvivorCohortId.WinningRuns, label: "Winning runs only" }),
+  Object.freeze({ id: SurvivorCohortId.LosingRuns, label: "Losing runs only" }),
+]);
 
 export const BalanceTargetBands = Object.freeze([
   Object.freeze({
@@ -175,10 +194,58 @@ export function formatTargetBandLabel(band) {
   return `${band.id} (${formatPct(band.minWinRate)}-${formatPct(band.maxWinRate)} win, ${band.minAvgRounds.toFixed(1)}-${band.maxAvgRounds.toFixed(1)} rounds, ${band.minAvgHeroesLost.toFixed(1)}-${band.maxAvgHeroesLost.toFixed(1)} lost)`;
 }
 
+export function getSurvivorCohortIds(result) {
+  const roundsReached = Number(result?.roundsReached ?? 0);
+  const outcome = result?.outcome || "";
+  const cohorts = [SurvivorCohortId.AllRuns];
+
+  if (roundsReached > GameRulesFns.act1FinalRound) cohorts.push(SurvivorCohortId.ReachedAct2);
+  if (roundsReached > GameRulesFns.act2FinalRound) cohorts.push(SurvivorCohortId.ReachedAct3);
+  if (roundsReached > GameRulesFns.act3FinalRound) cohorts.push(SurvivorCohortId.ReachedAct4);
+  if (outcome === "WIN") cohorts.push(SurvivorCohortId.WinningRuns);
+  else cohorts.push(SurvivorCohortId.LosingRuns);
+
+  return cohorts;
+}
+
+export function summarizeSurvivorCohorts(results) {
+  const safeResults = Array.isArray(results) ? results : [];
+  return SurvivorCohorts.map((cohort) => {
+    const rows = safeResults.filter((result) => getSurvivorCohortIds(result).includes(cohort.id));
+    const wins = rows.filter((result) => result.outcome === "WIN").length;
+    const losses = rows.length - wins;
+    return {
+      id: cohort.id,
+      label: cohort.label,
+      runs: rows.length,
+      wins,
+      losses,
+      winRate: rows.length > 0 ? (wins / rows.length) * 100 : 0,
+      medianRounds: median(rows.map((result) => result.roundsReached)),
+      avgGold: average(rows.map((result) => result.finalGold)),
+      avgDebt: average(rows.map((result) => result.finalDebt)),
+      avgMorale: average(rows.map((result) => result.finalMorale)),
+    };
+  });
+}
+
 function getBandById(id) {
   return BalanceTargetBands.find((band) => band.id === id);
 }
 
 function formatPct(value) {
   return `${Number(value).toFixed(0)}%`;
+}
+
+function median(values) {
+  if (!Array.isArray(values) || values.length === 0) return 0;
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  if (sorted.length % 2 === 0) return (sorted[mid - 1] + sorted[mid]) / 2;
+  return sorted[mid];
+}
+
+function average(values) {
+  if (!Array.isArray(values) || values.length === 0) return 0;
+  return values.reduce((sum, value) => sum + value, 0) / values.length;
 }
