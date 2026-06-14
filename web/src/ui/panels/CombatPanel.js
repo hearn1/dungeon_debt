@@ -7,6 +7,7 @@ import { unitPortrait, attackEffect, healEffect, abilityEffect } from "../Sprite
 import { Settings } from "../../core/Settings.js";
 import { ThreeCombatBoardScene } from "../board/ThreeCombatBoardScene.js";
 import { UnitVisualState } from "../UnitVisualCatalog.js";
+import { actorStateForEvent, targetStateForEvent, actorStateDuration, targetStateDuration } from "../board/CombatAnimationBridge.js";
 
 const TOKEN = 70;         // combat token width/height (fits inside TILE)
 const TOKEN_HALF = TOKEN / 2;
@@ -408,11 +409,14 @@ export class CombatPanel {
     const actorEntry  = this._unitMap.get(evt.actorUnitId);
     const targetEntry = this._unitMap.get(evt.targetUnitId);
 
-    // Highlight the acting unit.
-    if (actorEntry && evt.kind === K.Heal) {
-      this._threeScene?.setUnitVisualState(evt.actorUnitId, UnitVisualState.Cast, { durationMs: this._stepMs });
-      this._threeScene?.setActiveUnit(evt.actorUnitId);
-      actorEntry.node.classList.add("acting");
+    // Drive actor visual state via CombatAnimationBridge.
+    const actorState = actorStateForEvent(evt.kind);
+    if (actorEntry && actorState) {
+      this._threeScene?.setUnitVisualState(evt.actorUnitId, actorState, { durationMs: actorStateDuration(evt.kind, this._stepMs) });
+      if (actorState === UnitVisualState.Cast) {
+        this._threeScene?.setActiveUnit(evt.actorUnitId);
+        actorEntry.node.classList.add("acting");
+      }
     }
 
     if (targetEntry) {
@@ -440,10 +444,11 @@ export class CombatPanel {
         }, 440);
       }
 
-      // Flash.
-      if (isDamage || isHeal) {
+      // Drive target visual state via CombatAnimationBridge.
+      const targetState = targetStateForEvent(evt.kind);
+      if (targetState && targetState !== UnitVisualState.Death) {
         const cls = isHeal ? "flash-heal" : "flash-hit";
-        this._threeScene?.setUnitVisualState(evt.targetUnitId, UnitVisualState.Hit, { durationMs: this._stepMs });
+        this._threeScene?.setUnitVisualState(evt.targetUnitId, targetState, { durationMs: targetStateDuration(evt.kind, this._stepMs) });
         targetEntry.node.classList.remove(cls);
         void targetEntry.node.offsetWidth;
         targetEntry.node.classList.add(cls);
