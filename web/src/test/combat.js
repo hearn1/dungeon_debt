@@ -1123,6 +1123,32 @@ import { getDefaultPlayerBoardPosition, getDefaultEnemyBoardPosition, isInPlayer
   check("330: ranged unit does not path all the way adjacent", finalDistance > GameRules.DefaultMeleeRange);
 }
 
+// Issue 331: ranged movement prefers comfortable firing distance when paths are blocked.
+{
+  const board = new CombatBoard();
+  const archer = {
+    unitId: "ra",
+    attackRange: GameRules.DefaultShortRangedRange,
+    preferredMinRange: GameRules.DefaultRangedPreferredMinRange,
+  };
+  const target = { unitId: "tg" };
+  const blocker = { unitId: "bl" };
+
+  board.placeUnit(archer, { q: 0, r: 0 });
+  board.placeUnit(target, { q: 4, r: 0 });
+  board.placeUnit(blocker, { q: 1, r: 0 });
+
+  let guard = 0;
+  while (!board.canAttack(archer, target) && guard < 10) {
+    board.moveUnitTowardRange(archer, board.getUnitPosition(target), 1, archer.attackRange, archer.preferredMinRange);
+    guard += 1;
+  }
+
+  const finalDistance = hexDistance(board.getUnitPosition(archer), board.getUnitPosition(target));
+  check("331: blocked ranged path still reaches firing range", board.canAttack(archer, target));
+  check("331: blocked ranged path preserves preferred distance", finalDistance >= archer.preferredMinRange);
+}
+
 // ---- Hex board movement in combat (issue #220) ----
 
 // Melee unit starts out of range — it moves instead of attacking, then attacks
@@ -1148,6 +1174,7 @@ import { getDefaultPlayerBoardPosition, getDefaultEnemyBoardPosition, isInPlayer
   const rangerMoveLogs = result.logLines.filter(l => l.includes("Ranger") && l.includes("moves to"));
   const rangerAttackLogs = result.logLines.filter(l => l.includes("Ranger attacks"));
   check("220: ranged unit attacks without moving", rangerAttackLogs.length > 0 && rangerMoveLogs.length === 0);
+  check("331: ranged unit holds position when already in preferred range", rangerMoveLogs.length === 0);
 }
 
 // Issue 330: out-of-range ranged unit moves, then attacks once inside max range.
@@ -1169,6 +1196,8 @@ import { getDefaultPlayerBoardPosition, getDefaultEnemyBoardPosition, isInPlayer
     rangerMoves.length > 0 && firstAttack && rangerMoves[0].tick < firstAttack.tick);
   check("330: Ranger first attacks inside max range",
     attackDistance <= GameRules.DefaultLongRangedRange);
+  check("331: Ranger first attacks from preferred range",
+    attackDistance >= GameRules.DefaultRangedPreferredMinRange);
   check("330: ranged movement is exposed in replay/logs",
     result.logLines.some(l => l.includes("Ranger moves to")));
 }
