@@ -591,7 +591,7 @@ export class CombatPanel {
   _finish() {
     this._clearTimer();
     while (this._eventIndex < this._result.replayEvents.length) {
-      this._applyEvent(this._result.replayEvents[this._eventIndex++]);
+      this._applyEventInstant(this._result.replayEvents[this._eventIndex++]);
     }
     this._clearActing();
     if (this._projectileLayer) clear(this._projectileLayer);

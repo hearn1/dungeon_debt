@@ -858,6 +858,13 @@ console.log("Run-flow test");
   check("combat renderer: action bars update from replay timing",
     !attackStartEvt || actionProgressAfterAttackStart < actionProgressAfterHitGroup);
 
+  combatPanel._actions = globalThis.document.createElement("div");
+  combatPanel.root.appendChild(combatPanel._actions);
+  combatPanel._eventIndex = 0;
+  combatPanel._finish();
+  check("combat renderer: skip-to-report renders summary", textContentOf(combatPanel.root).includes("Contract"));
+  check("combat renderer: skip-to-report clears transient projectiles", countClass(combatPanel.root, "projectile") === 0);
+
   const summaryRun = gm.currentRunState;
   summaryRun.latestRewardGold = 31;
   summaryRun.latestContractRewardGold = 29;
