@@ -51,6 +51,40 @@ Copy this block when adding a new entry. Paste it at the top of the Session log 
 
 <!-- Newest entries at the top. -->
 
+## 2026-06-14 - #313: Better balance signals and progression scaling audit
+
+**Milestone:** GitHub epic
+**Status:** Complete
+
+**Files added:**
+- `balance-audit/manual-run-capture-template.md`
+- `balance-audit/findings-337-progression-scaling-audit.md`
+- `web/src/test/BalancePowerMetrics.js`
+
+**Files modified:**
+- `web/src/test/strategies/smart.js` - made the smart balance strategy spend surplus on roles, upgrades, replacements, rerolls, and debt.
+- `web/src/run/BalanceRunLogger.js` - added shop action accounting and richer combat threat metrics to TSV rows.
+- `web/src/test/balance.js` - added power TSV output, survivor cohorts, party power summaries, and trivial/costly combat threat flags.
+- `web/src/test/BalanceTargets.js`, `web/src/test/run.js` - added survivor cohort helpers and regression coverage for new balance report fields.
+- `IMPLEMENTATION_PLAN.md`, `PROGRESS.md`, `NEXT_SESSION.md` - documented the balance reporting contract and session wrap.
+
+**Acceptance criteria:**
+- [x] Manual human run capture can be compared against balance reports.
+- [x] Autopilot spending/upgrading behavior is more human-like and documented in reports.
+- [x] Reports expose party power growth by act and survivor cohort.
+- [x] XP, veterancy, upgrades, relics, and reward scaling received a written audit.
+- [x] Combat threat metrics go beyond win/loss and flag trivial/costly wins.
+
+**Test plan:** `npm.cmd run test:headless` after each subissue commit; `npm.cmd run test:balance -- --seeds=3 --strategy=smart --report` for report smoke; `npm.cmd run test:balance -- --seeds=20 --strategy=smart --report` for audit evidence; all passed.
+
+**Deviations from plan:**
+- Kept survivor cohort helpers in `BalanceTargets.js` instead of creating another helper file, so cohort and challenge classifications live together.
+
+**Follow-up flagged:**
+- Use the new survivor cohort and threat reports before applying any late-game enemy or economy tuning.
+
+**Next slice:** Awaiting Matt's next selected slice.
+
 ## 2026-06-14 - #312: Ranged distance and movement correction
 
 **Milestone:** GitHub epic

@@ -12,24 +12,26 @@ This file always describes the **next** session's work. Rewrite it at the end of
 
 ### One-sentence goal
 
-Epic `#312` (Ranged distance and movement correction) is complete; Matt should choose the next implementation slice before any code changes.
+Epic `#313` (Better balance signals and progression scaling audit) is complete; Matt should choose the next implementation or tuning slice before any code changes.
 
 ### Why this session exists
 
-The previous session completed GitHub epic `#312` and its subissues:
+The previous session completed GitHub epic `#313` and its subissues:
 
-1. `#329` - Replace infinite range with real board ranges.
-2. `#330` - Make ranged units move when out of range.
-3. `#331` - Add simple preferred-range behavior.
-4. `#332` - Expose ranged threat metrics in balance reports.
-5. `#333` - Add ranged-vs-melee regression scenarios.
+1. `#334` - Add manual human-run capture template.
+2. `#335` - Improve smart autopilot spending and upgrade behavior.
+3. `#336` - Add party power progression TSV/markdown reporting.
+4. `#337` - Audit XP, upgrades, relics, rewards, and enemy scaling.
+5. `#338` - Split reports by survivor cohort.
+6. `#339` - Add combat threat metrics beyond win rate.
 
 ### Candidate next work
 
-**Available combat follow-ups:**
+**Available balance follow-ups:**
 
-- Run a larger Combat V2 ranged/balance audit now that range and movement metrics exist.
-- Continue combat presentation polish if Matt wants more combat-facing work.
+- Run a larger smart/all-strategy audit using the new survivor cohort, power, and threat reports.
+- Pick a scoped late-game tuning slice only after reviewing the new reports.
+- Tune late enemy scaling, late encounter pressure, shop sinks, or rewards as a follow-up if Matt selects one.
 
 **Available paused regression polish:**
 
@@ -39,7 +41,6 @@ The previous session completed GitHub epic `#312` and its subissues:
 
 - Later reward/economy tuning follow-ups from parent `#285`, if Matt chooses one.
 - Later shop/debt tuning recommendations from epic `#288`, if Matt chooses one.
-- Later `#72` balance harness slices, if Matt explicitly chooses one.
 - Later `#71` visual slices V2-V6, if Matt explicitly chooses one.
 - Later expansion follow-ups from the issue bodies, if Matt explicitly chooses one.
 
@@ -53,8 +54,8 @@ The previous session completed GitHub epic `#312` and its subissues:
 
 **Not in scope:**
 
+- Applying balance tuning automatically.
 - Starting another implementation slice without Matt choosing it.
-- Applying ranged balance tuning automatically.
 - Broad refactors or cleanup.
 
 ### Files to read
@@ -63,14 +64,15 @@ The previous session completed GitHub epic `#312` and its subissues:
 AGENTS.md
 CLAUDE.md
 SESSION_PROTOCOL.md
-PROGRESS.md (latest #312 and prior entries)
+PROGRESS.md (latest #313 and prior entries)
 REGRESSIONS.md (Open section)
-IMPLEMENTATION_PLAN.md section 4
+IMPLEMENTATION_PLAN.md section 4 and section 5
 NEXT_SESSION.md
-web/src/core/GameRules.js
-web/src/combat/CombatBoard.js
-web/src/combat/CombatManager.js
+balance-audit/findings-337-progression-scaling-audit.md
+web/src/test/balance.js
 web/src/run/BalanceRunLogger.js
+web/src/test/BalanceTargets.js
+web/src/test/BalancePowerMetrics.js
 ```
 
 ### Files to modify
@@ -88,4 +90,4 @@ No verification command until a concrete slice is selected.
 
 ### Start prompt for the next session
 
-> Read `AGENTS.md`, `CLAUDE.md`, and `SESSION_PROTOCOL.md`, then follow `NEXT_SESSION.md`. Epic `#312` is complete. Orient on the latest progress and ask Matt which slice to pick up next before planning code changes.
+> Read `AGENTS.md`, `CLAUDE.md`, and `SESSION_PROTOCOL.md`, then follow `NEXT_SESSION.md`. Epic `#313` is complete. Orient on the latest progress and ask Matt which slice to pick up next before planning code changes.
