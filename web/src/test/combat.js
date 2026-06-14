@@ -1928,6 +1928,48 @@ function reconstructHpMap(events) {
     castEvts.every(e => !!e.actorUnitId && !!e.abilityId));
 }
 
+// 321: Active abilities are queued cooldown intents with windup, not immediate turns.
+{
+  const run = buildRun(["golem"]);
+  const result = new CombatManager().startCombat(run, encounter(1, 4));
+  const castEvts = result.replayEvents.filter(e => e.kind === CombatReplayEventKind.AbilityCast);
+  const firstEarthquake = castEvts.find(e => e.abilityId === "Earthquake");
+  check("321: first active cast resolves after cooldown plus ability windup",
+    firstEarthquake && firstEarthquake.tick === GameRules.CooldownEarthquake + GameRules.DefaultAbilityWindupTicks);
+
+  let cooldownsRespected = true;
+  for (let i = 1; i < castEvts.length; i++) {
+    if (castEvts[i].actorUnitId !== castEvts[i - 1].actorUnitId) continue;
+    if (castEvts[i].tick - castEvts[i - 1].tick < GameRules.CooldownEarthquake) {
+      cooldownsRespected = false;
+    }
+  }
+  check("321: active cooldown spacing is respected", cooldownsRespected);
+
+  const sameTickRun = buildRun(["ranger", "golem"], run => {
+    run.enemyHealthMultiplier = 3;
+    run.enemyDamageMultiplier = 0.25;
+  });
+  const sameTickResult = new CombatManager().startCombat(sameTickRun, encounter(1, 1));
+  const sameTickCasts = sameTickResult.replayEvents.filter(e => e.kind === CombatReplayEventKind.AbilityCast);
+  const attackTicks = new Set(sameTickResult.replayEvents
+    .filter(e => e.kind === CombatReplayEventKind.Attack)
+    .map(e => e.tick));
+  check("321: active casts can resolve on the same tick as attacks",
+    sameTickCasts.some(e => attackTicks.has(e.tick)));
+}
+
+// 321: CombatEnd passives stay on the explicit combat-end boundary.
+{
+  const run = buildRun(["apprentice", "warrior", "golem", "ranger", "priest"]);
+  const apprentice = run.party[0];
+  const result = new CombatManager().startCombat(run, encounter(1, 1));
+  check("321: combat-end passive still flags Apprentice bonus XP",
+    result.playerWon &&
+    result.bonusXpHeroIds &&
+    result.bonusXpHeroIds.includes(apprentice.instanceId));
+}
+
 // 226-I: PassiveTrigger events present for passive abilities.
 {
   const run = buildRun(["warrior"]);

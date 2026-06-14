@@ -219,6 +219,7 @@ export const GameRules = Object.freeze({
   DefaultAttackSpeedMultiplier: 1,
   DefaultAttackWindupTicks: 1,
   DefaultAttackRecoveryTicks: 0,
+  DefaultAbilityWindupTicks: 1,
   MinimumAttackCooldownTicks: 1,
   DefaultMeleeRange: 1,
   DefaultRangedRange: 99,

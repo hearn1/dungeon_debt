@@ -65,6 +65,7 @@ export class CombatManager {
     initBoardPositions(board, playerUnits, enemyUnits, encounter);
     const match = new CombatMatch(playerTeam, enemyTeam, board);
     const pendingHitEvents = [];
+    const pendingAbilityEvents = [];
 
     this._match = match;
 
@@ -115,9 +116,12 @@ export class CombatManager {
       }
 
       const intents = this._collectTimelineIntents(match, currentRound, playerUnits, tick, logger);
+      intents.activeCasts.push(...AbilityRunner.collectActiveIntents(tick, playerUnits, match));
       resolveMovementIntents(intents.movements, match, logger);
       startAttackWindups(intents.attacks, pendingHitEvents, tick);
+      startAbilityWindups(intents.activeCasts, pendingAbilityEvents, tick);
       const defeatedThisTick = this._resolveMaturingHitEvents(pendingHitEvents, tick, logger);
+      this._resolveMaturingAbilityEvents(pendingAbilityEvents, tick, logger);
       this._applyDeferredDeaths(defeatedThisTick, logger);
 
       for (const unit of match.allUnits) {
@@ -140,21 +144,6 @@ export class CombatManager {
         return result;
       }
 
-      // Active ability pass: fire any active abilities whose cooldown has expired.
-      AbilityRunner.processActives(tick, playerUnits, match, run, logger);
-
-      // Clean up board after ability damage.
-      for (const unit of match.allUnits) {
-        if (!unit.isAlive) match.board.removeUnit(unit);
-      }
-
-      if (!enemyTeam.hasLiving) {
-        result.playerWon = true;
-        result.combatRoundsElapsed = currentRound;
-        logger.logFinalResult(true);
-        this._finishResult(result, playerUnits, enemyUnits, logger);
-        return result;
-      }
     }
 
     result.playerWon = false;
@@ -168,7 +157,7 @@ export class CombatManager {
     const readyUnits = match.allUnits.filter(u => u.isAlive);
     readyUnits.sort(stableUnitOrder);
 
-    const intents = { movements: [], attacks: [] };
+    const intents = { movements: [], attacks: [], activeCasts: [] };
 
     for (const unit of readyUnits) {
       let target = findTarget(unit, match, currentRound);
@@ -234,6 +223,20 @@ export class CombatManager {
       logger.logDeath(defeated);
       HeroEffects.onKill(entry.attacker, defeated, this._run, logger);
       AbilityRunner.triggerPassiveOn(AbilityTrigger.OnKill, entry.attacker, defeated, { match: this._match, run: this._run, logger });
+    }
+  }
+
+  _resolveMaturingAbilityEvents(pendingAbilityEvents, tick, logger) {
+    const maturing = [];
+    for (let i = pendingAbilityEvents.length - 1; i >= 0; i--) {
+      if (pendingAbilityEvents[i].castTick !== tick) continue;
+      maturing.push(pendingAbilityEvents[i]);
+      pendingAbilityEvents.splice(i, 1);
+    }
+    maturing.sort((a, b) => a.order - b.order);
+
+    for (const event of maturing) {
+      AbilityRunner.resolveActiveCast(event, this._match, this._run, logger);
     }
   }
 
@@ -452,6 +455,18 @@ function startAttackWindups(attackIntents, pendingHitEvents, tick) {
       target,
       hitTick: tick + actor.attackWindupTicks,
       order: pendingHitEvents.length,
+    });
+  }
+}
+
+function startAbilityWindups(activeCastIntents, pendingAbilityEvents, tick) {
+  for (const intent of activeCastIntents) {
+    const { caster, target } = intent;
+    if (!caster.isAlive || (target && target.deathResolved)) continue;
+    pendingAbilityEvents.push({
+      ...intent,
+      castTick: tick + GameRules.DefaultAbilityWindupTicks,
+      order: pendingAbilityEvents.length,
     });
   }
 }
