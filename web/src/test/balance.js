@@ -313,6 +313,8 @@ function buildMarkdownReport(results, combatLog, economyLog, options, timestamp)
   lines.push(`- Win rate: ${winRate}%`);
   lines.push("");
 
+  appendStrategyBehaviorNotes(lines);
+
   const uniqueStrategies = [...new Set(results.map((r) => r.strategy))];
   if (uniqueStrategies.length > 1) {
     lines.push("## Per-Strategy Breakdown");
@@ -434,7 +436,30 @@ function snapshotShopState(run) {
     morale: run.morale,
     partySize: run.party.length,
     rerollCount: run.rerollCount,
+    rerollCostModifier: run.rerollCostModifier || 0,
+    party: snapshotParty(run),
   };
+}
+
+function snapshotParty(run) {
+  if (!run || !Array.isArray(run.party)) return [];
+  return run.party
+    .filter((hero) => hero && hero.definition)
+    .map((hero) => ({
+      id: hero.definition.id,
+      tier: hero.tier,
+      veteranXp: hero.veteranXp || 0,
+      veteranTier: hero.veteranTier || 0,
+    }));
+}
+
+function appendStrategyBehaviorNotes(lines) {
+  lines.push("## Strategy Behavior Notes");
+  lines.push("- `smart`: human-like baseline; fills missing roles, buys upgrades/merges, spends surplus on rerolls, replaces clearly weaker units, and pays debt after preserving a small shop reserve.");
+  lines.push("- `greedy`: damage-first contrast strategy that tends to buy the strongest affordable offers.");
+  lines.push("- `frugal`: low-upkeep contrast strategy that favors cheap sustainable parties.");
+  lines.push("- `random`: seeded legal-action fuzz strategy for determinism and edge-case coverage.");
+  lines.push("");
 }
 
 function appendEconomySummary(lines, economyLog) {
@@ -443,13 +468,13 @@ function appendEconomySummary(lines, economyLog) {
   const acts = [...new Set(economyLog.map((row) => Number(row.act)))].sort((a, b) => a - b);
 
   lines.push("## Economy Pressure Summary");
-  lines.push("| Act | Shops | Avg Gold Before Shop | Avg Gold After Shop | Avg Shop Gold Delta | Avg Debt Paid | Debt Payment Rate | Avg Rerolls | Avg Debt After Shop |");
-  lines.push("|---|---:|---:|---:|---:|---:|---:|---:|---:|");
+  lines.push("| Act | Shops | Avg Gold Before Shop | Avg Gold After Shop | Avg Shop Spend | Avg Hire Spend | Avg Debt Paid | Debt Payment Rate | Avg Rerolls | Avg Merges / Upgrades | Avg Premium Buys | Avg Replacements | Avg Debt After Shop |");
+  lines.push("|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|");
   for (const act of acts) {
     const rows = shopRows.filter((row) => Number(row.act) === act);
     if (rows.length <= 0) continue;
     const debtPaymentRows = rows.filter((row) => (row.debtPaid || 0) > 0).length;
-    lines.push(`| ${act} | ${rows.length} | ${avg(rows.map((row) => row.goldBefore || 0))} | ${avg(rows.map((row) => row.goldAfter || 0))} | ${avg(rows.map((row) => row.netGoldDelta || 0))} | ${avg(rows.map((row) => row.debtPaid || 0))} | ${pct(debtPaymentRows, rows.length)} | ${avg(rows.map((row) => row.rerollsUsed || 0))} | ${avg(rows.map((row) => row.debtAfter || 0))} |`);
+    lines.push(`| ${act} | ${rows.length} | ${avg(rows.map((row) => row.goldBefore || 0))} | ${avg(rows.map((row) => row.goldAfter || 0))} | ${avg(rows.map((row) => row.shopSpend || 0))} | ${avg(rows.map((row) => row.hireSpend || 0))} | ${avg(rows.map((row) => row.debtPaid || 0))} | ${pct(debtPaymentRows, rows.length)} | ${avg(rows.map((row) => row.rerollsUsed || 0))} | ${avg(rows.map((row) => row.mergesOrUpgrades || 0))} | ${avg(rows.map((row) => row.premiumPurchases || 0))} | ${avg(rows.map((row) => row.replacements || 0))} | ${avg(rows.map((row) => row.debtAfter || 0))} |`);
   }
   lines.push("");
 

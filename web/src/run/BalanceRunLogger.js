@@ -8,6 +8,7 @@ import { DefaultCombatRuntimeId } from "../combat/CombatRuntime.js";
 import { hexDistance } from "../combat/CombatBoard.js";
 import { GameRules } from "../core/GameRules.js";
 import { CombatReplayEventKind } from "../data/CombatReplayEvent.js";
+import { HeroTier } from "../data/enums.js";
 
 const RangedHeroIds = new Set(["ranger", "ninja"]);
 
@@ -69,6 +70,14 @@ export const BalanceRunLogger = {
 
   logShop(run, beforeShop, afterShop) {
     if (!run || !this.runId || !beforeShop || !afterShop) return;
+    const partyDiff = summarizePartyDiff(beforeShop.party, afterShop.party);
+    const debtPaid = Math.max(0, beforeShop.debt - afterShop.debt);
+    const rerollsUsed = Math.max(0, afterShop.rerollCount - beforeShop.rerollCount);
+    const rerollCost = GameRules.RerollCost + (beforeShop.rerollCostModifier || 0);
+    const totalGoldSpent = Math.max(0, beforeShop.gold - afterShop.gold);
+    const rerollSpend = rerollsUsed * rerollCost;
+    const shopSpend = Math.max(0, totalGoldSpent - debtPaid);
+    const hireSpend = Math.max(0, shopSpend - rerollSpend);
     this.economyRows.push({
       phase: "shop",
       seed: getRunSeed(run),
@@ -85,9 +94,16 @@ export const BalanceRunLogger = {
       moraleAfter: afterShop.morale,
       partySizeBefore: beforeShop.partySize,
       partySizeAfter: afterShop.partySize,
-      rerollsUsed: Math.max(0, afterShop.rerollCount - beforeShop.rerollCount),
-      debtPaid: Math.max(0, beforeShop.debt - afterShop.debt),
+      rerollsUsed,
+      debtPaid,
       netGoldDelta: afterShop.gold - beforeShop.gold,
+      shopSpend,
+      hireSpend,
+      rerollSpend,
+      premiumPurchases: partyDiff.premiumPurchases,
+      mergesOrUpgrades: partyDiff.mergesOrUpgrades,
+      newHires: partyDiff.newHires,
+      replacements: partyDiff.replacements,
     });
   },
 
@@ -165,6 +181,13 @@ export const BalanceRunLogger = {
       "rerollsUsed",
       "debtPaid",
       "netGoldDelta",
+      "shopSpend",
+      "hireSpend",
+      "rerollSpend",
+      "premiumPurchases",
+      "mergesOrUpgrades",
+      "newHires",
+      "replacements",
       "playerWon",
       "rewardGold",
       "contractRewardGold",
@@ -287,6 +310,61 @@ function formatTsvRow(row) {
 function sanitizeTsvValue(value) {
   if (value === null || value === undefined) return "";
   return String(value).replace(/[\t\r\n]/g, " ");
+}
+
+function summarizePartyDiff(beforeParty, afterParty) {
+  const before = mapPartyById(beforeParty);
+  const after = mapPartyById(afterParty);
+  let premiumPurchases = 0;
+  let mergesOrUpgrades = 0;
+  let newHires = 0;
+  let replacements = 0;
+  let removed = 0;
+
+  for (const [heroId, beforeHero] of before.entries()) {
+    const afterHero = after.get(heroId);
+    if (!afterHero) {
+      removed += 1;
+      continue;
+    }
+    if (getTierOrdinal(afterHero.tier) > getTierOrdinal(beforeHero.tier)) {
+      mergesOrUpgrades += 1;
+    }
+  }
+
+  for (const [heroId, afterHero] of after.entries()) {
+    if (before.has(heroId)) continue;
+    newHires += 1;
+    if (getTierOrdinal(afterHero.tier) > getTierOrdinal(HeroTier.Bronze)) {
+      premiumPurchases += 1;
+    }
+  }
+
+  replacements = Math.min(removed, newHires);
+
+  return {
+    premiumPurchases,
+    mergesOrUpgrades,
+    newHires,
+    replacements,
+  };
+}
+
+function mapPartyById(party) {
+  const mapped = new Map();
+  if (!Array.isArray(party)) return mapped;
+  for (const hero of party) {
+    if (!hero || !hero.id) continue;
+    mapped.set(hero.id, hero);
+  }
+  return mapped;
+}
+
+function getTierOrdinal(tier) {
+  if (tier === HeroTier.Diamond) return 4;
+  if (tier === HeroTier.Gold) return 3;
+  if (tier === HeroTier.Silver) return 2;
+  return 1;
 }
 
 function summarizeRangedThreat(combatResult) {

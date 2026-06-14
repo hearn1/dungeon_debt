@@ -2404,6 +2404,37 @@ function makeCombatResult(overrides = {}) {
       && economyTsv.includes("contractRewardGold")
       && economyTsv.includes("combatRuntimeId")
       && economyTsv.includes("interestAddedToDebt"));
+  BalanceRunLogger.economyRows = [];
+  BalanceRunLogger.logShop(run, {
+    gold: 30,
+    debt: 8,
+    morale: 30,
+    partySize: 1,
+    rerollCount: 0,
+    rerollCostModifier: 0,
+    party: [{ id: "warrior", tier: HeroTier.Bronze }],
+  }, {
+    gold: 17,
+    debt: 3,
+    morale: 30,
+    partySize: 2,
+    rerollCount: 2,
+    party: [
+      { id: "warrior", tier: HeroTier.Silver },
+      { id: "ranger", tier: HeroTier.Silver },
+    ],
+  });
+  const shopTsv = BalanceRunLogger.formatEconomyResults(BalanceRunLogger.economyRows);
+  check("balance: shop row exposes spending and upgrade behavior",
+    BalanceRunLogger.economyRows[0].shopSpend === 8
+      && BalanceRunLogger.economyRows[0].hireSpend === 4
+      && BalanceRunLogger.economyRows[0].rerollSpend === 4
+      && BalanceRunLogger.economyRows[0].debtPaid === 5
+      && BalanceRunLogger.economyRows[0].mergesOrUpgrades === 1
+      && BalanceRunLogger.economyRows[0].premiumPurchases === 1
+      && shopTsv.includes("premiumPurchases")
+      && shopTsv.includes("mergesOrUpgrades")
+      && shopTsv.includes("hireSpend"));
 }
 
 // 2f. Later and special encounters add context veterancy XP without changing Act 1 baseline.
