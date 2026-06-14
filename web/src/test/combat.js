@@ -15,6 +15,7 @@ import { CombatReplayEventKind } from "../data/CombatReplayEvent.js";
 import { EnemyDefinition } from "../data/EnemyDefinition.js";
 import { EncounterDefinition } from "../data/EncounterDefinition.js";
 import { getEncounterScaling } from "../run/EncounterScaling.js";
+import { CombatRuntimeId, DefaultCombatRuntimeId } from "../combat/CombatRuntime.js";
 
 let failures = 0;
 function check(name, cond) {
@@ -2038,7 +2039,41 @@ function buildSnapshot(partyIds, act, slot, expected) {
     result.deadHeroes.length <= expected.maxDead);
 }
 
+function buildV2Snapshot(label, partyIds, act, slot, expected) {
+  const run = buildRun(partyIds);
+  const enc = encounter(act, slot);
+  const result = new CombatManager({ runtimeId: CombatRuntimeId.CombatV2 }).startCombat(run, enc);
+  check(`322 ${label}: runtime is Combat V2`, result.combatRuntimeId === CombatRuntimeId.CombatV2);
+  check(`322 ${label}: playerWon = ${expected.won}`, result.playerWon === expected.won);
+  check(`322 ${label}: rounds in [${expected.minRounds},${expected.maxRounds}]`,
+    result.combatRoundsElapsed >= expected.minRounds &&
+    result.combatRoundsElapsed <= expected.maxRounds);
+  check(`322 ${label}: deadHeroes <= ${expected.maxDead}`,
+    result.deadHeroes.length <= expected.maxDead);
+}
+
+{
+  const result = new CombatManager({ runtimeId: CombatRuntimeId.CombatV2 })
+    .startCombat(buildRun(["warrior"]), encounter(1, 1));
+  let invalidRuntimeRejected = false;
+  try {
+    new CombatManager({ runtimeId: "LegacyTestRuntime" });
+  } catch {
+    invalidRuntimeRejected = true;
+  }
+  check("322: runtime selection is explicit and stamped on CombatResult",
+    result.combatRuntimeId === DefaultCombatRuntimeId);
+  check("322: unsupported runtime selection is rejected", invalidRuntimeRejected);
+}
+
 const REF_PARTY = ["warrior", "golem", "wizard", "ranger", "priest"];
+
+buildV2Snapshot("melee representative", ["warrior", "golem"], 1, 1, { won: true, minRounds: 2, maxRounds: 6, maxDead: 1 });
+buildV2Snapshot("ranged representative", ["ranger", "wizard", "golem"], 1, 4, { won: true, minRounds: 1, maxRounds: 5, maxDead: 1 });
+buildV2Snapshot("sustain representative", ["warrior", "golem", "priest", "cleric", "paladin"], 1, 10, { won: true, minRounds: 5, maxRounds: 9, maxDead: 2 });
+buildV2Snapshot("carry representative", REF_PARTY, 1, 6, { won: true, minRounds: 3, maxRounds: 7, maxDead: 1 });
+buildV2Snapshot("boss representative", REF_PARTY, 1, 10, { won: true, minRounds: 5, maxRounds: 9, maxDead: 3 });
+buildV2Snapshot("rival representative", REF_PARTY, 2, 3, { won: false, minRounds: 5, maxRounds: 9, maxDead: 5 });
 
 buildSnapshot(REF_PARTY, 1, 1,  { won: true, minRounds: 2, maxRounds: 6,  maxDead: 1 });
 buildSnapshot(REF_PARTY, 1, 2,  { won: true, minRounds: 1, maxRounds: 5,  maxDead: 1 });

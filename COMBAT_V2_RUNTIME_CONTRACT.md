@@ -9,6 +9,7 @@ later issues unless a replay event is required to describe the simulation.
 ## Goals
 
 - Resolve combat on one shared deterministic timeline.
+- Make the selected combat runtime explicit in results and balance reports.
 - Use integer ticks, never wall-clock time.
 - Keep combat math independent from visual animation speed.
 - Collect movement and attack/cast intent before resolving effects.
@@ -32,6 +33,18 @@ CombatTicksPerRound = 4
 
 This keeps current end-of-round effects readable while allowing actions inside a
 round to share or separate ticks.
+
+## Runtime Seam
+
+- The current JavaScript runtime id is `CombatV2`.
+- `CombatManager({ runtimeId })` validates the requested runtime before combat
+  starts.
+- `CombatResult.combatRuntimeId` records the runtime that produced the result.
+- `RunState.latestCombatRuntimeId`, balance combat/economy TSV rows, and
+  generated balance Markdown reports carry the runtime id so future comparison
+  runs do not mix V1/V2 outputs.
+- Combat V1 is not duplicated in this branch. If it becomes useful for
+  comparison, it should plug into this seam instead of forking report formats.
 
 ## Unit Cadence
 

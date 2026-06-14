@@ -12,5 +12,6 @@ export class CombatResult {
     this.enemyStartUnits = [];
     this.playerFinalUnits = [];
     this.enemyFinalUnits = [];
+    this.combatRuntimeId = "";
   }
 }

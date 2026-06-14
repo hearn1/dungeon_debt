@@ -14,9 +14,11 @@ import { getEncounterScaling } from "../run/EncounterScaling.js";
 import { resolvePlayerBoardPosition, resolveEnemyBoardPosition } from "./BoardPlacement.js";
 import { selectTarget } from "./TargetingRules.js";
 import { getBasicAttackMode } from "./RoleBehavior.js";
+import { DefaultCombatRuntimeId, resolveCombatRuntimeId } from "./CombatRuntime.js";
 
 export class CombatManager {
-  constructor() {
+  constructor(options = null) {
+    this.runtimeId = resolveCombatRuntimeId(options && options.runtimeId ? options.runtimeId : DefaultCombatRuntimeId);
     this._run = null;
     this._match = null;
     this._knightRedirectsRemaining = 0;
@@ -25,6 +27,7 @@ export class CombatManager {
 
   startCombat(run, encounter) {
     const result = new CombatResult();
+    result.combatRuntimeId = this.runtimeId;
     const logger = new CombatLogger();
 
     this._run = run;
