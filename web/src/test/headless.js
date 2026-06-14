@@ -16,6 +16,9 @@ import { getEncounterReward, getEncounterRewardBreakdown } from "../run/Encounte
 import { getEncounterRewardQualityBreakdown, getEncounterRewardQualitySummary, getEncounterVeterancyXpBreakdown } from "../run/EncounterRewardQuality.js";
 import { EncounterType } from "../data/enums.js";
 import { BalanceChallengeFlag, classifyEncounterChallenge, getBalanceTargetBand } from "./BalanceTargets.js";
+import { FeedbackReportBuilder } from "../ui/FeedbackReportBuilder.js";
+import { AppInfo } from "../core/AppInfo.js";
+import { DebugLogBuffer } from "../core/DebugLogBuffer.js";
 
 let failures = 0;
 function check(name, cond) {
@@ -307,6 +310,102 @@ console.log("\nSaveManager tests");
   sm12.reset();
   check("save: reset clears animationSpeed to normal", sm12.getAnimationSpeed() === "normal");
   check("save: reset clears reducedMotion to false", sm12.getReducedMotion() === false);
+}
+
+// FeedbackReportBuilder
+{
+  console.log("\nFeedbackReportBuilder");
+
+  check("AppInfo version is a semver string", /^\d+\.\d+\.\d+$/.test(AppInfo.version));
+  check("AppInfo repoIssuesUrl contains github", AppInfo.repoIssuesUrl.includes("github.com"));
+
+  const title = FeedbackReportBuilder.buildIssueTitle("crash on round 5");
+  check("buildIssueTitle includes description", title.includes("crash on round 5"));
+  check("buildIssueTitle has Feedback/Bug prefix", title.startsWith("Feedback/Bug Report:"));
+
+  const titleEmpty = FeedbackReportBuilder.buildIssueTitle("");
+  check("buildIssueTitle handles empty description", titleEmpty.startsWith("Feedback/Bug Report:"));
+
+  const bodyNoRun = FeedbackReportBuilder.buildIssueBody({ whatHappened: "it crashed", whatExpected: "no crash" }, null, "Main Menu");
+  check("buildIssueBody includes what happened", bodyNoRun.includes("it crashed"));
+  check("buildIssueBody includes what expected", bodyNoRun.includes("no crash"));
+  check("buildIssueBody includes screen label", bodyNoRun.includes("Main Menu"));
+  check("buildIssueBody includes build version", bodyNoRun.includes(AppInfo.version));
+  check("buildIssueBody says no active run when null", bodyNoRun.includes("No active run"));
+  check("buildIssueBody has screenshot note", bodyNoRun.includes("screenshot"));
+
+  const fakeRun = {
+    act: 2, round: 14, gold: 30, debt: 5, morale: 3,
+    difficultyDisplayName: "Veteran",
+    party: [
+      { definition: { displayName: "Garrick", role: "Tank" }, tier: "Bronze" },
+    ],
+    activeRelics: ["relic_iron_will"],
+    currentEncounter: { displayName: "Spider Nest" },
+  };
+  const bodyWithRun = FeedbackReportBuilder.buildIssueBody({}, fakeRun, "Combat");
+  check("buildIssueBody includes act", bodyWithRun.includes("Act: 2"));
+  check("buildIssueBody includes round", bodyWithRun.includes("Round: 14"));
+  check("buildIssueBody includes gold", bodyWithRun.includes("Gold: 30"));
+  check("buildIssueBody includes difficulty", bodyWithRun.includes("Veteran"));
+  check("buildIssueBody includes hero name", bodyWithRun.includes("Garrick"));
+  check("buildIssueBody includes relic", bodyWithRun.includes("relic_iron_will"));
+  check("buildIssueBody includes encounter", bodyWithRun.includes("Spider Nest"));
+
+  const url = FeedbackReportBuilder.buildGitHubUrl("Test title", "Test body");
+  check("buildGitHubUrl contains issues/new", url.includes("issues/new"));
+  check("buildGitHubUrl encodes title param", url.includes("title="));
+  check("buildGitHubUrl encodes body param", url.includes("body="));
+  check("buildGitHubUrl encodes spaces", url.includes("Test+title") || url.includes("Test%20title"));
+
+  // buildDebugReport — no run
+  const debugNoRun = FeedbackReportBuilder.buildDebugReport(null, "Main Menu");
+  check("buildDebugReport includes version", debugNoRun.includes(AppInfo.version));
+  check("buildDebugReport includes screen label", debugNoRun.includes("Main Menu"));
+  check("buildDebugReport includes Generated timestamp", debugNoRun.includes("Generated:"));
+  check("buildDebugReport says no active run", debugNoRun.includes("No active run"));
+
+  // buildDebugReport — with run
+  const debugWithRun = FeedbackReportBuilder.buildDebugReport({
+    act: 1, round: 3, gold: 20, debt: 0, morale: 5,
+    difficultyDisplayName: "Standard",
+    party: [{ definition: { displayName: "Lyra", role: "Ranger" }, tier: "Bronze" }],
+    activeRelics: [],
+    currentEncounter: { displayName: "Rat Cave" },
+    hasLatestRewardSummary: false,
+  }, "Scout");
+  check("buildDebugReport with run includes act", debugWithRun.includes("Act: 1"));
+  check("buildDebugReport with run includes hero", debugWithRun.includes("Lyra"));
+  check("buildDebugReport with run includes encounter", debugWithRun.includes("Rat Cave"));
+}
+
+// DebugLogBuffer
+{
+  console.log("\nDebugLogBuffer");
+
+  DebugLogBuffer.clear();
+  check("starts empty after clear", DebugLogBuffer.getEntries().length === 0);
+
+  // Manually push entries via _push (install() is not called in headless)
+  DebugLogBuffer._push("warn", ["test warning"]);
+  DebugLogBuffer._push("error", ["test error"]);
+  const entries = DebugLogBuffer.getEntries();
+  check("captures warn entry", entries.some(e => e.level === "warn" && e.text.includes("test warning")));
+  check("captures error entry", entries.some(e => e.level === "error" && e.text.includes("test error")));
+  check("entries have ts field", entries.every(e => typeof e.ts === "string"));
+
+  // Cap at MAX_ENTRIES (100)
+  DebugLogBuffer.clear();
+  for (let i = 0; i < 110; i++) DebugLogBuffer._push("warn", [`entry ${i}`]);
+  check("caps at 100 entries", DebugLogBuffer.getEntries().length === 100);
+  check("retains most recent entries", DebugLogBuffer.getEntries().at(-1).text.includes("entry 109"));
+
+  // getEntries returns a copy (snapshot is not live)
+  DebugLogBuffer.clear();
+  DebugLogBuffer._push("warn", ["snap test"]);
+  const snap1 = DebugLogBuffer.getEntries();
+  DebugLogBuffer._push("warn", ["extra"]);
+  check("getEntries returns snapshot copy", snap1.length === 1 && DebugLogBuffer.getEntries().length === 2);
 }
 
 console.log(failures === 0 ? "\nALL PASS" : `\n${failures} FAILURE(S)`);

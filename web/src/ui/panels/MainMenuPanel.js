@@ -4,8 +4,6 @@ import { DataRepository } from "../../core/DataRepository.js";
 import { GameRules } from "../../core/GameRules.js";
 import { Settings } from "../../core/Settings.js";
 
-const APP_VERSION = "0.1.0";
-
 export class MainMenuPanel {
   constructor(gm) {
     this.gm = gm;
@@ -70,11 +68,6 @@ export class MainMenuPanel {
       class: "btn how-to-play-btn",
       text: "How to Play",
       onClick: () => this._showTutorial(),
-    }));
-    menuFooter.appendChild(el("button", {
-      class: "btn how-to-play-btn",
-      text: "Report Feedback",
-      onClick: () => this._showFeedback(),
     }));
     menuFooter.appendChild(el("button", {
       class: "btn how-to-play-btn",
@@ -238,53 +231,6 @@ export class MainMenuPanel {
 
   _closeTutorial() {
     document.getElementById("how-to-play-modal")?.remove();
-  }
-
-  _showFeedback() {
-    if (document.getElementById("feedback-modal")) return;
-
-    const items = [
-      "What you expected",
-      "What happened instead",
-      "The act and round you were on",
-      "Your roster, gold, debt, and morale if relevant",
-      "Screenshot if possible",
-      `Build version: Dungeon Debt v${APP_VERSION}`,
-    ];
-
-    const backdrop = el("div", { id: "feedback-modal", class: "tutorial-backdrop" });
-    const modal = el("div", { class: "tutorial-modal" }, [
-      el("div", { class: "tutorial-header" }, [
-        el("h2", { class: "tutorial-title", text: "Report Feedback or Bugs" }),
-        el("button", {
-          class: "btn tutorial-close",
-          text: "✕",
-          onClick: () => this._closeFeedback(),
-        }),
-      ]),
-      el("div", { class: "tutorial-body" }, [
-        el("p", { class: "tutorial-intro", text: "Please include:" }),
-        el("ul", { class: "tutorial-steps" },
-          items.map(item => el("li", { class: "tutorial-step-body", text: item }))
-        ),
-        el("p", { class: "tutorial-goal", text: "Send this information to the developer with the build version above." }),
-      ]),
-      el("div", { class: "tutorial-footer" }, [
-        el("button", {
-          class: "btn primary",
-          text: "Got it",
-          onClick: () => this._closeFeedback(),
-        }),
-      ]),
-    ]);
-
-    backdrop.appendChild(modal);
-    backdrop.addEventListener("click", (e) => { if (e.target === backdrop) this._closeFeedback(); });
-    document.getElementById("app").appendChild(backdrop);
-  }
-
-  _closeFeedback() {
-    document.getElementById("feedback-modal")?.remove();
   }
 
   _showSettings() {

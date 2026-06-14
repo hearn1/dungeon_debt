@@ -2,6 +2,9 @@
 // listens to it. The Electron shell loads this via index.html.
 import { GameManager } from "./core/GameManager.js";
 import { UIManager } from "./ui/UIManager.js";
+import { DebugLogBuffer } from "./core/DebugLogBuffer.js";
+
+DebugLogBuffer.install();
 
 const root = document.getElementById("app");
 const gm = new GameManager();
