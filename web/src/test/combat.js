@@ -842,15 +842,20 @@ import { getDefaultPlayerBoardPosition, getDefaultEnemyBoardPosition, isInPlayer
 
 // Issue 317: ready units create intents on the same shared timeline tick.
 {
-  const run = buildRunSlotted([{ id: "ranger", slot: 2 }, { id: "ranger", slot: 3 }]);
-  const result = new CombatManager().startCombat(run, encounter(1, 1));
+  const run = buildRunSlotted([{ id: "ranger", slot: 3 }, { id: "ranger", slot: 4 }]);
+  const enemy = new EnemyDefinition("range_anchor", "Range Anchor", 0, 20,
+    EnemyEffectId.None, "Target placed inside long range.");
+  const rangeEncounter = new EncounterDefinition(1, 1, EncounterType.Dungeon, "Range Drill",
+    "Ranged units can fire together when their target is inside finite range.", "Timing", [enemy], 0,
+    EncounterEffectId.None, RivalGuild.None, "range-drill", [{ q: 5, r: 2 }]);
+  const result = new CombatManager().startCombat(run, rangeEncounter);
   const attackEvents = result.replayEvents.filter(e => e.kind === CombatReplayEventKind.Attack);
   const firstAttackTick = attackEvents.length > 0 ? attackEvents[0].tick : -1;
   const firstTickAttacks = attackEvents.filter(e => e.tick === firstAttackTick);
   check("317: multiple ready units attack on same tick",
     firstAttackTick >= 0 && firstTickAttacks.length >= 2);
   check("317: same-tick attacks remain deterministic",
-    firstTickAttacks.map(e => e.actorUnitId).join(",") === "p2,p3");
+    firstTickAttacks.map(e => e.actorUnitId).join(",") === "p3,p4");
 }
 
 // Issue 318: same-tick lethal trades resolve before death cleanup.
@@ -915,17 +920,39 @@ import { getDefaultPlayerBoardPosition, getDefaultEnemyBoardPosition, isInPlayer
   const melee = { unitId: "m", attackRange: GameRules.DefaultMeleeRange };
   const ranged = { unitId: "r", attackRange: GameRules.DefaultRangedRange };
   const adjacent = { unitId: "adj" };
+  const inRangeTarget = { unitId: "range" };
   const farTarget = { unitId: "far" };
 
   board.placeUnit(melee, { q: 2, r: 2 });
   board.placeUnit(ranged, { q: 0, r: 0 });
   board.placeUnit(adjacent, { q: 3, r: 2 }); // hex distance 1 from melee
+  board.placeUnit(inRangeTarget, { q: 2, r: 1 });
   board.placeUnit(farTarget, { q: 6, r: 4 }); // far from melee (distance 6)
 
   check("172: melee unit can attack adjacent target", board.canAttack(melee, adjacent));
   check("172: melee unit cannot attack non-adjacent target", !board.canAttack(melee, farTarget));
-  check("173: ranged unit can attack adjacent target", board.canAttack(ranged, adjacent));
-  check("173: ranged unit can attack far target", board.canAttack(ranged, farTarget));
+  check("173: ranged unit can attack target within range", board.canAttack(ranged, inRangeTarget));
+  check("329: ranged unit cannot attack across the full board", !board.canAttack(ranged, farTarget));
+  check("329: default ranged range is finite", GameRules.DefaultRangedRange < GameRules.HexBoardWidth);
+}
+
+// Issue 329: ranged units use readable short/long board ranges.
+{
+  const rangedUnits = buildPlayerUnits(buildRunSlotted([
+    { id: "ranger", slot: 2 },
+    { id: "ninja", slot: 3 },
+    { id: "warrior", slot: 0 },
+  ]));
+  const ranger = rangedUnits.find(u => u.displayName === "Ranger");
+  const ninja = rangedUnits.find(u => u.displayName === "Ninja");
+  const warrior = rangedUnits.find(u => u.displayName === "Warrior");
+  check("329: Ranger uses long ranged range", ranger && ranger.attackRange === GameRules.DefaultLongRangedRange);
+  check("329: Ninja uses short ranged range", ninja && ninja.attackRange === GameRules.DefaultShortRangedRange);
+  check("329: melee range remains adjacent", warrior && warrior.attackRange === GameRules.DefaultMeleeRange);
+  check("329: ranged units expose preferred min range",
+    ranger && ninja &&
+    ranger.preferredMinRange === GameRules.DefaultRangedPreferredMinRange &&
+    ninja.preferredMinRange === GameRules.DefaultRangedPreferredMinRange);
 }
 
 // Issue 174: CombatResult shape fully preserved — integration with run systems.
@@ -1074,6 +1101,54 @@ import { getDefaultPlayerBoardPosition, getDefaultEnemyBoardPosition, isInPlayer
   check("176: removing blocking unit opens path to {3,0}", pathAfterRemove !== null);
 }
 
+// Issue 330: ranged movement paths toward max range instead of adjacency.
+{
+  const board = new CombatBoard();
+  const archer = { unitId: "ra", attackRange: GameRules.DefaultShortRangedRange };
+  const target = { unitId: "tg" };
+
+  board.placeUnit(archer, { q: 0, r: 0 });
+  board.placeUnit(target, { q: 6, r: 4 });
+
+  let guard = 0;
+  while (!board.canAttack(archer, target) && guard < 10) {
+    board.moveUnitTowardRange(archer, board.getUnitPosition(target), 1, archer.attackRange);
+    guard += 1;
+  }
+
+  const archerPos = board.getUnitPosition(archer);
+  const targetPos = board.getUnitPosition(target);
+  const finalDistance = hexDistance(archerPos, targetPos);
+  check("330: ranged unit eventually reaches max range", board.canAttack(archer, target));
+  check("330: ranged unit does not path all the way adjacent", finalDistance > GameRules.DefaultMeleeRange);
+}
+
+// Issue 331: ranged movement prefers comfortable firing distance when paths are blocked.
+{
+  const board = new CombatBoard();
+  const archer = {
+    unitId: "ra",
+    attackRange: GameRules.DefaultShortRangedRange,
+    preferredMinRange: GameRules.DefaultRangedPreferredMinRange,
+  };
+  const target = { unitId: "tg" };
+  const blocker = { unitId: "bl" };
+
+  board.placeUnit(archer, { q: 0, r: 0 });
+  board.placeUnit(target, { q: 4, r: 0 });
+  board.placeUnit(blocker, { q: 1, r: 0 });
+
+  let guard = 0;
+  while (!board.canAttack(archer, target) && guard < 10) {
+    board.moveUnitTowardRange(archer, board.getUnitPosition(target), 1, archer.attackRange, archer.preferredMinRange);
+    guard += 1;
+  }
+
+  const finalDistance = hexDistance(board.getUnitPosition(archer), board.getUnitPosition(target));
+  check("331: blocked ranged path still reaches firing range", board.canAttack(archer, target));
+  check("331: blocked ranged path preserves preferred distance", finalDistance >= archer.preferredMinRange);
+}
+
 // ---- Hex board movement in combat (issue #220) ----
 
 // Melee unit starts out of range — it moves instead of attacking, then attacks
@@ -1089,11 +1164,113 @@ import { getDefaultPlayerBoardPosition, getDefaultEnemyBoardPosition, isInPlayer
 
 // Ranged unit attacks immediately without moving.
 {
-  const run = buildRun(["ranger"]);
-  const result = new CombatManager().startCombat(run, encounter(1, 1));
+  const run = buildRunSlotted([{ id: "ranger", slot: 3 }]);
+  const enemy = new EnemyDefinition("range_anchor", "Range Anchor", 0, 8,
+    EnemyEffectId.None, "Target placed inside long range.");
+  const rangeEncounter = new EncounterDefinition(1, 1, EncounterType.Dungeon, "Range Drill",
+    "Ranged unit starts inside finite range.", "Timing", [enemy], 0,
+    EncounterEffectId.None, RivalGuild.None, "range-drill", [{ q: 5, r: 2 }]);
+  const result = new CombatManager().startCombat(run, rangeEncounter);
   const rangerMoveLogs = result.logLines.filter(l => l.includes("Ranger") && l.includes("moves to"));
   const rangerAttackLogs = result.logLines.filter(l => l.includes("Ranger attacks"));
   check("220: ranged unit attacks without moving", rangerAttackLogs.length > 0 && rangerMoveLogs.length === 0);
+  check("331: ranged unit holds position when already in preferred range", rangerMoveLogs.length === 0);
+}
+
+// Issue 330: out-of-range ranged unit moves, then attacks once inside max range.
+{
+  const run = buildRunSlotted([{ id: "ranger", slot: 0 }]);
+  const enemy = new EnemyDefinition("far_anchor", "Far Anchor", 0, 12,
+    EnemyEffectId.None, "Target placed outside long range.");
+  const rangeEncounter = new EncounterDefinition(1, 1, EncounterType.Dungeon, "Long Range Drill",
+    "Ranged unit must advance before firing.", "Timing", [enemy], 0,
+    EncounterEffectId.None, RivalGuild.None, "long-range-drill", [{ q: 6, r: 4 }]);
+  const result = new CombatManager().startCombat(run, rangeEncounter);
+  const rangerMoves = result.replayEvents.filter(e => e.kind === CombatReplayEventKind.Movement && e.actorUnitId === "p0");
+  const rangerAttacks = result.replayEvents.filter(e => e.kind === CombatReplayEventKind.AttackStart && e.actorUnitId === "p0");
+  const firstAttack = rangerAttacks[0];
+  const attackDistance = firstAttack && firstAttack.sourceCoord && firstAttack.targetCoord
+    ? hexDistance(firstAttack.sourceCoord, firstAttack.targetCoord)
+    : Infinity;
+  check("330: out-of-range Ranger moves before attacking",
+    rangerMoves.length > 0 && firstAttack && rangerMoves[0].tick < firstAttack.tick);
+  check("330: Ranger first attacks inside max range",
+    attackDistance <= GameRules.DefaultLongRangedRange);
+  check("331: Ranger first attacks from preferred range",
+    attackDistance >= GameRules.DefaultRangedPreferredMinRange);
+  check("330: ranged movement is exposed in replay/logs",
+    result.logLines.some(l => l.includes("Ranger moves to")));
+}
+
+// Issue 333: archer backline vs melee rush stays finite and deterministic.
+{
+  const run = buildRunSlotted([{ id: "ranger", slot: 3 }]);
+  const enemy = new EnemyDefinition("melee_rush", "Melee Rush", 1, 12,
+    EnemyEffectId.None, "Durable melee rusher for ranged regression coverage.");
+  const rushEncounter = new EncounterDefinition(1, 1, EncounterType.Dungeon, "Melee Rush",
+    "Ranged carry faces a melee unit crossing the board.", "Ranged", [enemy], 0,
+    EncounterEffectId.None, RivalGuild.None, "melee-rush", [{ q: 5, r: 2 }]);
+  const result = new CombatManager().startCombat(run, rushEncounter);
+  const rangerAttackStarts = result.replayEvents.filter(e => e.kind === CombatReplayEventKind.AttackStart && e.actorUnitId === "p3");
+  check("333: archer backline scenario resolves deterministically",
+    result.logLines.length > 0 && result.combatRoundsElapsed > 0);
+  check("333: Ranger attacks only within finite long range",
+    rangerAttackStarts.length > 0 &&
+    rangerAttackStarts.every(e => hexDistance(e.sourceCoord, e.targetCoord) <= GameRules.DefaultLongRangedRange));
+}
+
+// Issue 333: protected ranged carry remains strong with a frontline.
+{
+  const run = buildRunSlotted([{ id: "golem", slot: 0 }, { id: "ranger", slot: 3 }]);
+  const enemy = new EnemyDefinition("shield_test_brute", "Shield Test Brute", 1, 14,
+    EnemyEffectId.None, "Durable melee attacker for protected carry coverage.");
+  const protectedEncounter = new EncounterDefinition(1, 1, EncounterType.Dungeon, "Protected Carry",
+    "Frontline protects ranged carry.", "Ranged", [enemy], 0,
+    EncounterEffectId.None, RivalGuild.None, "protected-carry", [{ q: 5, r: 2 }]);
+  const result = new CombatManager().startCombat(run, protectedEncounter);
+  const rangerDamage = result.replayEvents
+    .filter(e => e.kind === CombatReplayEventKind.Attack && e.actorUnitId === "p3")
+    .reduce((sum, e) => sum + e.amount, 0);
+  const backlineDamage = result.replayEvents
+    .filter(e => e.kind === CombatReplayEventKind.Attack && !e.attackerIsPlayerSide && e.targetSlot >= GameRules.FrontlineSlots)
+    .reduce((sum, e) => sum + e.amount, 0);
+  check("333: protected ranged carry wins or meaningfully contributes",
+    result.playerWon || rangerDamage >= 6);
+  check("333: protected carry backline takes limited pressure", backlineDamage <= 2);
+}
+
+// Issue 333: mixed melee/ranged teams both participate.
+{
+  const run = buildRunSlotted([{ id: "warrior", slot: 0 }, { id: "ranger", slot: 3 }]);
+  const enemies = [
+    new EnemyDefinition("mixed_guard", "Mixed Guard", 1, 8, EnemyEffectId.None, "Front melee."),
+    new EnemyDefinition("mixed_brute", "Mixed Brute", 1, 10, EnemyEffectId.None, "Back melee."),
+  ];
+  const mixedEncounter = new EncounterDefinition(1, 1, EncounterType.Dungeon, "Mixed Drill",
+    "Mixed team fights multiple melee enemies.", "Ranged", enemies, 0,
+    EncounterEffectId.None, RivalGuild.None, "mixed-drill", [{ q: 5, r: 1 }, { q: 5, r: 3 }]);
+  const result = new CombatManager().startCombat(run, mixedEncounter);
+  const warriorAttacks = result.replayEvents.filter(e => e.kind === CombatReplayEventKind.Attack && e.actorUnitId === "p0");
+  const rangerAttacks = result.replayEvents.filter(e => e.kind === CombatReplayEventKind.Attack && e.actorUnitId === "p3");
+  check("333: mixed melee/ranged scenario has melee attacks", warriorAttacks.length > 0);
+  check("333: mixed melee/ranged scenario has ranged attacks", rangerAttacks.length > 0);
+}
+
+// Issue 333: melee can pressure a solo ranged unit.
+{
+  const run = buildRunSlotted([{ id: "ranger", slot: 3 }]);
+  const enemy = new EnemyDefinition("pressure_brute", "Pressure Brute", 1, 30,
+    EnemyEffectId.None, "Durable melee attacker that reaches the backline.");
+  const pressureEncounter = new EncounterDefinition(1, 1, EncounterType.Dungeon, "Pressure Brute",
+    "Melee can reach ranged unit if it survives.", "Ranged", [enemy], 0,
+    EncounterEffectId.None, RivalGuild.None, "pressure-brute", [{ q: 5, r: 2 }]);
+  const result = new CombatManager().startCombat(run, pressureEncounter);
+  const meleeHitsRanger = result.replayEvents.some(e =>
+    e.kind === CombatReplayEventKind.AttackStart &&
+    !e.attackerIsPlayerSide &&
+    e.targetUnitId === "p3" &&
+    hexDistance(e.sourceCoord, e.targetCoord) <= GameRules.DefaultMeleeRange);
+  check("333: melee pressure can reach a solo ranged unit", meleeHitsRanger);
 }
 
 // Determinism still holds with board movement.
@@ -1122,6 +1299,7 @@ import { CombatUnitState } from "../data/CombatUnitState.js";
 
 function makeUnit(unitId, attack, currentHealth, maxHealth, isPlayerSide, slot = 0) {
   const u = new CombatUnitState(unitId, unitId, attack, currentHealth, maxHealth, isPlayerSide, slot, null, null);
+  u.attackRange = GameRules.DefaultMeleeRange;
   return u;
 }
 
@@ -2212,7 +2390,7 @@ buildV2Snapshot("ranged representative", ["ranger", "wizard", "golem"], 1, 4, { 
 buildV2Snapshot("sustain representative", ["warrior", "golem", "priest", "cleric", "paladin"], 1, 10, { won: true, minRounds: 5, maxRounds: 9, maxDead: 2 });
 buildV2Snapshot("carry representative", REF_PARTY, 1, 6, { won: true, minRounds: 3, maxRounds: 7, maxDead: 1 });
 buildV2Snapshot("boss representative", REF_PARTY, 1, 10, { won: true, minRounds: 5, maxRounds: 9, maxDead: 3 });
-buildV2Snapshot("rival representative", REF_PARTY, 2, 3, { won: false, minRounds: 5, maxRounds: 9, maxDead: 5 });
+buildV2Snapshot("rival representative", REF_PARTY, 2, 3, { won: false, minRounds: 4, maxRounds: 9, maxDead: 5 });
 
 buildSnapshot(REF_PARTY, 1, 1,  { won: true, minRounds: 2, maxRounds: 6,  maxDead: 1 });
 buildSnapshot(REF_PARTY, 1, 2,  { won: true, minRounds: 1, maxRounds: 5,  maxDead: 1 });
@@ -2226,14 +2404,14 @@ buildSnapshot(REF_PARTY, 1, 9,  { won: true, minRounds: 4, maxRounds: 8,  maxDea
 buildSnapshot(REF_PARTY, 1, 10, { won: true, minRounds: 5, maxRounds: 9,  maxDead: 3 });
 buildSnapshot(REF_PARTY, 2, 1,  { won: true, minRounds: 2, maxRounds: 6,  maxDead: 1 });
 buildSnapshot(REF_PARTY, 2, 2,  { won: true, minRounds: 2, maxRounds: 7,  maxDead: 2 });
-buildSnapshot(REF_PARTY, 2, 3,  { won: false, minRounds: 5, maxRounds: 9,  maxDead: 5 });
+buildSnapshot(REF_PARTY, 2, 3,  { won: false, minRounds: 4, maxRounds: 9,  maxDead: 5 });
 buildSnapshot(REF_PARTY, 2, 4,  { won: true, minRounds: 1, maxRounds: 6,  maxDead: 3 });
-buildSnapshot(REF_PARTY, 2, 5,  { won: true, minRounds: 2, maxRounds: 7,  maxDead: 2 });
+buildSnapshot(REF_PARTY, 2, 5,  { won: true, minRounds: 2, maxRounds: 7,  maxDead: 3 });
 buildSnapshot(REF_PARTY, 2, 6,  { won: false, minRounds: 4, maxRounds: 9,  maxDead: 5 });
 buildSnapshot(REF_PARTY, 2, 7,  { won: true, minRounds: 3, maxRounds: 8,  maxDead: 3 });
 buildSnapshot(REF_PARTY, 2, 8,  { won: false, minRounds: 4, maxRounds: 10, maxDead: 5 });
 buildSnapshot(REF_PARTY, 2, 9,  { won: false, minRounds: 5, maxRounds: 9,  maxDead: 5 });
-buildSnapshot(REF_PARTY, 2, 10, { won: false, minRounds: 5, maxRounds: 9,  maxDead: 5 });
+buildSnapshot(REF_PARTY, 2, 10, { won: false, minRounds: 4, maxRounds: 9,  maxDead: 5 });
 
 // ---- Replay schema validation (#234) ----
 // Targeted checks beyond the #226 section: amount non-negative for damage

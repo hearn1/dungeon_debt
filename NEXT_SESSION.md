@@ -12,25 +12,24 @@ This file always describes the **next** session's work. Rewrite it at the end of
 
 ### One-sentence goal
 
-Epic `#311` (Combat V2 replay and presentation) is complete; Matt should choose the next implementation slice before any code changes.
+Epic `#312` (Ranged distance and movement correction) is complete; Matt should choose the next implementation slice before any code changes.
 
 ### Why this session exists
 
-The previous session completed GitHub epic `#311` and its subissues:
+The previous session completed GitHub epic `#312` and its subissues:
 
-1. `#323` - Add replay grouping and metadata for Combat V2
-2. `#324` - Validate grouped Combat V2 replay event streams
-3. `#325` - Animate replay groups together in CombatPanel
-4. `#326` - Add Combat V2 unit action bars
-5. `#327` - Tune Combat V2 replay timing paths
-6. `#328` - Document and browser-smoke Combat V2 replay behavior
+1. `#329` - Replace infinite range with real board ranges.
+2. `#330` - Make ranged units move when out of range.
+3. `#331` - Add simple preferred-range behavior.
+4. `#332` - Expose ranged threat metrics in balance reports.
+5. `#333` - Add ranged-vs-melee regression scenarios.
 
 ### Candidate next work
 
 **Available combat follow-ups:**
 
-- Run a larger balance audit/tuning pass now that Combat V2 simulation and replay presentation are in place.
-- Continue visual polish if Matt wants more combat-facing presentation work.
+- Run a larger Combat V2 ranged/balance audit now that range and movement metrics exist.
+- Continue combat presentation polish if Matt wants more combat-facing work.
 
 **Available paused regression polish:**
 
@@ -48,14 +47,14 @@ The previous session completed GitHub epic `#311` and its subissues:
 
 **In scope:**
 
-- Orient on current `main`.
+- Orient on the current branch/main state.
 - Read `REGRESSIONS.md` Open section.
 - Ask Matt which slice to pick up next if not already specified.
 
 **Not in scope:**
 
 - Starting another implementation slice without Matt choosing it.
-- Applying the `#288` shop/debt recommendations automatically.
+- Applying ranged balance tuning automatically.
 - Broad refactors or cleanup.
 
 ### Files to read
@@ -64,13 +63,14 @@ The previous session completed GitHub epic `#311` and its subissues:
 AGENTS.md
 CLAUDE.md
 SESSION_PROTOCOL.md
-PROGRESS.md (latest #311 and prior entries)
+PROGRESS.md (latest #312 and prior entries)
 REGRESSIONS.md (Open section)
-IMPLEMENTATION_PLAN.md section 6
+IMPLEMENTATION_PLAN.md section 4
 NEXT_SESSION.md
-COMBAT_V2_RUNTIME_CONTRACT.md
-web/docs/COMBAT_V2_REPLAY.md
-balance-audit/findings-310-combat-v2-rebaseline.md
+web/src/core/GameRules.js
+web/src/combat/CombatBoard.js
+web/src/combat/CombatManager.js
+web/src/run/BalanceRunLogger.js
 ```
 
 ### Files to modify
@@ -88,4 +88,4 @@ No verification command until a concrete slice is selected.
 
 ### Start prompt for the next session
 
-> Read `AGENTS.md`, `CLAUDE.md`, and `SESSION_PROTOCOL.md`, then follow `NEXT_SESSION.md`. Epic `#311` is complete. Orient on the latest progress and ask Matt which slice to pick up next before planning code changes.
+> Read `AGENTS.md`, `CLAUDE.md`, and `SESSION_PROTOCOL.md`, then follow `NEXT_SESSION.md`. Epic `#312` is complete. Orient on the latest progress and ask Matt which slice to pick up next before planning code changes.

@@ -242,6 +242,39 @@ export class CombatBoard {
     return best;
   }
 
+  findNearestReachableTileInRange(unit, targetCoord, maxRange, minRange = 0) {
+    const startCoord = this.getUnitPosition(unit);
+    if (!startCoord) return null;
+
+    let best = null;
+    let bestPathLen = Infinity;
+    let bestTargetDist = Infinity;
+
+    for (let q = 0; q < GameRules.HexBoardWidth; q++) {
+      for (let r = 0; r < GameRules.HexBoardHeight; r++) {
+        const candidate = { q, r };
+        const targetDist = hexDistance(candidate, targetCoord);
+        if (targetDist > maxRange || targetDist < minRange) continue;
+        const occupant = this.getUnitAt(candidate);
+        if (occupant && occupant !== unit.unitId) continue;
+        const path = this.findPath(startCoord, candidate, unit.unitId);
+        if (!path) continue;
+        const pathLen = path.length - 1;
+        if (
+          pathLen < bestPathLen ||
+          (pathLen === bestPathLen && targetDist < bestTargetDist) ||
+          (pathLen === bestPathLen && targetDist === bestTargetDist && compareCoordsForTieBreak(candidate, best) < 0)
+        ) {
+          best = candidate;
+          bestPathLen = pathLen;
+          bestTargetDist = targetDist;
+        }
+      }
+    }
+
+    return best;
+  }
+
   // Moves the unit up to movementRange steps along the shortest path toward
   // an empty tile adjacent to targetCoord. Returns true if the unit moved.
   moveUnitToward(unit, targetCoord, movementRange) {
@@ -251,6 +284,21 @@ export class CombatBoard {
     const dest = this.findNearestReachableAdjacentTile(unit, targetCoord);
     if (!dest) return false;
     if (isSameCoord(startCoord, dest)) return false; // already adjacent
+
+    const path = this.findPath(startCoord, dest, unit.unitId);
+    if (!path || path.length < 2) return false;
+
+    const steps = Math.min(movementRange, path.length - 1);
+    return this.moveUnit(unit, path[steps]);
+  }
+
+  moveUnitTowardRange(unit, targetCoord, movementRange, maxRange, minRange = 0) {
+    const startCoord = this.getUnitPosition(unit);
+    if (!startCoord) return false;
+
+    const dest = this.findNearestReachableTileInRange(unit, targetCoord, maxRange, minRange);
+    if (!dest) return false;
+    if (isSameCoord(startCoord, dest)) return false;
 
     const path = this.findPath(startCoord, dest, unit.unitId);
     if (!path || path.length < 2) return false;

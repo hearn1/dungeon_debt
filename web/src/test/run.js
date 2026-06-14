@@ -2380,6 +2380,21 @@ function makeCombatResult(overrides = {}) {
     BalanceRunLogger.combatRows[0].combatRuntimeId === DefaultCombatRuntimeId
       && tsv.includes("combatRuntimeId")
       && tsv.includes(DefaultCombatRuntimeId));
+  const realRun = rm.initializeRun(DifficultyLevel.Level0, 2);
+  fieldKnownPartyOnRun(realRun, ["warrior", "golem", "ranger"]);
+  const realEnc = DataRepository.getEncounterPool(1, 1)[0];
+  realRun.currentEncounter = realEnc;
+  const realResult = new CombatManager().startCombat(realRun, realEnc);
+  BalanceRunLogger.logCombat(realRun, realResult, realEnc);
+  const rangedRow = BalanceRunLogger.combatRows[1];
+  const rangedTsv = BalanceRunLogger.formatCombatResults(BalanceRunLogger.combatRows);
+  check("balance: combat row exposes ranged threat metrics",
+    rangedRow.rangedDamageShare > 0
+      && rangedRow.avgRangedFirstAttackTick >= 0
+      && rangedTsv.includes("rangedDamageShare")
+      && rangedTsv.includes("rangedSafeAttackShare")
+      && rangedTsv.includes("meleeReachedBackline")
+      && rangedTsv.includes("backlineDamageTaken"));
   BalanceRunLogger.economyRows = [];
   BalanceRunLogger.logRound(run, GameState.RivalUpdate);
   const economyTsv = BalanceRunLogger.formatEconomyResults(BalanceRunLogger.economyRows);

@@ -51,6 +51,39 @@ Copy this block when adding a new entry. Paste it at the top of the Session log 
 
 <!-- Newest entries at the top. -->
 
+## 2026-06-14 - #312: Ranged distance and movement correction
+
+**Milestone:** GitHub epic
+**Status:** Complete
+
+**Files added:**
+- None.
+
+**Files modified:**
+- `web/src/core/GameRules.js` - replaced board-wide ranged reach with finite short/long/preferred range constants.
+- `web/src/data/CombatUnitState.js` - stores preferred range for runtime combat units.
+- `web/src/combat/CombatBoard.js`, `web/src/combat/CombatManager.js`, `web/src/combat/TargetingRules.js` - added range-aware deterministic firing-tile movement and preferred-distance fallback.
+- `web/src/run/BalanceRunLogger.js`, `web/src/test/balance.js` - added ranged threat metrics to balance TSV and markdown reports.
+- `web/src/test/combat.js`, `web/src/test/run.js` - added finite range, movement, preferred-distance, report, and ranged-vs-melee regression coverage.
+- `IMPLEMENTATION_PLAN.md`, `PROGRESS.md`, `NEXT_SESSION.md` - documented the ranged correction contract and session wrap.
+
+**Acceptance criteria:**
+- [x] Default ranged range is finite and no longer covers the whole board.
+- [x] Ranged units move when targets are out of max range and then attack inside range.
+- [x] Ranged units prefer readable distance and avoid voluntary melee collapse when possible.
+- [x] Balance reports expose ranged threat and backline-pressure metrics.
+- [x] Representative ranged-vs-melee scenarios pass deterministically.
+
+**Test plan:** `npm.cmd run test:headless` after each subissue commit; `npm.cmd run test:balance -- --seeds=2 --strategy=greedy --report` for report smoke; all passed.
+
+**Deviations from plan:**
+- `#312` was implemented as a stacked branch on open PR `#346` for epic `#311`, because the range work builds directly on Combat V2.
+
+**Follow-up flagged:**
+- Retarget this PR to `main` after `#346` merges, or merge it after the stacked base lands.
+
+**Next slice:** Awaiting Matt's next selected slice.
+
 ## 2026-06-14 - #311: Combat V2 replay and presentation
 
 **Milestone:** GitHub epic

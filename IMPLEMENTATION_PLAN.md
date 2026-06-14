@@ -119,6 +119,7 @@ MainMenu
 - `web/src/ui/board/` owns presentation-only board rendering/projection helpers. It may project `CombatBoard` / `BoardPlacement` coordinates for Formation and Combat, and `ThreeCombatBoardScene` may render Combat replay presentation through the vendored Three.js module. It must not mutate authored board data, replay events, targeting, or combat math.
 - `web/src/ui/UnitVisualCatalog.js` owns presentation-only unit visual lookup for Formation and Combat. It resolves hero/opponent/fallback placeholder metadata and keeps `SpriteCatalog` PNG URLs as fallback detail. It must not add visual fields to gameplay definitions.
 - Combat V2 replay events carry deterministic `phase`, `groupId`, and `groupSequence` metadata. `CombatPanel` advances one replay group per visual step so same-tick movement, windups, hit feedback, and deaths can present as shared combat beats without rerunning combat logic.
+- Ranged Combat V2 units use finite board ranges from `GameRules`: melee remains adjacent, Ninja uses the short-ranged profile, and Ranger uses the long-ranged profile. Out-of-range units path toward deterministic firing tiles instead of adjacency, and ranged units prefer a minimum comfort distance when one is reachable.
 
 ### Data ownership
 
@@ -127,6 +128,7 @@ MainMenu
 - `CombatUnit` is a per-combat snapshot of a hero/enemy; it never persists past a fight. `CombatResult.playerStartUnits` / `playerFinalUnits` are deep snapshots for UI replay.
 - `web/src/run/EncounterScaling.js` owns deterministic act/slot/type scaling for opponent stats. `CombatManager.buildEnemyUnits` applies it to combat-unit snapshots after difficulty multipliers and before rival-race lead scaling; enemy definitions and `DataRepository` values remain unchanged.
 - `web/src/combat/CombatRuntime.js` owns explicit combat runtime ids. `CombatManager` validates the selected runtime, stamps `CombatResult.combatRuntimeId`, and `RunState.latestCombatRuntimeId` / balance outputs carry that id for rebaseline and comparison work.
+- `BalanceRunLogger` derives ranged threat metrics from replay events for balance reports: ranged damage/kill share, first ranged attack tick, safe ranged attack share, melee reach into backline, and backline damage taken. These are reporting-only fields and must not feed back into combat resolution.
 
 ### Combat hook points
 

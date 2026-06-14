@@ -401,15 +401,27 @@ function buildMarkdownReport(results, combatLog, economyLog, options, timestamp)
     lines.push("");
 
     lines.push("## Combat Outcomes");
-    lines.push("| Encounter | Combats | Win Rate | Avg Rounds | Avg Heroes Lost | Avg Contract Reward | Avg XP Bonus | Avg Relic Option Bonus | Avg Silver Odds Bonus | Act | Slot | Type | Target Band | Flag | Reasons |");
-    lines.push("|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|---|---|---|");
+    lines.push("| Encounter | Combats | Win Rate | Avg Rounds | Avg Heroes Lost | Avg Contract Reward | Avg XP Bonus | Avg Relic Option Bonus | Avg Silver Odds Bonus | Ranged Dmg Share | Safe Ranged Share | Melee Reached Backline | Backline Damage | Act | Slot | Type | Target Band | Flag | Reasons |");
+    lines.push("|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|---|---|---|");
     for (const summary of summaries) {
       const classification = classifyEncounterChallenge(summary);
       lines.push(
-        `| ${summary.encounterId} | ${summary.combats} | ${summary.winRate.toFixed(1)}% | ${summary.avgRounds.toFixed(2)} | ${summary.avgHeroesLost.toFixed(2)} | ${summary.avgContractReward.toFixed(2)} | ${summary.avgVeterancyContextBonusXp.toFixed(2)} | ${summary.avgRewardQualityRelicChoiceBonus.toFixed(2)} | ${summary.avgRewardQualityShopSilverChanceBonus.toFixed(2)} | ${summary.act} | ${summary.slot} | ${summary.type} | ${formatTargetBandLabel(classification.band)} | ${classification.label} | ${classification.reasons.join("; ") || "-"} |`
+        `| ${summary.encounterId} | ${summary.combats} | ${summary.winRate.toFixed(1)}% | ${summary.avgRounds.toFixed(2)} | ${summary.avgHeroesLost.toFixed(2)} | ${summary.avgContractReward.toFixed(2)} | ${summary.avgVeterancyContextBonusXp.toFixed(2)} | ${summary.avgRewardQualityRelicChoiceBonus.toFixed(2)} | ${summary.avgRewardQualityShopSilverChanceBonus.toFixed(2)} | ${summary.avgRangedDamageShare.toFixed(2)} | ${summary.avgRangedSafeAttackShare.toFixed(2)} | ${summary.meleeReachedBacklineRate.toFixed(2)} | ${summary.avgBacklineDamageTaken.toFixed(2)} | ${summary.act} | ${summary.slot} | ${summary.type} | ${formatTargetBandLabel(classification.band)} | ${classification.label} | ${classification.reasons.join("; ") || "-"} |`
       );
     }
     lines.push("");
+
+    const safeRangedFights = summaries.filter((summary) =>
+      summary.avgRangedDamageShare > 0 && summary.avgRangedSafeAttackShare >= 1 && summary.meleeReachedBacklineRate <= 0);
+    if (safeRangedFights.length > 0) {
+      lines.push("## Ranged Safety Flags");
+      lines.push("| Encounter | Ranged Dmg Share | Safe Ranged Share | Backline Damage |");
+      lines.push("|---|---:|---:|---:|");
+      for (const summary of safeRangedFights) {
+        lines.push(`| ${summary.encounterId} | ${summary.avgRangedDamageShare.toFixed(2)} | ${summary.avgRangedSafeAttackShare.toFixed(2)} | ${summary.avgBacklineDamageTaken.toFixed(2)} |`);
+      }
+      lines.push("");
+    }
   }
 
   return lines.join("\n");
@@ -489,6 +501,12 @@ function summarizeCombatLog(combatLog) {
         avgVeterancyContextBonusXp: Number(avg(rows.map((r) => r.veterancyContextBonusXp || 0))),
         avgRewardQualityRelicChoiceBonus: Number(avg(rows.map((r) => r.rewardQualityRelicChoiceBonus || 0))),
         avgRewardQualityShopSilverChanceBonus: Number(avg(rows.map((r) => r.rewardQualityShopSilverChanceBonus || 0))),
+        avgRangedDamageShare: Number(avg(rows.map((r) => r.rangedDamageShare || 0))),
+        avgRangedKillShare: Number(avg(rows.map((r) => r.rangedKillShare || 0))),
+        avgRangedFirstAttackTick: Number(avg(rows.map((r) => r.avgRangedFirstAttackTick || 0))),
+        avgRangedSafeAttackShare: Number(avg(rows.map((r) => r.rangedSafeAttackShare || 0))),
+        meleeReachedBacklineRate: Number(avg(rows.map((r) => r.meleeReachedBackline || 0))),
+        avgBacklineDamageTaken: Number(avg(rows.map((r) => r.backlineDamageTaken || 0))),
       };
     })
     .sort(compareEncounterSummaries);

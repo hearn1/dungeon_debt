@@ -378,7 +378,7 @@ export function buildPlayerUnits(run) {
     const unitId = `p${hero.formationSlot}`;
     const unit = new CombatUnitState(unitId, hero.definition.displayName, attack, maxHealth, maxHealth, true, hero.formationSlot, hero, null);
     applyAttackCadence(unit);
-    unit.attackRange = resolveAttackRange(unit);
+    applyRangeProfile(unit);
     applyMovementCadence(unit);
     if (critSlots.includes(hero.formationSlot)) {
       unit.statuses.add(CombatStatusId.CritCharged);
@@ -416,7 +416,7 @@ export function buildEnemyUnits(run, encounter) {
     const unitId = `e${i}`;
     const unit = new CombatUnitState(unitId, enemy.displayName, attack, health, health, false, i, null, enemy);
     applyAttackCadence(unit);
-    unit.attackRange = resolveAttackRange(unit);
+    applyRangeProfile(unit);
     applyMovementCadence(unit);
     for (const status of enemy.startingStatuses) {
       unit.statuses.add(status);
@@ -491,7 +491,16 @@ function resolveMovementIntents(movementIntents, match, logger) {
     if (!actor.isAlive) continue;
 
     const fromPos = logger ? match.board.getUnitPosition(actor) : null;
-    const moved = match.board.moveUnitToward(actor, targetPos, actor.movementRange);
+    let moved = match.board.moveUnitTowardRange(
+      actor,
+      targetPos,
+      actor.movementRange,
+      actor.attackRange,
+      actor.preferredMinRange || 0,
+    );
+    if (!moved && actor.preferredMinRange > 0) {
+      moved = match.board.moveUnitTowardRange(actor, targetPos, actor.movementRange, actor.attackRange);
+    }
     if (moved && logger) {
       const toPos = match.board.getUnitPosition(actor);
       logger.logMovement(actor, fromPos, toPos);
@@ -536,14 +545,23 @@ export function resolveEffectiveAttackCooldownTicks(unit) {
   return Math.max(GameRules.MinimumAttackCooldownTicks, effectiveCooldown);
 }
 
+function applyRangeProfile(unit) {
+  unit.attackRange = resolveAttackRange(unit);
+  unit.preferredMinRange = resolvePreferredMinRange(unit);
+}
+
 function resolveAttackRange(unit) {
   if (!unit.sourceHero || !unit.sourceHero.definition) return GameRules.DefaultMeleeRange;
   // Ranger and Ninja are designated ranged units in the MVP slot model.
   const effectId = unit.sourceHero.definition.effectId;
-  if (effectId === HeroEffectId.RangerBackline || effectId === HeroEffectId.NinjaLowestTarget) {
-    return GameRules.DefaultRangedRange;
-  }
+  if (effectId === HeroEffectId.RangerBackline) return GameRules.DefaultLongRangedRange;
+  if (effectId === HeroEffectId.NinjaLowestTarget) return GameRules.DefaultShortRangedRange;
   return GameRules.DefaultMeleeRange;
+}
+
+function resolvePreferredMinRange(unit) {
+  if (unit.attackRange <= GameRules.DefaultMeleeRange) return 0;
+  return Math.min(GameRules.DefaultRangedPreferredMinRange, unit.attackRange);
 }
 
 // Sort comparator: lower nextAttackAt first, then player-side first (tie-break only),
