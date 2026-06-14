@@ -824,6 +824,9 @@ console.log("Run-flow test");
     : [];
   if (attackStartGroup.length > 0) combatPanel._applyEventGroup(attackStartGroup);
   const actingAfterAttackStart = countClass(combatPanel.root, "acting");
+  const actionProgressAfterAttackStart = attackStartEvt
+    ? Number(combatPanel._threeScene.units.get(attackStartEvt.actorUnitId).overlay.dataset.actionProgress || "0")
+    : 100;
   const hitGroupEvt = combatPanel._result.replayEvents.find((event) =>
     event.kind === CombatReplayEventKind.Attack &&
     combatPanel._result.replayEvents.some((other) =>
@@ -833,11 +836,15 @@ console.log("Run-flow test");
     : [];
   const floatsBeforeHitGroup = countClass(combatPanel.root, "combat-float");
   if (hitGroup.length > 0) combatPanel._applyEventGroup(hitGroup);
+  const actionProgressAfterHitGroup = attackStartEvt
+    ? Number(combatPanel._threeScene.units.get(attackStartEvt.actorUnitId).overlay.dataset.actionProgress || "0")
+    : 100;
   check("combat renderer: teardown before rebuild keeps one Three scene", countClass(combatPanel.root, "three-combat-scene") === 1);
   check("combat renderer: UnitSpawn mapped to Three scene units", combatPanel._threeScene.units.size > 0);
   check("combat renderer: Movement replay updates scene unit coord",
     !moveEvt || combatPanel._threeScene.units.get(moveEvt.actorUnitId).coord.q === moveEvt.targetCoord.q);
   check("combat renderer: HP bars render on scene anchors", countClass(combatPanel.root, "three-hpfill") === combatPanel._threeScene.units.size);
+  check("combat renderer: action bars render on scene anchors", countClass(combatPanel.root, "three-action-fill") >= combatPanel._threeScene.units.size);
   check("combat renderer: feedback spawns floating numbers", !feedbackEvt || countClass(combatPanel.root, "combat-float") >= 1);
   check("combat renderer: feedback spawns projectile/effect", !feedbackEvt || countClass(combatPanel.root, "projectile") >= 1);
   check("combat renderer: movement sets visual move state",
@@ -848,6 +855,8 @@ console.log("Run-flow test");
     attackStartGroup.length === 0 || actingAfterAttackStart >= 2);
   check("combat renderer: grouped hit resolution spawns parallel feedback",
     hitGroup.length === 0 || countClass(combatPanel.root, "combat-float") > floatsBeforeHitGroup);
+  check("combat renderer: action bars update from replay timing",
+    !attackStartEvt || actionProgressAfterAttackStart < actionProgressAfterHitGroup);
 
   const summaryRun = gm.currentRunState;
   summaryRun.latestRewardGold = 31;

@@ -30,6 +30,7 @@ export class CombatPanel {
     this._threeScene = null;
     this._projectileLayer = null;
     this._roundLabel = null;
+    this._timelineState = new Map();
   }
 
   render() {
@@ -40,6 +41,7 @@ export class CombatPanel {
     this._threeScene?.destroy();
     this._threeScene = null;
     this._unitMap = new Map();
+    this._timelineState = new Map();
 
     const run = this.gm.currentRunState;
     const encounter = run.currentEncounter;
@@ -162,7 +164,9 @@ export class CombatPanel {
         maxHp: evt.amount || unit.maxHealth,
         sceneEntry,
       });
+      this._syncTimelineFromEvent(evt);
     }
+    this._refreshTimelineBars(0);
   }
 
   _buildToken(unit, isPlayer) {
@@ -261,12 +265,18 @@ export class CombatPanel {
     this._clearActing();
 
     for (const evt of events) {
+      this._syncTimelineFromEvent(evt);
       this._applyEvent(evt, { grouped: true, clearActing: false });
     }
+    this._refreshTimelineBars(events[events.length - 1].tick || 0);
   }
 
   _applyEvent(evt, options = null) {
     const K = CombatReplayEventKind;
+    if (!options || options.grouped !== true) {
+      this._syncTimelineFromEvent(evt);
+      this._refreshTimelineBars(evt.tick || 0);
+    }
 
     if (evt.kind === K.RoundBoundary && this._roundLabel) {
       this._roundLabel.textContent = `Round ${evt.amount}`;
@@ -559,6 +569,9 @@ export class CombatPanel {
       return;
     }
 
+    this._syncTimelineFromEvent(evt);
+    this._refreshTimelineBars(evt.tick || 0);
+
     // For combat actions, just update the HP and dead state.
     const targetEntry = this._unitMap.get(evt.targetUnitId);
     if (targetEntry) {
@@ -699,6 +712,44 @@ export class CombatPanel {
       if (entry === targetEntry) return unitId;
     }
     return "";
+  }
+
+  _syncTimelineFromEvent(evt) {
+    if (!evt || !evt.actorUnitId || !this._unitMap.has(evt.actorUnitId)) return;
+    let state = this._timelineState.get(evt.actorUnitId);
+    if (!state) {
+      state = {
+        actionReadyTick: 0,
+        actionCooldownTicks: 0,
+        abilityReadyTick: 0,
+        abilityCooldownTicks: 0,
+      };
+      this._timelineState.set(evt.actorUnitId, state);
+    }
+
+    if (Number.isFinite(evt.actorActionCooldownTicks) && evt.actorActionCooldownTicks > 0) {
+      state.actionCooldownTicks = evt.actorActionCooldownTicks;
+      state.actionReadyTick = evt.actorActionReadyTick || 0;
+    }
+    if (Number.isFinite(evt.actorAbilityCooldownTicks) && evt.actorAbilityCooldownTicks > 0) {
+      state.abilityCooldownTicks = evt.actorAbilityCooldownTicks;
+      state.abilityReadyTick = evt.actorAbilityReadyTick || 0;
+    }
+  }
+
+  _refreshTimelineBars(currentTick) {
+    for (const unitId of this._unitMap.keys()) {
+      const state = this._timelineState.get(unitId) || {
+        actionReadyTick: 0,
+        actionCooldownTicks: 0,
+        abilityReadyTick: 0,
+        abilityCooldownTicks: 0,
+      };
+      this._threeScene?.updateUnitTimeline(unitId, {
+        currentTick,
+        ...state,
+      });
+    }
   }
 
   _clearTimer() {
