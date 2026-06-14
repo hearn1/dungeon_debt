@@ -222,7 +222,10 @@ export const GameRules = Object.freeze({
   DefaultAbilityWindupTicks: 1,
   MinimumAttackCooldownTicks: 1,
   DefaultMeleeRange: 1,
-  DefaultRangedRange: 99,
+  DefaultShortRangedRange: 3,
+  DefaultLongRangedRange: 5,
+  DefaultRangedPreferredMinRange: 2,
+  DefaultRangedRange: 5,
 
   // Hex board constants (issue #157/#175).
   HexBoardWidth: 7,

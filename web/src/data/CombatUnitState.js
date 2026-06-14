@@ -22,8 +22,9 @@ export class CombatUnitState extends CombatUnit {
     // Backward-compatible alias for the effective cooldown during the transition.
     this.attackIntervalTicks = 0;
 
-    // Attack range: DefaultMeleeRange (melee) or DefaultRangedRange (ranged).
+    // Attack range: melee, short ranged, or long ranged.
     this.attackRange = 0;
+    this.preferredMinRange = 0;
 
     // Movement cadence is independent from attack cadence in Combat V2.
     this.movementRange = 0;
