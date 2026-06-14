@@ -816,6 +816,23 @@ console.log("Run-flow test");
     (event.kind === CombatReplayEventKind.Attack || event.kind === CombatReplayEventKind.Heal) &&
     event.actorUnitId && event.targetUnitId && event.amount > 0);
   if (feedbackEvt) combatPanel._applyEvent(feedbackEvt);
+  const attackStartEvt = combatPanel._result.replayEvents.find((event) =>
+    event.kind === CombatReplayEventKind.AttackStart &&
+    combatPanel._result.replayEvents.some((other) => other !== event && other.groupId === event.groupId));
+  const attackStartGroup = attackStartEvt
+    ? combatPanel._result.replayEvents.filter((event) => event.groupId === attackStartEvt.groupId)
+    : [];
+  if (attackStartGroup.length > 0) combatPanel._applyEventGroup(attackStartGroup);
+  const actingAfterAttackStart = countClass(combatPanel.root, "acting");
+  const hitGroupEvt = combatPanel._result.replayEvents.find((event) =>
+    event.kind === CombatReplayEventKind.Attack &&
+    combatPanel._result.replayEvents.some((other) =>
+      other !== event && other.groupId === event.groupId && other.kind === CombatReplayEventKind.Attack));
+  const hitGroup = hitGroupEvt
+    ? combatPanel._result.replayEvents.filter((event) => event.groupId === hitGroupEvt.groupId)
+    : [];
+  const floatsBeforeHitGroup = countClass(combatPanel.root, "combat-float");
+  if (hitGroup.length > 0) combatPanel._applyEventGroup(hitGroup);
   check("combat renderer: teardown before rebuild keeps one Three scene", countClass(combatPanel.root, "three-combat-scene") === 1);
   check("combat renderer: UnitSpawn mapped to Three scene units", combatPanel._threeScene.units.size > 0);
   check("combat renderer: Movement replay updates scene unit coord",
@@ -827,6 +844,10 @@ console.log("Run-flow test");
     !moveEvt || movedStateAfterMove === UnitVisualState.Move);
   check("combat renderer: action feedback sets target hit state",
     !feedbackEvt || combatPanel._threeScene.units.get(feedbackEvt.targetUnitId).overlay.dataset.visualState === UnitVisualState.Hit);
+  check("combat renderer: grouped attack starts keep multiple actors active",
+    attackStartGroup.length === 0 || actingAfterAttackStart >= 2);
+  check("combat renderer: grouped hit resolution spawns parallel feedback",
+    hitGroup.length === 0 || countClass(combatPanel.root, "combat-float") > floatsBeforeHitGroup);
 
   const summaryRun = gm.currentRunState;
   summaryRun.latestRewardGold = 31;
