@@ -51,6 +51,75 @@ Copy this block when adding a new entry. Paste it at the top of the Session log 
 
 <!-- Newest entries at the top. -->
 
+## 2026-06-14 - #312: Ranged distance and movement correction
+
+**Milestone:** GitHub epic
+**Status:** Complete
+
+**Files added:**
+- None.
+
+**Files modified:**
+- `web/src/core/GameRules.js` - replaced board-wide ranged reach with finite short/long/preferred range constants.
+- `web/src/data/CombatUnitState.js` - stores preferred range for runtime combat units.
+- `web/src/combat/CombatBoard.js`, `web/src/combat/CombatManager.js`, `web/src/combat/TargetingRules.js` - added range-aware deterministic firing-tile movement and preferred-distance fallback.
+- `web/src/run/BalanceRunLogger.js`, `web/src/test/balance.js` - added ranged threat metrics to balance TSV and markdown reports.
+- `web/src/test/combat.js`, `web/src/test/run.js` - added finite range, movement, preferred-distance, report, and ranged-vs-melee regression coverage.
+- `IMPLEMENTATION_PLAN.md`, `PROGRESS.md`, `NEXT_SESSION.md` - documented the ranged correction contract and session wrap.
+
+**Acceptance criteria:**
+- [x] Default ranged range is finite and no longer covers the whole board.
+- [x] Ranged units move when targets are out of max range and then attack inside range.
+- [x] Ranged units prefer readable distance and avoid voluntary melee collapse when possible.
+- [x] Balance reports expose ranged threat and backline-pressure metrics.
+- [x] Representative ranged-vs-melee scenarios pass deterministically.
+
+**Test plan:** `npm.cmd run test:headless` after each subissue commit; `npm.cmd run test:balance -- --seeds=2 --strategy=greedy --report` for report smoke; all passed.
+
+**Deviations from plan:**
+- `#312` was implemented as a stacked branch on open PR `#346` for epic `#311`, because the range work builds directly on Combat V2.
+
+**Follow-up flagged:**
+- Retarget this PR to `main` after `#346` merges, or merge it after the stacked base lands.
+
+**Next slice:** Awaiting Matt's next selected slice.
+
+## 2026-06-14 - #311: Combat V2 replay and presentation
+
+**Milestone:** GitHub epic
+**Status:** Complete
+
+**Files added:**
+- `web/docs/COMBAT_V2_REPLAY.md`
+
+**Files modified:**
+- `web/src/data/CombatReplayEvent.js` - added replay phase, group, sequence, cooldown snapshot, and attack/ability start event surfaces.
+- `web/src/combat/CombatLogger.js` - stamps deterministic replay phases/groups and cooldown snapshots.
+- `web/src/combat/CombatManager.js` - emits grouped movement, attack/ability start, hit resolution, death, and round-effect replay events.
+- `web/src/ui/panels/CombatPanel.js` - advances replay one group per visual step, coordinates windups/hit/death presentation, action bars, skip, and reduced-motion instant paths.
+- `web/src/ui/board/ThreeCombatBoardScene.js` - renders compact action/ability timeline bars on combat unit anchors.
+- `web/styles/main.css` - styles timeline bars and fast/reduced-motion replay presentation states.
+- `web/src/test/combat.js`, `web/src/test/run.js` - added replay validation, grouped presentation, action bar, skip, and reduced-motion coverage.
+- `IMPLEMENTATION_PLAN.md`, `PROGRESS.md`, `NEXT_SESSION.md` - documented the replay contract and session wrap.
+
+**Acceptance criteria:**
+- [x] Replay events carry deterministic `phase`, `groupId`, and `groupSequence` metadata.
+- [x] Replay validation covers grouped events, same-tick lethal trades, dead-unit prevention, and malformed phase/movement cases.
+- [x] Combat presentation advances grouped same-tick events together instead of one event at a time.
+- [x] Unit action and ability bars update from replay cooldown snapshots.
+- [x] Normal, fast, skip-to-report, and reduced-motion replay paths remain functional.
+- [x] Replay behavior and durable UI contracts are documented.
+
+**Test plan:** `npm.cmd run test:headless` after each subissue commit; Browser smoke at `http://localhost:5173` for normal replay, fast speed plus skip-to-report, and reduced-motion summary path; all passed.
+
+**Deviations from plan:**
+- During final browser smoke, added a small reduced-motion replay-index reset and regression test so instant replay paths always start from a clean event index on render.
+
+**Follow-up flagged:**
+- No new regressions filed. Existing `R005-3` death fade polish remains available if Matt chooses a visual polish slice.
+
+**Next slice:** Awaiting Matt's next selected slice.
+
 ## 2026-06-14 - #310: Combat V2 simulation foundation
 
 **Milestone:** GitHub epic

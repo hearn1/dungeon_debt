@@ -90,6 +90,14 @@ export class ThreeCombatBoardScene {
     overlay.appendChild(el("div", { class: "ct-hpbar three-hpbar" }, [
       el("div", { class: "ct-hpfill three-hpfill" }),
     ]));
+    overlay.appendChild(el("div", { class: "three-action-bars" }, [
+      el("div", { class: "three-action-bar basic", title: "Basic attack" }, [
+        el("div", { class: "three-action-fill three-action-fill-basic basic" }),
+      ]),
+      el("div", { class: "three-action-bar three-action-bar-ability ability hidden", title: "Active ability" }, [
+        el("div", { class: "three-action-fill three-action-fill-ability ability" }),
+      ]),
+    ]));
     return overlay;
   }
 
@@ -168,6 +176,27 @@ export class ThreeCombatBoardScene {
       entry.group.scale.set(0.82, 0.82, 0.82);
     }
     this._render();
+  }
+
+  updateUnitTimeline(unitId, timeline) {
+    const entry = this.units.get(unitId);
+    if (!entry || !timeline) return;
+
+    const currentTick = Number.isFinite(timeline.currentTick) ? timeline.currentTick : 0;
+    const actionProgress = cooldownProgress(currentTick, timeline.actionReadyTick, timeline.actionCooldownTicks);
+    const actionFill = entry.overlay.querySelector(".three-action-fill-basic");
+    if (actionFill) actionFill.style.width = `${Math.round(actionProgress * 100)}%`;
+    entry.overlay.dataset.actionProgress = String(Math.round(actionProgress * 100));
+
+    const abilityBar = entry.overlay.querySelector(".three-action-bar-ability");
+    const abilityFill = entry.overlay.querySelector(".three-action-fill-ability");
+    const abilityCooldown = timeline.abilityCooldownTicks || 0;
+    if (abilityBar) abilityBar.classList.toggle("hidden", abilityCooldown <= 0);
+    if (abilityFill) {
+      const abilityProgress = cooldownProgress(currentTick, timeline.abilityReadyTick, abilityCooldown);
+      abilityFill.style.width = `${Math.round(abilityProgress * 100)}%`;
+      entry.overlay.dataset.abilityProgress = String(Math.round(abilityProgress * 100));
+    }
   }
 
   destroy() {
@@ -305,4 +334,12 @@ export class ThreeCombatBoardScene {
     if (!this.isWebGlActive || !this.renderer || !this.scene || !this.camera) return;
     this.renderer.render(this.scene, this.camera);
   }
+}
+
+function cooldownProgress(currentTick, readyTick, cooldownTicks) {
+  if (!cooldownTicks || cooldownTicks <= 0) return 1;
+  if (!Number.isFinite(readyTick) || readyTick <= currentTick) return 1;
+  const remaining = readyTick - currentTick;
+  const progress = 1 - (remaining / cooldownTicks);
+  return Math.max(0, Math.min(1, progress));
 }

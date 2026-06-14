@@ -15,6 +15,7 @@ import { resolvePlayerBoardPosition, resolveEnemyBoardPosition } from "./BoardPl
 import { selectTarget } from "./TargetingRules.js";
 import { getBasicAttackMode } from "./RoleBehavior.js";
 import { DefaultCombatRuntimeId, resolveCombatRuntimeId } from "./CombatRuntime.js";
+import { CombatReplayPhase } from "../data/CombatReplayEvent.js";
 
 export class CombatManager {
   constructor(options = null) {
@@ -99,7 +100,9 @@ export class CombatManager {
       // Fire end-of-round effects when crossing a round boundary.
       if (tick > 0 && tick % GameRules.CombatTicksPerRound === 0) {
         const roundJustEnded = currentRound - 1;
+        logger.setPhase(CombatReplayPhase.RoundBoundary);
         logger.logRoundBoundary(currentRound);
+        logger.setPhase(CombatReplayPhase.HitResolution, `${tick}:RoundEffects`);
         HeroEffects.onEndOfCombatRound(roundJustEnded, run, encounter, playerUnits, enemyUnits, result, logger);
         AbilityRunner.triggerPassives(AbilityTrigger.EndOfRound, playerUnits, { match, run, logger });
         result.combatRoundsElapsed = roundJustEnded;
@@ -120,11 +123,15 @@ export class CombatManager {
 
       const intents = this._collectTimelineIntents(match, currentRound, playerUnits, tick, logger);
       intents.activeCasts.push(...AbilityRunner.collectActiveIntents(tick, playerUnits, match));
+      logger.setPhase(CombatReplayPhase.Movement);
       resolveMovementIntents(intents.movements, match, logger);
-      startAttackWindups(intents.attacks, pendingHitEvents, tick);
-      startAbilityWindups(intents.activeCasts, pendingAbilityEvents, tick);
+      logger.setPhase(CombatReplayPhase.AttackStart);
+      startAttackWindups(intents.attacks, pendingHitEvents, tick, logger, match.board);
+      startAbilityWindups(intents.activeCasts, pendingAbilityEvents, tick, logger, match.board);
+      logger.setPhase(CombatReplayPhase.HitResolution);
       const defeatedThisTick = this._resolveMaturingHitEvents(pendingHitEvents, tick, logger);
       this._resolveMaturingAbilityEvents(pendingAbilityEvents, tick, logger);
+      logger.setPhase(CombatReplayPhase.Death);
       this._applyDeferredDeaths(defeatedThisTick, logger);
 
       for (const unit of match.allUnits) {
@@ -371,7 +378,7 @@ export function buildPlayerUnits(run) {
     const unitId = `p${hero.formationSlot}`;
     const unit = new CombatUnitState(unitId, hero.definition.displayName, attack, maxHealth, maxHealth, true, hero.formationSlot, hero, null);
     applyAttackCadence(unit);
-    unit.attackRange = resolveAttackRange(unit);
+    applyRangeProfile(unit);
     applyMovementCadence(unit);
     if (critSlots.includes(hero.formationSlot)) {
       unit.statuses.add(CombatStatusId.CritCharged);
@@ -409,7 +416,7 @@ export function buildEnemyUnits(run, encounter) {
     const unitId = `e${i}`;
     const unit = new CombatUnitState(unitId, enemy.displayName, attack, health, health, false, i, null, enemy);
     applyAttackCadence(unit);
-    unit.attackRange = resolveAttackRange(unit);
+    applyRangeProfile(unit);
     applyMovementCadence(unit);
     for (const status of enemy.startingStatuses) {
       unit.statuses.add(status);
@@ -449,10 +456,11 @@ function markUnitMoved(unit, tick) {
   unit.nextMovementReadyTick = tick + unit.movementCooldownTicks;
 }
 
-function startAttackWindups(attackIntents, pendingHitEvents, tick) {
+function startAttackWindups(attackIntents, pendingHitEvents, tick, logger = null, board = null) {
   for (const intent of attackIntents) {
     const { actor, target } = intent;
     if (!actor.isAlive || target.deathResolved) continue;
+    logger?.logAttackStart(actor, target, board);
     pendingHitEvents.push({
       actor,
       target,
@@ -462,10 +470,11 @@ function startAttackWindups(attackIntents, pendingHitEvents, tick) {
   }
 }
 
-function startAbilityWindups(activeCastIntents, pendingAbilityEvents, tick) {
+function startAbilityWindups(activeCastIntents, pendingAbilityEvents, tick, logger = null, board = null) {
   for (const intent of activeCastIntents) {
     const { caster, target } = intent;
     if (!caster.isAlive || (target && target.deathResolved)) continue;
+    logger?.logAbilityStart(caster, intent.targets || [], intent.ability.id, board);
     pendingAbilityEvents.push({
       ...intent,
       castTick: tick + GameRules.DefaultAbilityWindupTicks,
@@ -482,7 +491,16 @@ function resolveMovementIntents(movementIntents, match, logger) {
     if (!actor.isAlive) continue;
 
     const fromPos = logger ? match.board.getUnitPosition(actor) : null;
-    const moved = match.board.moveUnitToward(actor, targetPos, actor.movementRange);
+    let moved = match.board.moveUnitTowardRange(
+      actor,
+      targetPos,
+      actor.movementRange,
+      actor.attackRange,
+      actor.preferredMinRange || 0,
+    );
+    if (!moved && actor.preferredMinRange > 0) {
+      moved = match.board.moveUnitTowardRange(actor, targetPos, actor.movementRange, actor.attackRange);
+    }
     if (moved && logger) {
       const toPos = match.board.getUnitPosition(actor);
       logger.logMovement(actor, fromPos, toPos);
@@ -527,14 +545,23 @@ export function resolveEffectiveAttackCooldownTicks(unit) {
   return Math.max(GameRules.MinimumAttackCooldownTicks, effectiveCooldown);
 }
 
+function applyRangeProfile(unit) {
+  unit.attackRange = resolveAttackRange(unit);
+  unit.preferredMinRange = resolvePreferredMinRange(unit);
+}
+
 function resolveAttackRange(unit) {
   if (!unit.sourceHero || !unit.sourceHero.definition) return GameRules.DefaultMeleeRange;
   // Ranger and Ninja are designated ranged units in the MVP slot model.
   const effectId = unit.sourceHero.definition.effectId;
-  if (effectId === HeroEffectId.RangerBackline || effectId === HeroEffectId.NinjaLowestTarget) {
-    return GameRules.DefaultRangedRange;
-  }
+  if (effectId === HeroEffectId.RangerBackline) return GameRules.DefaultLongRangedRange;
+  if (effectId === HeroEffectId.NinjaLowestTarget) return GameRules.DefaultShortRangedRange;
   return GameRules.DefaultMeleeRange;
+}
+
+function resolvePreferredMinRange(unit) {
+  if (unit.attackRange <= GameRules.DefaultMeleeRange) return 0;
+  return Math.min(GameRules.DefaultRangedPreferredMinRange, unit.attackRange);
 }
 
 // Sort comparator: lower nextAttackAt first, then player-side first (tie-break only),

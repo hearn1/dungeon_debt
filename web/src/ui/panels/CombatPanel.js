@@ -30,6 +30,7 @@ export class CombatPanel {
     this._threeScene = null;
     this._projectileLayer = null;
     this._roundLabel = null;
+    this._timelineState = new Map();
   }
 
   render() {
@@ -40,6 +41,7 @@ export class CombatPanel {
     this._threeScene?.destroy();
     this._threeScene = null;
     this._unitMap = new Map();
+    this._timelineState = new Map();
 
     const run = this.gm.currentRunState;
     const encounter = run.currentEncounter;
@@ -67,11 +69,11 @@ export class CombatPanel {
 
     this._initUnitsFromSpawnEvents();
 
+    this._eventIndex = 0;
+    this._stepMs = Settings.stepMs;
     if (Settings.reducedMotion) {
       this._skipToEnd();
     } else {
-      this._eventIndex = 0;
-      this._stepMs = Settings.stepMs;
       this._timer = setInterval(() => this._tick(), this._stepMs);
     }
   }
@@ -162,7 +164,9 @@ export class CombatPanel {
         maxHp: evt.amount || unit.maxHealth,
         sceneEntry,
       });
+      this._syncTimelineFromEvent(evt);
     }
+    this._refreshTimelineBars(0);
   }
 
   _buildToken(unit, isPlayer) {
@@ -238,11 +242,41 @@ export class CombatPanel {
       this._finish();
       return;
     }
-    this._applyEvent(events[this._eventIndex++]);
+    this._applyEventGroup(this._nextReplayGroup());
   }
 
-  _applyEvent(evt) {
+  _nextReplayGroup() {
+    const events = this._result.replayEvents;
+    const group = [];
+    const first = events[this._eventIndex];
+    const groupId = first?.groupId || "";
+    while (this._eventIndex < events.length) {
+      const evt = events[this._eventIndex];
+      if (group.length > 0 && groupId && evt.groupId !== groupId) break;
+      if (group.length > 0 && !groupId) break;
+      group.push(evt);
+      this._eventIndex++;
+    }
+    return group;
+  }
+
+  _applyEventGroup(events) {
+    if (!events || events.length === 0) return;
+    this._clearActing();
+
+    for (const evt of events) {
+      this._syncTimelineFromEvent(evt);
+      this._applyEvent(evt, { grouped: true, clearActing: false });
+    }
+    this._refreshTimelineBars(events[events.length - 1].tick || 0);
+  }
+
+  _applyEvent(evt, options = null) {
     const K = CombatReplayEventKind;
+    if (!options || options.grouped !== true) {
+      this._syncTimelineFromEvent(evt);
+      this._refreshTimelineBars(evt.tick || 0);
+    }
 
     if (evt.kind === K.RoundBoundary && this._roundLabel) {
       this._roundLabel.textContent = `Round ${evt.amount}`;
@@ -257,6 +291,16 @@ export class CombatPanel {
     if (evt.kind === K.Movement) {
       this._handleMovement(evt);
       if (evt.logText) this._appendLog(evt.logText);
+      return;
+    }
+
+    if (evt.kind === K.AttackStart) {
+      this._handleAttackStart(evt);
+      return;
+    }
+
+    if (evt.kind === K.AbilityStart) {
+      this._handleAbilityStart(evt);
       return;
     }
 
@@ -276,7 +320,7 @@ export class CombatPanel {
     }
 
     // Attack / Heal / StatusChange / StatusDamage / Death.
-    this._handleCombatAction(evt);
+    this._handleCombatAction(evt, options);
   }
 
   _handleMovement(evt) {
@@ -305,6 +349,42 @@ export class CombatPanel {
     }
   }
 
+  _handleAttackStart(evt) {
+    const actorEntry = this._unitMap.get(evt.actorUnitId);
+    const targetEntry = this._unitMap.get(evt.targetUnitId);
+    if (!actorEntry) return;
+
+    this._threeScene?.setUnitVisualState(evt.actorUnitId, UnitVisualState.Attack, { durationMs: this._stepMs });
+    actorEntry.node.classList.add("acting");
+
+    if (this._shouldLunge(actorEntry.unit)) {
+      const sideCls = actorEntry.unit.isPlayerSide ? "player" : "enemy";
+      actorEntry.node.classList.remove("lunging");
+      void actorEntry.node.offsetWidth;
+      actorEntry.node.classList.add("lunging", sideCls);
+      const n = actorEntry.node;
+      setTimeout(() => n.classList.remove("lunging"), this._stepMs);
+    }
+
+    if (targetEntry) this._fireProjectile(actorEntry, targetEntry, false, "attack");
+  }
+
+  _handleAbilityStart(evt) {
+    const caster = this._unitMap.get(evt.actorUnitId);
+    const target = this._unitMap.get(evt.targetUnitId);
+    if (!caster) return;
+
+    this._threeScene?.setUnitVisualState(evt.actorUnitId, UnitVisualState.Cast, { durationMs: this._stepMs });
+    this._threeScene?.pulseUnit(evt.actorUnitId, "casting");
+    caster.node.classList.remove("casting");
+    void caster.node.offsetWidth;
+    caster.node.classList.add("casting");
+    const n = caster.node;
+    setTimeout(() => n.classList.remove("casting"), this._stepMs);
+
+    if (target) this._fireProjectile(caster, target, false, "ability", evt.abilityId);
+  }
+
   _handlePassiveTrigger(evt) {
     const entry = this._unitMap.get(evt.actorUnitId);
     if (entry) {
@@ -318,31 +398,21 @@ export class CombatPanel {
     }
   }
 
-  _handleCombatAction(evt) {
+  _handleCombatAction(evt, options = null) {
     const K = CombatReplayEventKind;
 
     // Clear the "acting" glow from the previous event.
-    this._clearActing();
+    if (!options || options.clearActing !== false) this._clearActing();
 
     // Resolve actor and target by unitId (set by CombatLogger on all action events).
     const actorEntry  = this._unitMap.get(evt.actorUnitId);
     const targetEntry = this._unitMap.get(evt.targetUnitId);
 
     // Highlight the acting unit.
-    if (actorEntry && (evt.kind === K.Attack || evt.kind === K.Heal)) {
-      this._threeScene?.setUnitVisualState(evt.actorUnitId, evt.kind === K.Heal ? UnitVisualState.Cast : UnitVisualState.Attack, { durationMs: this._stepMs });
+    if (actorEntry && evt.kind === K.Heal) {
+      this._threeScene?.setUnitVisualState(evt.actorUnitId, UnitVisualState.Cast, { durationMs: this._stepMs });
       this._threeScene?.setActiveUnit(evt.actorUnitId);
       actorEntry.node.classList.add("acting");
-
-      // Lunge for melee attackers.
-      if (evt.kind === K.Attack && this._shouldLunge(actorEntry.unit)) {
-        const sideCls = actorEntry.unit.isPlayerSide ? "player" : "enemy";
-        actorEntry.node.classList.remove("lunging");
-        void actorEntry.node.offsetWidth;
-        actorEntry.node.classList.add("lunging", sideCls);
-        const n = actorEntry.node;
-        setTimeout(() => n.classList.remove("lunging"), this._stepMs);
-      }
     }
 
     if (targetEntry) {
@@ -358,7 +428,7 @@ export class CombatPanel {
       this._updateTokenGlyphs(targetEntry.node, evt.targetStatuses, pd);
 
       // Death.
-      if (evt.targetHealthAfter <= 0 && targetEntry.node.dataset.died !== "1") {
+      if (evt.kind === K.Death && targetEntry.node.dataset.died !== "1") {
         targetEntry.node.dataset.died = "1";
         this._threeScene?.markUnitDefeated(evt.targetUnitId);
         targetEntry.node.classList.remove("dead");
@@ -499,6 +569,9 @@ export class CombatPanel {
       return;
     }
 
+    this._syncTimelineFromEvent(evt);
+    this._refreshTimelineBars(evt.tick || 0);
+
     // For combat actions, just update the HP and dead state.
     const targetEntry = this._unitMap.get(evt.targetUnitId);
     if (targetEntry) {
@@ -518,7 +591,7 @@ export class CombatPanel {
   _finish() {
     this._clearTimer();
     while (this._eventIndex < this._result.replayEvents.length) {
-      this._applyEvent(this._result.replayEvents[this._eventIndex++]);
+      this._applyEventInstant(this._result.replayEvents[this._eventIndex++]);
     }
     this._clearActing();
     if (this._projectileLayer) clear(this._projectileLayer);
@@ -639,6 +712,44 @@ export class CombatPanel {
       if (entry === targetEntry) return unitId;
     }
     return "";
+  }
+
+  _syncTimelineFromEvent(evt) {
+    if (!evt || !evt.actorUnitId || !this._unitMap.has(evt.actorUnitId)) return;
+    let state = this._timelineState.get(evt.actorUnitId);
+    if (!state) {
+      state = {
+        actionReadyTick: 0,
+        actionCooldownTicks: 0,
+        abilityReadyTick: 0,
+        abilityCooldownTicks: 0,
+      };
+      this._timelineState.set(evt.actorUnitId, state);
+    }
+
+    if (Number.isFinite(evt.actorActionCooldownTicks) && evt.actorActionCooldownTicks > 0) {
+      state.actionCooldownTicks = evt.actorActionCooldownTicks;
+      state.actionReadyTick = evt.actorActionReadyTick || 0;
+    }
+    if (Number.isFinite(evt.actorAbilityCooldownTicks) && evt.actorAbilityCooldownTicks > 0) {
+      state.abilityCooldownTicks = evt.actorAbilityCooldownTicks;
+      state.abilityReadyTick = evt.actorAbilityReadyTick || 0;
+    }
+  }
+
+  _refreshTimelineBars(currentTick) {
+    for (const unitId of this._unitMap.keys()) {
+      const state = this._timelineState.get(unitId) || {
+        actionReadyTick: 0,
+        actionCooldownTicks: 0,
+        abilityReadyTick: 0,
+        abilityCooldownTicks: 0,
+      };
+      this._threeScene?.updateUnitTimeline(unitId, {
+        currentTick,
+        ...state,
+      });
+    }
   }
 
   _clearTimer() {

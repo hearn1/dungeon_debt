@@ -10,6 +10,8 @@ export const CombatReplayEventKind = Object.freeze({
   Message: "Message",
 
   // ---- Combat action events ----
+  AttackStart: "AttackStart",
+  AbilityStart: "AbilityStart",
   Attack: "Attack",
   Heal: "Heal",
   Death: "Death",
@@ -28,6 +30,18 @@ export const CombatReplayEventKind = Object.freeze({
   PassiveTrigger: "PassiveTrigger", // passive ability trigger point reached
 });
 
+export const CombatReplayPhase = Object.freeze({
+  Setup: "Setup",
+  RoundBoundary: "RoundBoundary",
+  Movement: "Movement",
+  AttackStart: "AttackStart",
+  HitResolution: "HitResolution",
+  Passive: "Passive",
+  Death: "Death",
+  CombatEnd: "CombatEnd",
+  Message: "Message",
+});
+
 export class CombatReplayEvent {
   constructor(kind, logText) {
     this.kind = kind;
@@ -35,6 +49,9 @@ export class CombatReplayEvent {
 
     // ---- Ordering (set by CombatLogger) ----
     this.tick = 0;
+    this.phase = CombatReplayPhase.Message;
+    this.groupId = "";
+    this.groupSequence = 0;
     this.sequence = 0;
 
     // ---- Stable unit IDs (e.g. "p0", "e1") ----
@@ -53,6 +70,12 @@ export class CombatReplayEvent {
     this.amount = 0;            // damage, heal amount, round number
     this.targetHealthAfter = 0;
     this.targetMaxHealth = 0;
+
+    // ---- Timeline/cooldown snapshots for UI presentation ----
+    this.actorActionReadyTick = 0;
+    this.actorActionCooldownTicks = 0;
+    this.actorAbilityReadyTick = 0;
+    this.actorAbilityCooldownTicks = 0;
 
     // ---- Free-form metadata ----
     this.metadata = null;

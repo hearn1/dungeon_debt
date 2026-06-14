@@ -4,6 +4,7 @@
 
 import { GameManager } from "../core/GameManager.js";
 import { MemoryStorage } from "../core/SaveManager.js";
+import { Settings } from "../core/Settings.js";
 import { GameState } from "../core/GameState.js";
 import { GameRules, GameRulesFns } from "../core/GameRules.js";
 import { DataRepository } from "../core/DataRepository.js";
@@ -816,17 +817,70 @@ console.log("Run-flow test");
     (event.kind === CombatReplayEventKind.Attack || event.kind === CombatReplayEventKind.Heal) &&
     event.actorUnitId && event.targetUnitId && event.amount > 0);
   if (feedbackEvt) combatPanel._applyEvent(feedbackEvt);
+  const attackStartEvt = combatPanel._result.replayEvents.find((event) =>
+    event.kind === CombatReplayEventKind.AttackStart &&
+    combatPanel._result.replayEvents.some((other) => other !== event && other.groupId === event.groupId));
+  const attackStartGroup = attackStartEvt
+    ? combatPanel._result.replayEvents.filter((event) => event.groupId === attackStartEvt.groupId)
+    : [];
+  if (attackStartGroup.length > 0) combatPanel._applyEventGroup(attackStartGroup);
+  const actingAfterAttackStart = countClass(combatPanel.root, "acting");
+  const actionProgressAfterAttackStart = attackStartEvt
+    ? Number(combatPanel._threeScene.units.get(attackStartEvt.actorUnitId).overlay.dataset.actionProgress || "0")
+    : 100;
+  const hitGroupEvt = combatPanel._result.replayEvents.find((event) =>
+    event.kind === CombatReplayEventKind.Attack &&
+    combatPanel._result.replayEvents.some((other) =>
+      other !== event && other.groupId === event.groupId && other.kind === CombatReplayEventKind.Attack));
+  const hitGroup = hitGroupEvt
+    ? combatPanel._result.replayEvents.filter((event) => event.groupId === hitGroupEvt.groupId)
+    : [];
+  const floatsBeforeHitGroup = countClass(combatPanel.root, "combat-float");
+  if (hitGroup.length > 0) combatPanel._applyEventGroup(hitGroup);
+  const actionProgressAfterHitGroup = attackStartEvt
+    ? Number(combatPanel._threeScene.units.get(attackStartEvt.actorUnitId).overlay.dataset.actionProgress || "0")
+    : 100;
   check("combat renderer: teardown before rebuild keeps one Three scene", countClass(combatPanel.root, "three-combat-scene") === 1);
   check("combat renderer: UnitSpawn mapped to Three scene units", combatPanel._threeScene.units.size > 0);
   check("combat renderer: Movement replay updates scene unit coord",
     !moveEvt || combatPanel._threeScene.units.get(moveEvt.actorUnitId).coord.q === moveEvt.targetCoord.q);
   check("combat renderer: HP bars render on scene anchors", countClass(combatPanel.root, "three-hpfill") === combatPanel._threeScene.units.size);
+  check("combat renderer: action bars render on scene anchors", countClass(combatPanel.root, "three-action-fill") >= combatPanel._threeScene.units.size);
   check("combat renderer: feedback spawns floating numbers", !feedbackEvt || countClass(combatPanel.root, "combat-float") >= 1);
   check("combat renderer: feedback spawns projectile/effect", !feedbackEvt || countClass(combatPanel.root, "projectile") >= 1);
   check("combat renderer: movement sets visual move state",
     !moveEvt || movedStateAfterMove === UnitVisualState.Move);
   check("combat renderer: action feedback sets target hit state",
     !feedbackEvt || combatPanel._threeScene.units.get(feedbackEvt.targetUnitId).overlay.dataset.visualState === UnitVisualState.Hit);
+  check("combat renderer: grouped attack starts keep multiple actors active",
+    attackStartGroup.length === 0 || actingAfterAttackStart >= 2);
+  check("combat renderer: grouped hit resolution spawns parallel feedback",
+    hitGroup.length === 0 || countClass(combatPanel.root, "combat-float") > floatsBeforeHitGroup);
+  check("combat renderer: action bars update from replay timing",
+    !attackStartEvt || actionProgressAfterAttackStart < actionProgressAfterHitGroup);
+
+  combatPanel._actions = globalThis.document.createElement("div");
+  combatPanel.root.appendChild(combatPanel._actions);
+  combatPanel._eventIndex = 0;
+  combatPanel._finish();
+  check("combat renderer: skip-to-report renders summary", textContentOf(combatPanel.root).includes("Contract"));
+  check("combat renderer: skip-to-report clears transient projectiles", countClass(combatPanel.root, "projectile") === 0);
+
+  const previousReducedMotion = Settings.reducedMotion;
+  const reducedMotionGm = new GameManager();
+  Settings.setReducedMotion(true);
+  reducedMotionGm.startRun(DifficultyLevel.Level0);
+  fieldKnownParty(reducedMotionGm, ["warrior", "wizard"]);
+  const reducedMotionPanel = new CombatPanel(reducedMotionGm);
+  reducedMotionPanel._eventIndex = 9999;
+  reducedMotionPanel.render();
+  check("combat renderer: reduced motion resets stale replay index",
+    reducedMotionPanel._eventIndex === reducedMotionPanel._result.replayEvents.length);
+  check("combat renderer: reduced motion renders summary immediately",
+    textContentOf(reducedMotionPanel.root).includes("Contract"));
+  check("combat renderer: reduced motion clears transient projectiles",
+    countClass(reducedMotionPanel.root, "projectile") === 0);
+  Settings.setReducedMotion(previousReducedMotion);
 
   const summaryRun = gm.currentRunState;
   summaryRun.latestRewardGold = 31;
@@ -2326,6 +2380,21 @@ function makeCombatResult(overrides = {}) {
     BalanceRunLogger.combatRows[0].combatRuntimeId === DefaultCombatRuntimeId
       && tsv.includes("combatRuntimeId")
       && tsv.includes(DefaultCombatRuntimeId));
+  const realRun = rm.initializeRun(DifficultyLevel.Level0, 2);
+  fieldKnownPartyOnRun(realRun, ["warrior", "golem", "ranger"]);
+  const realEnc = DataRepository.getEncounterPool(1, 1)[0];
+  realRun.currentEncounter = realEnc;
+  const realResult = new CombatManager().startCombat(realRun, realEnc);
+  BalanceRunLogger.logCombat(realRun, realResult, realEnc);
+  const rangedRow = BalanceRunLogger.combatRows[1];
+  const rangedTsv = BalanceRunLogger.formatCombatResults(BalanceRunLogger.combatRows);
+  check("balance: combat row exposes ranged threat metrics",
+    rangedRow.rangedDamageShare > 0
+      && rangedRow.avgRangedFirstAttackTick >= 0
+      && rangedTsv.includes("rangedDamageShare")
+      && rangedTsv.includes("rangedSafeAttackShare")
+      && rangedTsv.includes("meleeReachedBackline")
+      && rangedTsv.includes("backlineDamageTaken"));
   BalanceRunLogger.economyRows = [];
   BalanceRunLogger.logRound(run, GameState.RivalUpdate);
   const economyTsv = BalanceRunLogger.formatEconomyResults(BalanceRunLogger.economyRows);

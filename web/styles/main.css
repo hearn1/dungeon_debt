@@ -440,6 +440,8 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   overflow: visible;
   transition: left 0.22s ease-out, top 0.22s ease-out;
 }
+[data-animation-speed="fast"] .three-unit-anchor { transition-duration: 90ms; }
+[data-reduced-motion="true"] .three-unit-anchor { transition: none !important; }
 .three-unit-anchor.player { color: var(--gold); }
 .three-unit-anchor.enemy { color: var(--debt-critical); }
 .three-unit-pin {
@@ -480,6 +482,29 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   height: 5px;
   border: 1px solid rgba(14, 13, 18, 0.9);
 }
+.three-action-bars {
+  width: 58px;
+  display: grid;
+  gap: 2px;
+  margin-top: 3px;
+}
+.three-action-bar {
+  height: 4px;
+  border: 1px solid rgba(14, 13, 18, 0.86);
+  background: rgba(14, 13, 18, 0.72);
+  overflow: hidden;
+}
+.three-action-bar.hidden { display: none; }
+.three-action-fill {
+  width: 100%;
+  height: 100%;
+  display: block;
+  transition: width 160ms ease-out;
+}
+[data-animation-speed="fast"] .three-action-fill { transition-duration: 70ms; }
+[data-reduced-motion="true"] .three-action-fill { transition: none !important; }
+.three-action-fill.basic { background: var(--gold); }
+.three-action-fill.ability { background: var(--debt-stable); }
 .three-unit-anchor.acting .three-unit-pin {
   background: currentColor;
   box-shadow: 0 0 18px currentColor;
@@ -501,6 +526,12 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 .three-unit-anchor.lunging.enemy { animation: lunge-down 280ms 1; }
 .three-unit-anchor.casting { animation: casting-pulse 240ms ease-out 1; }
 .three-unit-anchor.passive-glow { animation: passive-glow 320ms ease-out 1; }
+[data-reduced-motion="true"] .three-unit-anchor,
+[data-reduced-motion="true"] .three-unit-anchor .three-unit-pin,
+[data-reduced-motion="true"] .projectile,
+[data-reduced-motion="true"] .combat-float {
+  animation: none !important;
+}
 
 /* Hex tile zone tints inside the battlefield. */
 .hex-tile.player-zone { background: color-mix(in srgb, var(--gold) 8%, var(--bg-panel)); }

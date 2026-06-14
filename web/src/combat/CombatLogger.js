@@ -1,5 +1,5 @@
 // Ported from DungeonDebt/Assets/Scripts/Combat/CombatLogger.cs
-import { CombatReplayEvent, CombatReplayEventKind } from "../data/CombatReplayEvent.js";
+import { CombatReplayEvent, CombatReplayEventKind, CombatReplayPhase } from "../data/CombatReplayEvent.js";
 import { GameRulesFns } from "../core/GameRules.js";
 
 export class CombatLogger {
@@ -8,6 +8,9 @@ export class CombatLogger {
     this._events = [];
     this._tick = 0;
     this._seq = 0;
+    this._phase = CombatReplayPhase.Message;
+    this._groupId = "0:Message";
+    this._groupSequences = new Map();
   }
 
   get lines() { return this._lines; }
@@ -18,9 +21,17 @@ export class CombatLogger {
     this._tick = tick;
   }
 
+  setPhase(phase, groupId = null) {
+    this._phase = phase;
+    const nextGroupId = groupId || `${this._tick}:${phase}`;
+    this._groupId = nextGroupId;
+    if (!this._groupSequences.has(nextGroupId)) this._groupSequences.set(nextGroupId, 0);
+  }
+
   // ---- Structural boundary events (events-only, no text line) ----
 
   logCombatStart(playerUnits, enemyUnits, board) {
+    this.setPhase(CombatReplayPhase.Setup, `${this._tick}:${CombatReplayPhase.Setup}`);
     const evt = this._newEvt(CombatReplayEventKind.CombatStart, "");
     evt.metadata = { playerCount: playerUnits.length, enemyCount: enemyUnits.length };
     this._push(evt);
@@ -30,18 +41,37 @@ export class CombatLogger {
   }
 
   logRoundBoundary(round) {
+    this.setPhase(CombatReplayPhase.RoundBoundary, `${this._tick}:${CombatReplayPhase.RoundBoundary}`);
     const evt = this._newEvt(CombatReplayEventKind.RoundBoundary, "");
     evt.amount = round;
     this._push(evt);
   }
 
   logCombatEnd(playerWon) {
-    const evt = this._newEvt(CombatReplayEventKind.CombatEnd, "");
+    const evt = this._newEvt(CombatReplayEventKind.CombatEnd, "", CombatReplayPhase.CombatEnd);
     evt.metadata = { playerWon };
     this._push(evt);
   }
 
   // ---- Ability events (events-only, no text line) ----
+
+  logAbilityStart(caster, targets, abilityId, board = null) {
+    const evt = this._newEvt(CombatReplayEventKind.AbilityStart, "");
+    evt.actorUnitId = caster.unitId;
+    evt.attackerSlot = caster.slot;
+    evt.attackerIsPlayerSide = caster.isPlayerSide;
+    evt.attackerHeroId = resolveHeroId(caster);
+    evt.abilityId = abilityId;
+    evt.sourceCoord = copyCoord(board ? board.getUnitPosition(caster) : null);
+    copyCooldownSnapshot(caster, evt);
+    if (targets.length === 1) {
+      evt.targetUnitId = targets[0].unitId;
+      evt.targetSlot = targets[0].slot;
+      evt.targetIsPlayerSide = targets[0].isPlayerSide;
+      evt.targetCoord = copyCoord(board ? board.getUnitPosition(targets[0]) : null);
+    }
+    this._push(evt);
+  }
 
   logAbilityCast(caster, targets, abilityId) {
     const evt = this._newEvt(CombatReplayEventKind.AbilityCast, "");
@@ -50,6 +80,7 @@ export class CombatLogger {
     evt.attackerIsPlayerSide = caster.isPlayerSide;
     evt.attackerHeroId = resolveHeroId(caster);
     evt.abilityId = abilityId;
+    copyCooldownSnapshot(caster, evt);
     if (targets.length === 1) {
       evt.targetUnitId = targets[0].unitId;
       evt.targetSlot = targets[0].slot;
@@ -59,12 +90,13 @@ export class CombatLogger {
   }
 
   logPassiveTrigger(unit, trigger, abilityId) {
-    const evt = this._newEvt(CombatReplayEventKind.PassiveTrigger, "");
+    const evt = this._newEvt(CombatReplayEventKind.PassiveTrigger, "", CombatReplayPhase.Passive);
     evt.actorUnitId = unit.unitId;
     evt.attackerSlot = unit.slot;
     evt.attackerIsPlayerSide = unit.isPlayerSide;
     evt.attackerHeroId = resolveHeroId(unit);
     evt.abilityId = abilityId;
+    copyCooldownSnapshot(unit, evt);
     evt.metadata = { trigger };
     this._push(evt);
   }
@@ -79,12 +111,28 @@ export class CombatLogger {
     evt.attackerSlot = unit.slot;
     evt.attackerIsPlayerSide = unit.isPlayerSide;
     evt.attackerHeroId = resolveHeroId(unit);
-    evt.sourceCoord = fromCoord ? { q: fromCoord.q, r: fromCoord.r } : null;
-    evt.targetCoord = { q: toCoord.q, r: toCoord.r };
+    evt.sourceCoord = copyCoord(fromCoord);
+    evt.targetCoord = copyCoord(toCoord);
+    copyCooldownSnapshot(unit, evt);
     this._push(evt);
   }
 
   // ---- Combat action events (adds to both _lines and _events) ----
+
+  logAttackStart(attacker, defender, board = null) {
+    const evt = this._newEvt(CombatReplayEventKind.AttackStart, "");
+    evt.actorUnitId = attacker.unitId;
+    evt.targetUnitId = defender.unitId;
+    evt.attackerSlot = attacker.slot;
+    evt.attackerIsPlayerSide = attacker.isPlayerSide;
+    evt.attackerHeroId = resolveHeroId(attacker);
+    evt.targetSlot = defender.slot;
+    evt.targetIsPlayerSide = defender.isPlayerSide;
+    evt.sourceCoord = copyCoord(board ? board.getUnitPosition(attacker) : null);
+    evt.targetCoord = copyCoord(board ? board.getUnitPosition(defender) : null);
+    copyCooldownSnapshot(attacker, evt);
+    this._push(evt);
+  }
 
   logAttack(attacker, defender, damage) {
     const text = `${attacker.displayName} attacks ${defender.displayName} for ${damage}.`;
@@ -96,6 +144,7 @@ export class CombatLogger {
     evt.attackerSlot = attacker.slot;
     evt.attackerIsPlayerSide = attacker.isPlayerSide;
     evt.attackerHeroId = resolveHeroId(attacker);
+    copyCooldownSnapshot(attacker, evt);
     copyStatusSnapshot(attacker, evt.attackerStatuses);
     evt.attackerPoisonDamage = attacker.statuses.poisonDamage;
     evt.targetSlot = defender.slot;
@@ -118,6 +167,7 @@ export class CombatLogger {
     evt.attackerSlot = healer.slot;
     evt.attackerIsPlayerSide = healer.isPlayerSide;
     evt.attackerHeroId = resolveHeroId(healer);
+    copyCooldownSnapshot(healer, evt);
     copyStatusSnapshot(healer, evt.attackerStatuses);
     evt.attackerPoisonDamage = healer.statuses.poisonDamage;
     evt.targetSlot = target.slot;
@@ -134,7 +184,7 @@ export class CombatLogger {
     const text = `${unit.displayName} dies.`;
     this._lines.push(text);
 
-    const evt = this._newEvt(CombatReplayEventKind.Death, text);
+    const evt = this._newEvt(CombatReplayEventKind.Death, text, CombatReplayPhase.Death);
     evt.targetUnitId = unit.unitId;
     evt.targetSlot = unit.slot;
     evt.targetIsPlayerSide = unit.isPlayerSide;
@@ -156,6 +206,7 @@ export class CombatLogger {
     evt.targetMaxHealth = unit.maxHealth;
     copyStatusSnapshot(unit, evt.targetStatuses);
     evt.targetPoisonDamage = unit.statuses.poisonDamage;
+    copyCooldownSnapshot(unit, evt);
     this._push(evt);
   }
 
@@ -173,6 +224,7 @@ export class CombatLogger {
     evt.targetMaxHealth = unit.maxHealth;
     copyStatusSnapshot(unit, evt.targetStatuses);
     evt.targetPoisonDamage = unit.statuses.poisonDamage;
+    copyCooldownSnapshot(unit, evt);
     this._push(evt);
   }
 
@@ -198,15 +250,23 @@ export class CombatLogger {
 
   // ---- Private helpers ----
 
-  _newEvt(kind, logText) {
+  _newEvt(kind, logText, phaseOverride) {
+    const phase = phaseOverride || this._phase;
+    const groupId = phaseOverride ? `${this._tick}:${phaseOverride}` : this._groupId;
+    const groupSequence = this._groupSequences.get(groupId) || 0;
+
     const evt = new CombatReplayEvent(kind, logText);
     evt.tick = this._tick;
+    evt.phase = phase;
+    evt.groupId = groupId;
+    evt.groupSequence = groupSequence;
     evt.sequence = this._seq;
     return evt;
   }
 
   _push(evt) {
     this._seq++;
+    this._groupSequences.set(evt.groupId, (this._groupSequences.get(evt.groupId) || 0) + 1);
     this._events.push(evt);
   }
 
@@ -216,18 +276,34 @@ export class CombatLogger {
     evt.attackerSlot = unit.slot;
     evt.attackerIsPlayerSide = unit.isPlayerSide;
     evt.attackerHeroId = resolveHeroId(unit);
-    evt.sourceCoord = coord ? { q: coord.q, r: coord.r } : null;
+    evt.sourceCoord = copyCoord(coord);
     evt.amount = unit.maxHealth;
     evt.targetHealthAfter = unit.currentHealth;
     evt.targetMaxHealth = unit.maxHealth;
+    copyCooldownSnapshot(unit, evt);
     this._push(evt);
   }
 
   _addMessage(text) {
     this._lines.push(text);
-    const evt = this._newEvt(CombatReplayEventKind.Message, text);
+    const evt = this._newEvt(CombatReplayEventKind.Message, text, CombatReplayPhase.Message);
     this._push(evt);
   }
+}
+
+function copyCoord(coord) {
+  return coord ? { q: coord.q, r: coord.r } : null;
+}
+
+function copyCooldownSnapshot(unit, evt) {
+  if (!unit || !evt) return;
+  evt.actorActionReadyTick = unit.nextAttackReadyTick || unit.nextAttackAt || 0;
+  evt.actorActionCooldownTicks = unit.attackIntervalTicks || unit.attackCooldownTicks || 0;
+  if (unit.abilityState) {
+    evt.actorAbilityReadyTick = unit.abilityState.nextActiveAt || 0;
+  }
+  const active = unit.sourceHero?.definition?.activeAbility;
+  evt.actorAbilityCooldownTicks = active ? active.cooldownTicks : 0;
 }
 
 function resolveHeroId(unit) {
