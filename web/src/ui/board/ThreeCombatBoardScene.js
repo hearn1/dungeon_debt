@@ -229,6 +229,7 @@ export class ThreeCombatBoardScene {
     });
     overlay.style.setProperty("--unit-visual-color", `#${visual.color.toString(16).padStart(6, "0")}`);
 
+    overlay.appendChild(el("div", { class: "three-unit-ring" }));
     overlay.appendChild(el("div", { class: "three-unit-pin" }, [
       el("img", { class: "three-unit-portrait", src: visual.portraitUrl, alt: "" }),
     ]));
