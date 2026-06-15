@@ -40,7 +40,6 @@ export class RunHeader {
       el("div", { class: "rh-round" }, [
         el("div", { class: "rh-round-big", text: `${two(roundWithinAct)} / ${two(roundsInAct)}` }),
         el("div", { class: "rh-round-total", text: `ROUND ${two(run.round)} / ${two(totalRounds)}` }),
-        el("div", { class: "rh-contract", text: `CONTRACT ${(run.difficultyDisplayName || "-").toUpperCase()}` }),
       ]),
       el("div", { class: "rh-spacer" }),
       el("div", { class: "rh-resources" }, [
