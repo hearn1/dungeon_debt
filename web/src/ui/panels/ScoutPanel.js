@@ -71,33 +71,6 @@ export class ScoutPanel {
       if (guidance) this.root.appendChild(guidance);
     }
 
-    const raceActions = el("div", { class: "scout-race-actions" });
-    const progress = run.playerRaceProgress;
-    raceActions.appendChild(el("div", { class: "scout-race-header", text: `CONTRACT RACE — ${progress}/${GameRules.RivalRaceMaxProgress}` }));
-
-    const rushUsed = run.usedRaceActions.has("rushAhead");
-    const bribeUsed = run.usedRaceActions.has("bribeGuide");
-
-    if (!rushUsed) {
-      raceActions.appendChild(el("button", {
-        class: "btn secondary", text: `Rush the Paperwork  (-${GameRules.RushAheadMoraleCost} morale, +1 progress)`,
-        onClick: () => { this.gm.applyRaceAction("rushAhead"); this.render(); },
-      }));
-    } else {
-      raceActions.appendChild(el("div", { class: "scout-race-done", text: "✓ Rush order filed" }));
-    }
-
-    if (!bribeUsed) {
-      raceActions.appendChild(el("button", {
-        class: "btn secondary",
-        text: `Expedite with Guide  (${GameRules.BribeGuideGoldCost}g or +${GameRules.BribeGuideDebtFallback} debt, +1 progress)`,
-        onClick: () => { this.gm.applyRaceAction("bribeGuide"); this.render(); },
-      }));
-    } else {
-      raceActions.appendChild(el("div", { class: "scout-race-done", text: "✓ Guide retainer paid" }));
-    }
-
-    this.root.appendChild(raceActions);
     this.root.appendChild(el("div", { class: "panel-actions" }, [
       el("button", { class: "btn primary", text: "Send to Recruitment →", onClick: () => this.gm.continueFromScout() }),
     ]));

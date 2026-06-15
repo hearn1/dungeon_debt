@@ -744,10 +744,14 @@ console.log("Run-flow test");
   panel.render();
   const text = textContentOf(panel.root);
   check("raceactions-panel: shows player progress 7", text.includes("7") && text.includes("Your Guild"));
+  check("raceactions-panel: rush ahead button present", text.includes("Rush the Paperwork"));
+  check("raceactions-panel: bribe guide button present", text.includes("Expedite with Guide"));
+  panel.render();
+  check("raceactions-panel: re-render stable", textContentOf(panel.root).includes("Rush the Paperwork"));
   globalThis.document = previousDocument;
 }
 
-// ---- #85 ScoutPanel render smoke with race actions ----
+// ---- ScoutPanel render smoke ----
 {
   const previousDocument = globalThis.document;
   globalThis.document = createFakeDocument();
@@ -756,12 +760,7 @@ console.log("Run-flow test");
   const run = gm.currentRunState;
   const panel = new ScoutPanel(gm);
   panel.render();
-  const text = textContentOf(panel.root);
-  check("raceactions-scout-ui: race header rendered", text.includes("RACE"));
-  check("raceactions-scout-ui: rush ahead button present", text.includes("Rush the Paperwork"));
-  check("raceactions-scout-ui: bribe guide button present", text.includes("Expedite with Guide"));
   panel.render();
-  check("raceactions-scout-ui: re-render stable", textContentOf(panel.root).includes("RACE"));
   const boss = DataRepository.encounters.find((e) => e.act === 4 && e.slot === 10 && e.type === EncounterType.FinalBoss);
   run.act = 4;
   run.round = 40;
