@@ -6,7 +6,7 @@ import { BoardVisualSide, getBoardVisualSide } from "./BoardProjection.js";
 import { unitHasModel } from "../CombatAssetManifest.js";
 import { instantiateUnitModel, findClip } from "./UnitModelLoader.js";
 
-const MODEL_SCALE = 0.6;
+const MODEL_SCALE = 0.84;
 const MODEL_FADE = 0.12;
 
 // Maps a UnitVisualState to the glTF animation clip name to play on a 3D model.
