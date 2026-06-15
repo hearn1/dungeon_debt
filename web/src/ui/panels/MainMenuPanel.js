@@ -11,6 +11,7 @@ export class MainMenuPanel {
     this._selectedLevel = this._resolveInitialLevel();
     this._devEnableAct3 = false;
     this._resetConfirming = false;
+    this._expandedCards = new Set();
     this._onKeyDown = (event) => this._handleKeyDown(event);
     if (globalThis.window) window.addEventListener("keydown", this._onKeyDown);
   }
@@ -33,15 +34,46 @@ export class MainMenuPanel {
     for (const difficulty of DataRepository.allDifficultyLevels) {
       const isSelected = difficulty.level === this._selectedLevel;
       const isLocked = this._isLevelLocked(difficulty);
-      choices.appendChild(el("button", {
-        class: `btn difficulty-card${isSelected ? " primary" : ""}`,
-        disabled: isLocked ? "" : null,
-        title: isLocked ? this._getLockedLabel(difficulty) : "",
-        onClick: () => this._selectLevel(difficulty.level),
-      }, [
+      const isExpanded = this._expandedCards.has(difficulty.level);
+      const newClause = difficulty.mutators[difficulty.mutators.length - 1] ?? null;
+      const hasCumulativeClauses = difficulty.mutators.length > 1;
+
+      const cardChildren = [
         el("div", { class: "d-name", text: difficulty.displayName }),
-        el("div", { class: "d-desc", text: this._getDifficultySummary(difficulty) }),
-      ]));
+        el("div", { class: "d-desc", text: this._getDeltaSummary(difficulty, isLocked) }),
+      ];
+
+      // Expand toggle: only shown for levels that have more than just the new clause.
+      if (!isLocked && hasCumulativeClauses) {
+        cardChildren.push(el("button", {
+          class: "contract-expand-toggle",
+          text: isExpanded ? "▴ hide all clauses" : "▾ all clauses",
+          onClick: (e) => {
+            e.stopPropagation();
+            if (isExpanded) this._expandedCards.delete(difficulty.level);
+            else this._expandedCards.add(difficulty.level);
+            this.render();
+          },
+        }));
+
+        if (isExpanded) {
+          const drawer = el("div", { class: "contract-clauses-drawer" });
+          for (const mutator of difficulty.mutators) {
+            const isNew = mutator === newClause;
+            drawer.appendChild(el("div", { class: `contract-clause-row${isNew ? " new-clause" : ""}` }, [
+              el("span", { class: "contract-clause-name", text: mutator.displayName }),
+              el("span", { class: "contract-clause-desc", text: mutator.description }),
+            ]));
+          }
+          cardChildren.push(drawer);
+        }
+      }
+
+      // div instead of button so the nested expand <button> is valid HTML.
+      choices.appendChild(el("div", {
+        class: `btn difficulty-card${isSelected ? " primary" : ""}${isLocked ? " locked" : ""}`,
+        onClick: () => this._selectLevel(difficulty.level),
+      }, cardChildren));
     }
     this.root.appendChild(choices);
 
@@ -114,6 +146,15 @@ export class MainMenuPanel {
     this._selectedLevel = level;
     this.gm.recordSelectedDifficulty(level);
     this.render();
+  }
+
+  _getDeltaSummary(difficulty, isLocked) {
+    if (!difficulty.isImplemented) return this._getLockedLabel(difficulty);
+    const newClause = difficulty.mutators[difficulty.mutators.length - 1] ?? null;
+    if (!newClause) return "Standard guild charter.";
+    const clauseText = `New: ${newClause.displayName} — ${newClause.description}`;
+    if (isLocked) return `${this._getLockedLabel(difficulty)} ${clauseText}`;
+    return clauseText;
   }
 
   _getDifficultySummary(difficulty) {
