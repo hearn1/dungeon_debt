@@ -631,14 +631,21 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 
 /* State animations — override pin-level animations with medallion-appropriate ones */
 [data-visual-kind="PortraitToken"].visual-state-idle .three-unit-pin      { animation: token-idle-breathe 2200ms ease-in-out infinite; }
+[data-visual-kind="PortraitToken"].visual-state-move .three-unit-pin      { animation: token-move-sway 220ms ease-out 1; }
 [data-visual-kind="PortraitToken"].visual-state-attack .three-unit-pin    { animation: token-attack-slam 220ms ease-out 1; }
 [data-visual-kind="PortraitToken"].visual-state-hit .three-unit-pin       { animation: token-hit-shake 300ms ease-out 1; }
 [data-visual-kind="PortraitToken"].visual-state-death .three-unit-pin     { animation: token-death-drop 480ms ease-in forwards; }
 [data-visual-kind="PortraitToken"].visual-state-cast .three-unit-pin      { animation: token-cast-ring 320ms ease-out 1; }
+[data-visual-kind="PortraitToken"].visual-state-passive .three-unit-pin   { animation: token-passive-glow 320ms ease-out 1; }
 
 @keyframes token-idle-breathe {
   0%, 100% { transform: scale(1); filter: brightness(1); }
   50%       { transform: scale(1.04); filter: brightness(1.08); }
+}
+@keyframes token-move-sway {
+  0%   { transform: translateY(0) scale(1); }
+  40%  { transform: translateY(-6px) scale(1.05); }
+  100% { transform: translateY(0) scale(1); }
 }
 @keyframes token-attack-slam {
   0%   { transform: scale(1) translateY(0); }
@@ -660,6 +667,11 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   0%   { transform: scale(1); box-shadow: 0 0 10px var(--unit-visual-color, currentColor); }
   50%  { transform: scale(1.14); box-shadow: 0 0 28px var(--unit-visual-color, currentColor), 0 0 0 4px currentColor; }
   100% { transform: scale(1); box-shadow: 0 0 10px var(--unit-visual-color, currentColor); }
+}
+@keyframes token-passive-glow {
+  0%   { box-shadow: 0 0 10px var(--unit-visual-color, currentColor); }
+  50%  { box-shadow: 0 0 22px var(--unit-visual-color, currentColor), 0 0 0 3px color-mix(in srgb, var(--unit-visual-color, currentColor) 55%, transparent); filter: brightness(1.18); }
+  100% { box-shadow: 0 0 10px var(--unit-visual-color, currentColor); }
 }
 
 /* Hex tile zone tints inside the battlefield. */
@@ -805,14 +817,41 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 
 /* Projectile overlay (Attack / Heal events). Positioned inside .combat-board. */
 .projectile-layer { position: absolute; inset: 0; pointer-events: none; overflow: visible; }
+/* CSS orb projectile — no sprite image needed. */
 .projectile {
-  position: absolute; width: 36px; height: 36px;
-  margin-left: -18px; margin-top: -18px; /* anchor center */
+  position: absolute;
+  width: 12px; height: 12px;
+  border-radius: 50%;
+  margin-left: -6px; margin-top: -6px;
   pointer-events: none;
   will-change: transform, opacity;
-  filter: drop-shadow(0 0 4px rgba(201, 160, 74, 0.55));
 }
-.projectile.heal { filter: drop-shadow(0 0 4px rgba(107, 155, 107, 0.7)); }
+/* Team-colored radial orbs match the tile glow / medallion palette. */
+.projectile.player {
+  background: radial-gradient(circle, rgba(255, 225, 140, 1) 0%, rgba(212, 168, 58, 0.85) 52%, transparent 100%);
+  box-shadow: 0 0 5px 2px rgba(212, 168, 58, 0.9), 0 0 14px rgba(212, 168, 58, 0.5);
+}
+.projectile.enemy {
+  background: radial-gradient(circle, rgba(255, 170, 150, 1) 0%, rgba(196, 74, 62, 0.85) 52%, transparent 100%);
+  box-shadow: 0 0 5px 2px rgba(196, 74, 62, 0.9), 0 0 14px rgba(196, 74, 62, 0.5);
+}
+.projectile.heal {
+  width: 14px; height: 14px;
+  margin-left: -7px; margin-top: -7px;
+  background: radial-gradient(circle, rgba(190, 245, 190, 1) 0%, rgba(107, 155, 107, 0.85) 52%, transparent 100%);
+  box-shadow: 0 0 5px 2px rgba(107, 155, 107, 0.9), 0 0 14px rgba(107, 155, 107, 0.5);
+}
+/* Snap (ranger): thin elongated streak; the proj-snap keyframe rotates it to face the target. */
+.projectile.proj-snap {
+  width: 22px; height: 5px;
+  border-radius: 2px;
+  margin-left: -11px; margin-top: -2px;
+}
+/* Jab (melee): wider burst for the up-close strike. */
+.projectile.proj-jab {
+  width: 16px; height: 16px;
+  margin-left: -8px; margin-top: -8px;
+}
 
 @keyframes proj-arc {
   0%   { transform: translate(0, 0); opacity: 1; }
@@ -1180,6 +1219,20 @@ html[data-reduced-motion="true"] *::after {
 }
 .combat-token.flash-hit  .ct-face { animation: flash-hit-token  380ms ease-out 1; }
 .combat-token.flash-heal .ct-face { animation: flash-heal-token 380ms ease-out 1; }
+
+/* PortraitToken hit/heal flash: ring glow on the medallion instead of anchor background. */
+[data-visual-kind="PortraitToken"].flash-hit  { animation: none; }
+[data-visual-kind="PortraitToken"].flash-heal { animation: none; }
+[data-visual-kind="PortraitToken"].flash-hit  .three-unit-pin { animation: token-flash-hit  380ms ease-out 1; }
+[data-visual-kind="PortraitToken"].flash-heal .three-unit-pin { animation: token-flash-heal 380ms ease-out 1; }
+@keyframes token-flash-hit {
+  0%   { box-shadow: 0 0 0 4px rgba(196, 74, 62, 0.85), 0 0 18px rgba(196, 74, 62, 0.6); }
+  100% { box-shadow: 0 0 10px var(--unit-visual-color, currentColor), inset 0 0 8px rgba(0,0,0,0.5); }
+}
+@keyframes token-flash-heal {
+  0%   { box-shadow: 0 0 0 4px rgba(107, 155, 107, 0.85), 0 0 18px rgba(107, 155, 107, 0.6); }
+  100% { box-shadow: 0 0 10px var(--unit-visual-color, currentColor), inset 0 0 8px rgba(0,0,0,0.5); }
+}
 
 /* Legacy flash classes for .combat-unit (kept for backward compat). */
 @keyframes flash-hit  { 0% { background: rgba(196, 74, 62, 0.55); } 100% { background: var(--bg-card); } }
