@@ -57,7 +57,8 @@ export class RunHeader {
     ]);
 
     this.root.appendChild(primary);
-    this.root.appendChild(this.relicStrip(run));
+    const relics = this.relicStrip(run);
+    if (relics) this.root.appendChild(relics);
 
     if (oldGold !== undefined && run.gold !== oldGold) {
       const el_ = this.root.querySelector('.rh-res-val.gold');
@@ -98,11 +99,10 @@ export class RunHeader {
   }
 
   relicStrip(run) {
-    const strip = el("div", { class: "rh-relics" });
     if (!run.activeRelics || run.activeRelics.length === 0) {
-      strip.appendChild(el("div", { class: "rh-relics-empty", text: "NO RELICS" }));
-      return strip;
+      return null;
     }
+    const strip = el("div", { class: "rh-relics" });
     for (const id of run.activeRelics) {
       const relic = DataRepository.getRelic(id);
       strip.appendChild(el("div", { class: "rh-relic-chip", text: relic.displayName, title: relic.effectDescription }));
