@@ -430,6 +430,35 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 .three-fallback-tile.player { background: color-mix(in srgb, var(--gold) 14%, var(--bg-card)); }
 .three-fallback-tile.opponent { background: color-mix(in srgb, var(--debt-critical) 14%, var(--bg-card)); }
 .three-fallback-tile.neutral { background: color-mix(in srgb, var(--bg-card) 82%, var(--rule)); }
+/* Hex tile glow — DOM ellipse placed at tile screen-center, pulsed via CSS. */
+.three-tile-glow-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: visible;
+}
+.three-tile-glow {
+  position: absolute;
+  width: 88px;
+  height: 36px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  animation: tile-glow-pulse 1800ms ease-in-out infinite;
+}
+.three-tile-glow.player {
+  background: radial-gradient(ellipse at center, rgba(212, 168, 58, 0.5) 0%, transparent 72%);
+  box-shadow: 0 0 14px 4px rgba(212, 168, 58, 0.22);
+}
+.three-tile-glow.enemy {
+  background: radial-gradient(ellipse at center, rgba(196, 74, 62, 0.5) 0%, transparent 72%);
+  box-shadow: 0 0 14px 4px rgba(196, 74, 62, 0.22);
+}
+@keyframes tile-glow-pulse {
+  0%, 100% { opacity: 0.45; transform: translate(-50%, -50%) scale(1); }
+  50%       { opacity: 1;    transform: translate(-50%, -50%) scale(1.14); }
+}
+[data-reduced-motion="true"] .three-tile-glow { animation: none !important; opacity: 0.6; }
 .three-unit-anchor {
   position: absolute;
   width: 110px;
@@ -486,19 +515,18 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   transform: rotate(-45deg) skew(8deg, 8deg);
   opacity: 0.82;
 }
-.three-unit-name {
-  max-width: 110px;
-  padding: 2px 6px;
-  background: rgba(14, 13, 18, 0.78);
-  border: 1px solid color-mix(in srgb, currentColor 55%, transparent);
-  color: var(--ink);
+.three-role-badge {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(14, 13, 18, 0.85);
+  border: 2px solid color-mix(in srgb, currentColor 72%, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-size: 11px;
-  font-weight: 800;
-  line-height: 1.2;
-  text-align: center;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  line-height: 1;
+  flex-shrink: 0;
 }
 .three-hpbar {
   position: static;
@@ -812,23 +840,24 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 .combat-float {
   position: absolute;
   left: 50%;
-  top: 42%;
+  top: 38%;
   z-index: 3;
-  min-width: 32px;
-  padding: 2px 7px;
-  border: 1px solid currentColor;
+  min-width: 28px;
+  padding: 2px 8px;
+  border: 1.5px solid currentColor;
   border-radius: 999px;
-  background: rgba(12, 15, 18, 0.84);
-  font-size: 15px;
-  font-weight: 800;
+  background: rgba(12, 15, 18, 0.88);
+  font-size: 18px;
+  font-weight: 900;
   line-height: 1.1;
   text-align: center;
   pointer-events: none;
   transform: translate(-50%, -50%);
-  animation: combat-float-up 700ms ease-out forwards;
+  animation: combat-float-up 720ms ease-out forwards;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
 }
-.combat-float.hit { color: var(--debt-critical); }
-.combat-float.heal { color: var(--debt-stable); }
+.combat-float.hit  { color: var(--debt-critical); filter: drop-shadow(0 0 5px rgba(196, 74, 62, 0.7)); }
+.combat-float.heal { color: var(--debt-stable);   filter: drop-shadow(0 0 5px rgba(107, 155, 107, 0.7)); }
 
 /* ---- Summary / reward ---- */
 .summary { background: var(--bg-panel); border: 1px solid var(--rule); border-radius: 10px; padding: 18px; display: flex; flex-direction: column; gap: 8px; }

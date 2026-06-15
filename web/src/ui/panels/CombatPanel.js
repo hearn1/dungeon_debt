@@ -477,7 +477,7 @@ export class CombatPanel {
 
     const num = el("div", {
       class: `combat-float ${isHeal ? "heal" : "hit"}`,
-      text: `${isHeal ? "+" : "-"}${evt.amount}`,
+      text: `${isHeal ? "+" : ""}${evt.amount}`,
     });
     tokenNode.appendChild(num);
     let cleaned = false;
