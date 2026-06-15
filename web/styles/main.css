@@ -910,6 +910,7 @@ html[data-reduced-motion="true"] *::after {
   padding: 14px 18px 14px 22px;
   position: relative;
   overflow: hidden;
+  cursor: pointer;
 }
 .difficulty-card::before {
   content: "";
@@ -934,6 +935,44 @@ html[data-reduced-motion="true"] *::after {
 .payroll-preview-value { color: var(--ink); }
 /* Risk row with active consequence: orange warning tone. */
 .payroll-preview-value.risk { color: var(--debt-dangerous); font-style: italic; }
+/* Locked difficulty card (replaces :disabled on the div variant). */
+.difficulty-card.locked { opacity: 0.45; cursor: not-allowed; pointer-events: none; }
+/* Expand toggle on contract-level cards. */
+.contract-expand-toggle {
+  margin-top: 6px;
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  color: var(--ink-dim);
+  cursor: pointer;
+  text-align: left;
+  display: block;
+}
+.contract-expand-toggle:hover { color: var(--ink); }
+.difficulty-card.primary .contract-expand-toggle { color: rgba(26, 22, 18, 0.5); }
+.difficulty-card.primary .contract-expand-toggle:hover { color: var(--dd-ink); }
+/* Drawer with all cumulative clauses. */
+.contract-clauses-drawer {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid var(--rule);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.contract-clause-row { display: flex; gap: 6px; font-size: 11px; }
+.contract-clause-name { color: var(--ink-dim); min-width: 96px; font-weight: 600; flex-shrink: 0; }
+.contract-clause-desc { color: var(--ink); opacity: 0.6; }
+/* New clause in the drawer is highlighted at full opacity. */
+.contract-clause-row.new-clause .contract-clause-name { color: var(--ink); }
+.contract-clause-row.new-clause .contract-clause-desc { opacity: 1; }
+.difficulty-card.primary .contract-clause-name { color: rgba(26, 22, 18, 0.55); }
+.difficulty-card.primary .contract-clause-desc { color: rgba(26, 22, 18, 0.45); }
+.difficulty-card.primary .contract-clause-row.new-clause .contract-clause-name,
+.difficulty-card.primary .contract-clause-row.new-clause .contract-clause-desc { color: rgba(26, 22, 18, 0.8); opacity: 1; }
 .end-reason { font-size: 18px; color: var(--ink-dim); }
 .victory .title { background: linear-gradient(90deg, var(--debt-stable), var(--gold)); -webkit-background-clip: text; background-clip: text; }
 .defeat .title { background: linear-gradient(90deg, var(--debt-critical), rgb(204, 122, 58)); -webkit-background-clip: text; background-clip: text; }
