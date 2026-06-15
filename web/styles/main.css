@@ -817,16 +817,41 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 
 /* Projectile overlay (Attack / Heal events). Positioned inside .combat-board. */
 .projectile-layer { position: absolute; inset: 0; pointer-events: none; overflow: visible; }
+/* CSS orb projectile — no sprite image needed. */
 .projectile {
-  position: absolute; width: 36px; height: 36px;
-  margin-left: -18px; margin-top: -18px; /* anchor center */
+  position: absolute;
+  width: 12px; height: 12px;
+  border-radius: 50%;
+  margin-left: -6px; margin-top: -6px;
   pointer-events: none;
   will-change: transform, opacity;
 }
-/* Team-colored glow matches the tile glow / medallion palette. */
-.projectile.player { filter: drop-shadow(0 0 5px rgba(212, 168, 58, 0.75)); }
-.projectile.enemy  { filter: drop-shadow(0 0 5px rgba(196, 74, 62, 0.65)); }
-.projectile.heal   { filter: drop-shadow(0 0 5px rgba(107, 155, 107, 0.75)); }
+/* Team-colored radial orbs match the tile glow / medallion palette. */
+.projectile.player {
+  background: radial-gradient(circle, rgba(255, 225, 140, 1) 0%, rgba(212, 168, 58, 0.85) 52%, transparent 100%);
+  box-shadow: 0 0 5px 2px rgba(212, 168, 58, 0.9), 0 0 14px rgba(212, 168, 58, 0.5);
+}
+.projectile.enemy {
+  background: radial-gradient(circle, rgba(255, 170, 150, 1) 0%, rgba(196, 74, 62, 0.85) 52%, transparent 100%);
+  box-shadow: 0 0 5px 2px rgba(196, 74, 62, 0.9), 0 0 14px rgba(196, 74, 62, 0.5);
+}
+.projectile.heal {
+  width: 14px; height: 14px;
+  margin-left: -7px; margin-top: -7px;
+  background: radial-gradient(circle, rgba(190, 245, 190, 1) 0%, rgba(107, 155, 107, 0.85) 52%, transparent 100%);
+  box-shadow: 0 0 5px 2px rgba(107, 155, 107, 0.9), 0 0 14px rgba(107, 155, 107, 0.5);
+}
+/* Snap (ranger): thin elongated streak; the proj-snap keyframe rotates it to face the target. */
+.projectile.proj-snap {
+  width: 22px; height: 5px;
+  border-radius: 2px;
+  margin-left: -11px; margin-top: -2px;
+}
+/* Jab (melee): wider burst for the up-close strike. */
+.projectile.proj-jab {
+  width: 16px; height: 16px;
+  margin-left: -8px; margin-top: -8px;
+}
 
 @keyframes proj-arc {
   0%   { transform: translate(0, 0); opacity: 1; }

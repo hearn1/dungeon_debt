@@ -3,7 +3,7 @@ import { GameRules, GameRulesFns } from "../../core/GameRules.js";
 import { CombatReplayEventKind } from "../../data/CombatReplayEvent.js";
 import { HeroRole, EnemyEffectId, EncounterType } from "../../data/enums.js";
 import { statusGlyphs, appendPanelHeader } from "../components.js";
-import { unitPortrait, attackEffect, healEffect, abilityEffect } from "../SpriteCatalog.js";
+import { unitPortrait } from "../SpriteCatalog.js";
 import { Settings } from "../../core/Settings.js";
 import { ThreeCombatBoardScene } from "../board/ThreeCombatBoardScene.js";
 import { UnitVisualState } from "../UnitVisualCatalog.js";
@@ -504,15 +504,9 @@ export class CombatPanel {
       : this._projectileStyle(actorEntry.unit);
     const duration = PROJ_DURATION[style] || PROJ_DURATION.generic;
 
-    const src = isHeal ? healEffect()
-      : kind === "ability" && abilityId ? abilityEffect(abilityId, actorEntry.unit)
-      : attackEffect(actorEntry.unit);
-
     const teamCls = isHeal ? "" : (actorEntry.unit?.isPlayerSide ? " player" : " enemy");
-    const sprite = el("img", {
+    const sprite = el("div", {
       class: `projectile proj-${style}${isHeal ? " heal" : ""}${teamCls}`,
-      src,
-      alt: "",
       style: { left: `${start.x}px`, top: `${start.y}px` },
     });
     sprite.style.setProperty("--dx", `${dx}px`);
