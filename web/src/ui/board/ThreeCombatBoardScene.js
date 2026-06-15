@@ -56,9 +56,41 @@ export class ThreeCombatBoardScene {
     this._stateTimers = new Map();
     this._frameTimer = null;
     this._animLoopActive = false;
+    // Actual pixel size of the viewport. Seeded with the design constants and
+    // kept in sync with the (now flexible) container by a ResizeObserver.
+    this.viewportWidth = SCENE_WIDTH;
+    this.viewportHeight = SCENE_HEIGHT;
+    this._resizeObserver = null;
 
     this._initThree();
     this._buildBoard();
+    this._observeResize();
+    this._render();
+  }
+
+  // The container is flexible (it fills the combat panel), so track its real
+  // pixel size and keep the renderer + camera aspect in sync.
+  getViewportSize() {
+    return { width: this.viewportWidth, height: this.viewportHeight };
+  }
+
+  _observeResize() {
+    if (!this.isWebGlActive || typeof ResizeObserver === "undefined") return;
+    this._resizeObserver = new ResizeObserver(() => this._resize());
+    this._resizeObserver.observe(this.root);
+  }
+
+  _resize() {
+    const w = Math.round(this.root.clientWidth) || SCENE_WIDTH;
+    const h = Math.round(this.root.clientHeight) || SCENE_HEIGHT;
+    if (w === this.viewportWidth && h === this.viewportHeight) return;
+    this.viewportWidth = w;
+    this.viewportHeight = h;
+    if (this.renderer) this.renderer.setSize(w, h, false);
+    if (this.camera) {
+      this.camera.aspect = w / h;
+      this.camera.updateProjectionMatrix();
+    }
     this._render();
   }
 
@@ -311,6 +343,7 @@ export class ThreeCombatBoardScene {
     }
     for (const timer of this._stateTimers.values()) clearTimeout(timer);
     this._stateTimers.clear();
+    if (this._resizeObserver) { this._resizeObserver.disconnect(); this._resizeObserver = null; }
     this._raf = null;
     this._animLoopActive = false;
     for (const entry of this.units.values()) {
