@@ -508,8 +508,9 @@ export class CombatPanel {
       : kind === "ability" && abilityId ? abilityEffect(abilityId, actorEntry.unit)
       : attackEffect(actorEntry.unit);
 
+    const teamCls = isHeal ? "" : (actorEntry.unit?.isPlayerSide ? " player" : " enemy");
     const sprite = el("img", {
-      class: `projectile proj-${style}${isHeal ? " heal" : ""}`,
+      class: `projectile proj-${style}${isHeal ? " heal" : ""}${teamCls}`,
       src,
       alt: "",
       style: { left: `${start.x}px`, top: `${start.y}px` },
