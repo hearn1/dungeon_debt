@@ -140,7 +140,6 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   background: var(--bg-card); border: 1px solid var(--rule-strong); color: var(--ink-dim);
   text-transform: uppercase; letter-spacing: 0.5px;
 }
-.rh-relics-empty { font-size: 11px; color: var(--ink-mute); letter-spacing: 1px; }
 
 /* ---- Stage (panel area) ---- */
 .stage {
