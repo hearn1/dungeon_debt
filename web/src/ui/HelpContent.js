@@ -10,12 +10,8 @@ const CONTENT = {
     body: "Spend gold to sign new adventurers or promote matching ones. Hiring expands your roster, but every adventurer adds wage pressure. Reroll refreshes candidates. Pay Debt converts spare gold into lower debt.",
   },
   [GameState.Formation]: {
-    title: "Formation",
-    body: "Frontline slots are targeted first. Backline slots are safer but can still be hit by some enemies. Click two slots to swap adventurers. Place durable heroes in front and fragile damage/support heroes behind.",
-  },
-  [GameState.Payroll]: {
-    title: "Payroll",
-    body: "Payroll is your pre-combat risk decision. Standard Payroll is safe. Taking a loan gives gold now but adds debt. Cutting wages lowers current costs but weakens the party. Posting a victory bonus costs gold now for temporary combat power.",
+    title: "Formation & Payroll",
+    body: "Step 1 — Drag heroes onto hex tiles. Frontline takes hits first; backline is safer but can still be hit by some enemies. Step 2 — Choose your payroll policy. Standard Pay is safe. A loan gives gold now but adds debt. Cut Wages lowers costs but weakens the party. Victory Bonus boosts attack but adds debt pressure if you lose.",
   },
   [GameState.Combat]: {
     title: "Combat / Report",

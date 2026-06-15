@@ -9,7 +9,6 @@ import { MainMenuPanel } from "./panels/MainMenuPanel.js";
 import { ScoutPanel } from "./panels/ScoutPanel.js";
 import { ShopPanel } from "./panels/ShopPanel.js";
 import { FormationPanel } from "./panels/FormationPanel.js";
-import { PayrollPanel } from "./panels/PayrollPanel.js";
 import { CombatPanel } from "./panels/CombatPanel.js";
 import { RelicRewardPanel } from "./panels/RelicRewardPanel.js";
 import { RivalUpdatePanel } from "./panels/RivalUpdatePanel.js";
@@ -17,15 +16,14 @@ import { EndScreenPanel } from "./panels/EndScreenPanel.js";
 
 const HEADER_STATES = new Set([
   GameState.Scout, GameState.Shop, GameState.Formation,
-  GameState.Payroll, GameState.Combat, GameState.RelicReward, GameState.RivalUpdate,
+  GameState.Combat, GameState.RelicReward, GameState.RivalUpdate,
 ]);
 
 const STATE_SCREEN_LABELS = {
   [GameState.MainMenu]: "Main Menu",
   [GameState.Scout]: "Scout",
   [GameState.Shop]: "Shop",
-  [GameState.Formation]: "Formation",
-  [GameState.Payroll]: "Payroll",
+  [GameState.Formation]: "Formation & Payroll",
   [GameState.Combat]: "Combat",
   [GameState.RelicReward]: "Relic Reward",
   [GameState.RivalUpdate]: "Rival Update",
@@ -53,7 +51,6 @@ export class UIManager {
       [GameState.Scout]: new ScoutPanel(gm),
       [GameState.Shop]: new ShopPanel(gm),
       [GameState.Formation]: new FormationPanel(gm),
-      [GameState.Payroll]: new PayrollPanel(gm),
       [GameState.Combat]: new CombatPanel(gm),
       [GameState.RelicReward]: new RelicRewardPanel(gm),
       [GameState.RivalUpdate]: new RivalUpdatePanel(gm),
