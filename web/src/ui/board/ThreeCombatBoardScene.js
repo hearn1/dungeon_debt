@@ -3,6 +3,22 @@ import { GameRules } from "../../core/GameRules.js";
 import { el, clear } from "../dom.js";
 import { resolveUnitVisual, UnitVisualState } from "../UnitVisualCatalog.js";
 import { BoardVisualSide, getBoardVisualSide } from "./BoardProjection.js";
+import { unitHasModel } from "../CombatAssetManifest.js";
+import { instantiateUnitModel, findClip } from "./UnitModelLoader.js";
+
+const MODEL_SCALE = 0.6;
+const MODEL_FADE = 0.12;
+
+// Maps a UnitVisualState to the glTF animation clip name to play on a 3D model.
+const STATE_TO_CLIP = Object.freeze({
+  [UnitVisualState.Idle]: "idle",
+  [UnitVisualState.Move]: "idle",
+  [UnitVisualState.Attack]: "attack",
+  [UnitVisualState.Cast]: "attack",
+  [UnitVisualState.Hit]: "hit",
+  [UnitVisualState.Death]: "death",
+  [UnitVisualState.Passive]: "idle",
+});
 
 const SCENE_WIDTH = 760;
 const SCENE_HEIGHT = 430;
@@ -15,9 +31,6 @@ const COLORS = Object.freeze({
   playerTile: 0x3a3328,
   enemyTile: 0x38282a,
   neutralTile: 0x242a32,
-  playerUnit: 0xc9a04a,
-  enemyUnit: 0xa64a40,
-  defeated: 0x56514a,
 });
 
 export class ThreeCombatBoardScene {
@@ -41,6 +54,8 @@ export class ThreeCombatBoardScene {
     this.isWebGlActive = false;
     this._raf = null;
     this._stateTimers = new Map();
+    this._frameTimer = null;
+    this._animLoopActive = false;
 
     this._initThree();
     this._buildBoard();
@@ -55,12 +70,24 @@ export class ThreeCombatBoardScene {
       unit,
       visual,
       coord: { q: coord.q, r: coord.r },
-      group: this.isWebGlActive ? this._buildUnitMesh(isPlayerSide, visual) : null,
+      // Units render as DOM portrait tokens (the overlay) on top of the WebGL
+      // board. No 3D unit mesh — the old cone/cylinder placeholder was removed
+      // in favor of the Kenney CC0 portrait art shown in the overlay.
+      group: null,
       overlay: this._buildUnitOverlay(unit, isPlayerSide, visual),
       isPlayerSide,
       maxHp: unit?.maxHealth || 1,
       currentHp: unit?.currentHealth || unit?.maxHealth || 1,
       side,
+      // 3D model state (populated async once the glTF loads; null = portrait token)
+      hasModel: false,
+      mixer: null,
+      actions: null,
+      currentAction: null,
+      baseScale: 1,
+      baseY: 0,
+      lastState: UnitVisualState.Idle,
+      isDead: false,
     };
 
     if (entry.group) this.scene.add(entry.group);
@@ -68,7 +95,94 @@ export class ThreeCombatBoardScene {
     this.units.set(unitId, entry);
     this.setUnitVisualState(unitId, UnitVisualState.Idle);
     this.moveUnit(unitId, coord, { instant: true });
+    this._attachModel(unitId, entry, isPlayerSide, visual);
     return entry;
+  }
+
+  // Loads the unit's animated glTF model and swaps it in over the portrait token.
+  // On any failure the portrait token (already rendered in the overlay) remains.
+  _attachModel(unitId, entry, isPlayerSide, visual) {
+    if (!this.isWebGlActive || !visual || !unitHasModel(visual.id)) return;
+    instantiateUnitModel(visual.id)
+      .then(({ scene, clips }) => {
+        // Unit may have been torn down (panel re-render) while loading.
+        if (!this.units.has(unitId) || this.units.get(unitId) !== entry) return;
+
+        const group = new THREE.Group();
+        group.add(scene);
+        group.scale.setScalar(MODEL_SCALE);
+        // Player figures face the opponent side (away from camera); enemies face in.
+        group.rotation.y = isPlayerSide ? Math.PI : 0;
+        const world = this.worldPositionFromCoord(entry.coord);
+        group.position.set(world.x, entry.baseY, world.z);
+
+        const mixer = new THREE.AnimationMixer(scene);
+        const actions = {};
+        for (const name of ["idle", "attack", "hit", "death"]) {
+          const clip = findClip(clips, name);
+          if (clip) actions[name] = mixer.clipAction(clip);
+        }
+        // Transient clips (attack/hit) auto-return to idle when they finish.
+        mixer.addEventListener("finished", () => {
+          if (!entry.isDead) this._playModelClip(entry, UnitVisualState.Idle);
+        });
+
+        entry.group = group;
+        entry.mixer = mixer;
+        entry.actions = actions;
+        entry.baseScale = MODEL_SCALE;
+        entry.hasModel = true;
+        this.scene.add(group);
+
+        // Hide the 2D portrait pin now that a real model is showing.
+        const pin = entry.overlay.querySelector(".three-unit-pin");
+        if (pin) pin.style.display = "none";
+        entry.overlay.classList.add("has-model");
+
+        this._playModelClip(entry, entry.lastState || UnitVisualState.Idle);
+        this._startAnimationLoop();
+      })
+      .catch(() => {
+        // Keep the portrait token fallback; nothing else to do.
+      });
+  }
+
+  _playModelClip(entry, state) {
+    if (!entry || !entry.actions) return;
+    const clipName = STATE_TO_CLIP[state] || "idle";
+    const action = entry.actions[clipName];
+    if (!action) return;
+
+    const looping = clipName === "idle";
+    action.reset();
+    action.setLoop(looping ? THREE.LoopRepeat : THREE.LoopOnce, looping ? Infinity : 1);
+    action.clampWhenFinished = clipName === "death";
+
+    if (entry.currentAction && entry.currentAction !== action) {
+      entry.currentAction.fadeOut(MODEL_FADE);
+      action.fadeIn(MODEL_FADE);
+    }
+    action.play();
+    entry.currentAction = action;
+  }
+
+  _startAnimationLoop() {
+    if (this._animLoopActive || !this.isWebGlActive) return;
+    this._animLoopActive = true;
+    this._frameTimer = this._frameTimer || new THREE.Timer();
+    this._frameTimer.update(); // seed previous time so the first frame steps small
+    const tick = () => {
+      this._raf = requestAnimationFrame(tick);
+      this._frameTimer.update();
+      const dt = this._frameTimer.getDelta();
+      for (const entry of this.units.values()) {
+        if (entry.mixer) entry.mixer.update(dt);
+      }
+      if (this.renderer && this.scene && this.camera) {
+        this.renderer.render(this.scene, this.camera);
+      }
+    };
+    this._raf = requestAnimationFrame(tick);
   }
 
   _buildUnitOverlay(unit, isPlayerSide, visual) {
@@ -106,7 +220,7 @@ export class ThreeCombatBoardScene {
     if (!entry || !coord) return;
     entry.coord = { q: coord.q, r: coord.r };
     const world = this.worldPositionFromCoord(coord);
-    if (entry.group) entry.group.position.set(world.x, 0.22, world.z);
+    if (entry.group) entry.group.position.set(world.x, entry.baseY, world.z);
     const screen = this.screenPositionFromCoord(coord);
     entry.overlay.style.left = `${screen.x}%`;
     entry.overlay.style.top = `${screen.y}%`;
@@ -122,12 +236,10 @@ export class ThreeCombatBoardScene {
     entry.overlay.classList.remove(...classes);
     entry.overlay.classList.add(`visual-state-${state}`);
     entry.overlay.dataset.visualState = state;
+    entry.lastState = state;
 
-    if (entry.group) {
-      const isDeath = state === UnitVisualState.Death;
-      const isAttack = state === UnitVisualState.Attack || state === UnitVisualState.Cast;
-      entry.group.position.y = isDeath ? 0.08 : isAttack ? 0.34 : 0.22;
-      entry.group.scale.set(isAttack ? 1.16 : 1, isAttack ? 1.16 : 1, isAttack ? 1.16 : 1);
+    if (entry.hasModel) {
+      this._playModelClip(entry, state);
     }
 
     if (durationMs > 0 && state !== UnitVisualState.Death) {
@@ -142,14 +254,14 @@ export class ThreeCombatBoardScene {
     const entry = this.units.get(unitId);
     if (!entry) return;
     entry.overlay.classList.add("acting");
-    if (entry.group) entry.group.scale.set(1.18, 1.18, 1.18);
+    if (entry.group) entry.group.scale.setScalar(entry.baseScale * 1.12);
     this._render();
   }
 
   clearActiveUnits() {
     for (const entry of this.units.values()) {
       entry.overlay.classList.remove("acting");
-      if (entry.group) entry.group.scale.set(1, 1, 1);
+      if (entry.group) entry.group.scale.setScalar(entry.baseScale);
     }
     this._render();
   }
@@ -166,15 +278,9 @@ export class ThreeCombatBoardScene {
   markUnitDefeated(unitId) {
     const entry = this.units.get(unitId);
     if (!entry) return;
+    entry.isDead = true;
     this.setUnitVisualState(unitId, UnitVisualState.Death);
     entry.overlay.classList.add("dead");
-    if (entry.group) {
-      entry.group.traverse((child) => {
-        if (child.material) child.material.color.setHex(COLORS.defeated);
-      });
-      entry.group.position.y = 0.08;
-      entry.group.scale.set(0.82, 0.82, 0.82);
-    }
     this._render();
   }
 
@@ -206,6 +312,10 @@ export class ThreeCombatBoardScene {
     for (const timer of this._stateTimers.values()) clearTimeout(timer);
     this._stateTimers.clear();
     this._raf = null;
+    this._animLoopActive = false;
+    for (const entry of this.units.values()) {
+      if (entry.mixer) entry.mixer.stopAllAction();
+    }
     this.units.clear();
     if (this.renderer) {
       this.renderer.dispose();
@@ -305,22 +415,6 @@ export class ThreeCombatBoardScene {
         fallback.appendChild(tile);
       }
     }
-  }
-
-  _buildUnitMesh(isPlayerSide, visual) {
-    const color = visual?.color || (isPlayerSide ? COLORS.playerUnit : COLORS.enemyUnit);
-    const group = new THREE.Group();
-    const base = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.33, 0.4, 0.22, 18),
-      new THREE.MeshStandardMaterial({ color, roughness: 0.65 }),
-    );
-    const body = new THREE.Mesh(
-      new THREE.ConeGeometry(0.32, 0.7, 18),
-      new THREE.MeshStandardMaterial({ color, roughness: 0.55 }),
-    );
-    body.position.y = 0.46;
-    group.add(base, body);
-    return group;
   }
 
   _clearStateTimer(unitId) {
