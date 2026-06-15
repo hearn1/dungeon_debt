@@ -23,7 +23,16 @@
       "Bash(git commit -m ' *)",
       "WebFetch(domain:game-icons.net)",
       "Bash(git branch *)",
-      "Bash(git log *)"
+      "Bash(git log *)",
+      "Bash(git remote *)",
+      "Bash(grep -v \"main$\")",
+      "Bash(xargs -r git branch -d)",
+      "Bash(git push *)",
+      "Bash(git stash *)",
+      "Bash(git pull *)",
+      "Bash(git commit -m '@ *)",
+      "Bash(git commit *)",
+      "Bash(rm .git/COMMIT_MSG_TMP.txt)"
     ]
   }
 }
