@@ -11,7 +11,7 @@ import os
 import sys
 import http.server
 
-PORT = int(sys.argv[1]) if len(sys.argv) > 1 else 5173
+PORT = int(sys.argv[1]) if len(sys.argv) > 1 else int(os.environ.get("PORT", "5173"))
 
 # Run from the directory containing this script so the preview always serves
 # web/ no matter where it was launched from.

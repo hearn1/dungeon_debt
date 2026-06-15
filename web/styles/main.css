@@ -383,12 +383,15 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 }
 
 /* ---- Three.js combat battlefield ---- */
+/* The combat panel stretches to fill the stage so the 3D viewport can fill the
+   window instead of sitting in a small fixed box. */
+.panel.combat-panel { flex: 1 1 auto; min-height: 0; }
 .three-combat-scene {
   position: relative;
-  width: min(100%, 760px);
-  height: 430px;
-  align-self: center;
-  border: 1px solid var(--act-accent, var(--rule));
+  width: 100%;
+  flex: 1 1 auto;
+  min-height: 360px;
+  align-self: stretch;
   background: radial-gradient(ellipse at 50% 100%, color-mix(in srgb, var(--act-accent, var(--gold)) 20%, transparent) 0%, var(--bg-strip) 72%);
   overflow: hidden;
 }

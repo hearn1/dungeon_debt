@@ -17,7 +17,7 @@ const PROJ_DURATION = { arc: 300, snap: 170, jab: 140, generic: 240 };
 export class CombatPanel {
   constructor(gm) {
     this.gm = gm;
-    this.root = el("div", { class: "panel" });
+    this.root = el("div", { class: "panel combat-panel" });
     this.onDirty = null;
     this._timer = null;
     this._result = null;
@@ -230,8 +230,9 @@ export class CombatPanel {
 
   _tokenCenter(coord) {
     const pos = this._threeScene?.screenPositionFromCoord(coord) || { x: 50, y: 50 };
-    const x = (pos.x / 100) * 760;
-    const y = (pos.y / 100) * 430;
+    const size = this._threeScene?.getViewportSize() || { width: 760, height: 430 };
+    const x = (pos.x / 100) * size.width;
+    const y = (pos.y / 100) * size.height;
     return { x, y };
   }
 
