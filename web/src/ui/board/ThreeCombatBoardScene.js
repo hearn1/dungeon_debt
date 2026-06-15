@@ -9,6 +9,21 @@ import { instantiateUnitModel, findClip } from "./UnitModelLoader.js";
 const MODEL_SCALE = 0.84;
 const MODEL_FADE = 0.12;
 
+// Role/family badge icons shown beneath each unit's portrait.
+const ROLE_ICONS = Object.freeze({
+  "hero-tank":    "🛡",
+  "hero-damage":  "⚔",
+  "hero-support": "✦",
+  "hero-economy": "◈",
+  "enemy-slime":  "◉",
+  "enemy-goblin": "⚔",
+  "enemy-bat":    "◉",
+  "enemy-rival":  "☠",
+  "enemy-boss":   "☠",
+  "enemy-default":"☠",
+  "fallback-unit":"?",
+});
+
 // Maps a UnitVisualState to the glTF animation clip name to play on a 3D model.
 const STATE_TO_CLIP = Object.freeze({
   [UnitVisualState.Idle]: "idle",
@@ -42,8 +57,11 @@ export class ThreeCombatBoardScene {
     this.overlay = el("div", { class: "three-combat-overlay" });
     this.effectLayer = el("div", { class: "three-effect-layer" });
     this.unitLayer = el("div", { class: "three-unit-layer" });
+    this._tileGlowLayer = el("div", { class: "three-tile-glow-layer" });
+    this._tileGlows = new Map();
     this.root.appendChild(this.canvasHost);
     this.root.appendChild(this.overlay);
+    this.overlay.appendChild(this._tileGlowLayer);
     this.overlay.appendChild(this.effectLayer);
     this.overlay.appendChild(this.unitLayer);
 
@@ -127,6 +145,7 @@ export class ThreeCombatBoardScene {
     this.units.set(unitId, entry);
     this.setUnitVisualState(unitId, UnitVisualState.Idle);
     this.moveUnit(unitId, coord, { instant: true });
+    this._setTileGlow(coord, isPlayerSide);
     this._attachModel(unitId, entry, isPlayerSide, visual);
     return entry;
   }
@@ -233,7 +252,7 @@ export class ThreeCombatBoardScene {
     overlay.appendChild(el("div", { class: "three-unit-pin" }, [
       el("img", { class: "three-unit-portrait", src: visual.portraitUrl, alt: "" }),
     ]));
-    overlay.appendChild(el("div", { class: "three-unit-name", text: unit?.displayName || "" }));
+    overlay.appendChild(el("div", { class: "three-role-badge", text: ROLE_ICONS[visual.group] || "◉" }));
     overlay.appendChild(el("div", { class: "ct-hpbar three-hpbar" }, [
       el("div", { class: "ct-hpfill three-hpfill" }),
     ]));
@@ -251,12 +270,15 @@ export class ThreeCombatBoardScene {
   moveUnit(unitId, coord, _options = {}) {
     const entry = this.units.get(unitId);
     if (!entry || !coord) return;
+    const oldCoord = entry.coord;
+    this._clearTileGlow(oldCoord);
     entry.coord = { q: coord.q, r: coord.r };
     const world = this.worldPositionFromCoord(coord);
     if (entry.group) entry.group.position.set(world.x, entry.baseY, world.z);
     const screen = this.screenPositionFromCoord(coord);
     entry.overlay.style.left = `${screen.x}%`;
     entry.overlay.style.top = `${screen.y}%`;
+    this._setTileGlow(entry.coord, entry.isPlayerSide);
     this._render();
   }
 
@@ -312,6 +334,7 @@ export class ThreeCombatBoardScene {
     const entry = this.units.get(unitId);
     if (!entry) return;
     entry.isDead = true;
+    this._clearTileGlow(entry.coord);
     this.setUnitVisualState(unitId, UnitVisualState.Death);
     entry.overlay.classList.add("dead");
     this._render();
@@ -351,12 +374,40 @@ export class ThreeCombatBoardScene {
       if (entry.mixer) entry.mixer.stopAllAction();
     }
     this.units.clear();
+    clear(this._tileGlowLayer);
+    this._tileGlows.clear();
     if (this.renderer) {
       this.renderer.dispose();
       this.renderer.domElement?.remove?.();
     }
     clear(this.root);
     if (this.root.parentNode) this.root.parentNode.removeChild(this.root);
+  }
+
+  _setTileGlow(coord, isPlayerSide) {
+    if (!coord) return;
+    const key = `${coord.q},${coord.r}`;
+    let glow = this._tileGlows.get(key);
+    if (glow) {
+      glow.className = `three-tile-glow ${isPlayerSide ? "player" : "enemy"}`;
+      return;
+    }
+    const pos = this.screenPositionFromCoord(coord);
+    glow = el("div", { class: `three-tile-glow ${isPlayerSide ? "player" : "enemy"}` });
+    glow.style.left = `${pos.x}%`;
+    glow.style.top = `${pos.y}%`;
+    this._tileGlowLayer.appendChild(glow);
+    this._tileGlows.set(key, glow);
+  }
+
+  _clearTileGlow(coord) {
+    if (!coord) return;
+    const key = `${coord.q},${coord.r}`;
+    const glow = this._tileGlows.get(key);
+    if (glow) {
+      glow.remove();
+      this._tileGlows.delete(key);
+    }
   }
 
   worldPositionFromCoord(coord) {
