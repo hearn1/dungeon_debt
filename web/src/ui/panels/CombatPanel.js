@@ -14,6 +14,12 @@ const TOKEN_HALF = TOKEN / 2;
 
 const PROJ_DURATION = { arc: 300, snap: 170, jab: 140, generic: 240 };
 
+// The .three-unit-anchor has transform:translate(-50%,-76%), so its CSS left/top
+// is the tile "foot" — ~90px below the top of the ~118px element. The portrait
+// sprite center sits ~31px from the top, so we shift projectile start/end up by
+// the difference to aim at the portrait rather than the name-plate / HP-bar area.
+const PROJ_PORTRAIT_Y_OFFSET = 59;
+
 export class CombatPanel {
   constructor(gm) {
     this.gm = gm;
@@ -232,7 +238,7 @@ export class CombatPanel {
     const pos = this._threeScene?.screenPositionFromCoord(coord) || { x: 50, y: 50 };
     const size = this._threeScene?.getViewportSize() || { width: 760, height: 430 };
     const x = (pos.x / 100) * size.width;
-    const y = (pos.y / 100) * size.height;
+    const y = (pos.y / 100) * size.height - PROJ_PORTRAIT_Y_OFFSET;
     return { x, y };
   }
 
