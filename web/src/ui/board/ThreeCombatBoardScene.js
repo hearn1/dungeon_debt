@@ -109,7 +109,23 @@ export class ThreeCombatBoardScene {
       this.camera.aspect = w / h;
       this.camera.updateProjectionMatrix();
     }
+    this._repositionAllOverlays();
     this._render();
+  }
+
+  // Re-place every unit overlay and tile glow after the camera projection changes.
+  _repositionAllOverlays() {
+    for (const entry of this.units.values()) {
+      const screen = this.screenPositionFromCoord(entry.coord);
+      entry.overlay.style.left = `${screen.x}%`;
+      entry.overlay.style.top  = `${screen.y}%`;
+    }
+    for (const [key, glow] of this._tileGlows.entries()) {
+      const [q, r] = key.split(",").map(Number);
+      const pos = this.screenPositionFromCoord({ q, r });
+      glow.style.left = `${pos.x}%`;
+      glow.style.top  = `${pos.y}%`;
+    }
   }
 
   addUnit(unitId, unit, coord, isPlayerSide) {
@@ -419,6 +435,20 @@ export class ThreeCombatBoardScene {
   }
 
   screenPositionFromCoord(coord) {
+    // When WebGL is active, project the tile's 3D world position through the
+    // camera so the DOM overlay stays exactly on top of the rendered tile
+    // regardless of viewport size or camera aspect ratio.
+    if (this.isWebGlActive && this.camera) {
+      const world = this.worldPositionFromCoord(coord);
+      const vec = new THREE.Vector3(world.x, 0, world.z);
+      vec.project(this.camera);
+      // NDC [-1,1] → percentage [0,100]; y is flipped (NDC +1 = screen top).
+      return {
+        x: (vec.x + 1) / 2 * 100,
+        y: (1 - vec.y) / 2 * 100,
+      };
+    }
+    // Fallback for non-WebGL (CSS-only) mode.
     const visualRow = GameRules.HexBoardWidth - 1 - coord.q;
     const xSteps = GameRules.HexBoardHeight - 1;
     const ySteps = GameRules.HexBoardWidth - 1;
